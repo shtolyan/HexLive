@@ -22,6 +22,22 @@ public static class AccountLoginPage
         return reader.ReadToEnd().Replace("\r\n", "\n").Replace('\r', '\n');
     });
 
+    public const string GooglePhotoOrigin = "https://lh3.googleusercontent.com";
+    private const string ArtPrefix = "HexLive.Accounts.Site.";
+
+    private static readonly Lazy<System.Collections.Generic.Dictionary<string, byte[]>> Art = new(() => {
+        var assembly = typeof(AccountLoginPage).Assembly;
+        var art = new System.Collections.Generic.Dictionary<string, byte[]>(StringComparer.Ordinal);
+        foreach (var resource in assembly.GetManifestResourceNames().Where(n => n.StartsWith(ArtPrefix, StringComparison.Ordinal)))
+        {
+            using var stream = assembly.GetManifestResourceStream(resource)!;
+            using var copy = new MemoryStream();
+            stream.CopyTo(copy);
+            art[resource[ArtPrefix.Length..]] = copy.ToArray();
+        }
+        return art;
+    });
+
     private static string Hashes(string tag) => string.Join(" ",
         Regex.Matches(Html.Value, $"<{tag}(?:\\s[^>]*)?>([\\s\\S]*?)</{tag}>")
             .Select(m => "'sha256-" + Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(m.Groups[1].Value))) + "'"));
@@ -37,7 +53,17 @@ public static class AccountLoginPage
             "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com " +
             "https://www.googleapis.com " + authOrigin +
             (options.FirebaseEmulator is { } emu ? " http://" + emu : "") + "; " +
-            "frame-src " + authOrigin + " https://accounts.google.com; img-src 'self' data:;";
+            "frame-src " + authOrigin + " https://accounts.google.com; " +
+            // The Google account photo on the profile card (§171.12).
+            "img-src 'self' data: " + GooglePhotoOrigin + ";";
+
+        // §171.12: the page's art, embedded like the page itself. Names are a closed set.
+        app.MapGet("/login/art/{name}", (HttpContext context, string name) => {
+            if (!Art.Value.TryGetValue(name, out var bytes)) return Results.NotFound();
+            context.Response.Headers.CacheControl = "public, max-age=86400";
+            context.Response.Headers.XContentTypeOptions = "nosniff";
+            return Results.Bytes(bytes, "image/webp");
+        });
 
         app.MapGet(AccountEndpoints.Prefix + "/client-config", (HttpContext context) => {
             context.Response.Headers.CacheControl = "no-store";

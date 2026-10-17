@@ -3,8 +3,11 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes">
+    <meta name="theme-color" content="#0b0f12">
     <title>{{{ PRODUCT_NAME }}}</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20d%3D%22M16%202l12.1%207v14L16%2030%203.9%2023V9z%22%20fill%3D%22%23f0b45c%22/%3E%3Cpath%20d%3D%22M16%208.5l6.5%203.75v7.5L16%2023.5l-6.5-3.75v-7.5z%22%20fill%3D%22%2313181c%22/%3E%3C/svg%3E">
+    <link rel="preload" as="image" href="TemplateData/loader-bg.webp">
     <link rel="stylesheet" href="TemplateData/style.css">
     <!-- §174: the game's windows are HTML over the canvas (ui/, HtmlUi.cs). -->
     <link rel="stylesheet" href="ui/theme.css">
@@ -18,34 +21,75 @@
 #endif
   </head>
   <body>
-    <div id="unity-container" class="unity-desktop">
+    <div id="unity-container">
       <!-- §174.3: canvas and HTML interface share one stage, so the stage —
            not the canvas — is what goes full screen. -->
       <div id="hex-stage">
         <canvas id="unity-canvas" width={{{ WIDTH }}} height={{{ HEIGHT }}} tabindex="-1"></canvas>
         <div id="hex-ui"></div>
-        <div id="unity-loading-bar">
-          <div id="hex-loading-title">{{{ PRODUCT_NAME }}}</div>
-          <div id="unity-progress-bar-empty">
-            <div id="unity-progress-bar-full"></div>
+        <!-- §174.9: the page before Unity starts — the title art Unity shows next,
+             so the hand-over is seamless. No Unity logo, no build name. -->
+        <div id="unity-loading-bar" role="status" aria-live="polite">
+          <img id="hex-loader-logo" src="TemplateData/logo.webp" alt="{{{ PRODUCT_NAME }}}" width="720" height="479">
+          <div id="hex-loader-bottom">
+            <div id="hex-loader-row">
+              <span id="hex-loader-status"></span>
+              <span id="hex-loader-percent">0%</span>
+            </div>
+            <div id="unity-progress-bar-empty">
+              <div id="unity-progress-bar-full"></div>
+            </div>
+            <div id="hex-loader-hint"></div>
           </div>
         </div>
         <div id="unity-warning"> </div>
-      </div>
-      <div id="unity-footer">
-        <div id="unity-build-title">{{{ PRODUCT_NAME }}}</div>
+        <div id="unity-footer">
+          <div id="unity-build-title"></div>
 #if SHOW_DIAGNOSTICS
-        <img id="diagnostics-icon" src="TemplateData/webmemd-icon.png">
+          <img id="diagnostics-icon" src="TemplateData/webmemd-icon.png">
 #endif
-        <button id="unity-fullscreen-button" type="button" aria-label="Fullscreen" title="Fullscreen">
-          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8V3h5M12 3h5v5M17 12v5h-5M8 17H3v-5"
-            stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
+          <button id="unity-fullscreen-button" type="button" aria-label="Fullscreen" title="Fullscreen">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8V3h5M12 3h5v5M17 12v5h-5M8 17H3v-5"
+              stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
       </div>
     </div>
     <script>
       var canvas = document.querySelector("#unity-canvas");
       var stage = document.querySelector("#hex-stage");
+      var hexUnity = null;
+
+      // §174.9: the page's few words, in the language the site remembered.
+      var hexLang = "ru";
+      try {
+        var savedLang = localStorage.getItem("hexlive.language");
+        hexLang = savedLang ? (savedLang === "en" ? "en" : "ru") : (/^ru/i.test(navigator.language || "ru") ? "ru" : "en");
+      } catch (e) {}
+      document.documentElement.lang = hexLang;
+      var hexText = {
+        download: ["Загружаем игру", "Downloading the game"],
+        start: ["Готовим остров", "Preparing the island"],
+        hint: ["Первый запуск дольше: дальше браузер помнит файлы.", "The first start takes longest; the browser keeps the files."],
+        fullscreen: ["Во весь экран", "Full screen"]
+      };
+      function hexT(key) { return hexText[key][hexLang === "en" ? 1 : 0]; }
+
+      // §174.9: without an account session the visitor belongs on the site
+      // (/login/), not in a 60 MB download that ends in "sign in". Only where
+      // this host has accounts at all; ?guest keeps anonymous watching.
+      function hexHasSession() {
+        try {
+          var s = JSON.parse(localStorage.getItem("hexlive.session") || "null");
+          return !!(s && typeof s.sessionToken === "string" && s.sessionToken &&
+            !(s.expiresAt && Date.parse(s.expiresAt) <= Date.now()));
+        } catch (e) { return false; }
+      }
+      function hexNeedsSignIn() {
+        if (hexHasSession() || /[?&]guest\b/.test(location.search)) return Promise.resolve(false);
+        return fetch("/api/accounts/v1/client-config", { cache: "no-store", credentials: "omit" })
+          .then(function (r) { return r.ok; }, function () { return false; });
+      }
 
       function unityShowBanner(msg, type) {
         var warningBanner = document.querySelector("#unity-warning");
@@ -72,9 +116,24 @@
         if (full) {
           (document.exitFullscreen || document.webkitExitFullscreen).call(document);
         } else {
-          (stage.requestFullscreen || stage.webkitRequestFullscreen).call(stage);
+          var request = stage.requestFullscreen || stage.webkitRequestFullscreen;
+          if (request) {
+            var pending = request.call(stage);
+            if (pending && pending.catch) pending.catch(function () {});
+          }
         }
       }
+
+      // §174.9: the game goes full screen with the player's first click —
+      // a browser allows it only inside a gesture. After the click, not on
+      // press: the stage grows and would move the button from under the
+      // pointer. Once per page: Esc stays the player's way out.
+      function hexFullscreenOnFirstClick(event) {
+        window.removeEventListener("click", hexFullscreenOnFirstClick, true);
+        if (event.target && event.target.closest && event.target.closest("#unity-footer")) return;
+        if (!(document.fullscreenElement || document.webkitFullscreenElement)) hexToggleFullscreen();
+      }
+      window.addEventListener("click", hexFullscreenOnFirstClick, true);
 
       var buildUrl = "Build";
       var loaderUrl = buildUrl + "/{{{ LOADER_FILENAME }}}";
@@ -98,16 +157,11 @@
         showBanner: unityShowBanner,
       };
 
+      // §174.9: the stage fills the browser window on every device; the
+      // canvas follows it through CSS and Unity matches its buffer to it.
       if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        var meta = document.createElement('meta');
-        meta.name = 'viewport';
-        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-        document.getElementsByTagName('head')[0].appendChild(meta);
         document.querySelector("#unity-container").className = "unity-mobile";
         canvas.className = "unity-mobile";
-      } else {
-        canvas.style.width = "{{{ WIDTH }}}px";
-        canvas.style.height = "{{{ HEIGHT }}}px";
       }
 
 #if BACKGROUND_FILENAME
@@ -115,32 +169,68 @@
 #endif
       // §168.11: Retina — рендер в CSS-пикселях.
       config.devicePixelRatio = 1;
+      // §174.9: the window is the canvas now, so the buffer is capped at the
+      // area of 1920×1080 — a 1440p or 4K screen is stretched by CSS, not
+      // rendered at full size (agreed with the WebGL performance owner,
+      // 18.10.2026). ?dpr= multiplies it for measurements (?rscale is URP renderScale). Unity copies
+      // config into its own Module, so after start the cap goes there.
+      var hexDprScale = Math.max(0.25, Math.min(2, parseFloat((/[?&]dpr=([0-9.]+)/.exec(location.search) || [])[1]) || 1));
+      function hexCapPixelRatio() {
+        var area = Math.max(1, stage.clientWidth * stage.clientHeight);
+        var ratio = Math.min(1, Math.sqrt(1920 * 1080 / area)) * hexDprScale;
+        config.devicePixelRatio = ratio;
+        if (hexUnity && hexUnity.Module) hexUnity.Module.devicePixelRatio = ratio;
+      }
+      hexCapPixelRatio();
+      window.addEventListener("resize", hexCapPixelRatio);
+      document.addEventListener("fullscreenchange", hexCapPixelRatio);
+      document.addEventListener("webkitfullscreenchange", hexCapPixelRatio);
+
       document.querySelector("#unity-loading-bar").style.display = "block";
       document.querySelector("#unity-fullscreen-button").onclick = hexToggleFullscreen;
+      document.querySelector("#unity-fullscreen-button").title = hexT("fullscreen");
+      document.querySelector("#hex-loader-status").textContent = hexT("download");
+      document.querySelector("#hex-loader-hint").textContent = hexT("hint");
 
-      var script = document.createElement("script");
-      script.src = loaderUrl;
-      script.onload = () => {
-        createUnityInstance(canvas, config, (progress) => {
-          document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
-        }).then((unityInstance) => {
-          document.querySelector("#unity-loading-bar").style.display = "none";
+      function hexProgress(progress) {
+        // Unity reports the download as 0–0.9 and the start-up as the rest.
+        var shown = Math.round(100 * Math.min(1, progress / 0.9));
+        document.querySelector("#unity-progress-bar-full").style.width = shown + "%";
+        document.querySelector("#hex-loader-percent").textContent = shown + "%";
+        document.querySelector("#hex-loader-status").textContent = hexT(progress < 0.9 ? "download" : "start");
+      }
+
+      function hexStartUnity() {
+        var script = document.createElement("script");
+        script.src = loaderUrl;
+        script.onload = () => {
+          createUnityInstance(canvas, config, hexProgress).then((unityInstance) => {
+            hexUnity = unityInstance;
+            hexCapPixelRatio();
+            var loading = document.querySelector("#unity-loading-bar");
+            loading.classList.add("hex-loader--done");
+            setTimeout(function () { loading.style.display = "none"; }, 450);
 #if SHOW_DIAGNOSTICS
-          document.getElementById("diagnostics-icon").onclick = () => {
-            unityDiagnostics.openDiagnosticsDiv(unityInstance.GetMetricsInfo);
-          };
+            document.getElementById("diagnostics-icon").onclick = () => {
+              unityDiagnostics.openDiagnosticsDiv(unityInstance.GetMetricsInfo);
+            };
 #endif
 #if DEVELOPMENT_PLAYER
-          var profile = unityProfiler.createButton(unityInstance);
-          profile.style.marginLeft = '5px';
-          document.querySelector("#unity-build-title").appendChild(profile);
+            var profile = unityProfiler.createButton(unityInstance);
+            profile.style.marginLeft = '5px';
+            document.querySelector("#unity-build-title").appendChild(profile);
 #endif
-        }).catch((message) => {
-          alert(message);
-        });
-      };
+          }).catch((message) => {
+            alert(message);
+          });
+        };
+        document.body.appendChild(script);
+      }
 
-      document.body.appendChild(script);
+      hexNeedsSignIn().then(function (signIn) {
+        if (signIn) location.replace("/login/");
+        else hexStartUnity();
+      });
     </script>
   </body>
 </html>

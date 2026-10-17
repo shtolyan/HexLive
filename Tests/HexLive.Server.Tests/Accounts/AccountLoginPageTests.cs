@@ -17,6 +17,7 @@ public sealed class AccountLoginPageTests
 {
     [TestCase("/login")]
     [TestCase("/login/")]
+    [TestCase("/login/art/hero.webp")]
     [TestCase("/api/accounts/v1/client-config")]
     public async Task WithoutProjectDoesNotMapPublicRoutes(string path)
     {
@@ -91,6 +92,40 @@ public sealed class AccountLoginPageTests
                 }
                 Assert.That(response.Headers.GetValues("Cross-Origin-Opener-Policy").Single(), Is.EqualTo("same-origin-allow-popups"));
                 Assert.That(response.Headers.GetValues("Referrer-Policy").Single(), Is.EqualTo("no-referrer"));
+            }
+        }
+        finally { await app.StopAsync(); }
+    }
+
+    [Test]
+    public async Task SiteArtIsEmbeddedClosedSetAndEveryPageReferenceResolves()
+    {
+        var options = ServerOptions.Parse(new[] { "--firebase-project", "fixture-login-project", "--firebase-api-key", "public-fixture-key" }, _ => null)!;
+        await using var app = AccountHttpTests.BuildApp();
+        AccountLoginPage.Map(app, options); await app.StartAsync();
+        try
+        {
+            using var client = new HttpClient { BaseAddress = new Uri(app.Urls.Single()) };
+            using var page = await client.GetAsync("/login/");
+            var html = await page.Content.ReadAsStringAsync();
+            Assert.That(page.Headers.GetValues("Content-Security-Policy").Single(),
+                Does.Contain("img-src 'self' data: " + AccountLoginPage.GooglePhotoOrigin + ";"));
+            // §171.12: every picture the page names is served by the same build.
+            var names = Regex.Matches(html, "/login/art/([a-z0-9-]+\\.webp)").Select(m => m.Groups[1].Value).Distinct().ToArray();
+            Assert.That(names, Is.SupersetOf(new[] { "hero.webp", "logo.webp" }));
+            foreach (var name in names)
+            {
+                using var art = await client.GetAsync("/login/art/" + name);
+                Assert.That(art.StatusCode, Is.EqualTo(HttpStatusCode.OK), name);
+                Assert.That(art.Content.Headers.ContentType!.MediaType, Is.EqualTo("image/webp"));
+                Assert.That(art.Headers.CacheControl!.Public, Is.True);
+                var bytes = await art.Content.ReadAsByteArrayAsync();
+                Assert.That(Encoding.ASCII.GetString(bytes, 0, 4) + Encoding.ASCII.GetString(bytes, 8, 4), Is.EqualTo("RIFFWEBP"), name);
+            }
+            foreach (var path in new[] { "/login/art/missing.webp", "/login/art/..%2Flogin.html", "/login/art/login.html" })
+            {
+                using var missing = await client.GetAsync(path);
+                Assert.That(missing.StatusCode, Is.EqualTo(HttpStatusCode.NotFound), path);
             }
         }
         finally { await app.StopAsync(); }

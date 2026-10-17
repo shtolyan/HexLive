@@ -3,104 +3,336 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark light">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0b0f12">
 <title>HexLive</title>
 <style>
-:root{color-scheme:dark;--bg:#12242b;--surface:#1b323b;--ink:#edf5f4;--muted:#b3c8ca;--line:#526d75;--accent:#b9dccc;--on-accent:#16372d;--error:#ffb6ac;--focus:#f5d38b}
-:root[data-theme="light"]{color-scheme:light;--bg:#eaf0f2;--surface:#fff;--ink:#173440;--muted:#4d6570;--line:#92a8b0;--accent:#285c4b;--on-accent:#fff;--error:#a62925;--focus:#805400}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:1rem/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,input,select{font:inherit}button,a,input,select{touch-action:manipulation}button,.play-link{border:1px solid var(--line);border-radius:8px;padding:.7rem 1rem;background:var(--surface);color:var(--ink);cursor:pointer;min-height:46px;text-align:center}button:hover,.play-link:hover{border-color:var(--accent)}button:disabled{opacity:.5;cursor:default}.primary,.play-link{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:650}a{color:inherit}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--focus);outline-offset:4px}h1,h2,h3,p{margin:0 0 1rem}h1{font:600 clamp(2rem,7vw,3.3rem)/1.1 Georgia,"Times New Roman",serif;max-width:16ch}h2{font-size:1.4rem;line-height:1.3}h3{font-size:1.1rem}header,.shell,footer{width:min(100% - 2rem,760px);margin-inline:auto}header{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:1.5rem 0;flex-wrap:wrap}.brand{font-size:1.35rem;font-weight:750;display:flex;gap:.6rem;align-items:center}.brand-mark{width:25px;height:29px;background:var(--accent);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}.settings{display:flex;gap:.8rem;align-items:end;flex-wrap:wrap}.settings label{font-size:.8rem}.settings select{padding:.35rem .6rem;min-height:40px}.intro{padding:1.8rem 0 1.2rem}.intro p{max-width:50ch;color:var(--muted)}.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:clamp(1.15rem,4vw,2.25rem);min-width:0}.actions{display:flex;gap:.7rem;flex-wrap:wrap;margin-top:1.4rem}.actions>*{flex:1;min-width:0}.provider-list{display:grid;gap:.75rem;margin-bottom:1.5rem}.divider{display:flex;align-items:center;gap:1rem;color:var(--muted);margin:1.5rem 0}.divider:before,.divider:after{content:"";height:1px;background:var(--line);flex:1}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.field{display:flex;flex-direction:column;gap:.4rem;margin-bottom:1rem;min-width:0}input:not([type=checkbox],[type=radio],[type=range]),select{width:100%;min-width:0;padding:.65rem .75rem;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)}input[type=range]{width:100%;accent-color:var(--accent);margin:.7rem 0;min-height:28px}input[type=checkbox],input[type=radio]{accent-color:var(--accent);width:20px;height:20px;flex-shrink:0}.muted,small{color:var(--muted)}small{display:block}.steps{display:flex;gap:.5rem;padding:0;margin:0 0 2rem;list-style:none;counter-reset:step}.steps li{flex:1;border-bottom:3px solid var(--line);padding:.3rem 0 .7rem;color:var(--muted);font-size:.85rem}.steps li:before{counter-increment:step;content:counter(step) ". "}.steps li[aria-current=step]{border-color:var(--accent);color:var(--ink);font-weight:650}fieldset{padding:0;margin:0 0 1.5rem;border:0;min-width:0}legend{font-size:1.1rem;font-weight:650;margin-bottom:.8rem}.choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.6rem}.choice{display:flex;gap:.65rem;align-items:center;padding:.65rem;border:1px solid var(--line);border-radius:7px;overflow-wrap:anywhere}.camp{align-items:start;margin-bottom:.7rem;padding:1rem}.camp input{margin-top:.25rem}.camp strong,.camp small{display:block}.slider-label{display:flex;justify-content:space-between;gap:1rem}.budget{position:sticky;top:0;background:var(--surface);padding:.7rem 0;z-index:1;font-weight:650;border-bottom:1px solid var(--line);margin-bottom:1rem}.error{color:var(--error)}#status{margin:1rem 0;overflow-wrap:anywhere}#status:empty{display:none}.play-link{display:inline-block;text-decoration:none;width:100%;margin-top:.5rem}.character-name{font:600 2rem/1.3 Georgia,serif;overflow-wrap:anywhere;margin:1rem 0}footer{padding:1.5rem 0 2rem;color:var(--muted);font-size:.85rem}main[aria-busy=true]{opacity:.65}[hidden]{display:none!important}@media(max-width:480px){.grid,.choices{grid-template-columns:1fr}.intro{padding-top:.8rem}.settings{gap:.5rem}.actions{flex-direction:column}.steps{gap:.4rem}.steps li{font-size:.8rem}}
+/* §171.12: the site in front of the game. Palette = ui/theme.css of the web client. */
+:root{color-scheme:dark;--bg:#0b0f12;--panel:rgb(19 24 28 / .78);--panel-solid:#13181c;--raised:#222a31;--hover:#2e3841;--stroke:rgb(255 255 255 / .12);--stroke-strong:rgb(255 255 255 / .22);--ink:#e7ecef;--muted:#9aa6ad;--gold:#f0b45c;--gold-hover:#f7c57a;--on-gold:#1a1206;--leaf:#c1db8d;--error:#ff9f8f;--focus:rgb(240 180 92 / .8);--radius:18px}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:1rem/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+[hidden]{display:none!important}
+h1,h2,h3,p{margin:0}
+
+/* ---- hero: the title art of the game, so the jump into Unity is seamless ---- */
+.hero{position:relative;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;isolation:isolate;overflow:hidden}
+.hero__art{position:absolute;inset:0;z-index:-2;background:#16202a url('/login/art/hero.webp') 68% 30%/cover no-repeat;animation:drift 40s ease-in-out infinite alternate}
+.hero:after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgb(11 15 18 / .94) 0%,rgb(11 15 18 / .78) 30%,rgb(11 15 18 / .2) 58%,rgb(11 15 18 / 0) 75%),linear-gradient(0deg,var(--bg) 0%,rgb(11 15 18 / 0) 26%),linear-gradient(180deg,rgb(11 15 18 / .55) 0%,rgb(11 15 18 / 0) 18%)}
+@keyframes drift{from{transform:scale(1.04) translate3d(0,0,0)}to{transform:scale(1.1) translate3d(-1.5%,-1%,0)}}
+.topbar{display:flex;align-items:center;justify-content:flex-end;gap:1rem;padding:clamp(1rem,2.5vw,1.6rem) clamp(1rem,4vw,3.5rem)}
+.logo{width:clamp(190px,18vw,270px);height:auto;display:block;margin:0 0 -.4rem -.4rem;filter:drop-shadow(0 6px 18px rgb(0 0 0 / .55))}
+.langs{display:flex;padding:3px;border-radius:999px;background:rgb(11 15 18 / .55);border:1px solid var(--stroke);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.langs button{border:0;background:none;padding:.35rem .8rem;border-radius:999px;font-size:.85rem;font-weight:650;color:var(--muted);cursor:pointer;min-height:34px}
+.langs button[aria-pressed=true]{background:var(--raised);color:var(--ink)}
+.hero__body{flex:1;display:flex;align-items:center;padding:0 clamp(1rem,4vw,3.5rem) clamp(2.5rem,6vh,4rem)}
+.hero__column{width:min(100%,500px);display:flex;flex-direction:column;gap:1.2rem;animation:rise .6s cubic-bezier(.2,.9,.3,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.eyebrow{display:inline-flex;align-items:center;gap:.55rem;font-size:.78rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+.eyebrow:before{content:"";width:12px;height:14px;background:var(--gold);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+h1{font-size:clamp(2.2rem,4.4vw,3.3rem);line-height:1.02;font-weight:850;letter-spacing:-.025em;text-wrap:balance;text-shadow:0 2px 24px rgb(0 0 0 / .45)}
+h1 em{font-style:normal;color:var(--gold)}
+.lead{color:#c5ced3;font-size:1.06rem;max-width:40ch;text-shadow:0 1px 12px rgb(0 0 0 / .6)}
+
+/* ---- the card: sign-in, then the player ---- */
+.card{position:relative;background:var(--panel);border:1px solid var(--stroke);border-radius:var(--radius);padding:1.5rem;box-shadow:0 1.5rem 3rem rgb(0 0 0 / .45),0 .25rem .75rem rgb(0 0 0 / .3);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);min-height:132px}
+.card h2{font-size:1.15rem;font-weight:750;margin-bottom:1rem}
+.card .lead{margin-bottom:1rem}
+.card h2:focus{outline:none}
+.btn{display:flex;align-items:center;justify-content:center;gap:.7rem;width:100%;min-height:50px;padding:.75rem 1.1rem;border-radius:12px;border:1px solid var(--stroke-strong);background:var(--raised);font-weight:650;cursor:pointer;text-decoration:none;transition:background .15s,transform .15s,box-shadow .15s,border-color .15s}
+.btn:hover{background:var(--hover)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.55;cursor:default}
+.btn svg{width:20px;height:20px;flex-shrink:0}
+.btn--google{background:#fff;color:#1f1f1f;border-color:#fff}
+.btn--google:hover{background:#f1f3f4;box-shadow:0 0 0 4px rgb(255 255 255 / .12)}
+.btn--apple{background:#000;color:#fff;border-color:#000}
+.btn--play{min-height:58px;font-size:1.15rem;font-weight:800;letter-spacing:.02em;background:linear-gradient(180deg,var(--gold-hover),var(--gold));color:var(--on-gold);border-color:var(--gold);box-shadow:0 10px 28px rgb(240 180 92 / .28)}
+.btn--play:hover{background:linear-gradient(180deg,#fbd394,var(--gold-hover));box-shadow:0 12px 34px rgb(240 180 92 / .42);transform:translateY(-1px)}
+.btn--play svg{width:22px;height:22px}
+.btn--ghost{background:none;border-color:transparent;color:var(--muted);min-height:40px;font-weight:600}
+.btn--ghost:hover{background:rgb(255 255 255 / .06);color:var(--ink)}
+.btn--primary{background:var(--gold);color:var(--on-gold);border-color:var(--gold)}
+.btn--primary:hover{background:var(--gold-hover)}
+.stack{display:grid;gap:.7rem}
+.row{display:flex;gap:.6rem}.row>*{flex:1;min-width:0}
+.email{margin-top:1rem;border-top:1px solid var(--stroke);padding-top:.9rem}
+.email summary{cursor:pointer;color:var(--muted);font-size:.92rem;list-style:none;display:flex;align-items:center;justify-content:center;gap:.45rem;padding:.25rem;border-radius:8px}
+.email summary::-webkit-details-marker{display:none}
+.email summary:after{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .2s}
+.email[open] summary:after{transform:rotate(225deg) translateY(-2px)}
+.email summary:hover{color:var(--ink)}
+.email form{display:grid;gap:.8rem;margin-top:.9rem}
+.field{display:grid;gap:.3rem}
+.field label{font-size:.82rem;color:var(--muted)}
+.field input{width:100%;min-height:46px;padding:.6rem .8rem;border-radius:10px;border:1px solid var(--stroke-strong);background:rgb(11 15 18 / .6)}
+.field input:focus{border-color:var(--gold);outline:none;box-shadow:0 0 0 3px rgb(240 180 92 / .25)}
+small{display:block;color:var(--muted);font-size:.8rem}
+.linkish{background:none;border:0;padding:.2rem;color:var(--muted);font-size:.85rem;text-decoration:underline;text-underline-offset:3px;cursor:pointer;justify-self:start}
+.linkish:hover{color:var(--ink)}
+#status{font-size:.92rem;padding:.7rem .9rem;border-radius:10px;background:rgb(255 255 255 / .06);border:1px solid var(--stroke);overflow-wrap:anywhere}
+#status:empty{display:none}
+#status.error{color:var(--error);border-color:rgb(255 159 143 / .35);background:rgb(120 30 28 / .25)}
+
+/* the spinner that turns while Google answers */
+.busy{position:absolute;inset:0;z-index:2;display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem;border-radius:inherit;background:rgb(15 20 24 / .86);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);text-align:center;padding:1rem}
+.card[aria-busy=true] .busy{display:flex;animation:fade .2s ease-out}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.spinner{position:relative;width:56px;height:56px}
+.spinner i{position:absolute;inset:0;background:conic-gradient(from 0deg,rgb(240 180 92 / 0),var(--gold));clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);animation:spin 1.1s linear infinite}
+.spinner:after{content:"";position:absolute;inset:6px;background:var(--panel-solid);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.spinner b{position:absolute;inset:19px;z-index:1;background:var(--gold);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);animation:pulse 1.1s ease-in-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{50%{transform:scale(.7);opacity:.6}}
+.busy p{color:var(--ink);font-weight:600}
+
+/* the signed-in player */
+.profile{display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem}
+.avatar{position:relative;width:64px;height:72px;flex-shrink:0;display:grid;place-items:center;background:linear-gradient(135deg,var(--gold),#c97f2c);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.avatar img,.avatar span{width:58px;height:66px;object-fit:cover;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:var(--raised);display:grid;place-items:center;font-weight:800;font-size:1.5rem;color:var(--gold)}
+.who{min-width:0}
+.who__hello{font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+.who__name{font-size:1.3rem;font-weight:800;line-height:1.2;overflow-wrap:anywhere}
+.who__mail{color:var(--muted);font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:.35rem;margin-top:.35rem;font-size:.75rem;font-weight:700;padding:.15rem .55rem;border-radius:999px;background:rgb(255 255 255 / .08);border:1px solid var(--stroke);color:var(--muted)}
+.chip svg{width:12px;height:12px}
+.hero-line{display:flex;align-items:center;gap:.8rem;padding:.85rem 1rem;margin-bottom:1rem;border-radius:12px;background:rgb(255 255 255 / .05);border:1px solid var(--stroke)}
+.hero-line__dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;background:var(--muted)}
+.hero-line[data-state=alive] .hero-line__dot{background:var(--leaf);box-shadow:0 0 0 4px rgb(193 219 141 / .18);animation:breathe 2.4s ease-in-out infinite}
+.hero-line[data-state=dead] .hero-line__dot{background:var(--error)}
+@keyframes breathe{50%{box-shadow:0 0 0 7px rgb(193 219 141 / .06)}}
+.hero-line small{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.hero-line strong{display:block;font-size:1.05rem;overflow-wrap:anywhere}
+.muted{display:block;color:var(--muted);font-size:.9rem}
+.after{display:flex;justify-content:center;margin-top:.6rem}
+.skeleton{display:grid;place-items:center;min-height:100px}
+.signed-in .hero__column>.lead{display:none}
+
+/* ---- below the fold: three pictures, a line each ---- */
+.features{padding:clamp(2.5rem,6vw,5rem) clamp(1rem,4vw,3.5rem) 2rem;position:relative}
+.features__grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(1rem,2vw,1.6rem);max-width:1240px;margin:0 auto}
+.feature{border-radius:var(--radius);overflow:hidden;background:var(--panel-solid);border:1px solid var(--stroke);transition:transform .25s,border-color .25s;box-shadow:0 1rem 2.5rem rgb(0 0 0 / .35)}
+.feature:hover{transform:translateY(-4px);border-color:var(--stroke-strong)}
+.feature__img{aspect-ratio:4/3;background:#1a2229 center/cover no-repeat}
+.feature__img--map{background-image:url('/login/art/island-map.webp')}
+.feature__img--camp{background-image:url('/login/art/night-camp.webp')}
+.feature__img--wild{background-image:url('/login/art/wild-jungle.webp')}
+.feature__text{padding:1.1rem 1.25rem 1.3rem}
+.feature h3{font-size:1.1rem;font-weight:800;margin-bottom:.3rem}
+.feature p{color:var(--muted);font-size:.95rem}
+.band{margin:clamp(2.5rem,6vw,4.5rem) auto 0;max-width:1240px;border-radius:calc(var(--radius) + 6px);overflow:hidden;position:relative;min-height:260px;display:flex;align-items:flex-start;justify-content:center;text-align:center;padding:2.2rem 2rem;background:#123 url('/login/art/island.webp') center 65%/cover no-repeat}
+.band:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgb(11 15 18 / .62),rgb(11 15 18 / 0) 60%)}
+.band p{position:relative;font-size:clamp(1.3rem,2.6vw,2rem);font-weight:850;letter-spacing:-.01em;text-shadow:0 2px 18px rgb(0 0 0 / .55);max-width:24ch}
+footer{text-align:center;color:var(--muted);font-size:.85rem;padding:2rem 1rem 2.5rem}
+@media(max-width:860px){
+ .hero__art{background-position:62% 20%}
+ .hero:after{background:linear-gradient(0deg,var(--bg) 0%,rgb(11 15 18 / .9) 45%,rgb(11 15 18 / .35) 75%,rgb(11 15 18 / .5) 100%)}
+ .hero__body{align-items:flex-end}
+ .features__grid{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
-<header><div class="brand"><span class="brand-mark" aria-hidden="true"></span>HexLive</div><div class="settings"><label><span data-i18n="language"></span><select id="language"><option value="ru" data-i18n="russian"></option><option value="en" data-i18n="english"></option></select></label><label><span data-i18n="theme"></span><select id="theme"><option value="dark" data-i18n="dark"></option><option value="light" data-i18n="light"></option></select></label></div></header>
-<div class="shell"><div class="intro"><h1 data-i18n="title"></h1><p data-i18n="intro"></p></div><div id="status" role="status" aria-live="polite" aria-atomic="true"></div><main id="main" class="panel" aria-busy="true"></main></div>
+<section class="hero">
+ <div class="hero__art" aria-hidden="true"></div>
+ <header class="topbar">
+  <div class="langs" role="group" aria-label="Language / Язык">
+   <button type="button" id="lang-ru" lang="ru">RU</button>
+   <button type="button" id="lang-en" lang="en">EN</button>
+  </div>
+ </header>
+ <div class="hero__body">
+  <div class="hero__column">
+   <img class="logo" src="/login/art/logo.webp" alt="HexLive" width="720" height="479">
+   <span class="eyebrow" data-i18n="eyebrow"></span>
+   <h1><span data-i18n="title"></span> <em data-i18n="titleAccent"></em></h1>
+   <p class="lead" data-i18n="intro"></p>
+   <div id="status" role="status" aria-live="polite" aria-atomic="true"></div>
+   <div class="card" id="card" aria-busy="true">
+    <main id="main"></main>
+    <div class="busy" aria-hidden="true"><div class="spinner"><i></i><b></b></div><p id="busy-text"></p></div>
+   </div>
+  </div>
+ </div>
+</section>
+<section class="features" data-i18n-label="featuresTitle">
+ <div class="features__grid">
+  <article class="feature"><div class="feature__img feature__img--map" role="img" data-i18n-label="f1"></div><div class="feature__text"><h3 data-i18n="f1"></h3><p data-i18n="f1text"></p></div></article>
+  <article class="feature"><div class="feature__img feature__img--camp" role="img" data-i18n-label="f2"></div><div class="feature__text"><h3 data-i18n="f2"></h3><p data-i18n="f2text"></p></div></article>
+  <article class="feature"><div class="feature__img feature__img--wild" role="img" data-i18n-label="f3"></div><div class="feature__text"><h3 data-i18n="f3"></h3><p data-i18n="f3text"></p></div></article>
+ </div>
+ <div class="band"><p data-i18n="band"></p></div>
+</section>
 <footer data-i18n="footer"></footer>
+<template id="icon-google"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg></template>
+<template id="icon-apple"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.7-1-2.7-4.1zM13.9 5c.7-.9 1.2-2 1.1-3.2-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.1 1.1.1 2.3-.6 3-1.5z"/></svg></template>
+<template id="icon-play"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5.2v13.6c0 .8.9 1.3 1.6.9l10.6-6.8c.6-.4.6-1.3 0-1.7L9.6 4.3C8.9 3.9 8 4.4 8 5.2z"/></svg></template>
 <script type="module">
-// §171.12. All page copy (including API error/option labels) lives in this dictionary.
+// §171.12. All page copy lives in this dictionary.
 const strings = {
- russian:['Русский','Русский'],english:['English','English'],language:['Язык','Language'],theme:['Тема','Theme'],dark:['Тёмная','Dark'],light:['Светлая','Light'],
- title:['Ваш человек на острове','Your person on the island'],intro:['Войдите, создайте персонажа и выберите лагерь. Его жизнь продолжится, даже когда вы выйдете из игры.','Sign in, create a character and choose a camp. Their life continues even while you are away.'],footer:['Один аккаунт — один живой персонаж.','One account, one living character.'],
- loading:['Загружаем…','Loading…'],login:['Войти','Sign in'],register:['Создать аккаунт','Create account'],google:['Войти через Google','Continue with Google'],apple:['Войти через Apple','Continue with Apple'],or:['или по почте','or use email'],email:['Электронная почта','Email'],password:['Пароль','Password'],passwordHint:['Для нового аккаунта — не менее 6 символов.','Use at least 6 characters for a new account.'],reset:['Сбросить пароль','Reset password'],resetSent:['Если такой аккаунт существует, письмо для сброса пароля отправлено. Проверьте также спам.','If this account exists, a password reset email has been sent. Check your spam folder too.'],verifyTitle:['Подтвердите почту','Verify your email'],email_not_verified:['Откройте письмо и подтвердите адрес. Без подтверждения почты войти в игру нельзя. Затем нажмите «Я подтвердил почту».','Open the email and verify your address before entering the game. Then choose “I verified my email”.'],resend:['Отправить письмо ещё раз','Resend verification email'],verified:['Я подтвердил почту','I verified my email'],sent:['Письмо отправлено. Проверьте входящие и спам.','Email sent. Check your inbox and spam folder.'],logout:['Выйти','Sign out'],signedOut:['Вы вышли из аккаунта.','You are signed out.'],play:['Играть','Play'],ready:['Вход выполнен','Signed in'],createInGame:['Внешность, умения и лагерь выбираются внутри игры.','Choose your appearance, abilities and camp inside the game.'],refresh:['Обновить','Refresh'],retry:['Повторить','Retry'],network:['Не удалось связаться с сервером. Проверьте соединение и повторите.','Could not reach the server. Check your connection and retry.'],storage:['Браузер не разрешает сохранять данные. Разрешите хранение данных для этого сайта и обновите страницу.','Your browser is blocking storage. Allow site storage and reload this page.'],configuration:['Вход пока не настроен на этом сервере.','Sign-in has not been configured on this server yet.'],sessionExpired:['Сессия истекла или отозвана. Войдите снова.','Your session expired or was revoked. Sign in again.'],invalid_credentials:['Не удалось подтвердить вход. Войдите снова.','Could not verify your sign-in. Please sign in again.'],try_later:['Сервер временно недоступен или слишком много попыток. Подождите минуту и повторите.','The server is unavailable or there have been too many attempts. Wait a minute and retry.'],
- appearance:['Внешность','Appearance'],abilities:['Характер и умения','Traits and abilities'],camp:['Лагерь','Camp'],create:['Создать персонажа','Create character'],next:['Далее','Next'],back:['Назад','Back'],name:['Имя','Name'],body:['Тело','Body'],female:['Женское','Female'],male:['Мужское','Male'],skin:['Кожа','Skin'],hair:['Причёска','Hair'],hairColour:['Цвет волос','Hair colour'],eyes:['Глаза','Eyes'],voice:['Голос','Voice'],none:['Без волос','No hair'],prototype:['Авторский цвет','Original colour'],original:['Авторский вариант','Original appearance'],traits:['Черты характера','Personality traits'],traitHint:['Можно оставить без особых черт. Противоположные черты не сочетаются.','You may leave all traits unselected. Opposite traits cannot be combined.'],attributes:['Характеристики','Attributes'],skills:['Навыки','Skills'],remaining:['Осталось очков: {left} из {total}','Points remaining: {left} of {total}'],budgetHint:['Значения от 0 до 1. Оставшиеся очки можно не тратить.','Values range from 0 to 1. You do not have to spend every point.'],budget:['Превышен бюджет очков. Уменьшите значения ползунков.','Point budget exceeded. Reduce the slider values.'],nameRequired:['Введите имя персонажа (до 64 символов).','Enter a character name (up to 64 characters).'],noBodies:['На сервере пока нет доступных моделей персонажа. Попробуйте обновить позже.','No character models are available on this server yet. Try refreshing later.'],noCamps:['Сейчас нет свободного лагеря. Попробуйте обновить позже.','No camp has space right now. Try refreshing later.'],'lobby.camp':['Лагерь {number}','Camp {number}'],campFallback:['Лагерь','Camp'],space:['Есть место','Space available'],full:['Нет мест','Full'],campHint:['Вы выбираете место прибытия. Сведения о жителях лагеря не раскрываются.','Choose where to arrive. Camp residents are not shown.'],character_died_create_new:['Ваш персонаж умер. Создайте нового, чтобы вернуться в игру.','Your character has died. Create a new one to return to the game.'],pending:['Предыдущая попытка ещё не подтверждена. Повторите её: второй персонаж не будет создан.','Your previous attempt is not confirmed yet. Retry it safely: it will not create a second character.'],retryCreation:['Повторить создание','Retry creation'],created:['Персонаж создан.','Character created.'],character_alive:['У вас уже есть живой персонаж. Обновите страницу персонажа.','You already have a living character. Refresh your character page.'],camp_full:['В лагере больше нет места. Выберите другой или обновите список.','This camp is now full. Choose another camp or refresh the list.'],camp_unavailable:['Лагерь недоступен. Обновите список лагерей.','This camp is unavailable. Refresh the camp list.'],no_free_spawn:['В лагере пока нет свободного места для появления. Повторите позже.','There is no free arrival spot in this camp. Retry later.'],world_completed:['Этот мир завершён. Дождитесь нового мира.','This world has ended. Wait for a new world.'],creation_history_full:['На этом сервере пока нельзя создать нового персонажа.','This server cannot create another character right now.'],invalid_request:['Не удалось отправить параметры персонажа. Обновите страницу и повторите.','Could not submit your character settings. Reload and retry.'],validation_failed:['Проверьте имя, внешность, черты и бюджеты очков.','Check your name, appearance, traits and point budgets.'],unknownError:['Не удалось выполнить действие. Повторите позже.','This action could not be completed. Try again later.'],
- 'auth/invalid-email':['Проверьте адрес почты.','Check your email address.'],'auth/invalid-credential':['Неверная почта или пароль.','Incorrect email or password.'],'auth/wrong-password':['Неверная почта или пароль.','Incorrect email or password.'],'auth/user-not-found':['Неверная почта или пароль.','Incorrect email or password.'],'auth/email-already-in-use':['Этот адрес уже зарегистрирован. Войдите или сбросьте пароль.','This email is already registered. Sign in or reset your password.'],'auth/weak-password':['Пароль слишком короткий. Нужно не менее 6 символов.','Your password is too short. Use at least 6 characters.'],'auth/too-many-requests':['Слишком много попыток. Подождите и повторите.','Too many attempts. Wait and try again.'],'auth/network-request-failed':['Не удалось связаться со службой входа. Проверьте соединение.','Could not reach the sign-in service. Check your connection.'],'auth/popup-closed-by-user':['Окно входа закрыто. Можно попробовать снова.','The sign-in window was closed. You can try again.'],'auth/cancelled-popup-request':['Окно входа уже открыто.','A sign-in window is already open.'],'auth/unauthorized-domain':['Вход с этого адреса сайта ещё не разрешён. Сообщите администратору.','Sign-in is not enabled for this site address. Contact the administrator.'],'auth/operation-not-allowed':['Этот способ входа пока не включён.','This sign-in method is not enabled yet.'],'auth/account-exists-with-different-credential':['Для этой почты уже есть другой способ входа. Используйте его.','This email already uses a different sign-in method. Use that method.'],'auth/user-disabled':['Вход в этот аккаунт отключён.','Sign-in for this account has been disabled.'],redirectFailed:['Браузер не завершил вход с перенаправлением. Разрешите всплывающие окна и попробуйте снова или войдите по почте.','Your browser could not finish redirect sign-in. Allow popups and retry, or sign in with email.'],
- Strength:['Сила','Strength'],Agility:['Ловкость','Agility'],Endurance:['Выносливость','Endurance'],Toughness:['Стойкость','Toughness'],Hardiness:['Неприхотливость','Hardiness'],Wits:['Смекалка','Wits'],Perception:['Восприятие','Perception'],Combat:['Бой','Combat'],Harvesting:['Добыча','Harvesting'],Crafting:['Ремесло','Crafting'],Building:['Строительство','Building'],Cooking:['Готовка','Cooking'],Medicine:['Врачевание','Medicine'],Survival:['Выживание','Survival'],Social:['Общение','Social'],Athletics:['Атлетика','Athletics'],Abuser:['Задира','Bully'],Slob:['Неряха','Slob'],Neat:['Чистюля','Neat'],Lazy:['Ленивый','Lazy'],Diligent:['Трудолюбивый','Diligent'],Sleepyhead:['Соня','Sleepyhead'],Coward:['Трусливый','Coward'],Brave:['Храбрый','Brave'],
- Marta:['Марта','Marta'],Molly:['Молли','Molly'],Jana:['Яна','Jana'],Jolly:['Джолли','Jolly'],Masha:['Маша','Masha'],Rita:['Рита','Rita'],Kshishtof:['Кшиштоф','Kshishtof'],Tonny:['Тонни','Tonny'],marta:['Марта','Marta'],molly:['Молли','Molly'],jana:['Яна','Jana'],jolly:['Джолли','Jolly'],masha:['Маша','Masha'],kshishtof:['Кшиштоф','Kshishtof'],blue:['Голубые','Blue'],green:['Зелёные','Green'],brown:['Карие','Brown'],grey:['Серые','Grey'],black:['Чёрный','Black'],blonde:['Светлый','Blonde'],red:['Рыжий','Red']
+ eyebrow:['Онлайн-выживание на острове','Online island survival'],
+ title:['Добро пожаловать','Welcome'],titleAccent:['на остров','to the island'],
+ intro:['Ваш человек живёт в общем мире: строит, охотится, дружит и ссорится — даже когда вы не в игре.','Your person lives in a shared world: building, hunting, making friends and enemies — even while you are away.'],
+ featuresTitle:['Об игре','About the game'],
+ f1:['Живой остров','A living island'],f1text:['Шесть лагерей, леса, реки и скалы. Мир идёт круглые сутки.','Six camps, jungles, rivers and cliffs. The world never stops.'],
+ f2:['Свой лагерь','Your camp'],f2text:['Костёр, хижины, запасы и люди, которым нужно доверять.','Fires, huts, stores — and people you have to trust.'],
+ f3:['Дикая природа','The wild'],f3text:['Волки, голод, раны и ночь. Одна жизнь у каждого героя.','Wolves, hunger, wounds and night. Every hero has one life.'],
+ band:['Один аккаунт — один живой персонаж','One account, one living character'],
+ footer:['© HexLive · Мир живёт, пока вы спите','© HexLive · The world lives while you sleep'],
+ loading:['Загружаем…','Loading…'],signIn:['Вход в игру','Sign in to play'],google:['Войти через Google','Continue with Google'],apple:['Войти через Apple','Continue with Apple'],
+ or:['Войти по почте','Use email instead'],email:['Электронная почта','Email'],password:['Пароль','Password'],passwordHint:['Для нового аккаунта — не менее 6 символов.','Use at least 6 characters for a new account.'],
+ login:['Войти','Sign in'],register:['Создать аккаунт','Create account'],reset:['Забыли пароль?','Forgot password?'],
+ resetSent:['Если такой аккаунт существует, письмо для сброса пароля отправлено. Проверьте также спам.','If this account exists, a password reset email has been sent. Check your spam folder too.'],
+ verifyTitle:['Подтвердите почту','Verify your email'],email_not_verified:['Откройте письмо и подтвердите адрес. Без подтверждения почты войти в игру нельзя. Затем нажмите «Я подтвердил почту».','Open the email and verify your address before entering the game. Then choose “I verified my email”.'],
+ resend:['Отправить письмо ещё раз','Resend verification email'],verified:['Я подтвердил почту','I verified my email'],sent:['Письмо отправлено. Проверьте входящие и спам.','Email sent. Check your inbox and spam folder.'],
+ waitGoogle:['Ждём ответа Google…','Waiting for Google…'],waitApple:['Ждём ответа Apple…','Waiting for Apple…'],entering:['Входим в мир…','Entering the world…'],working:['Секунду…','One moment…'],
+ hello:['С возвращением','Welcome back'],player:['Игрок','Player'],viaGoogle:['Google','Google'],viaApple:['Apple','Apple'],viaPassword:['Почта','Email'],
+ yourHero:['Ваш персонаж','Your character'],alive:['живёт на острове','lives on the island'],noHero:['Персонажа ещё нет','No character yet'],noHeroHint:['Внешность, умения и лагерь выберете в игре.','You will choose looks, skills and camp in the game.'],
+ diedHero:['Персонаж погиб','Your character died'],
+ logout:['Выйти','Sign out'],signedOut:['Вы вышли из аккаунта.','You are signed out.'],play:['Играть','Play'],retry:['Повторить','Retry'],
+ network:['Не удалось связаться с сервером. Проверьте соединение и повторите.','Could not reach the server. Check your connection and retry.'],storage:['Браузер не разрешает сохранять данные. Разрешите хранение данных для этого сайта и обновите страницу.','Your browser is blocking storage. Allow site storage and reload this page.'],configuration:['Вход пока не настроен на этом сервере.','Sign-in has not been configured on this server yet.'],sessionExpired:['Сессия истекла или отозвана. Войдите снова.','Your session expired or was revoked. Sign in again.'],invalid_credentials:['Не удалось подтвердить вход. Войдите снова.','Could not verify your sign-in. Please sign in again.'],try_later:['Сервер временно недоступен или слишком много попыток. Подождите минуту и повторите.','The server is unavailable or there have been too many attempts. Wait a minute and retry.'],
+ character_died_create_new:['Ваш персонаж умер. Создайте нового в игре, чтобы вернуться на остров.','Your character has died. Create a new one in the game to return to the island.'],unknownError:['Не удалось выполнить действие. Повторите позже.','This action could not be completed. Try again later.'],
+ 'auth/invalid-email':['Проверьте адрес почты.','Check your email address.'],'auth/invalid-credential':['Неверная почта или пароль.','Incorrect email or password.'],'auth/wrong-password':['Неверная почта или пароль.','Incorrect email or password.'],'auth/user-not-found':['Неверная почта или пароль.','Incorrect email or password.'],'auth/email-already-in-use':['Этот адрес уже зарегистрирован. Войдите или сбросьте пароль.','This email is already registered. Sign in or reset your password.'],'auth/weak-password':['Пароль слишком короткий. Нужно не менее 6 символов.','Your password is too short. Use at least 6 characters.'],'auth/too-many-requests':['Слишком много попыток. Подождите и повторите.','Too many attempts. Wait and try again.'],'auth/network-request-failed':['Не удалось связаться со службой входа. Проверьте соединение.','Could not reach the sign-in service. Check your connection.'],'auth/popup-closed-by-user':['Окно входа закрыто. Можно попробовать снова.','The sign-in window was closed. You can try again.'],'auth/cancelled-popup-request':['Окно входа уже открыто.','A sign-in window is already open.'],'auth/unauthorized-domain':['Вход с этого адреса сайта ещё не разрешён. Сообщите администратору.','Sign-in is not enabled for this site address. Contact the administrator.'],'auth/operation-not-allowed':['Этот способ входа пока не включён.','This sign-in method is not enabled yet.'],'auth/account-exists-with-different-credential':['Для этой почты уже есть другой способ входа. Используйте его.','This email already uses a different sign-in method. Use that method.'],'auth/user-disabled':['Вход в этот аккаунт отключён.','Sign-in for this account has been disabled.'],redirectFailed:['Браузер не завершил вход с перенаправлением. Разрешите всплывающие окна и попробуйте снова или войдите по почте.','Your browser could not finish redirect sign-in. Allow popups and retry, or sign in with email.']
 };
 const $ = id => document.getElementById(id);
 const SESSION_KEY = 'hexlive.session';
-let lang='ru', theme=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';
-try { lang=localStorage.getItem('hexlive.language')==='en'?'en':'ru'; theme=localStorage.getItem('hexlive.theme')||theme; } catch {}
-const t=(key,args={})=>Object.entries(args).reduce((s,[k,v])=>s.replaceAll('{'+k+'}',String(v)),strings[key]?.[lang==='en'?1:0]??key);
-let config, sdk, auth, session=null, me=null, view='loading', busy=false, notice='', noticeError=false;
-const main=$('main');
-function el(tag,text,attrs={}) { const node=document.createElement(tag); if(text!==null)node.textContent=text; for(const [k,v]of Object.entries(attrs))node.setAttribute(k,String(v)); return node; }
-function button(key,fn,primary=false) { const b=el('button',t(key),{type:'button',class:primary?'primary':''}); b.addEventListener('click',()=>run(fn)); return b; }
-function message(key='',error=false) { notice=key;noticeError=error;$('status').textContent=key?t(key):'';$('status').className=error?'error':''; }
-function storageGet(key) {
- let raw;try { raw=localStorage.getItem(key); } catch { throw {code:'storage'}; }
- try { return JSON.parse(raw||'null'); } catch { storageSet(key,null);return null; }
+// Display-only copy of the Firebase profile, so a returning player sees their card without loading Firebase.
+const PROFILE_KEY = 'hexlive.profile';
+const PHOTO_ORIGIN = 'https://lh3.googleusercontent.com/';
+let lang = 'ru';
+try { const saved = localStorage.getItem('hexlive.language'); lang = saved ? (saved === 'en' ? 'en' : 'ru') : ((navigator.language || 'ru').startsWith('ru') ? 'ru' : 'en'); } catch {}
+const t = (key, args = {}) => Object.entries(args).reduce((s, [k, v]) => s.replaceAll('{' + k + '}', String(v)), strings[key]?.[lang === 'en' ? 1 : 0] ?? key);
+let config, sdk, auth, session = null, me = null, profile = null, view = 'loading', busy = false, notice = '', noticeError = false;
+const main = $('main'), card = $('card');
+function el(tag, text, attrs = {}) { const node = document.createElement(tag); if (text !== null) node.textContent = text; for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, String(v)); return node; }
+function icon(name) { return $('icon-' + name).content.firstElementChild.cloneNode(true); }
+function button(key, fn, cls = 'btn', iconName = null, phase = 'working') {
+ const b = el('button', null, { type: 'button', class: cls });
+ if (iconName) b.append(icon(iconName));
+ b.append(el('span', t(key)));
+ b.addEventListener('click', () => run(fn, phase));
+ return b;
 }
-function storageSet(key,value) { try { value===null?localStorage.removeItem(key):localStorage.setItem(key,JSON.stringify(value)); } catch { throw {code:'storage'}; } }
-function localize() { document.documentElement.lang=lang; document.documentElement.dataset.theme=theme==='light'?'light':'dark';$('language').value=lang;$('theme').value=theme;document.querySelectorAll('[data-i18n]').forEach(n=>n.textContent=t(n.dataset.i18n));message(notice,noticeError);if(auth)auth.languageCode=lang;render(); }
-$('language').addEventListener('change',()=>{lang=$('language').value;try{localStorage.setItem('hexlive.language',lang);}catch{}localize();});
-$('theme').addEventListener('change',()=>{theme=$('theme').value;try{localStorage.setItem('hexlive.theme',theme);}catch{}localize();});
-async function run(fn) { if(busy)return;const restoreFocus=main.contains(document.activeElement);busy=true;main.inert=true;main.setAttribute('aria-busy','true');message();try{await fn();}catch(e){if(e.code==='email_not_verified')view='verify';message(strings[e.code]?e.code:'unknownError',true);}finally{busy=false;main.inert=false;main.setAttribute('aria-busy','false');render();if(restoreFocus)main.querySelector('h2')?.focus();} }
-async function api(path,method='GET',body,authorized=true) {
- const headers={}; if(body!==undefined)headers['Content-Type']='application/json';if(authorized&&session)headers.Authorization='Bearer '+session.sessionToken;
- let response;try{response=await fetch('/api/accounts/v1'+path,{method,headers,body:body===undefined?undefined:JSON.stringify(body),cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(20000)});}catch{throw {code:'network'};}
- let data=null;try{if(response.status!==204)data=await response.json();}catch{throw {code:'network'};}
- if(!response.ok){if(response.status===401&&authorized){storageSet(SESSION_KEY,null);session=null;view='auth';throw{code:'sessionExpired'};}throw{code:data?.error||'unknownError',status:response.status};}return data;
+function message(key = '', error = false) { notice = key; noticeError = error; $('status').textContent = key ? t(key) : ''; $('status').className = error ? 'error' : ''; }
+function phase(key) { $('busy-text').textContent = t(key); }
+function storageGet(key) {
+ let raw; try { raw = localStorage.getItem(key); } catch { throw { code: 'storage' }; }
+ try { return JSON.parse(raw || 'null'); } catch { storageSet(key, null); return null; }
+}
+function storageSet(key, value) { try { value === null ? localStorage.removeItem(key) : localStorage.setItem(key, JSON.stringify(value)); } catch { throw { code: 'storage' }; } }
+function localize() {
+ document.documentElement.lang = lang;
+ for (const code of ['ru', 'en']) $('lang-' + code).setAttribute('aria-pressed', String(lang === code));
+ document.querySelectorAll('[data-i18n]').forEach(n => n.textContent = t(n.dataset.i18n));
+ document.querySelectorAll('[data-i18n-label]').forEach(n => n.setAttribute('aria-label', t(n.dataset.i18nLabel)));
+ message(notice, noticeError); if (auth) auth.languageCode = lang; render();
+}
+for (const code of ['ru', 'en']) $('lang-' + code).addEventListener('click', () => { lang = code; try { localStorage.setItem('hexlive.language', lang); } catch {} localize(); });
+async function run(fn, phaseKey = 'working') {
+ if (busy) return; const restoreFocus = card.contains(document.activeElement); busy = true; main.inert = true; phase(phaseKey); card.setAttribute('aria-busy', 'true'); message();
+ try { await fn(); } catch (e) { if (e.code === 'email_not_verified') view = 'verify'; message(strings[e.code] ? e.code : 'unknownError', true); }
+ finally { busy = false; main.inert = false; card.setAttribute('aria-busy', 'false'); render(); if (restoreFocus) main.querySelector('h2')?.focus(); }
+}
+async function api(path, method = 'GET', body, authorized = true) {
+ const headers = {}; if (body !== undefined) headers['Content-Type'] = 'application/json'; if (authorized && session) headers.Authorization = 'Bearer ' + session.sessionToken;
+ let response; try { response = await fetch('/api/accounts/v1' + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), cache: 'no-store', credentials: 'omit', redirect: 'error', signal: AbortSignal.timeout(20000) }); } catch { throw { code: 'network' }; }
+ let data = null; try { if (response.status !== 204) data = await response.json(); } catch { throw { code: 'network' }; }
+ if (!response.ok) { if (response.status === 401 && authorized) { storageSet(SESSION_KEY, null); storageSet(PROFILE_KEY, null); session = null; profile = null; view = 'auth'; throw { code: 'sessionExpired' }; } throw { code: data?.error || 'unknownError', status: response.status }; } return data;
 }
 async function initFirebase() {
- if(auth)return;if(!config?.apiKey||!config.authDomain)throw {code:'configuration'};
- try { const [app,authSdk]=await Promise.all([import('https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js'),import('https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js')]);sdk=authSdk;auth=sdk.getAuth(app.initializeApp({projectId:config.projectId,apiKey:config.apiKey,authDomain:config.authDomain}));if(config.emulator)sdk.connectAuthEmulator(auth,'http://'+config.emulator,{disableWarnings:true});auth.languageCode=lang;await sdk.setPersistence(auth,sdk.browserSessionPersistence);await auth.authStateReady(); }catch(e){throw {code:e.code||'network'};}
+ if (auth) return; if (!config?.apiKey || !config.authDomain) throw { code: 'configuration' };
+ try { const [app, authSdk] = await Promise.all([import('https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js'), import('https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js')]); sdk = authSdk; auth = sdk.getAuth(app.initializeApp({ projectId: config.projectId, apiKey: config.apiKey, authDomain: config.authDomain })); if (config.emulator) sdk.connectAuthEmulator(auth, 'http://' + config.emulator, { disableWarnings: true }); auth.languageCode = lang; await sdk.setPersistence(auth, sdk.browserSessionPersistence); await auth.authStateReady(); } catch (e) { throw { code: e.code || 'network' }; }
 }
-async function exchange(user) { const idToken=await user.getIdToken(true);const fresh=await api('/session','POST',{idToken},false);storageSet(SESSION_KEY,{sessionToken:fresh.sessionToken,playerId:fresh.playerId,expiresAt:fresh.expiresAt});session=fresh;await refreshMe(); }
-async function refreshMe() {
- me=await api('/me');view='play';
- if(me.needsNewCharacter)message('character_died_create_new');
+async function exchange(user) {
+ phase('entering');
+ const idToken = await user.getIdToken(true); const fresh = await api('/session', 'POST', { idToken }, false);
+ storageSet(SESSION_KEY, { sessionToken: fresh.sessionToken, playerId: fresh.playerId, expiresAt: fresh.expiresAt }); session = fresh;
+ const photo = typeof user.photoURL === 'string' && user.photoURL.startsWith(PHOTO_ORIGIN) ? user.photoURL : null;
+ profile = { name: user.displayName || '', email: user.email || '', photo };
+ storageSet(PROFILE_KEY, profile);
+ await refreshMe();
 }
+async function refreshMe() { me = await api('/me'); view = 'play'; if (me.needsNewCharacter) message('character_died_create_new'); }
 async function bootstrap() {
- view='loading';render();config=await api('/client-config','GET',undefined,false);
+ view = 'loading'; render(); config = await api('/client-config', 'GET', undefined, false);
  // A saved game session remains useful even if the Firebase CDN is temporarily unavailable.
- session=storageGet(SESSION_KEY);
- if(session&&(!session.sessionToken||!session.playerId||!(Date.parse(session.expiresAt)>Date.now()))){storageSet(SESSION_KEY,null);session=null;}
- if(session){try{await refreshMe();return;}catch(e){if(e.code!=='sessionExpired')throw e;}}
- view='auth';await initFirebase();
- const redirected=sessionStorage.getItem('hexlive.redirect');sessionStorage.removeItem('hexlive.redirect');
- const result=await sdk.getRedirectResult(auth);
- if(result){await exchange(result.user);return;}
- if(redirected){message('redirectFailed',true);return;}
- if(auth.currentUser){if(config.requireVerifiedEmail&&!auth.currentUser.emailVerified&&auth.currentUser.providerData.some(p=>p.providerId==='password')){view='verify';message('email_not_verified');}else await exchange(auth.currentUser);}
+ session = storageGet(SESSION_KEY); profile = storageGet(PROFILE_KEY);
+ if (session && (!session.sessionToken || !session.playerId || !(Date.parse(session.expiresAt) > Date.now()))) { storageSet(SESSION_KEY, null); session = null; }
+ if (session) { try { await refreshMe(); return; } catch (e) { if (e.code !== 'sessionExpired') throw e; } }
+ view = 'auth'; await initFirebase();
+ const redirected = sessionStorage.getItem('hexlive.redirect'); sessionStorage.removeItem('hexlive.redirect');
+ const result = await sdk.getRedirectResult(auth);
+ if (result) { await exchange(result.user); return; }
+ if (redirected) { message('redirectFailed', true); return; }
+ if (auth.currentUser) { if (config.requireVerifiedEmail && !auth.currentUser.emailVerified && auth.currentUser.providerData.some(p => p.providerId === 'password')) { view = 'verify'; message('email_not_verified'); } else await exchange(auth.currentUser); }
 }
 async function providerLogin(provider) {
- await initFirebase();const p=provider==='google'?new sdk.GoogleAuthProvider():new sdk.OAuthProvider('apple.com');
- try{const result=await sdk.signInWithPopup(auth,p);await exchange(result.user);}catch(e){if(['auth/popup-blocked','auth/operation-not-supported-in-this-environment'].includes(e.code)){sessionStorage.setItem('hexlive.redirect','1');await sdk.signInWithRedirect(auth,p);}else throw e;}
+ await initFirebase(); const p = provider === 'google' ? new sdk.GoogleAuthProvider() : new sdk.OAuthProvider('apple.com');
+ if (provider === 'google') p.setCustomParameters({ prompt: 'select_account' });
+ try { const result = await sdk.signInWithPopup(auth, p); await exchange(result.user); } catch (e) { if (['auth/popup-blocked', 'auth/operation-not-supported-in-this-environment'].includes(e.code)) { sessionStorage.setItem('hexlive.redirect', '1'); await sdk.signInWithRedirect(auth, p); } else throw e; }
 }
 async function logout() {
- if(session){try{await api('/session','DELETE');}catch(e){if(e.code!=='sessionExpired')throw e;}}
- storageSet(SESSION_KEY,null);session=null;view='auth';
- await initFirebase();await sdk.signOut(auth);message('signedOut');
+ if (session) { try { await api('/session', 'DELETE'); } catch (e) { if (e.code !== 'sessionExpired') throw e; } }
+ storageSet(SESSION_KEY, null); storageSet(PROFILE_KEY, null); session = null; profile = null; view = 'auth';
+ await initFirebase(); await sdk.signOut(auth); message('signedOut');
 }
-function field(parent,key,node) { const wrap=el('div',null,{class:'field'});node.id='field-'+key;wrap.append(el('label',t(key),{for:node.id}),node);parent.append(wrap);return node; }
-function actions(parent,...buttons) {const row=el('div',null,{class:'actions'});row.append(...buttons);parent.append(row);}
+function field(parent, key, node) { const wrap = el('div', null, { class: 'field' }); node.id = 'field-' + key; wrap.append(el('label', t(key), { for: node.id }), node); parent.append(wrap); return node; }
 function renderAuth() {
- main.append(el('h2',t('login')));const providers=el('div',null,{class:'provider-list'});
- for(const p of ['google','apple'])if(config?.providers.includes(p))providers.append(button(p,()=>providerLogin(p)));
- main.append(providers);if(!config?.providers.includes('password'))return;
- main.append(el('div',t('or'),{class:'divider'}));const form=el('form',null);const email=field(form,'email',el('input',null,{type:'email',autocomplete:'email',required:'',maxlength:'254'}));const password=field(form,'password',el('input',null,{type:'password',autocomplete:'current-password',required:''}));form.append(el('small',t('passwordHint')));
- async function submit(register) {if(!form.reportValidity())return;await initFirebase();const result=await (register?sdk.createUserWithEmailAndPassword:sdk.signInWithEmailAndPassword)(auth,email.value.trim(),password.value);if(register){try{await sdk.sendEmailVerification(result.user,{url:location.origin+'/login/'});}catch(_){}}if(register&&config.requireVerifiedEmail){view='verify';message('sent');}else await exchange(result.user);}
- const login=el('button',t('login'),{type:'submit',class:'primary'});form.addEventListener('submit',e=>{e.preventDefault();run(()=>submit(false));});
- actions(form,login,button('register',()=>submit(true)));actions(form,button('reset',async()=>{if(!email.reportValidity())return;await initFirebase();await sdk.sendPasswordResetEmail(auth,email.value.trim());message('resetSent');}));main.append(form);
+ main.append(el('h2', t('signIn')));
+ const providers = el('div', null, { class: 'stack' });
+ if (config?.providers.includes('google')) providers.append(button('google', () => providerLogin('google'), 'btn btn--google', 'google', 'waitGoogle'));
+ if (config?.providers.includes('apple')) providers.append(button('apple', () => providerLogin('apple'), 'btn btn--apple', 'apple', 'waitApple'));
+ main.append(providers); if (!config?.providers.includes('password')) return;
+ const details = el('details', null, { class: 'email' }); details.append(el('summary', t('or')));
+ if (!config.providers.includes('google') && !config.providers.includes('apple')) details.open = true;
+ const form = el('form', null); const email = field(form, 'email', el('input', null, { type: 'email', autocomplete: 'email', required: '', maxlength: '254' })); const password = field(form, 'password', el('input', null, { type: 'password', autocomplete: 'current-password', required: '' })); form.append(el('small', t('passwordHint')));
+ async function submit(register) { if (!form.reportValidity()) return; await initFirebase(); const result = await (register ? sdk.createUserWithEmailAndPassword : sdk.signInWithEmailAndPassword)(auth, email.value.trim(), password.value); if (register) { try { await sdk.sendEmailVerification(result.user, { url: location.origin + '/login/' }); } catch (_) {} } if (register && config.requireVerifiedEmail) { view = 'verify'; message('sent'); } else await exchange(result.user); }
+ const login = el('button', t('login'), { type: 'submit', class: 'btn btn--primary' }); form.addEventListener('submit', e => { e.preventDefault(); run(() => submit(false)); });
+ const row = el('div', null, { class: 'row' }); row.append(login, button('register', () => submit(true)));
+ form.append(row, button('reset', async () => { if (!email.reportValidity()) return; await initFirebase(); await sdk.sendPasswordResetEmail(auth, email.value.trim()); message('resetSent'); }, 'linkish'));
+ details.append(form); main.append(details);
 }
-function renderVerify() {main.append(el('h2',t('verifyTitle')),el('p',t('email_not_verified')));actions(main,button('verified',async()=>{await initFirebase();if(!auth.currentUser){view='auth';return;}await sdk.reload(auth.currentUser);await exchange(auth.currentUser);},true),button('resend',async()=>{await initFirebase();if(!auth.currentUser){view='auth';return;}await sdk.sendEmailVerification(auth.currentUser,{url:location.origin+'/login/'});message('sent');}));actions(main,button('logout',logout));}
+function renderVerify() {
+ main.append(el('h2', t('verifyTitle')), el('p', t('email_not_verified'), { class: 'lead' }));
+ const s = el('div', null, { class: 'stack' }); main.append(s);
+ s.append(button('verified', async () => { await initFirebase(); if (!auth.currentUser) { view = 'auth'; return; } await sdk.reload(auth.currentUser); await exchange(auth.currentUser); }, 'btn btn--primary'),
+  button('resend', async () => { await initFirebase(); if (!auth.currentUser) { view = 'auth'; return; } await sdk.sendEmailVerification(auth.currentUser, { url: location.origin + '/login/' }); message('sent'); }),
+  button('logout', logout, 'btn btn--ghost'));
+}
+function renderPlay() {
+ const name = profile?.name || (profile?.email ? profile.email.split('@')[0] : '') || t('player');
+ const head = el('div', null, { class: 'profile' });
+ const avatar = el('div', null, { class: 'avatar', 'aria-hidden': 'true' });
+ const initial = () => el('span', [...name][0]?.toUpperCase() || '?');
+ if (profile?.photo) { const img = el('img', null, { src: profile.photo, alt: '', referrerpolicy: 'no-referrer', width: '58', height: '66' }); img.addEventListener('error', () => img.replaceWith(initial())); avatar.append(img); } else avatar.append(initial());
+ const who = el('div', null, { class: 'who' });
+ who.append(el('div', t('hello'), { class: 'who__hello' }), el('h2', name, { class: 'who__name' }));
+ if (profile?.email) who.append(el('div', profile.email, { class: 'who__mail', title: profile.email }));
+ const via = { 'google.com': ['viaGoogle', 'google'], 'apple.com': ['viaApple', 'apple'], password: ['viaPassword', null] }[me?.provider];
+ if (via) { const chip = el('span', null, { class: 'chip' }); if (via[1]) chip.append(icon(via[1])); chip.append(el('span', t(via[0]))); who.append(chip); }
+ head.append(avatar, who); main.append(head);
+ const alive = me?.character?.alive;
+ const line = el('div', null, { class: 'hero-line', 'data-state': alive ? 'alive' : me?.needsNewCharacter ? 'dead' : 'none' });
+ const text = el('div');
+ if (alive) text.append(el('small', t('yourHero')), el('strong', me.character.name), el('span', t('alive'), { class: 'muted' }));
+ else text.append(el('strong', t(me?.needsNewCharacter ? 'diedHero' : 'noHero')), el('span', t('noHeroHint'), { class: 'muted' }));
+ line.append(el('span', null, { class: 'hero-line__dot' }), text); main.append(line);
+ const play = el('a', null, { href: '/play/', class: 'btn btn--play' }); play.append(icon('play'), el('span', t('play')));
+ main.append(play);
+ const after = el('div', null, { class: 'after' }); after.append(button('logout', logout, 'btn btn--ghost')); main.append(after);
+}
 function render() {
- const focusedId=main.contains(document.activeElement)?document.activeElement.id:'';
- main.replaceChildren();if(view==='loading'){main.append(el('p',t('loading')),button('retry',bootstrap));return;}
- if(view==='auth')renderAuth();else if(view==='verify')renderVerify();else if(view==='play'){main.append(el('h2',t('ready')),el('p',me.character?.alive?me.character.name:t('createInGame'),{class:me.character?.alive?'character-name':'muted'}),el('a',t('play'),{href:'/play/',class:'play-link'}));actions(main,button('refresh',refreshMe),button('logout',logout));}
- const heading=main.querySelector('h2');if(heading)heading.tabIndex=-1;if(focusedId)$(focusedId)?.focus();
+ const focusedId = main.contains(document.activeElement) ? document.activeElement.id : '';
+ main.replaceChildren(); document.body.classList.toggle('signed-in', view === 'play');
+ if (view === 'loading') { main.append(el('div', null, { class: 'skeleton' })); if (!busy) main.firstChild.append(button('retry', bootstrap)); return; }
+ if (view === 'auth') renderAuth(); else if (view === 'verify') renderVerify(); else if (view === 'play') renderPlay();
+ const heading = main.querySelector('h2'); if (heading) heading.tabIndex = -1; if (focusedId) $(focusedId)?.focus();
 }
-localize();run(bootstrap);
+localize(); run(bootstrap, 'loading');
 </script>
 </body>
 </html>

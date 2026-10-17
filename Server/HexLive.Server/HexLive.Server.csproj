@@ -28,6 +28,7 @@
   <!-- §58.7: generated from canonical I2 terms; never a hand-authored C# name table. -->
   <ItemGroup>
     <EmbeddedResource Include="Accounts/login.html" LogicalName="HexLive.Accounts.Login.html" />
+    <EmbeddedResource Include="Accounts/site/*.webp" LogicalName="HexLive.Accounts.Site.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Mcp/npc-names.json" LogicalName="HexLive.Mcp.NpcNames.json" />
     <EmbeddedResource Include="Mcp/effect-terms.json" LogicalName="HexLive.Mcp.EffectTerms.json" />
   </ItemGroup>

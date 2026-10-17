@@ -73,10 +73,12 @@ body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-se
 .hex-banner--warning { border-color: rgb(240 180 92); }
 .hex-banner--error { background: rgb(120 30 28); border-color: rgb(191 51 46); }
 
-/* §174.9: what was the footer under the canvas is a small corner button now;
-   in full screen it steps aside (Esc leaves). */
+/* §174.9: what was the footer under the canvas is a small corner button now —
+   top right, the one corner the HUD leaves free (weather top left, speed top
+   centre, roster from 4.25rem down, character card along the bottom). In full
+   screen it steps aside (Esc leaves). */
 #unity-footer {
-  position: absolute; right: 12px; bottom: 12px; z-index: 6;
+  position: absolute; right: 0.875rem; top: 0.875rem; z-index: 6;
   display: flex; align-items: center; gap: 8px; line-height: 1.2;
   color: rgb(154 166 173); font-size: 13px; opacity: 0.55; transition: opacity 150ms;
 }

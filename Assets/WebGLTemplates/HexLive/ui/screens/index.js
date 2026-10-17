@@ -7,11 +7,15 @@ import { PlayerAssignment } from './playerAssignment.js';
 import { Hud } from './hud.js';
 import { Title } from './title.js';
 import { Creator } from './creator.js';
+import { Roster } from './roster.js';
+import { Character } from './character.js';
 
 export const SCREENS = {
   title: Title,
   creator: Creator,
   hud: Hud,
+  roster: Roster,
+  character: Character,
   gameMenu: GameMenu,
   connectionLost: ConnectionLost,
   protocolUpdate: ProtocolUpdate,

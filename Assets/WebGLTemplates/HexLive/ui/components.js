@@ -113,3 +113,16 @@ export function Pips({ value, max = 10, onChange, limit = max, label }) {
         onClick=${() => set(filled + 1)}>+</button>
     </span>`;
 }
+
+/**
+ * A ring meter (RingMeter in UI Toolkit): health around a face, relation
+ * scores. value 0–1; children sit in the middle.
+ */
+export function Ring({ value, color, size = '3rem', stroke = '0.25rem', label, children }) {
+  const v = Math.max(0, Math.min(1, value ?? 0));
+  return html`
+    <span class="hx-ring" role=${label ? 'img' : undefined} aria-label=${label}
+      style=${{ width: size, height: size, '--ring': color || 'var(--hx-leaf)', '--ring-w': stroke, '--ring-v': `${v * 360}deg` }}>
+      <span class="hx-ring__inner">${children}</span>
+    </span>`;
+}

@@ -72,6 +72,74 @@ const creator = {
     traits: [] },
 };
 const isCreator = (id) => !!id && id.startsWith('creator');
+const isGame = (id) => !!id && id.startsWith('game');
+
+// ---- in play: roster + character card (CharacterPanel), sample colony ----
+const COLONY = [
+  { id: 11, name: 'Марта', skin: 'Marta', health: 0.92, status: 'busy', tone: 'ok', goal: 'GatherWood' },
+  { id: 12, name: 'Молли', skin: 'Molly', health: 0.64, status: 'moving', tone: 'ok', goal: 'GetWater' },
+  { id: 13, name: 'Яна', skin: 'Jana', health: 0.31, status: 'resting', tone: 'warn', goal: 'TreatWounds' },
+  { id: 14, name: 'Джолли', skin: 'Jolly', health: 0.85, status: 'sleeping', tone: 'idle', goal: 'Sleep' },
+  { id: 15, name: 'Маша', skin: 'Masha', health: 0.7, status: 'busy', tone: 'ok', goal: 'Hunt', fighting: true },
+  { id: 16, name: 'Рита', skin: 'Rita', health: 1, status: 'busy', tone: 'ok', goal: 'CookMeat', mine: true },
+];
+const OUTSIDERS = [{ id: 41, name: 'Кшиштоф', skin: 'Kshishtof', health: 0.55, status: 'moving', tone: 'warn', goal: 'Explore' }];
+const game = { selected: 16, group: [], collapsed: false, control: 'manual', pace: 'walk', portraitRect: null };
+const healthColor = (h) => (h >= 0.6 ? 'rgb(193 219 141)' : h >= 0.3 ? 'rgb(240 180 92)' : 'rgb(232 104 92)');
+
+function sendFaces() {
+  for (const c of [...COLONY, ...OUTSIDERS]) post({ t: 'asset', key: `face:${c.id}`, url: thumb(c.skin, c.id % 2 ? 'LeonyPonytail' : 'Bob3Hair', 'tint.chestnut') });
+}
+
+const card = (c) => ({ id: c.id, name: c.name, face: `face:${c.id}`, health: c.health, healthColor: healthColor(c.health),
+  status: c.status, statusTone: c.tone, fighting: !!c.fighting, mine: !!c.mine,
+  selected: game.group.length ? game.group.includes(c.id) : game.selected === c.id });
+
+function rosterModel() {
+  return { clan: { count: COLONY.length, total: COLONY.length + 1 }, cards: COLONY.map(card), outsiders: OUTSIDERS.map(card) };
+}
+
+function npcModel(c) {
+  return {
+    id: c.id, name: c.name, control: game.control, controlLocked: null, canCall: true, call: null,
+    pace: game.pace, canStop: game.control === 'manual', health: c.health, healthColor: healthColor(c.health),
+    status: c.status, statusTone: c.tone, uv: 'mid', shade: false, badge: c.fighting ? 'fighting' : null,
+    journalUnread: 2, goal: c.goal, dream: 'OwnBed', directive: { kind: 'Firewood', from: null },
+    effects: [{ slug: 'wellfed', emoji: '😋', buff: true }, { slug: 'bandaged', emoji: '🩹', buff: true },
+      { slug: 'strongsun', emoji: '🌞', buff: false }, { slug: 'soaked', emoji: '💦', buff: false }],
+    needs: [
+      { id: 'hunger', value: 0.78 }, { id: 'thirst', value: 0.42 }, { id: 'energy', value: 0.66 }, { id: 'comfort', value: 0.55 },
+      { id: 'social', value: 0.24 }, { id: 'thermal', value: 0, thermal: 0.35 }, { id: 'stamina', value: 0.9 },
+      { id: 'blood', value: 0.82, deficit: 0.12 }, { id: 'hygiene', value: 0.47 }, { id: 'stress', value: 0.71 },
+      { id: 'compassion', value: 0.6 }, { id: 'breath', value: 1 },
+    ],
+    nature: [['strength', 6], ['agility', 7], ['endurance', 5], ['toughness', 4], ['hardiness', 6], ['wits', 8], ['perception', 7]]
+      .map(([id, value]) => ({ id, value })),
+    skills: [['combat', 2], ['harvesting', 5], ['crafting', 3], ['building', 1], ['cooking', 6], ['medicine', 0], ['survival', 4], ['social', 2], ['athletics', 3]]
+      .map(([id, value]) => ({ id, value })),
+    traits: ['trait.neat', 'trait.brave'],
+    relations: COLONY.filter((x) => x.id !== c.id).slice(0, 5).map((x, i) => ({ id: x.id, name: x.name, face: `face:${x.id}`,
+      tag: ['friend', 'close', 'acquaint', 'tense', 'neutral'][i], affinity: [0.7, 0.85, 0.2, -0.4, 0][i],
+      familiarity: [0.8, 0.95, 0.4, 0.6, 0.2][i], trust: [0.6, 0.9, 0.3, 0.15, 0.25][i] })),
+  };
+}
+
+function characterModel() {
+  if (state.dialog === 'gameNone') return { mode: 'none' };
+  if (state.dialog === 'gameGroup') {
+    const ids = game.group.length ? game.group : [11, 12, 15];
+    return { mode: 'group', group: { count: ids.length, manual: 2, total: ids.length, blocked: 0, fighting: 1, mode: 'mixed',
+      faces: ids.map((id) => { const c = COLONY.find((x) => x.id === id); return { id, name: c.name, face: `face:${id}` }; }), feedback: null } };
+  }
+  const c = COLONY.find((x) => x.id === game.selected) || COLONY[0];
+  return { mode: 'single', collapsed: game.collapsed, npc: npcModel(c) };
+}
+
+function sendGame() {
+  if (!ready || !isGame(state.dialog)) return;
+  post({ t: 'show', screen: 'roster', model: rosterModel() });
+  post({ t: 'show', screen: 'character', model: characterModel() });
+}
 
 // Stand-only stand-ins for the thumbnails Unity renders from the real model.
 function thumb(skin, hairId, colour) {
@@ -241,6 +309,7 @@ const DIALOGS = {
 const SCREEN_OF = { playerReplacement: 'playerAssignment' };
 const isTitle = (id) => !!id && id.startsWith('title');
 const isFull = (id) => isTitle(id) || isCreator(id); // screens that own the whole display
+const GAME_SCREENS = ['roster', 'character'];
 
 function hudModel() {
   const h = state.hud;
@@ -270,7 +339,19 @@ function sendHud() {
 }
 
 function showDialog(id) {
-  if (shownDialog && ready) post({ t: 'hide', screen: isTitle(shownDialog) ? 'title' : isCreator(shownDialog) ? 'creator' : SCREEN_OF[shownDialog] || shownDialog });
+  if (isGame(shownDialog) && !isGame(id) && ready) for (const screen of GAME_SCREENS) post({ t: 'hide', screen });
+  if (shownDialog && !isGame(shownDialog) && ready) post({ t: 'hide', screen: isTitle(shownDialog) ? 'title' : isCreator(shownDialog) ? 'creator' : SCREEN_OF[shownDialog] || shownDialog });
+  if (isGame(id)) {
+    shownDialog = id;
+    state.dialog = id;
+    for (const button of document.querySelectorAll('[data-dialog]')) button.setAttribute('aria-pressed', String(button.dataset.dialog === id));
+    $('reopen').hidden = true;
+    if (id === 'gameGroup') game.group = [11, 12, 15]; else game.group = [];
+    drawWorld();
+    sendHud();
+    if (ready) { sendFaces(); sendGame(); }
+    return;
+  }
   if (!isTitle(id)) clearInterval(title.timer);
   shownDialog = id;
   state.dialog = id;
@@ -336,6 +417,27 @@ function handle(message) {
     const last = log.firstElementChild; // a drag is one line per slider
     if (last && last.dataset.volume === message.args.category) last.remove();
     note(key, args).dataset.volume = message.args.category;
+    return;
+  }
+  if (message.screen === 'roster' || message.screen === 'character') {
+    const a = message.args || {};
+    if (message.cmd === 'portraitRect') { game.portraitRect = a; drawWorld(); return; }
+    note(key, `${args} → ${{
+      select: 'выбрать колонистку (Shift — добавить к выбору)', selectClan: 'выбрать весь лагерь',
+      control: 'сменить управление: ИИ / вручную / звонок', pace: 'темп приказов по умолчанию', stop: 'отменить текущий приказ',
+      open: 'открыть окно', collapse: 'свернуть карточку', expand: 'развернуть карточку',
+      groupMode: 'сменить режим группы', groupStop: 'остановить группу' }[message.cmd] || '?'}`);
+    if (message.cmd === 'select') {
+      if (a.add) { game.group = [...new Set([...(game.group.length ? game.group : [game.selected]), a.id])]; showDialog('gameGroup'); return; }
+      game.selected = a.id; game.group = [];
+      if (state.dialog !== 'gameCharacter') { showDialog('gameCharacter'); return; }
+    }
+    if (message.cmd === 'selectClan') { game.group = COLONY.map((c) => c.id); showDialog('gameGroup'); return; }
+    if (message.cmd === 'control') game.control = a.mode;
+    if (message.cmd === 'pace') game.pace = a.value;
+    if (message.cmd === 'collapse') game.collapsed = true;
+    if (message.cmd === 'expand') game.collapsed = false;
+    sendGame();
     return;
   }
   if (message.screen === 'creator') {
@@ -473,6 +575,19 @@ function drawPreview(g, w, h) {
   g.restore();
 }
 
+// The live portrait (PortraitStage), as Unity draws it into portraitRect.
+function drawPortrait(g) {
+  const r = game.portraitRect;
+  if (!r || state.dialog !== 'gameCharacter' || game.collapsed || !art.island.naturalWidth) return;
+  const img = art.island;
+  const src = [img.naturalWidth * 0.43, img.naturalHeight * 0.02, img.naturalWidth * 0.16, img.naturalHeight * 0.5];
+  const k = Math.max(r.w / src[2], r.h / src[3]);
+  g.save();
+  g.beginPath(); g.rect(r.x, r.y, r.w, r.h); g.clip();
+  g.drawImage(img, ...src, r.x + (r.w - src[2] * k) / 2, r.y, src[2] * k, src[3] * k);
+  g.restore();
+}
+
 function drawWorld() {
   const canvas = $('world');
   const [w, h] = state.size;
@@ -481,6 +596,11 @@ function drawWorld() {
   const g = canvas.getContext('2d');
   if (isTitle(state.dialog)) { drawTitleArt(g, w, h); return; }
   if (isCreator(state.dialog)) { drawPreview(g, w, h); return; }
+  if (isGame(state.dialog)) { drawHexWorld(g, w, h); drawPortrait(g); return; }
+  drawHexWorld(g, w, h);
+}
+
+function drawHexWorld(g, w, h) {
   g.fillStyle = '#1f5f78';
   g.fillRect(0, 0, w, h);
   const r = h / 14;

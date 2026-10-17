@@ -26,6 +26,8 @@ MonoBehaviour:
   capabilities:
   - 1
   - 4
+  - 2048
+  - 16384
   craftable: 1
   craftStation: 0
   craftNeedsLitFire: 0
@@ -35,6 +37,9 @@ MonoBehaviour:
     count: 1
   - item: {fileID: 11400000, guid: d1e2f3a4b5c6470890123456789abc32, type: 2}
     itemId: 
+    count: 1
+  - item: {fileID: 11400000, guid: b5fb45ee9dde457ea63cb0c2403af1f0, type: 2}
+    itemId:
     count: 1
   handPoseAuthored: 1
   handLocalPosition: {x: 0.054, y: -0.033, z: -0.076}

@@ -275,6 +275,9 @@ public static class GoalCatalog
         Add(GoalType.CraftKnife, InteractionType.Craft,
             craftOutputs: new[] { ContentIds.Knife },
             craftTrace: "CraftedKnife", craftNeedsHands: true);
+        Add(GoalType.CraftSharpStone, InteractionType.Craft,
+            craftOutputs: new[] { ContentIds.SharpStone },
+            craftTrace: "CraftedSharpStone", craftNeedsHands: true);
         Add(GoalType.CraftBow, InteractionType.Craft,
             craftOutputs: new[] { ContentIds.Bow },
             craftTrace: "CraftedBow", craftNeedsHands: true);

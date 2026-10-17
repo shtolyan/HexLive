@@ -73,6 +73,7 @@ public sealed class SystemRegistryGateTests
         "NeedsDecaySystem",
         "TemperatureSystem",
         "MoistureSystem",
+        "PlantGrowthSystem",
         "FruitProductionSystem",
         "FireSystem",
         "CorpseSystem",

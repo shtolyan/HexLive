@@ -145,7 +145,7 @@ public static class GroundPileCatalog
         // three local axis extents to <=T. Orthogonal base rotation therefore
         // bounds each world extent by sqrt(3)*T. Presentation recenters XZ and
         // seats Y before applying slots; source pivots cannot escape this cube.
-        foreach(var id in new[] {"food.coconut_open","food.meat_raw","food.meat_cooked","item.bandage","item.pill","item.plaster","med.splint","resource.arrow","resource.board","resource.cloth","resource.fiber","resource.herb_leaf","resource.hide","resource.log","resource.mechanical_part","resource.rope","resource.stone","food.coconut","food.coconut_pierced","tool.axe_stone","tool.bottle","tool.bow","tool.hammer","tool.knife","tool.lighter","tool.machete","tool.pickaxe_stone","tool.saw","tool.spear"})
+        foreach(var id in new[] {"food.coconut_open","food.meat_raw","food.meat_cooked","item.bandage","item.pill","item.plaster","med.splint","resource.arrow","resource.board","resource.cloth","resource.fiber","resource.herb_leaf","resource.herb_seed","resource.hide","resource.log","resource.mechanical_part","resource.rope","resource.stone","resource.yucca_seed","food.coconut","food.coconut_pierced","tool.axe_stone","tool.bottle","tool.bow","tool.hammer","tool.knife","tool.lighter","tool.machete","tool.pickaxe_stone","tool.saw","tool.sharp_stone","tool.spear"})
         {
             var target=TargetWorldSize(id);var extent=(float)Math.Sqrt(3d)*target;
             var layout=id=="resource.cloth"?5:id.StartsWith("tool.",StringComparison.Ordinal)?4:
@@ -3316,11 +3316,12 @@ public static class GroundPileCatalog
         "food.coconut_open" or "food.meat_raw" or "food.meat_cooked" => 8,
         "item.bandage" or "item.pill" or "med.splint" => 10,
         "resource.arrow" or "resource.board" or "resource.fiber" or
-        "resource.herb_leaf" or "resource.hide" or "resource.log" or
+        "resource.herb_leaf" or "resource.herb_seed" or "resource.yucca_seed" or
+        "resource.hide" or "resource.log" or
         "resource.mechanical_part" or "resource.rope" or "resource.stone" => 20,
         "tool.axe_stone" or "tool.bow" or "tool.hammer" or "tool.knife" or
         "tool.lighter" or "tool.machete" or "tool.pickaxe_stone" or
-        "tool.saw" or "tool.spear" => 4,
+        "tool.saw" or "tool.sharp_stone" or "tool.spear" => 4,
         _ => 1 // clothes, individual containers and unknown definitions
     };
     public static bool TryGet(string id,bool garment,out GroundPileProfile profile)
@@ -3336,6 +3337,16 @@ public static class GroundPileCatalog
         public static float TargetWorldSize(string definitionId)
         {
             var r = HexSpatialMath.HexRadius;
+            // §173: the first coconut leaf is a low yucca-like strap crown;
+            // the next two palm stages use the adult source at 28% / 50% in
+            // PalmTreeFactory. Herb and yucca keep their current authored
+            // sources and grow only by fit size, so the island style remains
+            // unchanged through the whole sequence.
+            if (definitionId == ContentIds.PalmSprout) return r * 0.22f;
+            if (definitionId == ContentIds.HerbSprout || definitionId == ContentIds.YuccaSprout) return r * 0.18f;
+            if (definitionId == ContentIds.HerbYoung || definitionId == ContentIds.YuccaYoung) return r * 0.34f;
+            if (definitionId == ContentIds.HerbBudding || definitionId == ContentIds.YuccaJuvenile) return r * 0.5f;
+            if (definitionId == ContentIds.HerbSeed || definitionId == ContentIds.YuccaSeed) return r * 0.08f;
             if (definitionId is HumanMeatCatalog.ArmRaw or HumanMeatCatalog.ArmCooked) return r * 0.4f;
             if (definitionId is HumanMeatCatalog.LegRaw or HumanMeatCatalog.LegCooked) return r * 0.55f;
             if (definitionId is HumanMeatCatalog.TorsoRaw or HumanMeatCatalog.TorsoCooked) return r * 0.6f;
@@ -3360,6 +3371,9 @@ public static class GroundPileCatalog
             if (definitionId == "resource.palm_leaf") return r * 0.55f;
             // The spear is a long two-handed weapon — much longer than a hand tool.
             if (definitionId == "tool.spear") return r * 0.9f;
+            // §172: a palm-sized cutting flake, deliberately smaller than the
+            // finished knife and other standard hand tools.
+            if (definitionId == ContentIds.SharpStone) return r * 0.12f;
             // A rope coil is a small bundle — slightly smaller than a coconut
             // half (food.* renders at 0.12), not tool-sized.
             if (definitionId == "resource.rope") return r * 0.10f;

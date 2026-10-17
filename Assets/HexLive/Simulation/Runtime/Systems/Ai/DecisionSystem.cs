@@ -1153,19 +1153,23 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var carriedFiber = CountInventory(npc, ContentIds.Fiber);
         var carriedRope = CountInventory(npc, ContentIds.Rope);
         var carriedCloth = CountInventory(npc, ContentIds.Cloth);
+        var carriedSharpStones = CountInventory(npc, ContentIds.SharpStone);
         var carriedBoards = CountInventory(npc, ContentIds.Board);
         var woodenBoardsRequired = Spec118.Enabled && Spec118.ProstheticsEnabled
             ? RequiredWoodenProstheticBoards(world, npc)
             : 0;
         var woodenBoardShortfall = System.Math.Max(0, woodenBoardsRequired - carriedBoards);
         var splintSupplyNeeded = SplintSupplyNeeded(world, npc);
-        var hasKnife = Content.GearCatalog.HasCapability(
-            npc.Inventory.Items, Content.GearCapability.Cut);
-        // The knife is today's only Butcher tool, but the CAPABILITY is the
-        // truth: an axe cuts yucca (Cut) yet can't dress a carcass, so the
-        // knife stays craftable until Butcher is covered too.
-        var hasButcherTool = Content.GearCatalog.HasCapability(
+        var hasCutTool = Content.GearCatalog.HasCapability(
+                npc.Inventory.Items, Content.GearCapability.Cut) ||
+            Content.GearCatalog.HasCapability(
+                npc.Inventory.Items, Content.GearCapability.CutPlant);
+        // Animal dressing accepts a crude sharp stone, while cannibalistic
+        // human-body butchering still requires the finished-blade capability.
+        var hasHumanButcherTool = Content.GearCatalog.HasCapability(
             npc.Inventory.Items, Content.GearCapability.Butcher);
+        var hasAnimalButcherTool = Content.GearCatalog.HasCapability(
+            npc.Inventory.Items, Content.GearCapability.ButcherAnimal);
 
         // Spec §52: the furniture build-site chain. A site is an intent point
         // every NPC knows; materials are hauled in (deposited into it) over
@@ -1383,7 +1387,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var axeStoneCost = Content.RecipeCatalog.InputCount(GoalType.CraftAxe, ContentIds.Stone);
         var pickaxeStoneCost = Content.RecipeCatalog.InputCount(GoalType.CraftPickaxe, ContentIds.Stone);
         var knifeStickCost = Content.RecipeCatalog.InputCount(GoalType.CraftKnife, ContentIds.Stick);
-        var knifeStoneCost = Content.RecipeCatalog.InputCount(GoalType.CraftKnife, ContentIds.Stone);
+        var knifeSharpStoneCost = Content.RecipeCatalog.InputCount(
+            GoalType.CraftKnife, ContentIds.SharpStone);
+        var knifeRopeCost = Content.RecipeCatalog.InputCount(GoalType.CraftKnife, ContentIds.Rope);
+        var sharpStoneStoneCost = Content.RecipeCatalog.InputCount(
+            GoalType.CraftSharpStone, ContentIds.Stone);
+        var needsFinishedKnife = !(ctx.HasCoconutBlade && hasHumanButcherTool);
         var coconutToolPressure = !ctx.HasCoconutBlade &&
             (npc.Needs.Thirst >= AiBalance.DrinkThirstThreshold || npc.Needs.Hunger >= ctx.GetFoodHungerThreshold) &&
             HasCoconutOpportunity(npc, world);
@@ -1409,7 +1418,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // may carry the survival modifier.
         var reachableCoconutBlade = coconutToolPressure &&
             PlanningSystem.HasToolCandidateWithCapability(
-                world, npc, Content.GearCapability.Cut);
+                world, npc, Content.GearCapability.OpenCoconut);
         var gatherToolsEmergencyBoost = reachableCoconutBlade
             ? coconutEmergencyBoost
             : 0f;
@@ -1546,7 +1555,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var bladePickupPull =
             !ctx.HasCoconutBlade &&
             PlanningSystem.HasToolCandidateWithCapability(
-                world, npc, Content.GearCapability.Cut)
+                world, npc, Content.GearCapability.OpenCoconut)
                 ? AiBalance.BladePickupPull
                 : 0f;
         AddGoalScore(npc, world.Tick, GoalType.GatherTools,
@@ -1622,13 +1631,21 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // §53.7: the "can this chain run at all" halves, free of her OWN
         // stock gate — an aid errand brews a dressing for someone else's
         // wound, so a full med pouch of her own must not veto it.
-        var herbFetchPossible = herbLeaves < 2 &&
+        var bandageHerbCost = Content.RecipeCatalog.InputCount(
+            GoalType.CraftBandage, ContentIds.HerbLeaf);
+        var bandageClothCost = Content.RecipeCatalog.InputCount(
+            GoalType.CraftBandage, ContentIds.Cloth);
+        var herbFetchPossible = herbLeaves < bandageHerbCost &&
             InventoryMath.CanMakeRoomFor(world, npc, ContentIds.HerbLeaf) &&
             PlanningSystem.HasObjectCandidateForGoal(
                 world, npc, GoalType.GatherHerb);
+        var bandageInputsReady = HasRecipeInputs(npc, GoalType.CraftBandage) ||
+            BillCoveredByGroundPiles(npc, world, GoalType.CraftBandage);
         var bandageCraftPossible = CraftProjectMath.CanSatisfyItemCraftDemand(
             world, npc, GoalType.CraftBandage,
-            herbLeaves >= 2 && CraftPlaceOk(GoalType.CraftBandage));
+            bandageInputsReady && CraftPlaceOk(GoalType.CraftBandage));
+        var bandageClothNeeded = usableBandageCount < 2 &&
+            carriedCloth < bandageClothCost;
         var gatherHerbAvail = herbFetchPossible && usableBandageCount < 2;
         AddGoalScore(npc, world.Tick, GoalType.GatherHerb,
             0.22f + hurtUrgency, gatherHerbAvail);
@@ -1834,7 +1851,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             world, npc, GoalType.CraftSpear);
         var craftSpearAvail = ctx.CanUseToolsOrWeapons && !hasSpear &&
             !finishedSpearReachable &&
-            ((hasWood && CraftPlaceOk(GoalType.CraftSpear)) ||
+            ((HasRecipeInputs(npc, GoalType.CraftSpear) && CraftPlaceOk(GoalType.CraftSpear)) ||
              CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftSpear));
         var spearIsImmediateFoodResponse = noSureMeal && npc.Mind.IsStarving &&
             visibleRabbit is not null && !coconutToolPressure;
@@ -1939,14 +1956,23 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var hasPickaxe = Content.GearCatalog.HasCapability(
             npc.Inventory.Items, Content.GearCapability.Mine);
         var stoneCount = CountInventory(npc, ContentIds.Stone);
-        var stonesNeeded = (!hasAxe && !hasSaw ? axeStoneCost : 0) + (!hasPickaxe ? pickaxeStoneCost : 0);
+        var sharpStoneTarget = System.Math.Max(
+            needsFinishedKnife ? knifeSharpStoneCost : 0,
+            !hasSpear
+                ? Content.RecipeCatalog.InputCount(
+                    GoalType.CraftSpear, ContentIds.SharpStone)
+                : 0);
+        var stonesNeeded = (!hasAxe && !hasSaw ? axeStoneCost : 0) +
+            (!hasPickaxe ? pickaxeStoneCost : 0) +
+            (carriedSharpStones < sharpStoneTarget
+                ? sharpStoneStoneCost
+                : 0);
         // §63 r2: a stone-hungry site (the fire's 18-stone ring) is worth
         // a real armful, not one pebble per round trip — carry up to 3.
         var siteStoneWant = siteNeedsStones
             ? System.Math.Min(3, PlannedSiteRemaining(BuildSiteMath.MaterialStones))
             : 0;
         var gatherStoneAvail = (stoneCount < stonesNeeded ||
-                (coconutToolPressure && stoneCount < knifeStoneCost) ||
                 (piece is { } pStone && stoneCount < pStone.Stones) ||
                 (siteNeedsStones && stoneCount < siteStoneWant)) &&
             PlanningSystem.HasObjectCandidateForGoal(
@@ -1957,7 +1983,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             world, npc, GoalType.CraftPickaxe);
         var craftAxeAvail = ctx.CanUseToolsOrWeapons && !hasAxe && !hasSaw &&
             !finishedAxeReachable &&
-            ((hasWood && stoneCount >= axeStoneCost && CraftPlaceOk(GoalType.CraftAxe)) ||
+            ((HasRecipeInputs(npc, GoalType.CraftAxe) && CraftPlaceOk(GoalType.CraftAxe)) ||
              CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftAxe));
         var craftPickaxeAvail = ctx.CanUseToolsOrWeapons && !hasPickaxe &&
             !finishedPickaxeReachable &&
@@ -2234,11 +2260,22 @@ public sealed partial class DecisionSystem : ISimulationSystem
             ? PlannedSiteRemaining(BuildSiteMath.MaterialRope)
             : 1;
         var medicalRopeTarget = woodenBoardsRequired > 0 ? 2 : (splintSupplyNeeded ? 1 : 0);
-        var ropeTarget = System.Math.Max(siteRopeTarget, medicalRopeTarget);
+        var knifeRopeTarget = needsFinishedKnife ? knifeRopeCost : 0;
+        var axeRopeTarget = !hasAxe ? Content.RecipeCatalog.InputCount(
+            GoalType.CraftAxe, ContentIds.Rope) : 0;
+        var spearRopeTarget = !hasSpear ? Content.RecipeCatalog.InputCount(
+            GoalType.CraftSpear, ContentIds.Rope) : 0;
+        var ropeTarget = System.Math.Max(
+            System.Math.Max(siteRopeTarget, medicalRopeTarget),
+            System.Math.Max(knifeRopeTarget, System.Math.Max(axeRopeTarget, spearRopeTarget)));
         var wantRope = (siteNeedsRope && carriedRope < ropeTarget) ||
             (medicalRopeTarget > 0 && carriedRope < medicalRopeTarget) ||
+            (knifeRopeTarget > 0 && carriedRope < knifeRopeTarget) ||
+            (axeRopeTarget > 0 && carriedRope < axeRopeTarget) ||
+            (spearRopeTarget > 0 && carriedRope < spearRopeTarget) ||
             (!hasBow && hideCount >= 1 && carriedRope == 0);
-        var wantCloth = bedDeficit && carriedCloth == 0;
+        var wantCloth = (bedDeficit && carriedCloth == 0) ||
+            bandageClothNeeded;
         // §54.13: gather fiber for the WHOLE rope shortfall, not one rope's
         // worth — the old cost-of-one made a girl cut a yucca (4 fibers
         // scatter), pick up ONE, craft one rope, deliver it, and walk all
@@ -2255,7 +2292,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // scattered while the site waited. Cutting is only available while
         // no loose fiber is reachable; yuccas are consumed, don't waste them.
         var harvestYuccaAvail = ctx.CanUseToolsOrWeapons && carriedFiber < fiberNeed &&
-            (hasKnife || hasAxe) && !HasReachableWithTag(npc, world, "Fiber") &&
+            hasCutTool && !HasReachableWithTag(npc, world, "Fiber") &&
             PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.HarvestYucca);
         var gatherFiberAvail = carriedFiber < fiberNeed &&
             PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.GatherFiber);
@@ -2284,9 +2321,16 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 CraftPlaceOk(GoalType.CraftCloth));
         var finishedKnifeReachable = CraftProjectMath.HasReachableCompletedOutput(
             world, npc, GoalType.CraftKnife);
+        var finishedSharpStoneReachable = CraftProjectMath.HasReachableCompletedOutput(
+            world, npc, GoalType.CraftSharpStone);
+        var craftSharpStoneAvail = ctx.CanUseToolsOrWeapons &&
+            carriedSharpStones < sharpStoneTarget && !finishedSharpStoneReachable &&
+            ((HasRecipeInputs(npc, GoalType.CraftSharpStone) &&
+              CraftPlaceOk(GoalType.CraftSharpStone)) ||
+             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftSharpStone));
         var craftKnifeAvail = ctx.CanUseToolsOrWeapons &&
-            !(hasKnife && hasButcherTool) && !finishedKnifeReachable &&
-            ((carriedSticks >= knifeStickCost && stoneCount >= knifeStoneCost &&
+            needsFinishedKnife && !finishedKnifeReachable &&
+            ((HasRecipeInputs(npc, GoalType.CraftKnife) &&
               CraftPlaceOk(GoalType.CraftKnife)) ||
              CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftKnife));
         AddGoalScore(npc, world.Tick, GoalType.HarvestYucca, 0.26f + freeHands + bedRopePull, harvestYuccaAvail);
@@ -2295,12 +2339,16 @@ public sealed partial class DecisionSystem : ISimulationSystem
         AddGoalScore(npc, world.Tick, GoalType.CraftRope, 0.28f + freeHands + bedRopePull + dreamPull, craftRopeAvail,
             command: DirectiveMath.Pull(ctx.DirectiveKind, GoalType.CraftRope));
         AddGoalScore(npc, world.Tick, GoalType.CraftCloth, 0.28f + freeHands, craftClothAvail);
+        AddGoalScore(npc, world.Tick, GoalType.CraftSharpStone,
+            0.32f + freeHands + coconutToolBoost, craftSharpStoneAvail,
+            coconutEmergencyBoost);
         AddGoalScore(npc, world.Tick, GoalType.CraftKnife,
             0.34f + freeHands + coconutToolBoost, craftKnifeAvail, coconutEmergencyBoost);
 
         // Spec §54: butcher a carcass (or, starving, a housemate's body) with
         // a knife — hunger-driven, since the payoff is meat.
-        var butcherAvail = ctx.CanUseToolsOrWeapons && hasButcherTool &&
+        var butcherAvail = ctx.CanUseToolsOrWeapons &&
+            (hasHumanButcherTool || hasAnimalButcherTool) &&
             PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.Butcher);
         AddGoalScore(npc, world.Tick, GoalType.Butcher,
             0.3f + 0.5f * npc.Needs.Hunger, butcherAvail);
@@ -2310,7 +2358,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // and a knife in hand, hunts the weakest housemate for meat. The
         // NoOtherFoodReachable gate keeps it strictly below every real food
         // source; PredationBaseScore is a low floor so it can never outbid one.
-        var preyAvail = SimBalance.PredationEnabled && ctx.CanUseToolsOrWeapons && hasButcherTool &&
+        var preyAvail = SimBalance.PredationEnabled && ctx.CanUseToolsOrWeapons && hasHumanButcherTool &&
             npc.CompassionTrait <= SimBalance.PredationCompassionCeiling &&
             npc.Needs.Hunger >= SimBalance.PredationHungerGate &&
             NoOtherFoodReachable(npc, world) &&

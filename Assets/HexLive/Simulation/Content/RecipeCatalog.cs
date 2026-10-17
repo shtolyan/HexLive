@@ -204,11 +204,16 @@ public static class RecipeCatalog
 
         // Spec §54: hand tools / arrows / spear / rack are framed from STICKS
         // (the split-log currency), not raw logs.
-        Add(GoalType.CraftSpear, new[] { I("resource.stick", 1) }, output: ContentIds.Spear);
+        Add(GoalType.CraftSpear, new[]
+        {
+            I(ContentIds.SharpStone, 1), I(ContentIds.Rope, 1)
+        }, station: "", output: ContentIds.Spear);
         Add(GoalType.CookMeat, new[] { I("food.meat_raw", 1) }, fire: true,
             output: ContentIds.MeatCooked);
-        Add(GoalType.CraftAxe, new[] { I("resource.stick", 1), I("resource.stone", 1) },
-            output: ContentIds.AxeStone);
+        Add(GoalType.CraftAxe, new[]
+        {
+            I(ContentIds.Stick, 1), I(ContentIds.Stone, 1), I(ContentIds.Rope, 1)
+        }, station: "", output: ContentIds.AxeStone);
         Add(GoalType.CraftPickaxe, new[] { I("resource.stick", 1), I("resource.stone", 2) },
             output: ContentIds.PickaxeStone);
         Add(GoalType.CraftRack, new[] { I("resource.stick", 2) }, noRack: true);
@@ -220,20 +225,25 @@ public static class RecipeCatalog
         Add(GoalType.CraftTent, new[] { I("resource.palm_leaf", 4), I("resource.cloth", 1) });
         // §gear: bow/arrow recipes removed — archery is retired pending the
         // hunting rework (craft avails are hard-false in the decision layer).
-        Add(GoalType.CraftBandage, new[] { I("resource.herb_leaf", 2) },
-            output: ContentIds.Bandage);
+        Add(GoalType.CraftBandage, new[]
+        {
+            I(ContentIds.HerbLeaf, 2), I(ContentIds.Cloth, 1)
+        }, station: "", output: ContentIds.Bandage);
         // §138.6: plaster can receive a data recipe; its actual bill remains
         // a separate content decision. No recipe is added by this foundation.
-        // Spec §54: cordage & cloth from fiber; the knife from a stick + stone.
+        // §172: cordage & cloth from fiber; a crude flake bridges stone and knife.
         Add(GoalType.CraftRope, new[] { I("resource.fiber", SimBalance.RopeFiberCost) },
             output: ContentIds.Rope);
         Add(GoalType.CraftCloth, new[] { I("resource.fiber", SimBalance.ClothFiberCost) },
             output: ContentIds.Cloth);
+        Add(GoalType.CraftSharpStone, new[] { I(ContentIds.Stone, 2) },
+            station: "", output: ContentIds.SharpStone);
         Add(GoalType.CraftKnife, new[]
         {
             I("resource.stick", SimBalance.KnifeStickCost),
-            I("resource.stone", SimBalance.KnifeStoneCost)
-        }, output: ContentIds.Knife);
+            I(ContentIds.SharpStone, 1),
+            I(ContentIds.Rope, 1)
+        }, station: "", output: ContentIds.Knife);
         Add(GoalType.CraftSplint, new[] { I(ContentIds.Stick, 2), I(ContentIds.Rope, 1) },
             station: "", output: ContentIds.Splint);
         Add(GoalType.CraftWoodenArm, new[]

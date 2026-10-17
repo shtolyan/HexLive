@@ -86,6 +86,7 @@ public static class SimulationSystemRegistry
         engine.Register(new NeedsDecaySystem());
         engine.Register(new TemperatureSystem());
         engine.Register(new MoistureSystem());
+        engine.Register(new PlantGrowthSystem()); // §173: stage swaps before mature plants produce
         engine.Register(new FruitProductionSystem());
         engine.Register(new FireSystem());
         engine.Register(new CorpseSystem());

@@ -40,6 +40,7 @@ internal static class SkillMath
             case InteractionType.Butcher:
             case InteractionType.Fuel:
             case InteractionType.FillBottle:
+            case InteractionType.Plant:
                 return SkillKind.Survival;
 
             case InteractionType.TreatSelf:
@@ -79,7 +80,7 @@ internal static class SkillMath
 
         // §76.14 (bug #304): физическая работа (рубка, распилка, стройка)
         // заодно тренирует Атлетику — вполсилы, поверх своего навыка.
-        if (type is InteractionType.Harvest or InteractionType.Process
+        if (type is InteractionType.Harvest or InteractionType.Process or InteractionType.Plant
             or InteractionType.Build or InteractionType.BuildRaft)
         {
             Grant(npc, SkillKind.Athletics,

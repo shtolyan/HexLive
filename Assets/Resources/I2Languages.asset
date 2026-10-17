@@ -3677,6 +3677,14 @@ MonoBehaviour:
       - "\u041C\u0430\u0441\u0442\u0435\u0440\u0438\u0442 \u043D\u043E\u0436"
       Flags: 0101
       Languages_Touch: []
+    - Term: goal.CraftSharpStone
+      TermType: 0
+      Description:
+      Languages:
+      - Making a sharp stone
+      - "\u0414\u0435\u043B\u0430\u0435\u0442 \u043E\u0441\u0442\u0440\u044B\u0439 \u043A\u0430\u043C\u0435\u043D\u044C"
+      Flags: 0101
+      Languages_Touch: []
     - Term: goal.Butcher
       TermType: 0
       Description: 
@@ -4494,6 +4502,14 @@ MonoBehaviour:
       Languages:
       - Split open
       - "\u0412\u0441\u043A\u0440\u044B\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: interaction.Plant.verb
+      TermType: 0
+      Description:
+      Languages:
+      - Plant
+      - "\u041F\u043E\u0441\u0430\u0434\u0438\u0442\u044C"
       Flags: 0101
       Languages_Touch: []
     - Term: interaction.split.log.verb
@@ -18496,6 +18512,22 @@ MonoBehaviour:
       - "\u041D\u043E\u0436"
       Flags: 0101
       Languages_Touch: []
+    - Term: item.tool_sharp_stone.name
+      TermType: 0
+      Description:
+      Languages:
+      - Sharp Stone
+      - "\u041E\u0441\u0442\u0440\u044B\u0439 \u043A\u0430\u043C\u0435\u043D\u044C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.tool_sharp_stone.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A chipped stone edge for cutting plants and butchering animals."
+      - "\u041A\u0430\u043C\u0435\u043D\u043D\u0430\u044F \u043A\u0440\u043E\u043C\u043A\u0430 \u0434\u043B\u044F \u0441\u0440\u0435\u0437\u0430\u043D\u0438\u044F \u0440\u0430\u0441\u0442\u0435\u043D\u0438\u0439 \u0438 \u0440\u0430\u0437\u0434\u0435\u043B\u043A\u0438 \u0436\u0438\u0432\u043E\u0442\u043D\u044B\u0445."
+      Flags: 0101
+      Languages_Touch: []
     - Term: item.tool_knife.desc
       TermType: 0
       Description: 
@@ -18561,6 +18593,38 @@ MonoBehaviour:
         \u2014 \u0438\u0437 \u0434\u0432\u0443\u0445 \u0443 \u043A\u043E\u0441\u0442\u0440\u0430
         \u0432\u044B\u0445\u043E\u0434\u0438\u0442 \u0442\u0440\u0430\u0432\u044F\u043D\u0430\u044F
         \u043F\u043E\u0432\u044F\u0437\u043A\u0430."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.resource_herb_seed.name
+      TermType: 0
+      Description:
+      Languages:
+      - Healing Herb Seed
+      - "\u0421\u0435\u043C\u044F \u0446\u0435\u043B\u0435\u0431\u043D\u043E\u0439 \u0442\u0440\u0430\u0432\u044B"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.resource_herb_seed.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A seed that grows into a mature healing herb in ten game days.
+      - "\u0421\u0435\u043C\u044F, \u0438\u0437 \u043A\u043E\u0442\u043E\u0440\u043E\u0433\u043E \u0437\u0430 10 \u0438\u0433\u0440\u043E\u0432\u044B\u0445 \u0434\u043D\u0435\u0439 \u0432\u044B\u0440\u0430\u0441\u0442\u0435\u0442 \u0446\u0435\u043B\u0435\u0431\u043D\u0430\u044F \u0442\u0440\u0430\u0432\u0430."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.resource_yucca_seed.name
+      TermType: 0
+      Description:
+      Languages:
+      - Yucca Seed
+      - "\u0421\u0435\u043C\u044F \u044E\u043A\u043A\u0438"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.resource_yucca_seed.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A seed that grows into a mature yucca in ten game days.
+      - "\u0421\u0435\u043C\u044F, \u0438\u0437 \u043A\u043E\u0442\u043E\u0440\u043E\u0433\u043E \u0437\u0430 10 \u0438\u0433\u0440\u043E\u0432\u044B\u0445 \u0434\u043D\u0435\u0439 \u0432\u044B\u0440\u0430\u0441\u0442\u0435\u0442 \u044E\u043A\u043A\u0430."
       Flags: 0101
       Languages_Touch: []
     - Term: item.item_bandage.name
@@ -30072,6 +30136,30 @@ MonoBehaviour:
       - 'Лекарственная трава'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.plant_herb_sprout.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Healing herb sprout'
+      - 'Росток лекарственной травы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.plant_herb_young.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Young healing herb'
+      - 'Молодая лекарственная трава'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.plant_herb_budding.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Budding healing herb'
+      - 'Созревающая лекарственная трава'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.item_medkit.name'
       TermType: 0
       Description: 
@@ -30096,12 +30184,52 @@ MonoBehaviour:
       - 'Ветка с кокосами'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.plant_palm_sprout.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Palm sprout'
+      - 'Росток пальмы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.plant_palm_sapling.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Palm sapling'
+      - 'Саженец пальмы'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.plant_yucca.name'
       TermType: 0
       Description: 
       Languages:
       - 'Yucca'
       - 'Юкка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.plant_yucca_sprout.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Yucca sprout'
+      - 'Росток юкки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.plant_yucca_young.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Young yucca'
+      - 'Молодая юкка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.plant_yucca_juvenile.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Juvenile yucca'
+      - 'Подросшая юкка'
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.resource_palm_crown.name'
@@ -30182,6 +30310,14 @@ MonoBehaviour:
       Languages:
       - 'Palm'
       - 'Пальма'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.tree_palm_young.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Young palm'
+      - 'Молодая пальма'
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.vessel_raft.name'

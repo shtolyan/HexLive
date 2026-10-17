@@ -587,7 +587,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     var hasChopTool = Content.GearCatalog.HasCapability(
                         npc.Inventory.Items, Content.GearCapability.ChopWood);
                     var hasBlade = Content.GearCatalog.HasCapability(
-                        npc.Inventory.Items, Content.GearCapability.Cut);
+                            npc.Inventory.Items, Content.GearCapability.Cut) ||
+                        Content.GearCatalog.HasCapability(
+                            npc.Inventory.Items, Content.GearCapability.CutPlant);
                     var toolOk = isHerbBush
                         ? true
                         : isBoulder
@@ -607,12 +609,14 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     }
                 }
 
-                // Process always needs a functional hand. Coconut work is the
-                // light exception that remains possible while prone; every
-                // other Process action is heavy work and also needs standing.
-                if (interaction.Type == InteractionType.Process)
+                // Processing and planting need a functional hand. Coconut
+                // processing is the light exception possible while prone;
+                // planting and every other Process also need a stable stance.
+                if (interaction.Type is InteractionType.Process or InteractionType.Plant)
                 {
-                    var isLightCoconutWork = definition.HasTag("Coconut");
+                    var isLightCoconutWork =
+                        interaction.Type == InteractionType.Process &&
+                        definition.HasTag("Coconut");
                     if (!npc.Body.HasUsableHand ||
                         (!isLightCoconutWork && !npc.Body.CanUseToolsOrWeapons))
                     {
@@ -673,8 +677,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     continue;
                 }
 
-                // Spec §54: butchering a carcass/corpse needs a knife in hand.
-                // (Legacy path — declared interactions use the any-of gate.)
+                // Spec §54: undeclared legacy butchery keeps the finished-blade
+                // gate. Declared animal carcasses use ButcherAnimal above.
                 if (interaction.Type == InteractionType.Butcher &&
                     interaction.RequiredCapabilities.Count == 0 &&
                     (!npc.Body.CanUseToolsOrWeapons ||
@@ -683,7 +687,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 {
                     PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
                     PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
-                        $"Cannot butcher {worldObject.DefinitionId} (no knife)");
+                        $"Cannot butcher {worldObject.DefinitionId} (missing required blade)");
                     npc.Mind.CurrentGoal = GoalType.None;
                     continue;
                 }
@@ -1368,6 +1372,22 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 completedInteraction, needsBefore))
             {
                 return false;
+            }
+        }
+        else if (completedInteraction.Type == InteractionType.Plant)
+        {
+            var planted = PlantGrowthSystem.TryPlant(world, worldObject);
+            if (planted is null)
+            {
+                PlanInterruption.TryAbort(world, npc,
+                    InterruptionCause.ExecutionFailure, "Seed cannot be planted");
+                return false;
+            }
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "SeedPlanted",
+                    $"Seed={worldObject.DefinitionId} Plant={planted.DefinitionId} " +
+                    $"Tile={planted.Tile.Q},{planted.Tile.R}");
             }
         }
         else if (completedInteraction.Type == InteractionType.Drink &&
@@ -2081,11 +2101,22 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             if (d.DefinitionId == ContentIds.Stick) sticks += d.Count;
             if (d.DefinitionId == ContentIds.Board) boards += d.Count;
         }
-        Trace.Emit(world, npc.Id, isCrown ? "CrownChopped" : "LogSplit",
-            isCrown
-                ? $"{worldObject.DefinitionId} -> {yieldCount} leaves"
-                : $"{worldObject.DefinitionId} -> {sticks} sticks" +
-                  (boards > 0 ? $" + {boards} boards" : string.Empty));
+        if (definition.HasTag("PalmStump"))
+        {
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "StumpRemoved",
+                    $"{worldObject.DefinitionId} -> {yieldCount} resources");
+            }
+        }
+        else
+        {
+            Trace.Emit(world, npc.Id, isCrown ? "CrownChopped" : "LogSplit",
+                isCrown
+                    ? $"{worldObject.DefinitionId} -> {yieldCount} leaves"
+                    : $"{worldObject.DefinitionId} -> {sticks} sticks" +
+                      (boards > 0 ? $" + {boards} boards" : string.Empty));
+        }
         }
 
         return true;

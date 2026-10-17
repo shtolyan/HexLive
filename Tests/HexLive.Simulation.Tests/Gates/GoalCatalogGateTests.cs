@@ -157,6 +157,7 @@ public sealed class GoalCatalogGateTests
             [GoalType.CraftRope] = InteractionType.Craft,
             [GoalType.CraftCloth] = InteractionType.Craft,
             [GoalType.CraftKnife] = InteractionType.Craft,
+            [GoalType.CraftSharpStone] = InteractionType.Craft,
             // §118 additions: append-only craft goals deliberately extend the
             // interaction table that replaced the historical switch.
             [GoalType.CraftSplint] = InteractionType.Craft,

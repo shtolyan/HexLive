@@ -6,7 +6,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using HexLive.Simulation.AI;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Runtime;
+using HexLive.UnityPresentation.Config;
 using HexLive.UnityPresentation.UI;
 using HexLive.UnityPresentation.Wearing.Garments;
 using Newtonsoft.Json.Linq;
@@ -46,6 +48,38 @@ namespace HexLive.Tests
                 count++;
             }
             Assert.That(count, Is.EqualTo(82));
+        }
+
+        [Test]
+        public void ClothAndSharpStoneWorldArtIconsAndGearImportAsBuildSources()
+        {
+            var cloth = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/HexLiveContent/RuntimeSource/Objects/resource.cloth.fbx");
+            var sharpStone = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/HexLiveContent/RuntimeSource/Objects/tool.sharp_stone.fbx");
+            var clothIcon = AssetDatabase.LoadAssetAtPath<Sprite>(
+                "Assets/HexLiveContent/Icons/resource.cloth.png");
+            var sharpStoneIcon = AssetDatabase.LoadAssetAtPath<Sprite>(
+                "Assets/HexLiveContent/Icons/tool.sharp_stone.png");
+            var gear = AssetDatabase.LoadAssetAtPath<GearConfig>(
+                "Assets/HexLiveContent/RuntimeSource/Gear/sharp_stone.asset");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(cloth, Is.Not.Null);
+                Assert.That(cloth.GetComponentsInChildren<Renderer>(true), Has.Length.GreaterThanOrEqualTo(2));
+                Assert.That(sharpStone, Is.Not.Null);
+                Assert.That(sharpStone.GetComponentsInChildren<Renderer>(true), Has.Length.GreaterThanOrEqualTo(1));
+                Assert.That(clothIcon, Is.Not.Null);
+                Assert.That(clothIcon.rect.size, Is.EqualTo(new Vector2(512, 512)));
+                Assert.That(sharpStoneIcon, Is.Not.Null);
+                Assert.That(sharpStoneIcon.rect.size, Is.EqualTo(new Vector2(512, 512)));
+                Assert.That(gear, Is.Not.Null);
+                Assert.That(gear.gearId, Is.EqualTo(ContentIds.SharpStone));
+                Assert.That(gear.capabilities, Does.Contain(GearCapability.CutPlant));
+                Assert.That(gear.capabilities, Does.Contain(GearCapability.ButcherAnimal));
+                Assert.That(gear.craftIngredients.Sum(input => input.count), Is.EqualTo(2));
+            });
         }
 
     }

@@ -393,6 +393,7 @@ internal static class AttributeMath
         {
             case InteractionType.Harvest:
             case InteractionType.Process:
+            case InteractionType.Plant:
             case InteractionType.Build:
             case InteractionType.Butcher:
                 return AttributeKind.Strength;

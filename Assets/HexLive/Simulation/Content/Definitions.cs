@@ -258,7 +258,11 @@ public enum InteractionType
     // §55.4 (bug #317): перелить воду из ёмкостей инвентаря в бутылку — на
     // месте, без объекта мира (в отличие от FillBottle у источника). Дописано
     // в конец: сейв и снапшот хранят взаимодействия ординалом.
-    FillVessel
+    FillVessel,
+    // §173: a seed/coconut already lying at the chosen junction is consumed
+    // and replaced by the first authored growth stage. Append-only: saves and
+    // wire snapshots persist interaction ordinals.
+    Plant
 }
 
 }

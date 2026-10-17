@@ -6,10 +6,11 @@
 // build then stays silent and the player keeps its UI Toolkit windows.
 import { setStrings } from './i18n.js';
 
-export const PROTOCOL = 1;
+export const PROTOCOL = 2; // 2: asset messages
 
 const outbox = [];
 const screens = new Map(); // id → model, in opening order
+const assets = new Map(); // key → data URL, sent once by HtmlUi.Asset
 const listeners = new Set();
 let bits = 0;
 let lastPointer = null;
@@ -69,7 +70,16 @@ export function receive(json) {
     case 'hide':
       if (screens.delete(message.screen)) emit();
       break;
+    case 'asset':
+      assets.set(message.key, message.url);
+      emit();
+      break;
   }
+}
+
+/** An image a model refers to by key (HtmlUi.Asset), or undefined until it arrives. */
+export function asset(key) {
+  return key ? assets.get(key) : undefined;
 }
 
 /** Page → Unity: one player command for a screen. */

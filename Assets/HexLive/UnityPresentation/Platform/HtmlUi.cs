@@ -24,8 +24,9 @@ namespace HexLive.UnityPresentation.Platform
 /// </summary>
 public static class HtmlUi
 {
-    /// <summary>Bump together with <c>PROTOCOL</c> in <c>ui/bridge.js</c>.</summary>
-    public const int Protocol = 1;
+    /// <summary>Bump together with <c>PROTOCOL</c> in <c>ui/bridge.js</c>.
+    /// 2: <c>asset</c> messages (images a model refers to by key).</summary>
+    public const int Protocol = 2;
 
     /// <summary>The page runs the HTML interface of the same protocol.</summary>
     public static bool Active { get; private set; }
@@ -54,6 +55,7 @@ public static class HtmlUi
 
     private static readonly Dictionary<string, Action<string, JObject>> Handlers = new();
     private static readonly HashSet<string> Shown = new();
+    private static readonly HashSet<string> Assets = new();
     private static int _bits;
     private static int _releaseFrame = -1;
 
@@ -89,6 +91,25 @@ public static class HtmlUi
 
         Post(new JObject { ["t"] = "hide", ["screen"] = screen });
     }
+
+    /// <summary>
+    /// §174.2: an image (data URL) the page keeps under <paramref name="key"/>.
+    /// Models refer to it by key, so a model update never carries pictures —
+    /// a creator thumbnail travels once, not with every keystroke. Each key is
+    /// sent once per page.
+    /// </summary>
+    public static void Asset(string key, string dataUrl)
+    {
+        if (!Active || !Assets.Add(key))
+        {
+            return;
+        }
+
+        Post(new JObject { ["t"] = "asset", ["key"] = key, ["url"] = dataUrl });
+    }
+
+    /// <summary>The page already holds this asset.</summary>
+    public static bool HasAsset(string key) => Assets.Contains(key);
 
     private static void Post(JObject message)
     {
@@ -239,6 +260,7 @@ public static class HtmlUi
         Activated = null;
         Handlers.Clear();
         Shown.Clear();
+        Assets.Clear();
         _bits = 0;
         _releaseFrame = -1;
     }

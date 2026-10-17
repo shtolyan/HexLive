@@ -1920,6 +1920,12 @@ namespace HexLive.UnityPresentation.UI
                 _htmlDirty = true;
             }
 
+            // §174.7: the creator draws on the page, and its 3D preview renders
+            // straight to the screen — the art would cover it, so it steps aside.
+            var creatorHtml = _playerCreator != null && _playerCreator.Html;
+            _root.style.visibility = creatorHtml ? Visibility.Hidden : Visibility.Visible;
+            _playerCreator?.HtmlTick();
+
             if (!_htmlDirty)
             {
                 return;

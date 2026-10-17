@@ -87,6 +87,35 @@ public sealed class LobbyCharacterPreview : IDisposable
     }
     public void ResetCamera() { _yaw = 180; _pitch = 8; _distance = 3.8f; _focus = new Vector3(0, .95f, 0); CameraPose(); }
     public void Rotate(float degrees) { _yaw += degrees; CameraPose(); }
+
+    /// <summary>
+    /// §174.7: the web page's creator leaves a transparent hole for the model;
+    /// the camera renders straight into that part of the screen instead of
+    /// into a texture shown by UI Toolkit. <paramref name="viewport"/> is
+    /// normalized, origin bottom-left, as Camera.rect.
+    /// </summary>
+    public void ShowOnScreen(Rect viewport)
+    {
+        if (_disposed) return;
+        var resize = _camera.targetTexture != null || _camera.rect != viewport;
+        _camera.targetTexture = null;
+        _camera.rect = viewport;
+        _camera.depth = 50; // after the world camera, inside its own rectangle only
+        _camera.ResetAspect();
+        if (resize) { if (_bodyFraming) FocusBody(); else FocusFace(); }
+    }
+
+    /// <summary>The page's drag on the preview: the same orbit as the UI Toolkit manipulator.</summary>
+    public void OrbitBy(float dx, float dy)
+    {
+        _yaw += dx * .25f; _pitch = Mathf.Clamp(_pitch + dy * .25f, -15, 85); CameraPose();
+    }
+
+    /// <summary>The page's wheel on the preview, one notch per step.</summary>
+    public void Zoom(float steps)
+    {
+        _distance = Mathf.Clamp(_distance * (1 + Mathf.Clamp(steps, -3, 3) * .05f), .6f, 10); CameraPose();
+    }
     public void FocusBody()
     {
         _bodyFraming = true;

@@ -4,29 +4,30 @@
 // The preview is a transparent hole: Unity renders the stage camera straight
 // into that rectangle, which the page reports with previewRect.
 //
-// Model: {
-//   phase: 'signedOut' | 'loading' | 'editing' | 'failed',
-//   banner: null | key,                 // creator.pending / creator.characterDied / creator.error.*
-//   busy: null | key,                   // creator.creating …
-//   pending: bool,                      // a frozen attempt waits for an identical retry
+// Model (C# PlayerCharacterCreator.HtmlModel / the flow's gate): {
+//   phase: 'signedOut' | 'loading' | 'failed' | 'editing',
+//   messageText,                        // gate only: the flow's status, already worded (I2)
+//   bannerText, busyText, pending,      // editing: flow message / submit in progress / frozen attempt
 //   draft: { name, sex, skin, hair, hairColour, eyes, camp,
 //            attributes: { id: 0–10 }, skills: { id: 0–10 }, traits: [id] },
-//   options: { sexes: ['female','male'], skins: [id], hair: [{ id, colours: [id] }], eyes: [id],
+//   options: { sexes, skins: [id], hair: [{ id, colours: [id] }], eyes: [id],
 //              attributes: [id], skills: [id], traits: [id], pairs: [[a, b]],
-//              attributeBudget, skillBudget,  // in the same 0–10 points as the sliders
-//              camps: [{ id, number, hasSpace, residents, capacity }] },  // counts: §171.10, 18.10.2026
-//   thumbs: { 'skin:<id>' | 'hair:<id>': url },   // rendered by Unity (LobbyAppearanceThumbnails)
-//   tints: { '<colour id>': '#rrggbb' }, eyeSwatches: { '<eye id>': '#rrggbb' },
+//              attributeBudget, skillBudget,  // in the same 0–10 points as the cells
+//              camps: [{ id, number, hasSpace, residents?, capacity? }] },  // counts: §171.10, 18.10.2026
+//   labels: { 'skin:<id>' | 'hair:<id>' | 'colour:<id>': text },
+//   thumbs: { 'skin:<id>' | 'hair:<id>' | 'colour:<id>': asset key },   // HtmlUi.Asset, rendered by Unity
+//   tints: { '<colour id>': css colour }, eyeSwatches: { '<eye id>|default': '#rrggbb' },
 //   preview: 'loading' | 'ready' | 'failed',
-//   blocked: { appearance, abilities, camp },      // key of the reason a step cannot go on, or null
+//   nameErrorText, blocked: { appearance, abilities, camp },  // why a step cannot go on, worded, or null
 // }
-// Commands: set { field, value }, step-free (the page owns the open step);
-// next/submit, back, signIn, retry, camera { action: 'left'|'right'|'body'|'face'|'orbit'|'zoom', dx, dy },
-// previewRect { x, y, w, h } (CSS px within the game area).
+// Commands: set { field, value }, look { tab } (which thumbnails to render),
+// submit, back, signIn, retry, camera { action: 'left'|'right'|'body'|'face'|'orbit'|'zoom', dx, dy },
+// previewRect { x, y, w, h, vw, vh } (CSS px within the game area of vw×vh).
 import { html, useState, useEffect, useRef } from '../html.js';
 import { t } from '../i18n.js';
 import { icons } from '../icons.js';
 import { Button, Pips } from '../components.js';
+import { asset } from '../bridge.js';
 
 const STEPS = ['appearance', 'abilities', 'camp'];
 const LOOKS = ['skin', 'hair', 'colour'];
@@ -46,8 +47,12 @@ function Tile({ selected, label, thumb, swatch, onClick, wide }) {
     </button>`;
 }
 
-function Appearance({ model, set }) {
-  const [look, setLook] = useState('skin');
+const label = (model, kind, id) => model.labels?.[`${kind}:${id}`] ?? t(`creator.${kind}.${id}`);
+
+function Appearance({ model, set, send }) {
+  const [look, setLookState] = useState('skin');
+  const setLook = (id) => { setLookState(id); send('look', { tab: id }); };
+  useEffect(() => send('look', { tab: look }), []);
   const { draft, options } = model;
   const hairIds = options.hair.map((h) => h.id);
   const hairIndex = Math.max(0, hairIds.indexOf(draft.hair));
@@ -68,25 +73,26 @@ function Appearance({ model, set }) {
     </div>
     ${look === 'skin' && html`
       <div class="hx-tiles">
-        ${options.skins.map((id) => html`<${Tile} key=${id} selected=${draft.skin === id} label=${t(`creator.skin.${id}`)}
-          thumb=${model.thumbs[`skin:${id}`]} onClick=${() => set('skin', id)} />`)}
+        ${options.skins.map((id) => html`<${Tile} key=${id} selected=${draft.skin === id} label=${label(model, 'skin', id)}
+          thumb=${asset(model.thumbs[`skin:${id}`])} onClick=${() => set('skin', id)} />`)}
       </div>
       <p class="hx-muted">${t('creator.starterClothes')}</p>`}
     ${look === 'hair' && html`
       <div class="hx-stepper">
         <button type="button" class="hx-seg" aria-label=${t('creator.previousHair')} onClick=${() => stepHair(-1)}>‹</button>
-        <span>${t(`creator.hair.${draft.hair}`)}</span>
+        <span>${label(model, 'hair', draft.hair)}</span>
         <button type="button" class="hx-seg" aria-label=${t('creator.nextHair')} onClick=${() => stepHair(1)}>›</button>
       </div>
       <div class="hx-tiles">
-        ${options.hair.map((h) => html`<${Tile} key=${h.id} selected=${draft.hair === h.id} label=${t(`creator.hair.${h.id}`)}
-          thumb=${model.thumbs[`hair:${h.id}`]} onClick=${() => set('hair', h.id)} />`)}
+        ${options.hair.map((h) => html`<${Tile} key=${h.id} selected=${draft.hair === h.id} label=${label(model, 'hair', h.id)}
+          thumb=${asset(model.thumbs[`hair:${h.id}`])} onClick=${() => set('hair', h.id)} />`)}
       </div>`}
     ${look === 'colour' && (draft.hair === 'none'
       ? html`<p class="hx-muted">${t('creator.chooseHairFirst')}</p>`
       : html`<div class="hx-swatches">
           ${hair.colours.map((id) => html`<${Tile} key=${id} wide selected=${draft.hairColour === id}
-            label=${t(`creator.colour.${id}`)} swatch=${model.tints[id]} onClick=${() => set('hairColour', id)} />`)}
+            label=${label(model, 'colour', id)} swatch=${model.tints[id]} thumb=${asset(model.thumbs[`colour:${id}`])}
+            onClick=${() => set('hairColour', id)} />`)}
         </div>`)}`;
 }
 
@@ -164,7 +170,9 @@ function Stage({ model, send, step }) {
       const r = hole.current.getBoundingClientRect();
       const stage = document.getElementById('hex-ui').getBoundingClientRect();
       const k = stage.width / document.getElementById('hex-ui').clientWidth || 1; // the stand scales the game area
-      send('previewRect', { x: (r.left - stage.left) / k, y: (r.top - stage.top) / k, w: r.width / k, h: r.height / k });
+      const ui = document.getElementById('hex-ui');
+      send('previewRect', { x: (r.left - stage.left) / k, y: (r.top - stage.top) / k, w: r.width / k, h: r.height / k,
+        vw: ui.clientWidth, vh: ui.clientHeight });
     };
     const observer = new ResizeObserver(report);
     observer.observe(hole.current);
@@ -218,7 +226,7 @@ function NameField({ value, error, set }) {
           clearTimeout(timer.current);
           timer.current = setTimeout(() => set('name', v), 150);
         }} />
-      <span class=${error ? 'hx-field__error' : 'hx-field__hint'}>${t(error || 'creator.nameHint')}</span>
+      <span class=${error ? 'hx-field__error' : 'hx-field__hint'}>${error || t('creator.nameHint')}</span>
     </label>`;
 }
 
@@ -227,7 +235,7 @@ function Editor({ model, send }) {
   const set = (field, value) => send('set', { field, value });
   const index = STEPS.indexOf(step);
   const blocked = model.blocked?.[step];
-  const locked = model.pending || !!model.busy;
+  const locked = model.pending || !!model.busyText;
   const last = step === 'camp';
   const primary = model.pending ? t('creator.retryCreation') : last ? t('creator.create') : t('creator.next');
   const go = () => (model.pending || last ? send('submit') : setStep(STEPS[index + 1]));
@@ -240,25 +248,25 @@ function Editor({ model, send }) {
       <div class="hx-creator__body">
         <${Stage} model=${model} send=${send} step=${step} />
         <section class="hx-panel" aria-label=${t('creator.title')}>
-          ${model.banner && html`<p class="hx-notice" role="alert">${icons.alert()}<span>${t(model.banner)}</span></p>`}
-          <${NameField} value=${model.draft.name} error=${model.nameError} set=${set} />
+          ${model.bannerText && html`<p class="hx-notice" role="alert">${icons.alert()}<span>${model.bannerText}</span></p>`}
+          <${NameField} value=${model.draft.name} error=${model.nameErrorText} set=${set} />
           <ol class="hx-steps-tabs" role="tablist">
             ${STEPS.map((id, i) => html`
               <li key=${id}><button type="button" role="tab" aria-selected=${step === id} disabled=${locked}
                 onClick=${() => setStep(id)}><b>${i + 1}</b>${t(`creator.${id}`)}</button></li>`)}
           </ol>
           <div class="hx-panel__scroll" inert=${locked}>
-            ${step === 'appearance' && html`<${Appearance} model=${model} set=${set} />`}
+            ${step === 'appearance' && html`<${Appearance} model=${model} set=${set} send=${send} />`}
             ${step === 'abilities' && html`<${Abilities} model=${model} set=${set} />`}
             ${step === 'camp' && html`<${Camp} model=${model} set=${set} />`}
           </div>
           <footer class="hx-panel__foot">
             <div class="hx-panel__summary">
               <b>${model.draft.name.trim() || t('creator.summary')}</b>
-              ${(model.busy || blocked) && html`<span class=${model.busy ? 'hx-muted hx-spinner-text' : 'hx-warn'}>${t(model.busy || blocked)}</span>`}
+              ${(model.busyText || blocked) && html`<span class=${model.busyText ? 'hx-muted hx-spinner-text' : 'hx-warn'}>${model.busyText || blocked}</span>`}
             </div>
             ${(model.pending || model.preview === 'failed') && html`<${Button} onClick=${() => send('retry')}>${t('creator.retry')}<//>`}
-            <${Button} variant="primary" disabled=${!!blocked || !!model.busy} title=${blocked ? t(blocked) : undefined} onClick=${go}>${primary}<//>
+            <${Button} variant="primary" disabled=${!!blocked || !!model.busyText} title=${blocked || undefined} onClick=${go}>${primary}<//>
           </footer>
         </section>
       </div>
@@ -272,9 +280,9 @@ function Gate({ model, send }) {
       <section class="hx-window hx-window--medium hx-surface hx-stack">
         <p class="hx-eyebrow">${t('creator.eyebrow')}</p>
         <h2 class="hx-title hx-title--left">${t('creator.title')}</h2>
-        ${model.phase === 'loading' && html`<p class="hx-muted hx-spinner-text">${t('creator.loading')}</p>`}
+        ${model.phase === 'loading' && html`<p class="hx-muted hx-spinner-text">${model.messageText || t('creator.loading')}</p>`}
         ${model.phase === 'signedOut' && html`<p class="hx-text">${t('creator.signInHint')}</p>`}
-        ${model.phase === 'failed' && html`<p class="hx-notice" role="alert">${icons.alert()}<span>${t(model.banner || 'creator.error.network')}</span></p>`}
+        ${model.phase === 'failed' && html`<p class="hx-notice" role="alert">${icons.alert()}<span>${model.messageText || t('creator.error.network')}</span></p>`}
         <div class="hx-actions">
           <${Button} onClick=${() => send('back')}>${t('creator.back')}<//>
           ${model.phase === 'signedOut' && html`<${Button} variant="primary" onClick=${() => send('signIn')}>${t('creator.signIn')}<//>`}

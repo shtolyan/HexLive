@@ -4,6 +4,7 @@ using System.Linq;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Bootstrap;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Platform;
 using HexLive.UnityPresentation.Wearing;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
@@ -34,12 +35,23 @@ public sealed class PlayerCharacterCreator : IDisposable
     private bool _disposed, _busy, _pending, _focusHead;
     private static string T(string key) => Loc.Get("creator." + key);
     public bool PreviewReady => _preview.IsReady;
+
+    // §174.7: in the web client the page draws this form (ui/screens/creator.js);
+    // this class stays the controller and the UI Toolkit tree is hidden.
+    public readonly bool Html;
+    private readonly Action _backAction, _retryAction;
+    private string _htmlLook = "skin";
+    private bool _nameTouched;
+    private float _nextThumbPoll;
+    private static readonly string[][] OppositeTraits = { new[] { "Slob", "Neat" }, new[] { "Lazy", "Diligent" }, new[] { "Coward", "Brave" } };
     public PlayerCharacterCreator(VisualElement parent, MonoBehaviour runner, PlayerCreatorAppearance appearance,
         Action changed, Action submit, Action back, Action retry)
     {
-        Appearance = appearance; _changed = changed; _submit = submit;
+        Appearance = appearance; _changed = changed; _submit = submit; _backAction = back; _retryAction = retry;
+        Html = HtmlUi.Active;
         Root = Resources.Load<VisualTreeAsset>("HexLive/UI/PlayerCharacterCreator").CloneTree();
         Root.AddToClassList("creator-overlay"); parent.Add(Root);
+        if (Html) Root.style.display = DisplayStyle.None;
         _controls = Root.Q<ScrollView>("controls"); _status = Root.Q<Label>("status"); _summary = Root.Q<Label>("summary");
         _choices = Root.Q<VisualElement>("choices");
         _name = Root.Q<TextField>("creatorName"); _name.label = T("name");
@@ -66,7 +78,7 @@ public sealed class PlayerCharacterCreator : IDisposable
         Root.RegisterCallback<GeometryChangedEvent>(e => Root.EnableInClassList("creator-compact", e.newRect.width < 820));
         Root.schedule.Execute(UpdateReady).Every(100);
         Root.schedule.Execute(() => {
-            if (!_disposed && !_busy && !_pending && string.IsNullOrWhiteSpace(Appearance.Character.Name)) _name.Focus();
+            if (!Html && !_disposed && !_busy && !_pending && string.IsNullOrWhiteSpace(Appearance.Character.Name)) _name.Focus();
         });
         BuildControls(); UpdateReady();
     }
@@ -291,6 +303,214 @@ public sealed class PlayerCharacterCreator : IDisposable
         Root.Q("eyeControls").SetEnabled(!busy && !pending);
         UpdateReady();
     }
+    // ---- §174.7: the HTML form --------------------------------------------
+
+    private string Blocked(string step)
+    {
+        if (_busy || _pending) return null;
+        if (Appearance.NameErrorKey.Length > 0) return T(Appearance.NameErrorKey);
+        if (step != "camp") return null;
+        if (Appearance.ValidationErrorKey.Length > 0) return T(Appearance.ValidationErrorKey);
+        return _preview.IsReady ? null : T(_preview.Failed ? "error.appearance" : "previewLoading");
+    }
+
+    private static int Points(float value) => Mathf.RoundToInt(value * 10);
+
+    private static string Hex(Color colour) => "#" + ColorUtility.ToHtmlStringRGB(colour);
+
+    private static string ThumbKey(CharacterCreationConfig look, int framing) =>
+        string.Join("|", look.Body, look.Skin, look.Eyes, look.Hair, look.HairColour, framing);
+
+    private IEnumerable<(string id, CharacterCreationConfig look, int framing)> Thumbs(string tab)
+    {
+        if (tab == "skin")
+            foreach (var skin in Appearance.Skins) yield return ("skin:" + skin, Appearance.Look(skin: skin, hair: "none"), 1);
+        else if (tab == "hair")
+            foreach (var hair in Appearance.Hair) yield return ("hair:" + hair, Appearance.Look(hair: hair, colour: "prototype"), 3);
+        else if (Appearance.Character.Hair != "none")
+            // Palette tints are flat swatches; only authored colours need a picture.
+            foreach (var colour in Appearance.Colours)
+                if (colour != "prototype" && !colour.StartsWith("tint.", StringComparison.Ordinal))
+                    yield return ("colour:" + colour, Appearance.Look(colour: colour), 3);
+    }
+
+    /// <summary>Once per frame from the loading screen: deliver finished thumbnails.</summary>
+    public void HtmlTick()
+    {
+        if (!Html || _disposed || Time.realtimeSinceStartup < _nextThumbPoll) return;
+        // The renderer forgets a request not asked for again within a second.
+        _nextThumbPoll = Time.realtimeSinceStartup + .2f;
+        foreach (var (_, look, framing) in Thumbs(_htmlLook))
+        {
+            var key = ThumbKey(look, framing);
+            if (HtmlUi.HasAsset(key)) continue;
+            var texture = _thumbnails.GetOrRequest(look, framing);
+            if (texture != null) HtmlUi.Asset(key, "data:image/jpeg;base64," + Convert.ToBase64String(texture.EncodeToJPG(85)));
+        }
+    }
+
+    public JObject HtmlModel(string bannerText)
+    {
+        var c = Appearance.Character;
+        var labels = new JObject();
+        var thumbs = new JObject();
+        var tints = new JObject { ["prototype"] = "conic-gradient(#5a3a26, #b0763f, #3b2618, #5a3a26)" };
+        var index = 0;
+        foreach (var skin in Appearance.Skins) labels["skin:" + skin] = Appearance.Label("skin", skin, index++);
+        index = 0;
+        foreach (var hair in Appearance.Hair) labels["hair:" + hair] = Appearance.Label("hair", hair, index++);
+        var hairOptions = new JArray();
+        foreach (var hair in Appearance.Hair)
+        {
+            var colours = Appearance.Options["hair"]?.FirstOrDefault(h => h.Value<string>("id") == hair)?["colours"]?.Values<string>().ToArray()
+                ?? new[] { "prototype" };
+            hairOptions.Add(new JObject { ["id"] = hair, ["colours"] = new JArray(colours) });
+            index = 0;
+            foreach (var colour in colours)
+            {
+                labels["colour:" + colour] = Appearance.Label("colour", colour, index++);
+                if (HexLive.Simulation.Content.HairTintPalette.TryGet(colour, out var tone))
+                    tints[colour] = Hex(new Color32(tone.R, tone.G, tone.B, 255));
+            }
+        }
+        foreach (var tab in new[] { "skin", "hair", "colour" })
+            foreach (var (id, look, framing) in Thumbs(tab))
+                thumbs[id] = ThumbKey(look, framing);
+        var eyes = new JObject();
+        foreach (var id in Appearance.Eyes) eyes[id.Length == 0 ? "default" : id] = Hex(PeopleEyeColour.Swatch(id));
+        var camps = new JArray();
+        foreach (var camp in Appearance.Options["camps"] ?? new JArray())
+        {
+            var id = camp.Value<string>("id");
+            var entry = new JObject
+            {
+                ["id"] = id,
+                ["number"] = int.TryParse(id == "Colony" ? "1" : id.Replace("Colony", ""), out var n) ? n : 0,
+                ["hasSpace"] = camp.Value<bool>("hasSpace"),
+            };
+            // §171.10: head-counts come from a server that sends them.
+            if (camp["residents"] != null) entry["residents"] = camp.Value<int>("residents");
+            if (camp["capacity"] != null) entry["capacity"] = camp.Value<int>("capacity");
+            camps.Add(entry);
+        }
+        var attributes = new JObject(); foreach (var v in c.Attributes) attributes[v.Id] = Points(v.Value);
+        var skills = new JObject(); foreach (var v in c.Skills) skills[v.Id] = Points(v.Value);
+        var sexes = new JArray(new[] { "female", "male" }.Where(sex => Appearance.Bodies.Any(b => b.Value<string>("sex") == sex)));
+        var nameError = _nameTouched && !_busy && !_pending ? Appearance.NameErrorKey : "";
+        return new JObject
+        {
+            ["phase"] = "editing",
+            ["bannerText"] = string.IsNullOrEmpty(bannerText) ? null : bannerText,
+            ["busyText"] = _busy ? (_stateMessage.Length > 0 ? _stateMessage : T("creating")) : null,
+            ["pending"] = _pending,
+            ["draft"] = new JObject
+            {
+                ["name"] = c.Name ?? "", ["sex"] = Appearance.IsMale ? "male" : "female", ["skin"] = c.Skin,
+                ["hair"] = c.Hair, ["hairColour"] = c.HairColour, ["eyes"] = c.Eyes ?? "", ["camp"] = c.Camp.ToString(),
+                ["attributes"] = attributes, ["skills"] = skills, ["traits"] = new JArray(c.Traits),
+            },
+            ["options"] = new JObject
+            {
+                ["sexes"] = sexes, ["skins"] = new JArray(Appearance.Skins), ["hair"] = hairOptions,
+                ["eyes"] = new JArray(Appearance.Eyes), ["attributes"] = new JArray(Appearance.Values("attributes")),
+                ["skills"] = new JArray(Appearance.Values("skills")), ["traits"] = new JArray(Appearance.Values("traits")),
+                ["pairs"] = JArray.FromObject(OppositeTraits),
+                ["attributeBudget"] = Points(Appearance.Options.Value<float>("attributeBudget")),
+                ["skillBudget"] = Points(Appearance.Options.Value<float>("skillBudget")),
+                ["camps"] = camps,
+            },
+            ["labels"] = labels, ["thumbs"] = thumbs, ["tints"] = tints, ["eyeSwatches"] = eyes,
+            ["preview"] = _preview.Failed ? "failed" : _preview.IsReady ? "ready" : "loading",
+            ["nameErrorText"] = nameError.Length > 0 ? T(nameError) : null,
+            ["blocked"] = new JObject { ["appearance"] = Blocked("appearance"), ["abilities"] = Blocked("abilities"), ["camp"] = Blocked("camp") },
+        };
+    }
+
+    /// <summary>The page's commands — the same effects as the UI Toolkit controls.</summary>
+    public void HtmlCommand(string command, JObject args)
+    {
+        if (_disposed) return;
+        switch (command)
+        {
+            case "set":
+                if (!_busy && !_pending) Set((string)args["field"], args["value"]);
+                break;
+            case "submit":
+                _submit();
+                break;
+            case "look":
+                _htmlLook = (string)args["tab"] ?? "skin";
+                _focusHead = _htmlLook != "skin";
+                break;
+            case "camera":
+                var action = (string)args["action"];
+                if (action == "left" || action == "right") _preview.Rotate(action == "left" ? -30 : 30);
+                else if (action == "body") { _focusHead = false; _preview.FocusBody(); }
+                else if (action == "face") _focusHead = true;
+                else if (action == "orbit") _preview.OrbitBy((float?)args["dx"] ?? 0, (float?)args["dy"] ?? 0);
+                else if (action == "zoom") _preview.Zoom((float?)args["dy"] ?? 0);
+                break;
+            case "previewRect":
+                var vw = (float?)args["vw"] ?? 0; var vh = (float?)args["vh"] ?? 0;
+                var w = (float?)args["w"] ?? 0; var h = (float?)args["h"] ?? 0;
+                if (vw < 1 || vh < 1 || w < 1 || h < 1) break;
+                var x = (float?)args["x"] ?? 0; var y = (float?)args["y"] ?? 0;
+                // Page y grows down; Camera.rect is bottom-left.
+                _preview.ShowOnScreen(new Rect(x / vw, 1 - (y + h) / vh, w / vw, h / vh));
+                break;
+            case "retry":
+                _retryAction();
+                break;
+            case "back":
+                _backAction();
+                break;
+        }
+    }
+
+    private void Set(string field, JToken value)
+    {
+        var c = Appearance.Character;
+        switch (field)
+        {
+            case "name":
+                _nameTouched = true;
+                c.Name = (string)value ?? ""; _name.SetValueWithoutNotify(c.Name); Changed(false);
+                break;
+            case "sex":
+                Appearance.SetSex((string)value == "male"); Changed();
+                break;
+            case "skin":
+                if (Appearance.Skins.Contains((string)value)) { c.Skin = (string)value; Changed(); }
+                break;
+            case "hair":
+                if (Appearance.Hair.Contains((string)value)) SetHair((string)value);
+                break;
+            case "hairColour":
+                if (Appearance.Colours.Contains((string)value)) { c.HairColour = (string)value; Changed(); }
+                break;
+            case "eyes":
+                if (Appearance.Eyes.Contains((string)value ?? "")) { c.Eyes = (string)value ?? ""; _focusHead = true; Changed(); }
+                break;
+            case "camp":
+                if (Enum.TryParse<Faction>((string)value, out var camp)) { c.Camp = camp; Changed(false); }
+                break;
+            case "traits":
+                var traits = value?.Values<string>().Where(id => Appearance.Values("traits").Contains(id)).Distinct().ToList() ?? new List<string>();
+                foreach (var pair in OppositeTraits) // opposites exclude each other, as the toggles did
+                    if (traits.Contains(pair[0]) && traits.Contains(pair[1])) traits.Remove(pair[0]);
+                c.Traits.Clear(); c.Traits.AddRange(traits); Changed(false);
+                break;
+            case "attributes":
+            case "skills":
+                var values = field == "attributes" ? c.Attributes : c.Skills;
+                if (value is JObject points)
+                    foreach (var v in values)
+                        if (points[v.Id] != null) v.Value = Mathf.Clamp((int)points[v.Id], 0, 10) / 10f;
+                Changed(false);
+                break;
+        }
+    }
+
     public void Dispose()
     {
         if (_disposed) return; _disposed = true; _thumbnails.Dispose(); _preview.Dispose(); Root.RemoveFromHierarchy();

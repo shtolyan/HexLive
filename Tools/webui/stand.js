@@ -95,7 +95,16 @@ function renderThumbs() {
   const jobs = [...SKINS[d.sex].map((id) => [`skin:${id}`, () => thumb(id, 'none')]),
     ...HAIR.map((id) => [`hair:${id}`, () => thumb(d.skin, id, 'prototype')])].filter(([k]) => !creator.thumbs[k]);
   let i = 0;
-  const tick = () => { if (i >= jobs.length) return; const [k, f] = jobs[i++]; creator.thumbs[k] = f(); sendCreator(); setTimeout(tick, 60); };
+  // Like HtmlUi.Asset: the picture travels once under a key; the model only names the key.
+  const tick = () => {
+    if (i >= jobs.length) return;
+    const [k, f] = jobs[i++];
+    const key = `${k}|${d.skin}`;
+    post({ t: 'asset', key, url: f() });
+    creator.thumbs[k] = key;
+    sendCreator();
+    setTimeout(tick, 60);
+  };
   tick();
 }
 
@@ -108,12 +117,14 @@ function creatorModel() {
   const campKey = budgetKey || (creator.preview !== 'ready' ? 'creator.previewLoading' : null);
   const tints = { prototype: 'conic-gradient(#5a3a26, #b0763f, #3b2618, #5a3a26)' };
   for (const [k, rgb] of Object.entries(TINTS)) tints[`tint.${k}`] = `rgb(${rgb.join(' ')})`;
+  // C# words these through Loc.Get; the stand through the same I2 table.
+  const tr = (key) => (key ? strings[state.lang]?.[key] ?? key : null);
   return {
     phase: state.dialog === 'creatorSignedOut' ? 'signedOut' : 'editing',
-    banner: creator.banner, busy: creator.busy, pending: false, draft: d, options: o,
+    bannerText: tr(creator.banner), busyText: tr(creator.busy), pending: false, draft: d, options: o,
     thumbs: creator.thumbs, tints, eyeSwatches: EYES, preview: creator.preview,
-    nameError: creator.touched ? nameKey : null,
-    blocked: { appearance: nameKey, abilities: nameKey || budgetKey, camp: nameKey || campKey },
+    nameErrorText: creator.touched ? tr(nameKey) : null,
+    blocked: { appearance: tr(nameKey), abilities: tr(nameKey || budgetKey), camp: tr(nameKey || campKey) },
   };
 }
 
@@ -330,6 +341,7 @@ function handle(message) {
   if (message.screen === 'creator') {
     const a = message.args || {};
     if (message.cmd === 'previewRect') { creator.previewRect = a; drawWorld(); return; }
+    if (message.cmd === 'look') return; // C#: which thumbnails to render next
     if (message.cmd === 'camera') {
       if (a.action === 'face' || a.action === 'body') creator.view = a.action;
       if (a.action === 'left' || a.action === 'right') creator.yaw += a.action === 'left' ? -30 : 30;

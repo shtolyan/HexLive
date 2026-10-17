@@ -29,6 +29,12 @@ public sealed class PlayerCharacterCreationFlow : IDisposable
     private string _scope, _attemptKey, _lockKey;
     private bool _disposed, _connected, _dirty, _locked, _lockStarted;
     private static string T(string key) => Loc.Get("creator." + key);
+
+    // §174.7: in the web client the page draws the creator (ui/screens/creator.js).
+    private const string HtmlScreen = "creator";
+    public readonly bool Html;
+    private bool _htmlBusy;
+    private string _htmlMessage = "", _lastHtml;
     public PlayerCharacterCreationFlow(VisualElement parent, MonoBehaviour runner, string server, string token,
         Action connect, Action back, Transport transport = null)
     {
@@ -40,6 +46,12 @@ public sealed class PlayerCharacterCreationFlow : IDisposable
         _transport = transport ?? Request;
         _loading = Resources.Load<VisualTreeAsset>("HexLive/UI/PlayerCharacterCreator").CloneTree();
         _loading.AddToClassList("creator-overlay"); parent.Add(_loading);
+        Html = HtmlUi.Active;
+        if (Html)
+        {
+            _loading.style.display = DisplayStyle.None;
+            HtmlUi.Handle(HtmlScreen, OnHtmlCommand);
+        }
         _loading.Q<Label>("title").text = T("title"); _loading.Q<Label>("eyebrow").text = T("eyebrow");
         _loading.Q<VisualElement>("body").AddToClassList("creator-hidden");
         _loading.Q<Button>("retry").text = T("retry");
@@ -243,14 +255,48 @@ public sealed class PlayerCharacterCreationFlow : IDisposable
     }
     private void SetState(bool busy, string message)
     {
+        _htmlBusy = busy; _htmlMessage = message ?? "";
         _editor?.SetState(busy, _pending != null, message);
         _loading.Q<Label>("status").text = message;
         _loading.Q<Button>("continue").SetEnabled(!busy);
         _loading.Q<Button>("retry").EnableInClassList("creator-hidden", busy || string.IsNullOrEmpty(_token));
     }
+    /// <summary>Once per frame from the loading screen: the page's model, sent when it changed.</summary>
+    public void HtmlTick()
+    {
+        if (!Html || _disposed) return;
+        _editor?.HtmlTick();
+        JObject model;
+        if (_editor != null) model = _editor.HtmlModel(_htmlBusy ? null : _htmlMessage);
+        else model = new JObject
+        {
+            // Before the editor: signed out, loading the account/options, or failed.
+            ["phase"] = string.IsNullOrEmpty(_token) ? "signedOut" : _htmlBusy ? "loading" : "failed",
+            ["messageText"] = _htmlMessage.Length > 0 ? _htmlMessage : null,
+        };
+        var json = model.ToString(Formatting.None);
+        if (json == _lastHtml) return;
+        _lastHtml = json;
+        HtmlUi.Show(HtmlScreen, model);
+    }
+
+    private void OnHtmlCommand(string command, JObject args)
+    {
+        if (_disposed) return;
+        switch (command)
+        {
+            case "back": _back(); return;
+            case "signIn": Application.OpenURL(_origin + "/login/"); return;
+            case "retry" when _editor == null: Run(Boot()); return;
+        }
+
+        _editor?.HtmlCommand(command, args);
+    }
+
     public void Dispose()
     {
         if (_disposed) return;
+        if (Html) { HtmlUi.Unhandle(HtmlScreen, OnHtmlCommand); HtmlUi.Hide(HtmlScreen); }
         SaveDraft(); _disposed = true; _request?.Abort();
         if (_work != null) _runner.StopCoroutine(_work);
         _request?.Dispose(); _request = null;

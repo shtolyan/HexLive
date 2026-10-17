@@ -28,6 +28,7 @@ export const SCREENS = {
   contextMenu: ContextMenu,
   loot: Loot,
   build: Build,
+  blueprint: Build, // the house constructor: the same tray with an editor header
   gameMenu: GameMenu,
   connectionLost: ConnectionLost,
   protocolUpdate: ProtocolUpdate,

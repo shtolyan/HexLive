@@ -348,6 +348,54 @@ function sendBuild() {
   }
 }
 
+// ---- the house constructor (HutLayoutDesigner): the same tray, an editor header ----
+const BP_CONSTRUCTION = [
+  ['floor', [['architecture.floor.board', 'floor', '⬡'], ['architecture.floor.open', 'floor_open', '⏹']]],
+  ['walls', [['architecture.wall.wood', 'wall', '▥']]],
+  ['openings', [['architecture.window.wood', 'window', '▣'], ['architecture.door.wood', 'door', '⌑']]],
+  ['roof', [['architecture.support.wood', 'support', '┃'], ['architecture.roof.palm', 'roof', '⌃']]],
+];
+const bp = { open: false, kind: 'project', mode: 'construction', category: 'floor', active: '', select: false, undo: 0, redo: 0,
+  picked: null, statusKey: 'blueprint.status.world_start', statusText: null, door: false };
+function bpCats() { return bp.mode === 'construction' ? BP_CONSTRUCTION : BUILD.furniture; }
+function blueprintModel() {
+  const cats = bpCats();
+  const cards = (cats.find(([id]) => id === bp.category) || cats[0])[1];
+  const all = [].concat(...cats.map(([, c]) => c));
+  const card = all.find(([id]) => id === bp.active);
+  const picked = bp.picked && all.concat(...BUILD.furniture.map(([, c]) => c)).find(([id]) => id === bp.picked.id);
+  const sel = card ? { name: tr(`blueprint.catalog.${card[1]}.name`), desc: tr(`blueprint.catalog.${card[1]}.description`), availability: null, canDelete: false, canFinish: true }
+    : bp.picked?.room ? { name: `${tr('blueprint.room')} #1`, desc: tr('blueprint.indoor.incomplete'), availability: null, canDelete: true, canFinish: true }
+    : picked ? { name: `${tr(`blueprint.catalog.${picked[1]}.name`)} · ${bp.picked.yaw}°`, desc: tr(`blueprint.catalog.${picked[1]}.description`),
+      availability: bp.picked.furniture ? 'floor' : null, canDelete: true, canFinish: true }
+    : { name: null, desc: null, availability: null, canDelete: false, canFinish: false };
+  return {
+    mode: bp.mode, tabs: bp.kind === 'free' ? ['construction'] : ['construction', 'furniture'],
+    categories: cats.map(([id]) => ({ id, label: tr(`blueprint.category.${id}`) })), category: bp.category,
+    cards: cards.map(([id, term, glyph]) => ({ id, name: tr(`blueprint.catalog.${term}.name`), desc: tr(`blueprint.catalog.${term}.description`), icon: null, glyph })),
+    active: bp.active, selection: sel, status: bp.statusKey, statusText: bp.statusText,
+    arrows: bp.picked && !bp.picked.room ? bp.picked.at : null,
+    editor: { select: bp.select && !bp.active, canUndo: bp.undo > 0, canRedo: bp.redo > 0, build: bp.kind === 'project' ? 'build' : null },
+  };
+}
+function openBlueprint(kind) {
+  setTimeout(sendHud, 0);
+  Object.assign(bp, { open: true, kind, mode: 'construction', category: 'floor', active: '', select: false, undo: 0, redo: 0, picked: null,
+    statusKey: kind === 'free' ? 'blueprint.status.ready' : 'blueprint.status.world_start', statusText: null, door: false });
+  sendBlueprint();
+}
+function sendBlueprint() {
+  if (!ready) return;
+  if (bp.open && isGame(state.dialog)) {
+    post({ t: 'hide', screen: 'character' });
+    post({ t: 'show', screen: 'blueprint', model: blueprintModel() });
+  } else {
+    bp.open = false;
+    post({ t: 'hide', screen: 'blueprint' });
+    if (isGame(state.dialog) && !build.open) post({ t: 'show', screen: 'character', model: characterModel() });
+  }
+}
+
 // ---- the action menu (ContextMenuPanel): a right click on the world ----
 const ctx = { target: 'object', open: false, at: null, id: 0 };
 const E = (key, extra) => ({ label: tr(key).replace(/\s*▸$/, ''), enabled: true, hint: null, danger: false, ...(extra || {}) });
@@ -442,7 +490,7 @@ function characterModel() {
 function sendGame() {
   if (!ready || !isGame(state.dialog)) return;
   post({ t: 'show', screen: 'roster', model: rosterModel() });
-  if (!build.open) post({ t: 'show', screen: 'character', model: characterModel() });
+  if (!build.open && !bp.open) post({ t: 'show', screen: 'character', model: characterModel() });
   if (side.health || side.journal) sendSide();
 }
 
@@ -633,7 +681,7 @@ function hudModel() {
     paused: remote ? false : h.paused,
     speed: remote ? 1 : h.speed,
     remote,
-    build: isGame(state.dialog) ? { open: build.open } : null,
+    build: isGame(state.dialog) && !bp.open ? { open: build.open } : null, // CanOpen is false while the constructor is open
   };
 }
 
@@ -645,7 +693,7 @@ function sendHud() {
 }
 
 function showDialog(id) {
-  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); }
+  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); bp.open = false; post({ t: 'hide', screen: 'blueprint' }); }
   if (shownDialog && !isGame(shownDialog) && ready) post({ t: 'hide', screen: isTitle(shownDialog) ? 'title' : isCreator(shownDialog) ? 'creator' : SCREEN_OF[shownDialog] || shownDialog });
   if (isGame(id)) {
     shownDialog = id;
@@ -660,12 +708,14 @@ function showDialog(id) {
     side.journal = id === 'gameJournal';
     if (side.health) game.selected = 13; // the most hurt one shows every kind of row
     ctx.open = id === 'gameContext';
+    bp.open = id === 'gameProject' || id === 'gameFree';
+    if (bp.open) { openBlueprint(id === 'gameFree' ? 'free' : 'project'); bp.undo = 3; bp.door = false; bp.active = 'architecture.wall.wood'; bp.category = 'walls'; }
     build.open = id === 'gameBuild';
     if (build.open) Object.assign(build, { mode: 'furniture', category: 'outdoor', active: 'campfire.spot', status: 'build.mode.hint', arrows: { x: 0.46, y: 0.42 }, ok: true, site: null });
     loot.open = ['gameLoot', 'gameGift', 'gameBasket'].includes(id);
     if (loot.open) { loot.mode = id === 'gameGift' ? 'gift' : 'exchange'; loot.other = id === 'gameBasket' ? 'container' : 'person'; lootReset(); }
     if (ctx.open) ctx.at = { x: 0.52, y: 0.42 };
-    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); if (build.open) sendBuild(); }
+    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); if (build.open) sendBuild(); if (bp.open) sendBlueprint(); }
     return;
   }
   if (!isTitle(id)) clearInterval(title.timer);
@@ -756,6 +806,31 @@ function handle(message) {
     sendInventory();
     return;
   }
+  if (message.screen === 'blueprint') {
+    const a = message.args || {};
+    const say = { mode: 'сменить вкладку', category: 'открыть категорию', card: 'взять элемент: тянуть в мире', select: 'инструмент «Выбор»',
+      undo: 'отменить жест', redo: 'повторить жест', delete: 'удалить выбранное', done: 'снять выделение', exit: 'закрыть конструктор (черновик сохранён)',
+      build: 'отдать чертёж: PlaceBuildingBlueprintCommand', rotate: 'повернуть выбранную мебель' };
+    note(key, `${args} → ${say[message.cmd] || '?'}`);
+    bp.statusText = null;
+    if (message.cmd === 'exit') { bp.open = false; sendBlueprint(); sendHud(); return; }
+    if (message.cmd === 'build') {
+      if (!bp.door) { bp.statusText = tr(bp.undo === 0 ? 'blueprint.build.needs_floor' : 'blueprint.build.needs_door'); sendBlueprint(); return; }
+      bp.open = false; sendBlueprint(); sendHud(); return;
+    }
+    if (message.cmd === 'mode') { bp.mode = a.value; bp.category = bpCats()[0][0]; bp.active = ''; }
+    if (message.cmd === 'category') bp.category = a.id;
+    if (message.cmd === 'card') { bp.active = bp.active === a.id ? '' : a.id; bp.picked = null; bp.select = false;
+      if (bp.kind === 'free' && bp.active) bp.statusKey = 'blueprint.status.free_start'; }
+    if (message.cmd === 'select') { bp.active = ''; bp.select = true; bp.statusKey = 'blueprint.shortcuts'; }
+    if (message.cmd === 'undo' && bp.undo > 0) { bp.undo -= 1; bp.redo += 1; bp.statusKey = 'blueprint.status.undo'; }
+    if (message.cmd === 'redo' && bp.redo > 0) { bp.redo -= 1; bp.undo += 1; bp.statusKey = 'blueprint.status.redo'; }
+    if (message.cmd === 'delete') { bp.picked = null; bp.undo += 1; }
+    if (message.cmd === 'done') { bp.picked = null; bp.active = ''; }
+    if (message.cmd === 'rotate' && bp.picked) bp.picked.yaw = (bp.picked.yaw + (a.dir < 0 ? 300 : 60)) % 360;
+    sendBlueprint();
+    return;
+  }
   if (message.screen === 'build') {
     const a = message.args || {};
     const say = { mode: 'сменить вкладку каталога', category: 'открыть категорию', card: 'взять изделие на курсор (призрак в мире)',
@@ -765,7 +840,11 @@ function handle(message) {
     if (message.cmd === 'mode') { build.mode = a.value; build.category = BUILD[a.value][0][0]; build.active = ''; build.site = null; build.arrows = null; }
     if (message.cmd === 'category') build.category = a.id;
     if (message.cmd === 'card') {
-      if (a.id === 'free.architecture') { note(key, '→ конструктор поверх мира (следующий макет)'); return; }
+      if (a.id === 'free.architecture' || a.id === 'custom.project') {
+        note(key, `→ ${a.id === 'free.architecture' ? 'свободное строительство' : 'свой проект'}: лоток сменяется конструктором`);
+        build.open = false; post({ t: 'hide', screen: 'build' }); sendHud(); openBlueprint(a.id === 'free.architecture' ? 'free' : 'project');
+        return;
+      }
       build.active = build.active === a.id ? '' : a.id; build.site = null; build.status = 'build.mode.hint';
     }
     if (message.cmd === 'delete') { build.site = null; build.arrows = null; }
@@ -1130,6 +1209,21 @@ $('world').addEventListener('pointermove', (e) => {
   build.arrows = { x, y }; build.ok = ok; sendBuild();
 });
 $('world').addEventListener('click', (e) => {
+  if (bp.open) {
+    const r = $('world').getBoundingClientRect();
+    const at = { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
+    if (bp.active) {
+      bp.undo += 1; bp.redo = 0; bp.statusText = null;
+      if (bp.active === 'architecture.door.wood') bp.door = true;
+      note('мир', 'жест в мире → элемент в черновике (в «свободном» — сразу ApplyFreeArchitectureCommand)');
+    } else {
+      const furniture = bp.mode === 'furniture';
+      bp.picked = at.x < 0.35 && !furniture ? { room: true } : { id: furniture ? 'furniture.wardrobe' : 'architecture.wall.wood', yaw: 0, at, furniture };
+      note('мир', 'клик «Выбором» → элемент или комната, у комнаты ручки сторон');
+    }
+    sendBlueprint();
+    return;
+  }
   if (!build.open) return;
   const r = $('world').getBoundingClientRect();
   const at = { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };

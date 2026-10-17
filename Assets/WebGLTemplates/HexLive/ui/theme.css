@@ -1222,10 +1222,8 @@
 .hx-journal__empty { margin: 4rem 0 0; text-align: center; font-family: "HexHand", var(--hx-font); font-size: 1.75rem; color: var(--ink-faint); }
 
 /* ---- context menu (§121) ------------------------------------------------- */
-/* A compact card at the click. The catch layer under it is transparent: the
-   world stays visible, and a press outside only closes the menu. */
+/* A compact card at the click; presses outside reach the world (C# closes it). */
 .hx-ctx-layer { position: absolute; inset: 0; }
-.hx-ctx-catch { position: absolute; inset: 0; }
 .hx-ctx {
   position: absolute;
   min-width: 12.5rem;

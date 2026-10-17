@@ -9,8 +9,13 @@
 // }
 // Commands: pick { path: [i] | [i, j] }, close.
 //
-// A press anywhere outside closes the menu and goes no further — exactly what
-// the UI Toolkit card did (TryDismissOnOutsidePress): the world never sees it.
+// Model also carries `id`: every opening is a new one, even with the same title
+// at the same spot (a «…» entry opens its confirmation there).
+//
+// Nothing catches presses outside the card: they reach the world, and C#
+// closes the menu there (TryDismissOnOutsidePress), as with the UI Toolkit
+// card. The focused card owns the keyboard (data-hx-keys), so arrows and
+// Escape drive the menu instead of panning the camera or opening the game menu.
 import { html, useEffect, useRef, useState } from '../html.js';
 
 const chevron = html`<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4" stroke="currentColor"
@@ -54,15 +59,16 @@ export function ContextMenu({ model, send }) {
   const [subPos, setSubPos] = useState(null);
 
   // A new menu (another click) starts fresh.
-  useEffect(() => { setActive(-1); setOpen(null); setSubActive(-1); setPos(null); }, [model.at?.x, model.at?.y, model.title]);
+  useEffect(() => { setActive(-1); setOpen(null); setSubActive(-1); setPos(null); }, [model.id, model.at?.x, model.at?.y]);
 
   // Place the card at the click, then pull it inside the game area.
   useEffect(() => {
     const area = document.getElementById('hex-ui');
     if (!card.current || !area) return;
     setPos(fit(card.current, area, (model.at?.x ?? 0.5) * area.clientWidth, (model.at?.y ?? 0.5) * area.clientHeight));
-    card.current.focus({ preventScroll: true });
-  }, [model.at?.x, model.at?.y, entries.length]);
+  }, [model.id, model.at?.x, model.at?.y]);
+  // Focus once placed: a hidden card cannot take focus, and the keyboard follows focus.
+  useEffect(() => { if (pos) card.current?.focus({ preventScroll: true }); }, [pos == null, model.id]);
 
   // The list opens to the right of its row, or to the left when there is no room.
   useEffect(() => {
@@ -107,8 +113,7 @@ export function ContextMenu({ model, send }) {
 
   return html`
     <div class="hx-ctx-layer">
-      <div class="hx-ctx-catch hx-surface" onPointerDown=${() => send('close')} onContextMenu=${(e) => { e.preventDefault(); send('close'); }}></div>
-      <div class="hx-ctx hx-surface" ref=${card} role="menu" aria-label=${model.title} tabindex="-1" onKeyDown=${onKey}
+      <div class="hx-ctx hx-surface" ref=${card} role="menu" aria-label=${model.title} tabindex="-1" data-hx-keys onKeyDown=${onKey}
         onContextMenu=${(e) => e.preventDefault()}
         style=${pos ? { left: `${pos.left}px`, top: `${pos.top}px` } : { visibility: 'hidden' }}>
         <div class="hx-ctx__title">${model.title}</div>

@@ -230,7 +230,7 @@ function sendSide() {
 }
 
 // ---- the action menu (ContextMenuPanel): a right click on the world ----
-const ctx = { target: 'object', open: false, at: null };
+const ctx = { target: 'object', open: false, at: null, id: 0 };
 const E = (key, extra) => ({ label: tr(key).replace(/\s*▸$/, ''), enabled: true, hint: null, danger: false, ...(extra || {}) });
 const OFF = (key, hintKey, extra) => E(key, { enabled: false, hint: tr(hintKey), ...(extra || {}) });
 function contextModel() {
@@ -263,11 +263,11 @@ function contextModel() {
       E('menu.stop'),
     ] },
   };
-  return { at: ctx.at, ...menus[ctx.target] };
+  return { id: ctx.id, at: ctx.at, ...menus[ctx.target] };
 }
 function sendContext() {
   if (!ready) return;
-  if (ctx.open && isGame(state.dialog)) post({ t: 'show', screen: 'contextMenu', model: contextModel() });
+  if (ctx.open && isGame(state.dialog)) { ctx.id += 1; post({ t: 'show', screen: 'contextMenu', model: contextModel() }); }
   else { ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); }
 }
 
@@ -637,7 +637,7 @@ function handle(message) {
       const [i, j] = message.args.path;
       const e = j == null ? m.entries[i] : m.entries[i].children[j];
       note(key, `${args} → «${j == null ? '' : `${m.entries[i].label} › `}${e.label}»: приказ колонистке`);
-    } else note(key, '→ закрыть меню, клик дальше в мир не идёт');
+    } else note(key, '→ закрыть меню (Esc)');
     ctx.open = false;
     sendContext();
     return;
@@ -940,9 +940,18 @@ bindSegment('size', (size) => { state.size = size.split('x').map(Number); drawWo
 bindSegment('weather', (weather) => { state.hud.raining = weather === 'rain'; sendHud(); });
 bindSegment('link', (link) => { state.hud.link = link; sendHud(); });
 bindSegment('target', (target) => { ctx.target = target; if (ctx.open) sendContext(); });
+// C# (TryDismissOnOutsidePress): a press outside the open menu only closes it.
+let ctxDismissed = false;
+$('world').addEventListener('pointerdown', () => {
+  ctxDismissed = ctx.open;
+  if (!ctx.open) return;
+  ctx.open = false;
+  sendContext();
+  note('мир', 'нажатие мимо меню → C# закрывает меню, дальше в мир нажатие не идёт');
+});
 $('world').addEventListener('contextmenu', (e) => {
   e.preventDefault();
-  if (!isGame(state.dialog)) return;
+  if (!isGame(state.dialog) || ctxDismissed) return;
   const r = $('world').getBoundingClientRect();
   ctx.at = { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
   ctx.open = true;

@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Platform;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
@@ -79,6 +81,12 @@ public sealed class ContextMenuPanel : MonoBehaviour
 
     private static ContextMenuPanel? _instance;
 
+    // §174.7: in the web client the card is the page's «contextMenu» screen; the
+    // entries stay here, and the page answers with the path of the picked one.
+    private const string HtmlScreen = "contextMenu";
+    private List<ContextMenuEntry>? _htmlEntries;
+    private int _htmlSeq;
+
     public static bool IsOpen { get; private set; }
 
     /// <summary>Курсор над меню — мировой клик обязан его пропустить.</summary>
@@ -137,6 +145,7 @@ public sealed class ContextMenuPanel : MonoBehaviour
 
         BuildUi();
         Hide(suppressWorldPointer: false);
+        HtmlUi.Handle(HtmlScreen, OnHtmlCommand);
     }
 
     private void Update()
@@ -168,6 +177,7 @@ public sealed class ContextMenuPanel : MonoBehaviour
 
     private void OnDestroy()
     {
+        HtmlUi.Unhandle(HtmlScreen, OnHtmlCommand);
         if (ReferenceEquals(_instance, this))
         {
             _instance = null;
@@ -332,6 +342,16 @@ public sealed class ContextMenuPanel : MonoBehaviour
         {
             return false;
         }
+        if (_instance._htmlEntries != null)
+        {
+            // Over the HTML card the press is the page's; anywhere else it is outside.
+            if (HtmlUi.PointerOverUi)
+            {
+                return false;
+            }
+            Close();
+            return true;
+        }
 
         var panelPoint = RuntimePanelUtils.ScreenToPanel(_instance._root.panel,
             new Vector2(screenPosition.x, Screen.height - screenPosition.y));
@@ -348,6 +368,12 @@ public sealed class ContextMenuPanel : MonoBehaviour
 
     private void OpenInternal(Vector2 screenPosition, string title, IReadOnlyList<ContextMenuEntry> entries)
     {
+        if (HtmlUi.Active)
+        {
+            OpenHtml(screenPosition, title, entries);
+            return;
+        }
+
         _title.text = title;
         _items.Clear();
         CloseSub();
@@ -475,8 +501,96 @@ public sealed class ContextMenuPanel : MonoBehaviour
         return row;
     }
 
+    private void OpenHtml(Vector2 screenPosition, string title, IReadOnlyList<ContextMenuEntry> entries)
+    {
+        if (_htmlEntries != null)
+        {
+            Hide(suppressWorldPointer: false);
+        }
+        // The callers reuse their entry list for the next menu: keep a copy.
+        _htmlEntries = new List<ContextMenuEntry>(entries);
+        var width = Mathf.Max(1, Screen.width);
+        var height = Mathf.Max(1, Screen.height);
+        HtmlUi.Show(HtmlScreen, new JObject
+        {
+            ["id"] = ++_htmlSeq,
+            // Input System pixels start at the bottom left; the page's at the top left.
+            ["at"] = new JObject
+            {
+                ["x"] = Mathf.Clamp01(screenPosition.x / width),
+                ["y"] = Mathf.Clamp01(1f - screenPosition.y / height),
+            },
+            ["title"] = title,
+            ["entries"] = HtmlEntries(_htmlEntries),
+        });
+        IsOpen = true;
+    }
+
+    private static JArray HtmlEntries(IReadOnlyList<ContextMenuEntry> entries)
+    {
+        var list = new JArray();
+        foreach (var entry in entries)
+        {
+            var children = entry.Children is { Count: > 0 } ? HtmlEntries(entry.Children) : null;
+            list.Add(new JObject
+            {
+                // «Указание ▸»: the page draws the arrow itself.
+                ["label"] = children != null ? entry.Label.TrimEnd('\u25B8', ' ') : entry.Label,
+                ["enabled"] = entry.Enabled,
+                ["hint"] = entry.Enabled ? null : entry.DisabledHint,
+                ["danger"] = entry.Danger,
+                ["children"] = children,
+            });
+        }
+        return list;
+    }
+
+    private void OnHtmlCommand(string command, JObject args)
+    {
+        // A click queued before Escape or an outside press closed the menu is stale.
+        if (_htmlEntries == null || !IsOpen)
+        {
+            return;
+        }
+        if (command == "close")
+        {
+            Hide();
+            return;
+        }
+        if (command != "pick" || args["path"] is not JArray path || path.Count == 0)
+        {
+            return;
+        }
+
+        IReadOnlyList<ContextMenuEntry>? list = _htmlEntries;
+        ContextMenuEntry? entry = null;
+        foreach (var step in path)
+        {
+            var index = (int?)step ?? -1;
+            if (list == null || index < 0 || index >= list.Count)
+            {
+                return;
+            }
+            entry = list[index];
+            list = entry.Children;
+        }
+        if (entry == null || !entry.Enabled || entry.Children is { Count: > 0 })
+        {
+            return;
+        }
+        var action = entry.Activate;
+        Hide();
+        action();
+    }
+
     private void Hide(bool suppressWorldPointer = true)
     {
+        if (_htmlEntries != null)
+        {
+            _htmlEntries = null;
+            HtmlUi.Hide(HtmlScreen);
+        }
+
         if (suppressWorldPointer && IsOpen)
         {
             _worldPointerSuppressed = true;

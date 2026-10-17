@@ -36,8 +36,11 @@ function isSurface(element) {
   return !!(element && element.closest && element.closest('.hx-surface'));
 }
 
+// The keyboard is the page's while a text field — or a widget that drives
+// itself from the keys, marked data-hx-keys (the action menu) — has focus.
 function isTextField(element) {
   if (!element || !element.closest || !element.closest('#hex-ui')) return false;
+  if (element.closest('[data-hx-keys]')) return true;
   if (element.isContentEditable || element.tagName === 'TEXTAREA') return true;
   return element.tagName === 'INPUT' && !/^(range|checkbox|radio|button|submit|color)$/i.test(element.type);
 }
@@ -94,6 +97,8 @@ export function take() {
 
 /** Unity polls: pointer/keyboard ownership bits (see HexHtmlUi.jslib). */
 export function pointerBits() {
+  // A focused element that is removed (a closed menu) fires no focusout everywhere.
+  setBit(TEXT_FOCUS, isTextField(document.activeElement));
   return bits;
 }
 

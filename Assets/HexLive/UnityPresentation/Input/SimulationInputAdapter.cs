@@ -113,8 +113,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         var actor = snapshot?.Npcs.FirstOrDefault(candidate =>
             candidate.Id.Value == actorId);
         if (actor == null || !_runner!.CanControlNpc(actor.Id) ||
-            sourceIndex < 0 || sourceIndex >= actor.InventoryItems.Count ||
-            actor.InventoryItems[sourceIndex] != seedDefinitionId ||
+            !HasCarriedSeedAtSource(actor, sourceIndex, seedDefinitionId) ||
             !PlantGrowthCatalog.TryGetBySeed(seedDefinitionId, out _))
         {
             return false;
@@ -233,9 +232,8 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         var actor = snapshot?.Npcs.FirstOrDefault(candidate =>
             candidate.Id.Value == _plantingActorId);
         if (snapshot == null || actor == null || actor.Health <= 0f ||
-            _plantingSourceIndex < 0 ||
-            _plantingSourceIndex >= actor.InventoryItems.Count ||
-            actor.InventoryItems[_plantingSourceIndex] != _plantingSeedDefinitionId)
+            !HasCarriedSeedAtSource(
+                actor, _plantingSourceIndex, _plantingSeedDefinitionId))
         {
             return false;
         }
@@ -1927,6 +1925,34 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         var dx = a.X - b.X;
         var dy = a.Y - b.Y;
         return dx * dx + dy * dy;
+    }
+
+    /// <summary>
+    /// §173.2 / bug #481: SourceIndex addresses the physical carried list.
+    /// InventoryItems is a presentation list where stackable resources are
+    /// folded and moved, so only the derived container slots can revalidate it.
+    /// </summary>
+    private static bool HasCarriedSeedAtSource(
+        NpcSnapshot actor, int sourceIndex, string seedDefinitionId)
+    {
+        if (sourceIndex < 0 || string.IsNullOrEmpty(seedDefinitionId))
+        {
+            return false;
+        }
+
+        foreach (var container in actor.InventoryContainers)
+        {
+            foreach (var slot in container.Slots)
+            {
+                if (slot.SourceIndex == sourceIndex &&
+                    slot.ItemDefinitionId == seedDefinitionId)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     // Та же ступень высоты, что у камеры и рендерера. Число повторяется в

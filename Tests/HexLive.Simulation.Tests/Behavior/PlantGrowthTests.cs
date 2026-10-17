@@ -113,8 +113,11 @@ public sealed class PlantGrowthTests
         });
     }
 
-    [Test]
-    public void InventoryPlantOrderWalksShowsTheExactSeedAndConsumesItOnCompletion()
+    [TestCase(ContentIds.Coconut, ContentIds.PalmSprout)]
+    [TestCase(ContentIds.HerbSeed, ContentIds.HerbSprout)]
+    [TestCase(ContentIds.YuccaSeed, ContentIds.YuccaSprout)]
+    public void InventoryPlantOrderWalksShowsTheExactSeedAndConsumesItOnCompletion(
+        string seedDefinitionId, string sproutDefinitionId)
     {
         var engine = TestWorld.CreateEngine();
         var world = engine.World;
@@ -125,7 +128,7 @@ public sealed class PlantGrowthTests
         }
 
         npc.Needs.Stamina = 1f;
-        var seed = new ItemInstance(ContentIds.HerbSeed);
+        var seed = new ItemInstance(seedDefinitionId);
         npc.Inventory.Items.Add(seed);
         var sourceIndex = npc.Inventory.Items.Count - 1;
         engine.Step();
@@ -138,7 +141,7 @@ public sealed class PlantGrowthTests
         var admission = engine.ApplyManualCommand(new PlantInventorySeedCommand(
             npc.Id,
             new InventoryItemRef(
-                InventoryItemSource.Carried, sourceIndex, ContentIds.HerbSeed),
+                InventoryItemSource.Carried, sourceIndex, seedDefinitionId),
             target.Anchor,
             target.Tile));
         Assert.That(admission.Accepted, Is.True, admission.Reason);
@@ -155,7 +158,7 @@ public sealed class PlantGrowthTests
             Assert.That(npc.Inventory.Items.Contains(seed), Is.True,
                 "The selected seed stays authoritative until the kneeling work completes.");
             Assert.That(ActionItemResolver.HeldId(world, npc),
-                Is.EqualTo(ContentIds.HerbSeed));
+                Is.EqualTo(seedDefinitionId));
         });
 
         for (var i = 0; i < 400 && npc.Inventory.Items.Contains(seed); i++)
@@ -167,8 +170,74 @@ public sealed class PlantGrowthTests
         {
             Assert.That(npc.Inventory.Items.Contains(seed), Is.False);
             Assert.That(world.Entities.Objects.Values.Any(worldObject =>
-                worldObject.DefinitionId == ContentIds.HerbSprout &&
+                worldObject.DefinitionId == sproutDefinitionId &&
                 worldObject.Junctions.Contains(target.Anchor)), Is.True);
+        });
+    }
+
+    [TestCase(ContentIds.HerbSeed, ContentIds.HerbSprout)]
+    [TestCase(ContentIds.YuccaSeed, ContentIds.YuccaSprout)]
+    public void DroppedSeedPilePlantsOneSeedInsteadOfFailingAfterTheAnimation(
+        string seedDefinitionId, string sproutDefinitionId)
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        foreach (var colonist in world.Entities.Npcs.Values)
+        {
+            engine.ApplyManualCommand(new SetManualControlCommand(colonist.Id, true));
+        }
+
+        npc.Needs.Stamina = 1f;
+        engine.Step();
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Items.Add(new ItemInstance(seedDefinitionId));
+        npc.Inventory.Items.Add(new ItemInstance(seedDefinitionId));
+        var objectsBeforeDrop = world.Entities.Objects.Keys.ToHashSet();
+        var drop = engine.ApplyManualCommand(new ManageInventoryCommand(
+            npc.Id,
+            new InventoryItemRef(InventoryItemSource.Carried, 0, seedDefinitionId),
+            InventoryAction.Drop,
+            count: 2));
+        Assert.That(drop.Accepted, Is.True, drop.Reason);
+
+        var pile = world.Entities.Objects.Values
+            .Where(candidate => !objectsBeforeDrop.Contains(candidate.Id) &&
+                                candidate.DefinitionId == seedDefinitionId)
+            .OrderBy(candidate => candidate.Id.Value)
+            .ToArray();
+        Assert.Multiple(() =>
+        {
+            Assert.That(pile, Has.Length.EqualTo(2));
+            Assert.That(pile.Select(candidate => candidate.Junctions.Single()).Distinct().Count(),
+                Is.EqualTo(1), "A dropped resource stack shares one ground anchor.");
+        });
+
+        var selectedSeed = pile[0];
+        var sourceAnchor = selectedSeed.Junctions.Single();
+        var admission = engine.ApplyManualCommand(new InteractCommand(
+            npc.Id, selectedSeed.Id, InteractionType.Plant));
+        Assert.That(admission.Accepted, Is.True, admission.Reason);
+        for (var i = 0; i < 600 && world.Entities.Objects.ContainsKey(selectedSeed.Id); i++)
+        {
+            engine.Step();
+        }
+
+        var survivingPileSeeds = pile.Count(seed =>
+            world.Entities.Objects.ContainsKey(seed.Id));
+        var sprout = world.Entities.Objects.Values.SingleOrDefault(candidate =>
+            candidate.DefinitionId == sproutDefinitionId &&
+            candidate.Tile.Equals(selectedSeed.Tile));
+        Assert.Multiple(() =>
+        {
+            Assert.That(world.Entities.Objects.ContainsKey(selectedSeed.Id), Is.False);
+            Assert.That(survivingPileSeeds, Is.EqualTo(1),
+                "Planting one selected seed must not consume the rest of its dropped stack.");
+            Assert.That(sprout, Is.Not.Null);
+            Assert.That(sprout!.Junctions.Single(), Is.Not.EqualTo(sourceAnchor),
+                "The sprout needs the nearest free point because the remaining pile owns the source point.");
+            Assert.That(world.Events.Items.Any(entry =>
+                entry.Message.Contains("Seed cannot be planted")), Is.False);
         });
     }
 

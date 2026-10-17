@@ -31,6 +31,12 @@ public sealed class PlantingPlacementUiContractTests
             Assert.That(input, Does.Contain("new InventoryItemRef("));
             Assert.That(input, Does.Contain("PlantingPlacementMarker.Show("));
             Assert.That(input, Does.Contain("_plantingCandidateValid"));
+            Assert.That(input, Does.Contain("HasCarriedSeedAtSource(actor,"),
+                "Placement must revalidate the physical SourceIndex exported by inventory slots.");
+            Assert.That(input, Does.Contain("actor.InventoryContainers"));
+            Assert.That(input, Does.Not.Contain(
+                    "actor.InventoryItems[_plantingSourceIndex]"),
+                "InventoryItems is stack-folded and cannot validate a physical SourceIndex.");
             Assert.That(input, Does.Not.Contain("new ManageInventoryCommand("),
                 "Placement must not implement planting as a preliminary drop.");
         });

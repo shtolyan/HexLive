@@ -83,9 +83,10 @@ public sealed class PlantGrowthSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Consumes a ground seed and creates the first visible growth stage in
-    /// the exact same slot. This is shared by execution and headless tests so
-    /// planting cannot silently use a second definition table.
+    /// Consumes a ground seed and creates the first visible growth stage. A
+    /// single seed keeps its exact slot; one selected from a stacked ground
+    /// pile uses the nearest free slot in the same tile so its pile siblings
+    /// do not make the completed planting animation fail.
     /// </summary>
     public static WorldObjectState? TryPlant(
         WorldState world, WorldObjectState seed, EntityId? planter = null)
@@ -93,17 +94,14 @@ public sealed class PlantGrowthSystem : ISimulationSystem
         if (!PlantGrowthCatalog.TryGetBySeed(seed.DefinitionId, out var profile) ||
             profile.StageDefinitionIds.Length == 0 ||
             seed.Junctions.Count == 0 ||
-            !CanPlantAt(
-                world, seed.Junctions[0], seed.Tile,
-                allowedOccupant: planter, ignoredObject: seed.Id) ||
+            !TryResolveGroundPlantingSpot(
+                world, seed, planter, out var tile, out var anchor) ||
             !world.Content.ObjectDefinitions.ContainsKey(profile.StageDefinitionIds[0]))
         {
             return null;
         }
 
-        var tile = seed.Tile;
-        var fragment = seed.Fragment;
-        var anchor = seed.Junctions[0];
+        var fragment = world.Junctions.Items[anchor].Fragment;
         if (!WorldObjectMutations.DespawnObject(world, seed.Id))
         {
             return null;
@@ -111,6 +109,81 @@ public sealed class PlantGrowthSystem : ISimulationSystem
 
         return WorldObjectMutations.SpawnObject(
             world, profile.StageDefinitionIds[0], fragment, tile, anchor);
+    }
+
+    private static bool TryResolveGroundPlantingSpot(
+        WorldState world,
+        WorldObjectState seed,
+        EntityId? planter,
+        out TileCoord tile,
+        out JunctionId anchor)
+    {
+        tile = seed.Tile;
+        anchor = seed.Junctions[0];
+        if (CanPlantAt(
+                world, anchor, tile,
+                allowedOccupant: planter, ignoredObject: seed.Id))
+        {
+            return true;
+        }
+
+        // A visible inventory drop is stored as separate world objects sharing
+        // one anchor. Only that homogeneous seed pile permits a fallback; an
+        // unrelated blocker must still reject planting instead of teleporting it.
+        var hasPileSibling = false;
+        foreach (var worldObject in world.Entities.Objects.Values)
+        {
+            if (worldObject.Id.Equals(seed.Id) ||
+                !worldObject.Junctions.Contains(anchor))
+            {
+                continue;
+            }
+
+            if (worldObject.DefinitionId != seed.DefinitionId)
+            {
+                return false;
+            }
+
+            hasPileSibling = true;
+        }
+
+        if (!hasPileSibling ||
+            !world.Tiles.Items.TryGetValue(tile, out var ground) ||
+            !world.Junctions.Items.TryGetValue(anchor, out var sourceJunction))
+        {
+            return false;
+        }
+
+        var bestDistance = float.MaxValue;
+        JunctionId? best = null;
+        foreach (var candidate in ground.Junctions)
+        {
+            if (!world.Junctions.Items.TryGetValue(candidate, out var junction) ||
+                junction.Fragment != seed.Fragment ||
+                !CanPlantAt(world, candidate, tile, allowedOccupant: planter))
+            {
+                continue;
+            }
+
+            var dx = junction.WorldPosition.X - sourceJunction.WorldPosition.X;
+            var dy = junction.WorldPosition.Y - sourceJunction.WorldPosition.Y;
+            var distance = dx * dx + dy * dy;
+            if (distance < bestDistance ||
+                (distance == bestDistance &&
+                 (!best.HasValue || candidate.Value < best.Value.Value)))
+            {
+                best = candidate;
+                bestDistance = distance;
+            }
+        }
+
+        if (!best.HasValue)
+        {
+            return false;
+        }
+
+        anchor = best.Value;
+        return true;
     }
 
     /// <summary>

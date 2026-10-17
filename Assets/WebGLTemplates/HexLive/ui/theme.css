@@ -1,0 +1,222 @@
+/* §174.5: the one look of every HTML window. Colours are the palette the
+   UI Toolkit windows already used (GameMenu, RuntimeWindow), so the web
+   client changes technology, not identity. Windows use rem only: bridge.js
+   scales the root font with the canvas height (§174.5, --hx-scale). */
+#hex-ui {
+  --hx-dim: rgb(0 0 0 / 0.55);
+  --hx-panel: rgb(19 24 28 / 0.97);
+  --hx-raised: rgb(34 42 49);
+  --hx-hover: rgb(46 56 65);
+  --hx-stroke: rgb(255 255 255 / 0.12);
+  --hx-stroke-strong: rgb(255 255 255 / 0.22);
+  --hx-text: rgb(231 236 239);
+  --hx-text-dim: rgb(154 166 173);
+  --hx-gold: rgb(240 180 92);
+  --hx-gold-hover: rgb(247 197 122);
+  --hx-ink: rgb(15 22 26);
+  --hx-danger: rgb(191 51 46);
+  --hx-focus: rgb(240 180 92 / 0.7);
+  --hx-radius: 1rem;
+  --hx-radius-small: 0.625rem;
+  --hx-shadow: 0 1.5rem 3rem rgb(0 0 0 / 0.45), 0 0.25rem 0.75rem rgb(0 0 0 / 0.3);
+  --hx-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  position: absolute;
+  inset: 0;
+  pointer-events: none; /* the canvas gets everything that is not a window */
+  overflow: hidden;
+  font-family: var(--hx-font);
+  color: var(--hx-text);
+  font-size: 1rem;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+:where(#hex-ui) *, :where(#hex-ui) *::before, :where(#hex-ui) *::after { box-sizing: border-box; }
+/* :where keeps these resets weaker than any component class. */
+:where(#hex-ui) button { font: inherit; color: inherit; }
+
+/* Anything the player can point at. bridge.js reports it to Unity, which
+   then keeps the pointer out of the world (HtmlUi.BlocksWorldInput). */
+.hx-surface { pointer-events: auto; }
+
+/* ---- modal window ------------------------------------------------------ */
+.hx-backdrop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--hx-dim);
+  animation: hx-fade 140ms ease-out;
+}
+
+.hx-window {
+  position: relative;
+  width: 21.25rem;
+  max-width: calc(100% - 2rem);
+  max-height: calc(100% - 2rem);
+  overflow: auto;
+  padding: 1.5rem 1.75rem 1.75rem;
+  background: var(--hx-panel);
+  border: 1px solid var(--hx-stroke);
+  border-radius: var(--hx-radius);
+  box-shadow: var(--hx-shadow);
+  animation: hx-rise 160ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.hx-window__header {
+  display: grid;
+  grid-template-columns: 2rem 1fr 2rem;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.hx-title {
+  grid-column: 2;
+  margin: 0;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.hx-close {
+  grid-column: 3;
+  justify-self: end;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--hx-text-dim);
+  cursor: pointer;
+}
+.hx-close:hover { background: var(--hx-raised); color: var(--hx-text); }
+.hx-close svg { width: 1.25rem; height: 1.25rem; }
+
+.hx-stack { display: flex; flex-direction: column; gap: 0.625rem; }
+
+/* ---- buttons --------------------------------------------------------- */
+.hx-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.875rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--hx-stroke);
+  border-radius: var(--hx-radius-small);
+  background: var(--hx-raised);
+  color: var(--hx-text);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 90ms ease, border-color 90ms ease, transform 60ms ease;
+}
+.hx-btn:hover { background: var(--hx-hover); border-color: var(--hx-stroke-strong); }
+.hx-btn:active { transform: translateY(1px); }
+
+.hx-btn--primary { background: var(--hx-gold); border-color: transparent; color: var(--hx-ink); }
+.hx-btn--primary:hover { background: var(--hx-gold-hover); border-color: transparent; }
+
+/* Destructive actions look ordinary until the pointer commits to them. */
+.hx-btn--danger:hover { background: var(--hx-danger); border-color: transparent; }
+
+:where(#hex-ui) :focus { outline: none; }
+:where(#hex-ui) :focus-visible { outline: 2px solid var(--hx-focus); outline-offset: 2px; }
+
+/* ---- disclosure (foldout) ------------------------------------------- */
+.hx-disclosure {
+  border: 1px solid var(--hx-stroke);
+  border-radius: var(--hx-radius-small);
+  background: rgb(255 255 255 / 0.02);
+}
+.hx-disclosure__toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.875rem;
+  border: 0;
+  background: transparent;
+  color: var(--hx-text);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--hx-radius-small);
+}
+.hx-disclosure__toggle:hover { background: rgb(255 255 255 / 0.04); }
+.hx-disclosure__chevron {
+  width: 1rem;
+  height: 1rem;
+  margin-left: auto;
+  color: var(--hx-text-dim);
+  transition: transform 140ms ease;
+}
+.hx-disclosure[data-open="true"] .hx-disclosure__chevron { transform: rotate(180deg); }
+.hx-disclosure__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  padding: 0.25rem 0.875rem 1rem;
+}
+.hx-hint { margin: 0; color: var(--hx-text-dim); font-size: 0.8125rem; }
+
+/* ---- slider ---------------------------------------------------------- */
+.hx-slider { display: flex; flex-direction: column; gap: 0.375rem; }
+.hx-slider__head { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.875rem; }
+.hx-slider__value { color: var(--hx-text-dim); font-variant-numeric: tabular-nums; }
+.hx-slider input[type="range"] {
+  --fill: 50%;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 1.25rem;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.hx-slider input[type="range"]::-webkit-slider-runnable-track {
+  height: 0.375rem;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--hx-gold) var(--fill), var(--hx-raised) var(--fill));
+}
+.hx-slider input[type="range"]::-moz-range-track {
+  height: 0.375rem;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--hx-gold) var(--fill), var(--hx-raised) var(--fill));
+}
+.hx-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: -0.375rem;
+  border-radius: 50%;
+  background: var(--hx-text);
+  border: 2px solid var(--hx-ink);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
+}
+.hx-slider input[type="range"]::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: var(--hx-text);
+  border: 2px solid var(--hx-ink);
+}
+
+@keyframes hx-fade { from { opacity: 0; } }
+@keyframes hx-rise { from { opacity: 0; transform: translateY(0.5rem) scale(0.98); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .hx-backdrop, .hx-window { animation: none; }
+  .hx-btn, .hx-disclosure__chevron { transition: none; }
+}

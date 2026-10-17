@@ -1,0 +1,133 @@
+<title>HexLive: стенд интерфейса</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="ui/theme.css">
+<style>
+  /* Layout: a control bar over the game frame; the log and notes sit beside
+     the frame on wide screens and under it on narrow ones. The game frame
+     itself is always the dark game UI; only the stand chrome follows the theme. */
+  :root {
+    --bg: #eef1f2;
+    --panel: #ffffff;
+    --fg: #1b2328;
+    --muted: #5d6b73;
+    --line: #d5dcdf;
+    --accent: #a8701c;
+    --accent-ink: #ffffff;
+    --chip: #e4e9eb;
+    --frame-edge: #c3ccd0;
+    --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1316; --panel: #161d21; --fg: #e3e9ec; --muted: #8b9aa2; --line: #263137;
+      --accent: #f0b45c; --accent-ink: #13181c; --chip: #1f282d; --frame-edge: #2c383e;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1316; --panel: #161d21; --fg: #e3e9ec; --muted: #8b9aa2; --line: #263137;
+    --accent: #f0b45c; --accent-ink: #13181c; --chip: #1f282d; --frame-edge: #2c383e;
+    color-scheme: dark;
+  }
+
+  body { background: var(--bg); color: var(--fg); font: 14px/1.45 var(--font-ui); }
+  .stand { display: flex; flex-direction: column; gap: 16px; padding-block: 16px 32px; padding-inline: 16px; max-width: 1480px; margin: 0 auto; }
+
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+  .bar h1 { margin: 0 auto 0 0; font-size: 18px; font-weight: 600; text-wrap: balance; }
+  .bar h1 small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); letter-spacing: 0.02em; }
+  .field { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .seg { display: inline-flex; padding: 2px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+  .seg button { border: 0; background: transparent; color: var(--fg); font: 500 13px var(--font-ui); padding: 5px 10px; border-radius: 6px; cursor: pointer; text-transform: none; letter-spacing: 0; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  .seg button:focus-visible, .act:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .work { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+  @media (max-width: 1000px) { .work { grid-template-columns: minmax(0, 1fr); } }
+
+  .frame-wrap { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+  .frame-meta { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font: 12px var(--font-mono); }
+  .viewport { position: relative; width: 100%; overflow: hidden; border: 1px solid var(--frame-edge); border-radius: 10px; background: #0b0f12; }
+  /* The game area keeps its real pixel size and is scaled to fit, so the
+     rem scale in ui/main.js sees the same height the player would. */
+  #hex-stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  #world { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .reopen { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 2; }
+
+  .side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .card h2 { margin: 0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+  .card ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+  .card p { margin: 0; }
+  .act { align-self: flex-start; border: 1px solid var(--line); background: var(--chip); color: var(--fg); border-radius: 8px; padding: 6px 12px; font: 500 13px var(--font-ui); cursor: pointer; }
+  .act--accent { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+  .log { margin: 0; padding: 0; max-height: 260px; overflow: auto; font: 12px/1.5 var(--font-mono); display: flex; flex-direction: column; gap: 4px; }
+  .log li { list-style: none; padding: 4px 8px; border-radius: 6px; background: var(--chip); overflow-wrap: anywhere; }
+  .log .from { color: var(--accent); font-weight: 500; }
+  .log:empty::before { content: "Команд пока не было. Нажмите кнопку в меню."; color: var(--muted); font-family: var(--font-ui); }
+  kbd { font: 12px var(--font-mono); padding: 1px 5px; border: 1px solid var(--line); border-radius: 4px; background: var(--chip); }
+</style>
+
+<div class="stand">
+  <div class="bar">
+    <h1>Стенд HTML-интерфейса <small>Окно рисуется кодом игры (§174), Unity заменён тестовыми данными</small></h1>
+    <div class="field">Окно
+      <div class="seg" role="group" aria-label="Окно"><button type="button" id="screen-gameMenu" aria-pressed="true">Игровое меню</button></div>
+    </div>
+    <div class="field">Язык
+      <div class="seg" role="group" aria-label="Язык">
+        <button type="button" id="lang-ru" data-lang="ru" aria-pressed="true">RU</button>
+        <button type="button" id="lang-en" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+    </div>
+    <div class="field">Клиент
+      <div class="seg" role="group" aria-label="Клиент">
+        <button type="button" id="platform-web" data-platform="web" aria-pressed="true">Браузер</button>
+        <button type="button" id="platform-desktop" data-platform="desktop" aria-pressed="false">Десктоп</button>
+      </div>
+    </div>
+    <div class="field">Экран
+      <div class="seg" role="group" aria-label="Размер экрана">
+        <button type="button" id="size-960" data-size="960x600" aria-pressed="true">960×600</button>
+        <button type="button" id="size-1920" data-size="1920x1080" aria-pressed="false">1920×1080</button>
+        <button type="button" id="size-1280" data-size="1280x720" aria-pressed="false">1280×720</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="work">
+    <div class="frame-wrap">
+      <div class="viewport" id="viewport">
+        <div id="hex-stage">
+          <canvas id="world" aria-hidden="true"></canvas>
+          <div id="hex-ui"></div>
+        </div>
+        <button type="button" class="act act--accent reopen" id="reopen" hidden>Открыть меню (Esc)</button>
+      </div>
+      <div class="frame-meta"><span id="frame-size">960×600 · 1rem = 12.8px</span><span>Esc — открыть или закрыть меню</span></div>
+    </div>
+
+    <div class="side">
+      <section class="card">
+        <h2>Что проверить</h2>
+        <ul>
+          <li>Пункты те же, что в нынешнем меню: «Продолжить», настройки звука с четырьмя ползунками, «Вернуться в главное меню». «Выйти из игры» есть только на десктопе: в браузере вкладку закрывает игрок.</li>
+          <li>Цвета взяты из текущих окон игры, поэтому меню узнаётся.</li>
+          <li>Добавилось: крестик в углу, закрытие кликом мимо окна, заливка ползунков, рамка фокуса при управлении с клавиатуры.</li>
+          <li>Размер текста следует за высотой экрана: на сайте сейчас окно игры 960×600.</li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>Что получил бы Unity</h2>
+        <ol class="log" id="log" aria-live="polite"></ol>
+        <button type="button" class="act" id="clear-log">Очистить журнал</button>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="ui/main.js"></script>
+<script type="module" src="stand.js"></script>

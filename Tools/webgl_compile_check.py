@@ -176,8 +176,14 @@ def write_project(out: pathlib.Path, target: str, args: argparse.Namespace, name
         mapped = player_reference(target, hint)
         if mapped:
             reference_items.append((include, mapped))
-    # Модули движка, которых нет в списке редактора, но есть у плеера, не нужны;
-    # сторонние asmdef из csproj — готовыми DLL из ScriptAssemblies.
+    # Модули движка, которых нет в списке редактора, но есть у плеера, не нужны —
+    # кроме модуля самой платформы: редактор на macOS его не перечисляет, а веб-
+    # плеер подключает (WebGLInput, §174.3).
+    if target == "webgl" and not any(pathlib.Path(h).name == "UnityEngine.WebGLModule.dll"
+                                     for _, h in reference_items):
+        reference_items.append(("UnityEngine.WebGLModule",
+                                str(PLAYER_MANAGED[target] / "UnityEngine.WebGLModule.dll")))
+    # Сторонние asmdef из csproj — готовыми DLL из ScriptAssemblies.
     for project in projects:
         if project in OWN or project in EXCLUDED_THIRD_PARTY[target]:
             continue

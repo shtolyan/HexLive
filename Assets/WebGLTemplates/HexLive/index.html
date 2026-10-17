@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>{{{ PRODUCT_NAME }}}</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20d%3D%22M16%202l12.1%207v14L16%2030%203.9%2023V9z%22%20fill%3D%22%23f0b45c%22/%3E%3Cpath%20d%3D%22M16%208.5l6.5%203.75v7.5L16%2023.5l-6.5-3.75v-7.5z%22%20fill%3D%22%2313181c%22/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="TemplateData/style.css">
+    <!-- §174: the game's windows are HTML over the canvas (ui/, HtmlUi.cs). -->
+    <link rel="stylesheet" href="ui/theme.css">
+    <script type="module" src="ui/main.js"></script>
+#if SHOW_DIAGNOSTICS
+    <link rel="stylesheet" href="<<<TemplateData/diagnostics.css>>>">
+    <script src="<<<TemplateData/diagnostics.js>>>"></script>
+#endif
+#if DEVELOPMENT_PLAYER
+    <script src="<<<TemplateData/profiler.js>>>"></script>
+#endif
+  </head>
+  <body>
+    <div id="unity-container" class="unity-desktop">
+      <!-- §174.3: canvas and HTML interface share one stage, so the stage —
+           not the canvas — is what goes full screen. -->
+      <div id="hex-stage">
+        <canvas id="unity-canvas" width={{{ WIDTH }}} height={{{ HEIGHT }}} tabindex="-1"></canvas>
+        <div id="hex-ui"></div>
+        <div id="unity-loading-bar">
+          <div id="hex-loading-title">{{{ PRODUCT_NAME }}}</div>
+          <div id="unity-progress-bar-empty">
+            <div id="unity-progress-bar-full"></div>
+          </div>
+        </div>
+        <div id="unity-warning"> </div>
+      </div>
+      <div id="unity-footer">
+        <div id="unity-build-title">{{{ PRODUCT_NAME }}}</div>
+#if SHOW_DIAGNOSTICS
+        <img id="diagnostics-icon" src="TemplateData/webmemd-icon.png">
+#endif
+        <button id="unity-fullscreen-button" type="button" aria-label="Fullscreen" title="Fullscreen">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8V3h5M12 3h5v5M17 12v5h-5M8 17H3v-5"
+            stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+    <script>
+      var canvas = document.querySelector("#unity-canvas");
+      var stage = document.querySelector("#hex-stage");
+
+      function unityShowBanner(msg, type) {
+        var warningBanner = document.querySelector("#unity-warning");
+        function updateBannerVisibility() {
+          warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+        }
+        var div = document.createElement('div');
+        div.className = 'hex-banner hex-banner--' + (type || 'info');
+        div.innerHTML = msg;
+        warningBanner.appendChild(div);
+        if (type != 'error') {
+          setTimeout(function() {
+            warningBanner.removeChild(div);
+            updateBannerVisibility();
+          }, 5000);
+        }
+        updateBannerVisibility();
+      }
+
+      // §174.3: Unity's SetFullscreen enlarges the canvas alone and would
+      // leave the HTML windows behind; the stage carries both.
+      function hexToggleFullscreen() {
+        var full = document.fullscreenElement || document.webkitFullscreenElement;
+        if (full) {
+          (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+        } else {
+          (stage.requestFullscreen || stage.webkitRequestFullscreen).call(stage);
+        }
+      }
+
+      var buildUrl = "Build";
+      var loaderUrl = buildUrl + "/{{{ LOADER_FILENAME }}}";
+      var config = {
+        arguments: [],
+        dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
+        frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
+#if USE_THREADS
+        workerUrl: buildUrl + "/{{{ WORKER_FILENAME }}}",
+#endif
+#if USE_WASM
+        codeUrl: buildUrl + "/{{{ CODE_FILENAME }}}",
+#endif
+#if SYMBOLS_FILENAME
+        symbolsUrl: buildUrl + "/{{{ SYMBOLS_FILENAME }}}",
+#endif
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+        productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+        productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+        showBanner: unityShowBanner,
+      };
+
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        var meta = document.createElement('meta');
+        meta.name = 'viewport';
+        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+        document.getElementsByTagName('head')[0].appendChild(meta);
+        document.querySelector("#unity-container").className = "unity-mobile";
+        canvas.className = "unity-mobile";
+      } else {
+        canvas.style.width = "{{{ WIDTH }}}px";
+        canvas.style.height = "{{{ HEIGHT }}}px";
+      }
+
+#if BACKGROUND_FILENAME
+      canvas.style.background = "url('" + buildUrl + "/{{{ BACKGROUND_FILENAME.replace(/'/g, '%27') }}}') center / cover";
+#endif
+      // §168.11: Retina — рендер в CSS-пикселях.
+      config.devicePixelRatio = 1;
+      document.querySelector("#unity-loading-bar").style.display = "block";
+      document.querySelector("#unity-fullscreen-button").onclick = hexToggleFullscreen;
+
+      var script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {
+          document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
+        }).then((unityInstance) => {
+          document.querySelector("#unity-loading-bar").style.display = "none";
+#if SHOW_DIAGNOSTICS
+          document.getElementById("diagnostics-icon").onclick = () => {
+            unityDiagnostics.openDiagnosticsDiv(unityInstance.GetMetricsInfo);
+          };
+#endif
+#if DEVELOPMENT_PLAYER
+          var profile = unityProfiler.createButton(unityInstance);
+          profile.style.marginLeft = '5px';
+          document.querySelector("#unity-build-title").appendChild(profile);
+#endif
+        }).catch((message) => {
+          alert(message);
+        });
+      };
+
+      document.body.appendChild(script);
+    </script>
+  </body>
+</html>

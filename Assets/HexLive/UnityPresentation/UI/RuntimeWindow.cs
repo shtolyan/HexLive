@@ -100,7 +100,9 @@ namespace HexLive.UnityPresentation.UI
                     else if (_releaseFrame < 0) _releaseFrame = Time.frameCount;
                     else if (Time.frameCount > _releaseFrame) _gesture = false;
                 }
-                return OpenWindows.Count > 0 || _gesture;
+                // §174.3: the page's HTML windows sit over the canvas; every
+                // world-input check already reads this gate, so they join here.
+                return OpenWindows.Count > 0 || _gesture || Platform.HtmlUi.BlocksWorldInput;
             }
         }
 

@@ -26,6 +26,7 @@ public static class HexLiveWebGLPlayerBuild
 {
     private const string AudioRoot = "Assets/StreamingAssets/HexLive";
     private const string AudioManifest = AudioRoot + "/web-audio-manifest.json";
+    private const string PageTemplate = "PROJECT:HexLive"; // Assets/WebGLTemplates/HexLive
 
     /// <summary>Идёт ли сборка из <see cref="Build"/> — читает <see cref="HexLiveWebGLBuildGuard"/>.</summary>
     internal static bool Running { get; private set; }
@@ -92,6 +93,11 @@ public static class HexLiveWebGLPlayerBuild
             var reusePublishedAudio = arguments.Contains("-webgl-reuse-published-audio");
             var webMusic = reusePublishedAudio ? new List<string>() : WriteWebMusic();
             WriteAudioManifest();
+            // §174.6: the page with the HTML interface. The template setting is
+            // shared with the desktop project file, so it is set per build and
+            // put back, like the stack-trace settings above.
+            var template = PlayerSettings.WebGL.template;
+            PlayerSettings.WebGL.template = PageTemplate;
             BuildReport report;
             try
             {
@@ -107,6 +113,7 @@ public static class HexLiveWebGLPlayerBuild
             finally
             {
                 Running = false;
+                PlayerSettings.WebGL.template = template;
                 // Генерируется на каждую сборку из того, что реально лежит в
                 // StreamingAssets, — в репозитории ему не место (устареет).
                 PlayerSettings.SetStackTraceLogType(LogType.Log, logTrace);
@@ -125,6 +132,7 @@ public static class HexLiveWebGLPlayerBuild
             succeeded = summary.result == BuildResult.Succeeded;
             if (succeeded)
             {
+                RequireHtmlInterface(output);
                 CapDevicePixelRatio(Path.Combine(output, "index.html"));
                 File.Copy("Assets/Resources/HexLive/UI/ServerDirectory.json",
                     Path.Combine(output, "server-directory.json"), overwrite: true);
@@ -219,6 +227,13 @@ public static class HexLiveWebGLPlayerBuild
         var html = File.ReadAllText(indexPath);
         if (html.Contains("§168.11"))
         {
+            // §174.6: the HexLive template carries the line itself.
+            if (!html.Contains("config.devicePixelRatio = 1;"))
+            {
+                throw new InvalidOperationException($"{indexPath} names §168.11 but does not cap devicePixelRatio.");
+            }
+
+            Debug.Log("[WebGLBuild] devicePixelRatio capped at 1");
             return;
         }
         var at = html.IndexOf(anchor, StringComparison.Ordinal);
@@ -229,6 +244,28 @@ public static class HexLiveWebGLPlayerBuild
         html = html.Insert(at, "// §168.11: Retina — рендер в CSS-пикселях.\n      config.devicePixelRatio = 1;\n      ");
         File.WriteAllText(indexPath, html, new UTF8Encoding(false));
         Debug.Log("[WebGLBuild] devicePixelRatio capped at 1");
+    }
+
+    /// <summary>
+    /// §174.6: a player built from another template would quietly keep the
+    /// UI Toolkit windows (HtmlUi stays inactive) — refuse it instead.
+    /// </summary>
+    private static void RequireHtmlInterface(string output)
+    {
+        foreach (var file in new[] { "ui/main.js", "ui/bridge.js", "ui/theme.css" })
+        {
+            if (!File.Exists(Path.Combine(output, file)))
+            {
+                throw new InvalidOperationException($"WebGL page has no {file}: template {PageTemplate} was not used.");
+            }
+        }
+
+        if (!File.ReadAllText(Path.Combine(output, "index.html")).Contains("ui/main.js"))
+        {
+            throw new InvalidOperationException("WebGL index.html does not load ui/main.js.");
+        }
+
+        Debug.Log("[WebGLBuild] HTML interface: ui/ from template HexLive");
     }
 
     /// <summary>

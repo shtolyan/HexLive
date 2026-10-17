@@ -60,7 +60,9 @@ export function receive(json) {
       emit();
       break;
     case 'show':
-      screens.delete(message.screen); // re-insert: a reopened window comes to the top
+      // A new window opens on top; a model update keeps the window where it
+      // is (Map keeps insertion order), so a HUD refreshed every second never
+      // climbs over a dialog. To raise a window, hide and show it.
       screens.set(message.screen, message.model || {});
       emit();
       break;

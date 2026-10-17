@@ -37,6 +37,8 @@
   .stand { display: flex; flex-direction: column; gap: 16px; padding-block: 16px 32px; padding-inline: 16px; max-width: 1480px; margin: 0 auto; }
 
   .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+  .bar--second { margin-top: -6px; }
+  .seg--wrap { flex-wrap: wrap; }
   .bar h1 { margin: 0 auto 0 0; font-size: 18px; font-weight: 600; text-wrap: balance; }
   .bar h1 small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); letter-spacing: 0.02em; }
   .field { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
@@ -73,10 +75,7 @@
 
 <div class="stand">
   <div class="bar">
-    <h1>Стенд HTML-интерфейса <small>Окно рисуется кодом игры (§174), Unity заменён тестовыми данными</small></h1>
-    <div class="field">Окно
-      <div class="seg" role="group" aria-label="Окно"><button type="button" id="screen-gameMenu" aria-pressed="true">Игровое меню</button></div>
-    </div>
+    <h1>Стенд HTML-интерфейса <small>Окна рисуются кодом игры (§174), Unity заменён тестовыми данными</small></h1>
     <div class="field">Язык
       <div class="seg" role="group" aria-label="Язык">
         <button type="button" id="lang-ru" data-lang="ru" aria-pressed="true">RU</button>
@@ -98,6 +97,31 @@
     </div>
   </div>
 
+  <div class="bar bar--second">
+    <div class="field">Окно
+      <div class="seg seg--wrap" role="group" aria-label="Окно">
+        <button type="button" id="dialog-gameMenu" data-dialog="gameMenu" aria-pressed="true">Игровое меню</button>
+        <button type="button" id="dialog-connectionLost" data-dialog="connectionLost" aria-pressed="false">Связь потеряна</button>
+        <button type="button" id="dialog-protocolUpdate" data-dialog="protocolUpdate" aria-pressed="false">Нужно обновление</button>
+        <button type="button" id="dialog-playerAssignment" data-dialog="playerAssignment" aria-pressed="false">Ваш персонаж</button>
+        <button type="button" id="dialog-playerReplacement" data-dialog="playerReplacement" aria-pressed="false">Замена после смерти</button>
+      </div>
+    </div>
+    <div class="field">Погода
+      <div class="seg" role="group" aria-label="Погода">
+        <button type="button" id="weather-clear" data-weather="clear" aria-pressed="true">Ясно</button>
+        <button type="button" id="weather-rain" data-weather="rain" aria-pressed="false">Дождь</button>
+      </div>
+    </div>
+    <div class="field">Связь
+      <div class="seg" role="group" aria-label="Связь">
+        <button type="button" id="link-live" data-link="live" aria-pressed="true">Есть</button>
+        <button type="button" id="link-stalled" data-link="stalled" aria-pressed="false">Нет сигнала</button>
+        <button type="button" id="link-reconnecting" data-link="reconnecting" aria-pressed="false">Переподключение</button>
+      </div>
+    </div>
+  </div>
+
   <div class="work">
     <div class="frame-wrap">
       <div class="viewport" id="viewport">
@@ -105,19 +129,20 @@
           <canvas id="world" aria-hidden="true"></canvas>
           <div id="hex-ui"></div>
         </div>
-        <button type="button" class="act act--accent reopen" id="reopen" hidden>Открыть меню (Esc)</button>
+        <button type="button" class="act act--accent reopen" id="reopen" hidden>Открыть игровое меню (Esc)</button>
       </div>
-      <div class="frame-meta"><span id="frame-size">960×600 · 1rem = 12.8px</span><span>Esc — открыть или закрыть меню</span></div>
+      <div class="frame-meta"><span id="frame-size">960×600 · 1rem = 12.8px</span><span>Esc — игровое меню</span></div>
     </div>
 
     <div class="side">
       <section class="card">
         <h2>Что проверить</h2>
         <ul>
-          <li>Пункты те же, что в нынешнем меню: «Продолжить», настройки звука с четырьмя ползунками, «Вернуться в главное меню». «Выйти из игры» есть только на десктопе: в браузере вкладку закрывает игрок.</li>
-          <li>Цвета взяты из текущих окон игры, поэтому меню узнаётся.</li>
-          <li>Добавилось: крестик в углу, закрытие кликом мимо окна, заливка ползунков, рамка фокуса при управлении с клавиатуры.</li>
-          <li>Размер текста следует за высотой экрана: на сайте сейчас окно игры 960×600.</li>
+          <li><b>Полоса сверху</b> (HUD): день, температура, погода, часы, связь слева; пауза и скорость по центру. В браузере мир общий, поэтому пауза и ускорение видны, но выключены, подсказка объясняет почему. Переключите «Десктоп», чтобы увидеть рабочие кнопки.</li>
+          <li><b>Связь потеряна</b>: закрыть нельзя, только «ОК» в главное меню. Техническая причина мелко и тускло, её можно выделить и скопировать для баг-репорта.</li>
+          <li><b>Нужно обновление</b>: в браузере «Обновить» перезагружает страницу. Раньше вместо текста здесь были ключи вроде update.required.title, тексты добавлены.</li>
+          <li><b>Ваш персонаж</b>: характеристики шкалами из десяти делений с числом, описание всплывает при наведении. Черты с пояснением. Вариант «Замена после смерти» сначала сообщает о потере.</li>
+          <li>Игровое меню согласовано, в нём ничего не менялось.</li>
         </ul>
       </section>
       <section class="card">

@@ -15,6 +15,8 @@
   --hx-gold-hover: rgb(247 197 122);
   --hx-ink: rgb(15 22 26);
   --hx-danger: rgb(191 51 46);
+  --hx-warm-red: rgb(242 140 120);
+  --hx-leaf: rgb(193 219 141);
   --hx-focus: rgb(240 180 92 / 0.7);
   --hx-radius: 1rem;
   --hx-radius-small: 0.625rem;
@@ -212,6 +214,153 @@
   background: var(--hx-text);
   border: 2px solid var(--hx-ink);
 }
+
+/* ---- window variants and dialog content ------------------------------ */
+.hx-window--medium { width: 27rem; }
+.hx-window--wide { width: 40rem; }
+.hx-window--danger { border-color: rgb(242 115 89 / 0.55); }
+.hx-window__header--plain { display: flex; gap: 0.625rem; }
+.hx-window__header--plain .hx-title { display: flex; align-items: center; gap: 0.5rem; text-align: left; font-size: 1.3125rem; }
+.hx-window--danger .hx-title { color: var(--hx-warm-red); }
+
+.hx-text { margin: 0; font-size: 0.9375rem; }
+.hx-muted { margin: 0; color: var(--hx-text-dim); font-size: 0.875rem; }
+/* The backend's own wording — for a bug report, not for the player. */
+.hx-detail {
+  margin: 0;
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.5rem;
+  background: rgb(255 255 255 / 0.04);
+  color: var(--hx-text-dim);
+  font: 0.75rem/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.hx-error { margin: 0; color: var(--hx-warm-red); font-size: 0.875rem; }
+.hx-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 0.625rem; margin-top: 0.5rem; }
+.hx-actions .hx-btn { min-width: 8.5rem; }
+.hx-section { display: flex; flex-direction: column; gap: 0.5rem; }
+.hx-section__title {
+  margin: 0;
+  color: var(--hx-text-dim);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.hx-icon { width: 1.125rem; height: 1.125rem; flex: none; }
+
+.hx-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--hx-radius-small);
+  background: rgb(242 115 89 / 0.1);
+  color: var(--hx-text);
+  font-size: 0.9375rem;
+}
+.hx-notice .hx-icon { color: var(--hx-warm-red); margin-top: 0.0625rem; }
+
+/* ---- character card (assignment, later the character window) --------- */
+.hx-character {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem 1rem;
+  border: 1px solid var(--hx-stroke);
+  border-radius: var(--hx-radius-small);
+  background: rgb(255 255 255 / 0.02);
+}
+.hx-character__name { margin: 0; color: var(--hx-leaf); font-size: 1.0625rem; font-weight: 700; }
+.hx-attributes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 0.375rem 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hx-attributes li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 1rem;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  cursor: help;
+}
+.hx-attributes b { text-align: right; font-variant-numeric: tabular-nums; }
+.hx-traits { display: flex; flex-direction: column; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.hx-traits li { display: flex; flex-direction: column; gap: 0.125rem; font-size: 0.875rem; }
+.hx-traits span { color: var(--hx-text-dim); }
+
+/* ---- pips: a 0–10 score ------------------------------------------------ */
+.hx-pips { display: inline-flex; gap: 0.125rem; }
+.hx-pips i { width: 0.375rem; height: 0.75rem; border-radius: 0.125rem; background: var(--hx-raised); }
+.hx-pips i.on { background: var(--hx-leaf); }
+
+/* ---- HUD: always-on pills over the world ------------------------------- */
+/* Weather left, time controls centred while there is room; on a narrow
+   canvas the centre column slides right instead of overlapping. */
+.hx-hud-top {
+  position: absolute;
+  top: 0.875rem;
+  left: 0.875rem;
+  right: 0.875rem;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: 0.75rem;
+}
+.hx-pill {
+  display: flex;
+  white-space: nowrap;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3125rem;
+  background: rgb(19 24 28 / 0.94);
+  border: 1px solid var(--hx-stroke);
+  border-radius: 0.75rem;
+  box-shadow: 0 0.25rem 0.75rem rgb(0 0 0 / 0.25);
+}
+.hx-pill__divider { width: 1px; height: 1.375rem; margin: 0 0.3125rem; background: var(--hx-stroke); }
+.hx-seg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.625rem;
+  height: 1.875rem;
+  padding: 0 0.5rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--hx-raised);
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.hx-seg:hover:not(:disabled) { background: var(--hx-hover); }
+.hx-seg[aria-pressed="true"] { background: var(--hx-gold); color: var(--hx-ink); }
+.hx-seg:disabled { cursor: default; color: rgb(115 125 133); background: rgb(34 42 49 / 0.55); }
+.hx-seg .hx-icon { width: 1rem; height: 1rem; }
+
+.hx-weather { justify-self: start; gap: 0.625rem; padding: 0.4375rem 0.875rem 0.4375rem 0.75rem; font-size: 0.8125rem; }
+.hx-weather__day { color: var(--hx-gold); font-size: 0.9375rem; font-weight: 700; }
+.hx-weather__temp { font-size: 1.0625rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.hx-weather__temp[data-band="cold"] { color: rgb(71 182 230); }
+.hx-weather__temp[data-band="hot"] { color: rgb(232 116 107); }
+.hx-weather__sky { display: inline-flex; align-items: center; gap: 0.3125rem; }
+.hx-weather__sky .hx-icon { width: 1rem; height: 1rem; color: var(--hx-gold); }
+.hx-weather__sky[data-rain="true"] .hx-icon { color: rgb(71 182 230); }
+.hx-weather__clock { color: var(--hx-text-dim); font-variant-numeric: tabular-nums; }
+.hx-link { display: inline-flex; align-items: center; gap: 0.3125rem; font-weight: 700; }
+.hx-link .hx-icon--dot { width: 0.625rem; height: 0.625rem; }
+.hx-link[data-state="live"] { color: rgb(115 199 133); }
+.hx-link[data-state="stalled"], .hx-link[data-state="reconnecting"] { color: var(--hx-gold); }
+.hx-link[data-state="failed"] { color: rgb(217 89 82); }
+.hx-link[data-state="connecting"] { color: var(--hx-text); }
+.hx-speed { grid-column: 2; }
 
 @keyframes hx-fade { from { opacity: 0; } }
 @keyframes hx-rise { from { opacity: 0; transform: translateY(0.5rem) scale(0.98); } }

@@ -5,13 +5,16 @@ import * as bridge from './ui/bridge.js';
 
 const state = {
   lang: 'ru',
-  platform: 'web',
+  platform: 'web', // web = shared server world (remote), desktop = local game
   size: [960, 600],
-  menuOpen: true,
+  dialog: 'gameMenu', // the window picked in the bar; null once it is closed
   volumes: { voices: 80, agentVoices: 100, music: 55, environment: 90 },
+  updateFailed: false,
+  hud: { day: 12, minutes: 14 * 60 + 20, raining: false, link: 'live', paused: false, speed: 1 },
 };
 const strings = {};
 let ready = false;
+let shownDialog = null;
 
 const $ = (id) => document.getElementById(id);
 const log = $('log');
@@ -32,15 +35,72 @@ async function sendStrings() {
   post({ t: 'strings', lang: state.lang, terms: await loadStrings(state.lang) });
 }
 
-function menuModel() {
-  return { canQuit: state.platform === 'desktop', volumes: { ...state.volumes } };
+// ---- test data, shaped exactly like the C# models in §174.7 ----
+
+const MOLLY = {
+  name: 'Молли',
+  attributes: [['strength', 4], ['agility', 7], ['endurance', 6], ['hardiness', 5], ['toughness', 3], ['wits', 8], ['perception', 6]],
+  traits: ['trait.neat', 'trait.brave'],
+};
+const MARTA = {
+  name: 'Марта',
+  attributes: [['strength', 8], ['agility', 5], ['endurance', 7], ['hardiness', 7], ['toughness', 6], ['wits', 3], ['perception', 5]],
+  traits: [],
+};
+
+function character(person, intro) {
+  return { name: person.name, intro, attributes: person.attributes.map(([id, value]) => ({ id, value })), traits: person.traits };
 }
 
-function setMenu(open) {
-  state.menuOpen = open;
-  $('reopen').hidden = open;
-  if (!ready) return;
-  post(open ? { t: 'show', screen: 'gameMenu', model: menuModel() } : { t: 'hide', screen: 'gameMenu' });
+const DIALOGS = {
+  gameMenu: () => ({ canQuit: state.platform === 'desktop', volumes: { ...state.volumes } }),
+  connectionLost: () => ({ detail: 'socket closed 1006 (no close frame) after 6 reconnect attempts · last frame tick 682913' }),
+  protocolUpdate: () => ({ canQuit: state.platform === 'desktop', failed: state.updateFailed }),
+  playerAssignment: () => ({ losses: [], characters: [character(MOLLY, 'introduction')], footer: 'persistence' }),
+  playerReplacement: () => ({
+    losses: [{ kind: 'died', name: 'Джолли' }],
+    characters: [character(MARTA, 'replacement')],
+    footer: 'persistence',
+  }),
+};
+// The replacement scenario is the same C# window with other data.
+const SCREEN_OF = { playerReplacement: 'playerAssignment' };
+
+function hudModel() {
+  const h = state.hud;
+  const hh = Math.floor(h.minutes / 60) % 24;
+  const phase = hh < 6 ? 'Night' : hh < 11 ? 'Morning' : hh < 18 ? 'Day' : hh < 22 ? 'Evening' : 'Night';
+  const temperature = h.raining ? 22 : 28;
+  const remote = state.platform === 'web';
+  return {
+    day: h.day,
+    temperature,
+    band: temperature < 22 ? 'cold' : temperature > 30 ? 'hot' : 'mild',
+    raining: h.raining,
+    clock: `${String(hh).padStart(2, '0')}:${String(h.minutes % 60).padStart(2, '0')}`,
+    phase,
+    link: remote ? { state: h.link, ping: 84 + Math.round(Math.random() * 12) } : null,
+    paused: remote ? false : h.paused,
+    speed: remote ? 1 : h.speed,
+    remote,
+  };
+}
+
+function sendHud() {
+  if (ready) post({ t: 'show', screen: 'hud', model: hudModel() });
+}
+
+function showDialog(id) {
+  if (shownDialog && ready) post({ t: 'hide', screen: SCREEN_OF[shownDialog] || shownDialog });
+  shownDialog = id;
+  state.dialog = id;
+  $('reopen').hidden = !!id || !ready;
+  for (const button of document.querySelectorAll('[data-dialog]')) button.setAttribute('aria-pressed', String(button.dataset.dialog === id));
+  if (id && ready) post({ t: 'show', screen: SCREEN_OF[id] || id, model: DIALOGS[id]() });
+}
+
+function refreshDialog() {
+  if (shownDialog && ready) post({ t: 'show', screen: SCREEN_OF[shownDialog] || shownDialog, model: DIALOGS[shownDialog]() });
 }
 
 function note(from, text) {
@@ -51,35 +111,55 @@ function note(from, text) {
   item.append(who, text);
   log.prepend(item);
   while (log.children.length > 60) log.lastChild.remove();
+  return item;
 }
 
-// What GameMenu.cs does with each command, in words.
+// What the C# side does with each command, in words.
 const EFFECT = {
-  continue: 'закрыть меню, мир продолжает идти',
-  mainMenu: 'сохранить игру и вернуться в главное меню',
-  quit: 'выйти из игры (только десктоп)',
+  'gameMenu.continue': 'закрыть меню, мир продолжает идти',
+  'gameMenu.mainMenu': 'сохранить игру и вернуться в главное меню',
+  'gameMenu.quit': 'выйти из игры (только десктоп)',
+  'connectionLost.ok': 'вернуться в главное меню',
+  'playerAssignment.ok': 'отметить уведомления прочитанными и выбрать персонажа',
+  'hud.pause': 'пауза / пустить время',
+  'hud.speed': 'сменить скорость и снять паузу',
 };
 
 function handle(message) {
   if (message.t === 'ready') {
     ready = true;
     note('страница', `ready v${message.v}`);
-    sendStrings().then(() => setMenu(state.menuOpen));
+    sendStrings().then(() => { sendHud(); showDialog(state.dialog); });
     return;
   }
   if (message.t !== 'cmd') return;
-  const args = message.args && Object.keys(message.args).length ? ' ' + JSON.stringify(message.args) : '';
-  if (message.cmd === 'volume') {
+  const key = `${message.screen}.${message.cmd}`;
+  const args = message.args && Object.keys(message.args).length ? JSON.stringify(message.args) : '';
+  if (key === 'gameMenu.volume') {
     state.volumes[message.args.category] = message.args.value;
-    // Collapse a drag into one line per slider.
-    const last = log.firstElementChild;
+    const last = log.firstElementChild; // a drag is one line per slider
     if (last && last.dataset.volume === message.args.category) last.remove();
-    note(`${message.screen}.volume`, args.trim());
-    log.firstElementChild.dataset.volume = message.args.category;
+    note(key, args).dataset.volume = message.args.category;
     return;
   }
-  note(`${message.screen}.${message.cmd}`, `${args} → ${EFFECT[message.cmd] || '?'}`);
-  if (message.cmd === 'continue' || message.cmd === 'mainMenu' || message.cmd === 'quit') setMenu(false);
+  if (key === 'protocolUpdate.update') {
+    if (state.platform === 'web') {
+      note(key, '→ перезагрузить страницу (на стенде не перезагружаем)');
+    } else {
+      state.updateFailed = true;
+      note(key, '→ запустить обновлятор; на стенде показан отказ');
+      refreshDialog();
+    }
+    return;
+  }
+  note(key, `${args} → ${EFFECT[key] || '?'}`);
+  if (message.screen === 'hud') {
+    if (message.cmd === 'pause') state.hud.paused = !state.hud.paused;
+    if (message.cmd === 'speed') { state.hud.speed = message.args.value; state.hud.paused = false; }
+    sendHud();
+    return;
+  }
+  showDialog(null);
 }
 
 function pump() {
@@ -87,7 +167,17 @@ function pump() {
   requestAnimationFrame(pump);
 }
 
-// ---- the world behind the menu: flat faceted hex tiles, like the game ----
+// A living HUD: ten game minutes a second, so model updates are visible
+// (and prove that a refreshed HUD never climbs over a dialog).
+setInterval(() => {
+  const h = state.hud;
+  if (state.platform === 'desktop' && h.paused) return;
+  h.minutes += 10;
+  if (h.minutes >= 24 * 60) { h.minutes -= 24 * 60; h.day += 1; }
+  sendHud();
+}, 1000);
+
+// ---- the world behind the windows: flat faceted hex tiles, like the game ----
 function hash(x, y) {
   const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
   return s - Math.floor(s);
@@ -170,16 +260,20 @@ function bindSegment(attr, apply) {
 }
 
 bindSegment('lang', (lang) => { state.lang = lang; if (ready) sendStrings(); });
-bindSegment('platform', (platform) => { state.platform = platform; if (state.menuOpen) setMenu(true); });
+bindSegment('platform', (platform) => { state.platform = platform; state.updateFailed = false; sendHud(); refreshDialog(); });
 bindSegment('size', (size) => { state.size = size.split('x').map(Number); drawWorld(); layout(); });
-$('reopen').addEventListener('click', () => setMenu(true));
-$('screen-gameMenu').addEventListener('click', () => setMenu(true));
+bindSegment('weather', (weather) => { state.hud.raining = weather === 'rain'; sendHud(); });
+bindSegment('link', (link) => { state.hud.link = link; sendHud(); });
+for (const button of document.querySelectorAll('[data-dialog]')) {
+  button.addEventListener('click', () => { state.updateFailed = false; showDialog(button.dataset.dialog); });
+}
+$('reopen').addEventListener('click', () => showDialog('gameMenu'));
 $('clear-log').addEventListener('click', () => { log.textContent = ''; });
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
-  // GameMenu.cs: Escape toggles the menu (and «continue» on close).
-  if (state.menuOpen) handle({ t: 'cmd', screen: 'gameMenu', cmd: 'continue', args: {} });
-  else setMenu(true);
+  // GameMenu.cs: Escape opens the menu and closes it; other dialogs ignore it.
+  if (shownDialog === 'gameMenu') handle({ t: 'cmd', screen: 'gameMenu', cmd: 'continue', args: {} });
+  else if (!shownDialog) showDialog('gameMenu');
 });
 new ResizeObserver(layout).observe($('viewport'));
 

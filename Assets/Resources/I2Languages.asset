@@ -28149,7 +28149,7 @@ MonoBehaviour:
       Description:
       Languages:
       - 'You play as {0}.'
-      - 'Вы играете за {0}.'
+      - 'Ваш персонаж — {0}.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'assignment.replacement'
@@ -28157,7 +28157,7 @@ MonoBehaviour:
       Description:
       Languages:
       - 'Now you play as {0}.'
-      - 'Теперь вы играете за {0}.'
+      - 'Теперь ваш персонаж — {0}.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'assignment.died'
@@ -30518,6 +30518,78 @@ MonoBehaviour:
       Languages:
       - 'Close'
       - 'Закрыть'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'update.required.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A newer version of the game is needed'
+      - 'Нужна новая версия игры'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'update.required.message'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The server has been updated, and this version of the game can no longer connect to it.'
+      - 'Сервер обновился, и эта версия игры больше не может к нему подключиться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'update.action'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Update'
+      - 'Обновить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'update.start.failed'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Couldn''t start the update. Download the game again from the site.'
+      - 'Не удалось запустить обновление. Скачайте игру заново с сайта.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'hud.pause'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pause'
+      - 'Пауза'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'hud.resume'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Resume time'
+      - 'Пустить время'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'hud.speed.locked'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The server sets the pace of a shared world'
+      - 'Скорость общего мира задаёт сервер'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'hud.speed.max'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'No speed limit'
+      - 'Без ограничения скорости'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'assignment.attributes'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Attributes'
+      - 'Характеристики'
       Flags: 0101
       Languages_Touch: []
     CaseInsensitiveTerms: 0

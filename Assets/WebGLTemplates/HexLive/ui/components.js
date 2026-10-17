@@ -2,27 +2,29 @@
 // these; it does not restyle them.
 import { html, useState, useEffect } from './html.js';
 import { t } from './i18n.js';
-
-const closeIcon = html`<svg viewBox="0 0 20 20" aria-hidden="true">
-  <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" />
-</svg>`;
+import { icons } from './icons.js';
 
 const chevronIcon = html`<svg class="hx-disclosure__chevron" viewBox="0 0 16 16" aria-hidden="true">
   <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
     stroke-linejoin="round" fill="none" />
 </svg>`;
 
-/** A modal window over a dimmed world. Clicking the dim area closes it. */
-export function ModalWindow({ id, title, onClose, children }) {
+/**
+ * A modal window over a dimmed world. With onClose it gets the close button
+ * and closes on a click into the dim area; without it the player must answer.
+ * size: 'wide' for content windows; tone: 'danger' for a broken state.
+ */
+export function ModalWindow({ id, title, onClose, size, tone, children }) {
   const titleId = `${id}-title`;
+  const cls = ['hx-window', size && `hx-window--${size}`, tone && `hx-window--${tone}`].filter(Boolean).join(' ');
   return html`
     <div class="hx-backdrop hx-surface" onPointerDown=${(e) => e.target === e.currentTarget && onClose?.()}>
-      <section class="hx-window" role="dialog" aria-modal="true" aria-labelledby=${titleId} data-screen=${id}>
-        <header class="hx-window__header">
+      <section class=${cls} role="dialog" aria-modal="true" aria-labelledby=${titleId} data-screen=${id}>
+        <header class=${onClose ? 'hx-window__header' : 'hx-window__header hx-window__header--plain'}>
           <h2 class="hx-title" id=${titleId}>${title}</h2>
           ${onClose && html`
             <button class="hx-close" type="button" aria-label=${t('ui.close')} title=${t('ui.close')}
-              onClick=${onClose}>${closeIcon}</button>`}
+              onClick=${onClose}>${icons.close()}</button>`}
         </header>
         ${children}
       </section>
@@ -32,6 +34,11 @@ export function ModalWindow({ id, title, onClose, children }) {
 export function Button({ variant, onClick, children, ...rest }) {
   const cls = variant ? `hx-btn hx-btn--${variant}` : 'hx-btn';
   return html`<button class=${cls} type="button" onClick=${onClick} ...${rest}>${children}</button>`;
+}
+
+/** The button row at the bottom of a dialog. */
+export function Actions({ children }) {
+  return html`<div class="hx-actions">${children}</div>`;
 }
 
 /** A foldout. Open state is the page's own (it is presentation, not game state). */
@@ -65,4 +72,12 @@ export function Slider({ label, value, onChange, name }) {
         style=${{ '--fill': `${shown}%` }}
         onInput=${(e) => { const v = Number(e.currentTarget.value); setLocal(v); onChange(v); }} />
     </label>`;
+}
+
+/** A 0–10 score as ten pips — character attributes (§76) read at a glance. */
+export function Pips({ value, max = 10 }) {
+  const filled = Math.max(0, Math.min(max, Math.round(value)));
+  return html`<span class="hx-pips" aria-hidden="true">
+    ${Array.from({ length: max }, (_, i) => html`<i class=${i < filled ? 'on' : ''}></i>`)}
+  </span>`;
 }

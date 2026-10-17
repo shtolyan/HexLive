@@ -12,7 +12,8 @@
 //   loading: { progress 0–1, step: 'connect' | 'sync' | 'island' | 'people' | 'done',
 //              status: { key } | { text } },         // text: content service, already worded
 // }
-// Commands: play { id }, refresh.
+// Command: play { id }. Ping is re-measured by C# on its own (§174.7) —
+// the player is never asked to refresh it.
 import { html } from '../html.js';
 import { t } from '../i18n.js';
 import { icons } from '../icons.js';
@@ -64,11 +65,10 @@ function ServerCard({ model, send }) {
         <ul class="hx-servers">
           ${servers.map((s) => html`<${ServerRow} key=${s.id} server=${s} connecting=${model.connecting} send=${send} />`)}
         </ul>
-        <footer class="hx-server-card__foot">
-          ${model.connecting
-            ? html`<span class="hx-muted hx-spinner-text">${t('menu.servers.connecting')}</span>`
-            : html`<button class="hx-link-btn" type="button" onClick=${() => send('refresh')}>${t('menu.servers.refresh')}</button>`}
-        </footer>
+        ${model.connecting && html`
+          <footer class="hx-server-card__foot">
+            <span class="hx-muted hx-spinner-text">${t('menu.servers.connecting')}</span>
+          </footer>`}
       </section>
     </div>`;
 }

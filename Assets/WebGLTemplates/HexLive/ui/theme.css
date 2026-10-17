@@ -363,15 +363,13 @@
 .hx-speed { grid-column: 2; }
 
 /* ---- title screen: server card and loading strip ---------------------- */
-/* The art has the logo top left and the girls in the middle; the card sits
-   on the right, over sky and hexes, so the picture stays a picture. */
 .hx-title-center {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  padding: 1rem 5%;
+  justify-content: center;
+  padding: 1rem;
 }
 .hx-server-card { width: 30rem; display: flex; flex-direction: column; gap: 1rem; }
 .hx-server-card__head { display: flex; flex-direction: column; gap: 0.25rem; }
@@ -402,17 +400,6 @@
 .hx-server__go { grid-area: go; min-height: 2.5rem; min-width: 8.5rem; }
 .hx-btn:disabled { cursor: default; color: rgb(115 125 133); background: rgb(34 42 49 / 0.55); border-color: transparent; transform: none; }
 .hx-server[data-state="disabled"], .hx-server[data-state="offline"] { opacity: 0.75; }
-.hx-link-btn {
-  border: 0;
-  background: none;
-  padding: 0.25rem 0.5rem;
-  color: var(--hx-text-dim);
-  font-size: 0.8125rem;
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-  cursor: pointer;
-}
-.hx-link-btn:hover { color: var(--hx-text); }
 .hx-detail-inline { color: var(--hx-text-dim); font-size: 0.8125rem; overflow-wrap: anywhere; }
 .hx-spinner-text::before {
   content: "";

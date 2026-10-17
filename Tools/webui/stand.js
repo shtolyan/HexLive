@@ -44,8 +44,10 @@ function sendTitle() {
   if (ready) post({ t: 'show', screen: 'title', model: titleModel() });
 }
 
+// The ping is re-measured on its own every 10 s while the card is up; only
+// a server never measured shows «measuring», later rounds keep the last value.
 function probe() {
-  for (const server of SERVERS) if (server.state !== 'disabled') { server.state = 'pending'; server.ping = -1; }
+  for (const server of SERVERS) if (server.state !== 'disabled' && server.ping < 0) server.state = 'pending';
   sendTitle();
   setTimeout(() => {
     const sg = SERVERS[0];
@@ -54,6 +56,7 @@ function probe() {
     sendTitle();
   }, 1400);
 }
+setInterval(() => { if (isTitle(state.dialog) && title.phase === 'servers' && !title.connecting) probe(); }, 10000);
 
 function startTitle(kind) {
   clearInterval(title.timer);
@@ -219,7 +222,6 @@ function handle(message) {
     return;
   }
   if (message.screen === 'title') {
-    if (message.cmd === 'refresh') { note(key, '→ заново измерить пинг'); probe(); return; }
     if (message.cmd === 'play') {
       note(key, `${args} → свой сервер страницы: создание персонажа, потом подключение`);
       title.connecting = true;

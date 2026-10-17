@@ -54,6 +54,14 @@ internal static class Connectivity
     private static readonly System.Collections.Generic.List<JunctionId> _besideScratch = new();
 
     public static bool Reachable(WorldState world, JunctionId a, JunctionId b, bool canJump = true)
+        => ReachableCore(world, a, b, canJump, emitTrace: true);
+
+    // Read-only placement/preflight queries may lazily catch up the topology
+    // cache, but that cache maintenance must not publish a simulation event.
+    internal static bool ReachableWithoutTrace(WorldState world, JunctionId a, JunctionId b, bool canJump = true)
+        => ReachableCore(world, a, b, canJump, emitTrace: false);
+
+    private static bool ReachableCore(WorldState world, JunctionId a, JunctionId b, bool canJump, bool emitTrace)
     {
         // Bug #338 r2: старт на «замурованном» шве — скольжение вдоль цепочки:
         // цель в той же цепочке достижима сразу, иначе старт считается от
@@ -74,14 +82,14 @@ internal static class Connectivity
         // reachable, the way back is not. Water stays its own world.
         if (!canJump)
         {
-            EnsureFlat(world);
+            EnsureFlat(world, emitTrace);
 
             return world.JunctionComponentsFlat.TryGetValue(a, out var fa) && fa >= 0 &&
                    world.JunctionComponentsFlat.TryGetValue(b, out var fb) && fb >= 0 &&
                    FlatReaches(world, fa, fb);
         }
 
-        EnsureJump(world);
+        EnsureJump(world, emitTrace);
 
         return world.JunctionComponents.TryGetValue(a, out var ca) && ca >= 0 &&
                world.JunctionComponents.TryGetValue(b, out var cb) &&
@@ -242,7 +250,7 @@ internal static class Connectivity
     }
 
     /// <summary>Догон прыжкового графа до текущей версии топологии.</summary>
-    internal static void EnsureJump(WorldState world)
+    internal static void EnsureJump(WorldState world, bool emitTrace = true)
     {
         if (world.ComponentsBuiltVersion == world.TopologyVersion)
         {
@@ -256,15 +264,15 @@ internal static class Connectivity
         world.ComponentsJournalCursor = cursor;
         if (full)
         {
-            Rebuild(world);
+            Rebuild(world, emitTrace);
             return;
         }
 
-        ApplyChanges(world, flat: false);
+        ApplyChanges(world, flat: false, emitTrace);
     }
 
     /// <summary>Догон плоского графа до текущей версии топологии.</summary>
-    internal static void EnsureFlat(WorldState world)
+    internal static void EnsureFlat(WorldState world, bool emitTrace = true)
     {
         if (world.ComponentsFlatBuiltVersion == world.TopologyVersion)
         {
@@ -278,14 +286,14 @@ internal static class Connectivity
         world.ComponentsFlatJournalCursor = cursor;
         if (full)
         {
-            RebuildFlat(world);
+            RebuildFlat(world, emitTrace);
             return;
         }
 
-        ApplyChanges(world, flat: true);
+        ApplyChanges(world, flat: true, emitTrace);
     }
 
-    private static void ApplyChanges(WorldState world, bool flat)
+    private static void ApplyChanges(WorldState world, bool flat, bool emitTrace)
     {
         var labels = Labels(world, flat);
         var touched = false;
@@ -300,7 +308,7 @@ internal static class Connectivity
             if (!labels.TryGetValue(id, out var label))
             {
                 // Узел, которого карта не знает, — граф менялся мимо worldgen.
-                FullRebuild(world, flat, "UnknownJunction");
+                FullRebuild(world, flat, "UnknownJunction", emitTrace);
                 return;
             }
 
@@ -315,7 +323,7 @@ internal static class Connectivity
             {
                 if (!Block(world, junction, label, flat))
                 {
-                    FullRebuild(world, flat, "AmbiguousSplit");
+                    FullRebuild(world, flat, "AmbiguousSplit", emitTrace);
                     return;
                 }
             }
@@ -340,10 +348,10 @@ internal static class Connectivity
     /// <summary>Появилось или исчезло ребро графа компонент за текущий догон.</summary>
     private static bool _edgeSetChanged;
 
-    private static void FullRebuild(WorldState world, bool flat, string reason)
+    private static void FullRebuild(WorldState world, bool flat, string reason, bool emitTrace)
     {
         world.Caches.ConnectivityFullRebuilds++;
-        if (SimTrace.Enabled)
+        if (emitTrace && SimTrace.Enabled)
         {
             Trace.DebugSystem(world, "ConnectivityFullRebuild",
                 $"Graph={(flat ? "Flat" : "Jump")} Reason={reason}");
@@ -351,11 +359,11 @@ internal static class Connectivity
 
         if (flat)
         {
-            RebuildFlat(world);
+            RebuildFlat(world, emitTrace);
         }
         else
         {
-            Rebuild(world);
+            Rebuild(world, emitTrace);
         }
     }
 
@@ -853,7 +861,7 @@ internal static class Connectivity
 
     // ── полные перестройки (запасной ход и первое построение) ────────────
 
-    private static void Rebuild(WorldState world)
+    private static void Rebuild(WorldState world, bool emitTrace = true)
     {
         world.JunctionComponents.Clear();
         world.JunctionComponentSizes.Clear();
@@ -899,7 +907,7 @@ internal static class Connectivity
         world.NextJumpComponentId = component + 1;
         world.ComponentsBuiltVersion = world.TopologyVersion;
         world.ComponentsJournalCursor = world.Topology.EndIndex;
-        if (SimTrace.Enabled)
+        if (emitTrace && SimTrace.Enabled)
         {
             Trace.DebugSystem(world, "ConnectivityRebuilt",
                 $"Components={component} Junctions={world.Junctions.Items.Count}");
@@ -910,7 +918,7 @@ internal static class Connectivity
     // edge is only followed when it stays on one elevation (RequiresJump false),
     // so each elevation shelf (and the water) is its own component. A survivor
     // who lost a leg reads reachability through this map.
-    private static void RebuildFlat(WorldState world)
+    private static void RebuildFlat(WorldState world, bool emitTrace = true)
     {
         world.JunctionComponentsFlat.Clear();
         foreach (var junction in world.Junctions.Items.Values)
@@ -1032,7 +1040,7 @@ internal static class Connectivity
         // рёбрам с тем же исключением самой стартовой компоненты.
         world.ComponentsFlatBuiltVersion = world.TopologyVersion;
         world.ComponentsFlatJournalCursor = world.Topology.EndIndex;
-        if (SimTrace.Enabled)
+        if (emitTrace && SimTrace.Enabled)
         {
             Trace.DebugSystem(world, "ConnectivityFlatRebuilt",
                 $"Components={component} Junctions={world.Junctions.Items.Count} " +

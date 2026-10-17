@@ -1,6 +1,8 @@
 #nullable enable
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Platform;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -18,6 +20,7 @@ namespace HexLive.UnityPresentation.UI
 /// Stalled) диалога не открывают — их показывает индикатор связи, и они
 /// лечатся сами.
 /// </para>
+/// <para>§174.7: в веб-клиенте диалог рисует страница (ui/screens/connectionLost.js).</para>
 /// </summary>
 [RequireComponent(typeof(UIDocument))]
 public sealed class ConnectionLostDialog : MonoBehaviour
@@ -33,6 +36,7 @@ public sealed class ConnectionLostDialog : MonoBehaviour
     private VisualElement? _overlay;
     private Label? _detail;
     private bool _shown;
+    private const string HtmlScreen = "connectionLost";
 
     public void SetRunner(SimulationRunnerBehaviour runner) => _runner = runner;
 
@@ -51,6 +55,19 @@ public sealed class ConnectionLostDialog : MonoBehaviour
         }
     }
 
+    private void OnEnable() => HtmlUi.Handle(HtmlScreen, OnHtmlCommand);
+
+    private void OnDisable()
+    {
+        HtmlUi.Unhandle(HtmlScreen, OnHtmlCommand);
+        HtmlUi.Hide(HtmlScreen);
+    }
+
+    private static void OnHtmlCommand(string command, JObject args)
+    {
+        if (command == "ok") GameMenu.ReloadToMainMenu();
+    }
+
     private void Update()
     {
         if (_shown || _runner == null)
@@ -65,6 +82,12 @@ public sealed class ConnectionLostDialog : MonoBehaviour
         }
 
         _shown = true;
+        if (HtmlUi.Active)
+        {
+            HtmlUi.Show(HtmlScreen, new JObject { ["detail"] = link.Message ?? string.Empty });
+            return;
+        }
+
         Show(link.Message);
     }
 

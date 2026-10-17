@@ -6,14 +6,22 @@ using HexLive.Simulation.Wire;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Platform;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace HexLive.UnityPresentation.UI
 {
+    /// <summary>
+    /// §171: who the player now controls. §174.7: in the web client the page
+    /// draws it (ui/screens/playerAssignment.js) from the same notices.
+    /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public sealed class PlayerAssignmentDialog : MonoBehaviour
     {
+        private const string HtmlScreen = "playerAssignment";
+        private Action? _acknowledge;
         public static bool IsOpen { get; private set; }
         private SimulationRunnerBehaviour? _runner;
         private UIDocument _document = null!;
@@ -36,8 +44,26 @@ namespace HexLive.UnityPresentation.UI
             }
         }
 
+        private void OnEnable() => HtmlUi.Handle(HtmlScreen, OnHtmlCommand);
+
+        private void OnHtmlCommand(string command, JObject args)
+        {
+            if (command == "ok") _acknowledge?.Invoke();
+        }
+
+        private void Close()
+        {
+            _document.rootVisualElement.Clear();
+            HtmlUi.Hide(HtmlScreen);
+            _acknowledge = null;
+            IsOpen = false;
+        }
+
         private void OnDisable()
         {
+            HtmlUi.Unhandle(HtmlScreen, OnHtmlCommand);
+            HtmlUi.Hide(HtmlScreen);
+            _acknowledge = null;
             IsOpen = false;
             _sequence = 0;
             _document?.rootVisualElement?.Clear();
@@ -58,7 +84,7 @@ namespace HexLive.UnityPresentation.UI
             var worldId = _runner.AssignmentWorldId;
             if (notices.Length == 0)
             {
-                if (IsOpen) { _document.rootVisualElement.Clear(); IsOpen = false; }
+                if (IsOpen) Close();
                 _sequence = 0;
                 return;
             }
@@ -67,6 +93,23 @@ namespace HexLive.UnityPresentation.UI
             _worldId = worldId;
             _sequence = sequence;
             _language = Loc.Code;
+            var assigned = snapshot.Npcs.Where(n => _runner.IsAssignedNpc(n.Id)).ToArray();
+            void Acknowledge()
+            {
+                _runner.AcknowledgeAssignmentNotices(worldId, sequence);
+                Close();
+                if (assigned.Length > 0 && _runner.AssignmentWorldId == worldId)
+                    NpcSelection.Replace(assigned[0].Id.Value, requestFrame: true);
+            }
+
+            if (HtmlUi.Active)
+            {
+                _acknowledge = Acknowledge;
+                HtmlUi.Show(HtmlScreen, HtmlModel(notices, snapshot, assigned.Length > 0));
+                IsOpen = true;
+                return;
+            }
+
             var root = _document.rootVisualElement;
             root.Clear();
             root.pickingMode = PickingMode.Ignore;
@@ -103,23 +146,64 @@ namespace HexLive.UnityPresentation.UI
                 foreach (var trait in npc.Traits)
                     scroll.Add(Text($"{Loc.Get(trait + ".title")} — {Loc.Get(trait + ".desc")}"));
             }
-            var assigned = snapshot.Npcs.Where(n => _runner.IsAssignedNpc(n.Id)).ToArray();
             scroll.Add(Text(Loc.Get(assigned.Length == 0 ? "assignment.waiting" : "assignment.persistence")));
             card.Add(scroll);
-            var ok = new Button(() =>
-            {
-                _runner.AcknowledgeAssignmentNotices(worldId, sequence);
-                root.Clear();
-                IsOpen = false;
-                if (assigned.Length > 0 && _runner.AssignmentWorldId == worldId)
-                    NpcSelection.Replace(assigned[0].Id.Value, requestFrame: true);
-            }) { text = Loc.Get("assignment.ok") };
+            var ok = new Button(Acknowledge) { text = Loc.Get("assignment.ok") };
             ok.AddToClassList("assignment-button");
             card.Add(ok);
             overlay.Add(card);
             root.Add(overlay);
             IsOpen = true;
             ok.Focus();
+        }
+
+        // §174.7: the same notices as the UI Toolkit card, as data — the page
+        // words them through the I2 terms (assignment.*, attr.*, trait.*).
+        private JObject HtmlModel(PlayerAssignmentNotice[] notices, HexLive.Simulation.Debug.WorldSnapshot snapshot, bool anyAssigned)
+        {
+            var losses = new JArray();
+            foreach (var notice in notices.Where(n => n.Kind != "assigned"))
+            {
+                losses.Add(new JObject
+                {
+                    ["kind"] = notice.Kind,
+                    ["name"] = string.IsNullOrEmpty(notice.Name) ? $"#{notice.NpcId}" : Loc.NpcName(notice.Name),
+                });
+            }
+
+            var hasLoss = losses.Count > 0;
+            var characters = new JArray();
+            foreach (var notice in notices.Where(n => n.Kind == "assigned"))
+            {
+                var npc = snapshot.Npcs.FirstOrDefault(n => n.Id.Value == notice.NpcId && _runner!.IsAssignedNpc(n.Id));
+                if (npc == null) continue; // superseded by death, as in the card
+                var attributes = new JArray();
+                foreach (var row in npc.Attributes)
+                {
+                    var parts = row.Split('\t');
+                    if (parts.Length != 2 || !float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var value)) continue;
+                    attributes.Add(new JObject
+                    {
+                        ["id"] = parts[0].ToLowerInvariant(),
+                        ["value"] = Mathf.RoundToInt(Mathf.Max(0, value) * 10),
+                    });
+                }
+
+                characters.Add(new JObject
+                {
+                    ["name"] = Loc.NpcName(npc.DisplayName),
+                    ["intro"] = hasLoss ? "replacement" : "introduction",
+                    ["attributes"] = attributes,
+                    ["traits"] = new JArray(npc.Traits),
+                });
+            }
+
+            return new JObject
+            {
+                ["losses"] = losses,
+                ["characters"] = characters,
+                ["footer"] = anyAssigned ? "persistence" : "waiting",
+            };
         }
 
         private static Label Text(string text, string? className = null)

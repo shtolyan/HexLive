@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Platform;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -10,6 +12,8 @@ namespace HexLive.UnityPresentation.UI
     /// Always-visible time controls, centered at the top of the screen: pause /
     /// play and the 1× / 2× / 4× / 50× / ∞ (MAX) speed presets. Talks straight to the
     /// simulation runner. Resolution-scaled like the character bar.
+    /// §174.7: in the web client the page draws it (ui/screens/hud.js) from
+    /// <see cref="HudModel"/>; the UI Toolkit pills stay for the desktop.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public sealed class SimSpeedBar : MonoBehaviour
@@ -24,6 +28,10 @@ namespace HexLive.UnityPresentation.UI
         private VectorIcon _pauseIcon;
         private VectorIcon _playIcon;
         private readonly List<VisualElement> _speedButtons = new();
+
+        private const string HtmlScreen = "hud";
+        private bool _inHtml;
+        private string _lastHudJson;
 
         // Weather widget (top-left): temperature, rain/clear, clock + phase.
         private VectorIcon _sunIcon;
@@ -67,11 +75,32 @@ namespace HexLive.UnityPresentation.UI
             Build();
         }
 
+        private void OnEnable() => HtmlUi.Handle(HtmlScreen, OnHtmlCommand);
+
+        private void OnDisable()
+        {
+            HtmlUi.Unhandle(HtmlScreen, OnHtmlCommand);
+            HtmlUi.Hide(HtmlScreen);
+            _lastHudJson = null;
+        }
+
         private void Update()
         {
             if (_runner == null)
             {
                 _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
+            }
+
+            if (HtmlUi.Active)
+            {
+                if (!_inHtml)
+                {
+                    _inHtml = true;
+                    _document.rootVisualElement.style.display = DisplayStyle.None;
+                }
+
+                PushHtml();
+                return;
             }
 
             Refresh();
@@ -313,6 +342,95 @@ namespace HexLive.UnityPresentation.UI
             _clockLabel.text = $"{snapshot.Clock} · {Loc.Get("phase." + snapshot.DayPhase)}";
         }
 
+        // §174.7: the HTML HUD. The page sits over the whole canvas, so the HUD
+        // is withdrawn while the (UI Toolkit) loading screen owns the display
+        // and until the world is ready to describe.
+        private void PushHtml()
+        {
+            if (LoadingScreen.IsActive || _runner == null || !_runner.IsReady)
+            {
+                HtmlUi.Hide(HtmlScreen);
+                _lastHudJson = null;
+                return;
+            }
+
+            var model = HudModel();
+            if (model == null)
+            {
+                return;
+            }
+
+            var json = model.ToString(Newtonsoft.Json.Formatting.None);
+            if (json == _lastHudJson)
+            {
+                return; // the clock moves once a tick; most frames send nothing
+            }
+
+            _lastHudJson = json;
+            HtmlUi.Show(HtmlScreen, model);
+        }
+
+        private JObject HudModel()
+        {
+            var snapshot = _runner.CreateSnapshot(); // cached per tick
+            if (snapshot == null)
+            {
+                return null;
+            }
+
+            var link = _runner.Link;
+            var remote = link.IsRemote;
+            var speed = Speeds[NearestPreset(_runner.SpeedMultiplier)];
+            return new JObject
+            {
+                ["day"] = HexLive.Simulation.Runtime.EnvironmentSystem.CalendarDay(snapshot.Tick),
+                ["temperature"] = Mathf.RoundToInt(snapshot.Temperature + DisplayCelsiusOffset),
+                ["band"] = snapshot.Temperature < 12f ? "cold" : snapshot.Temperature > 20f ? "hot" : "mild",
+                ["raining"] = snapshot.IsRaining,
+                ["clock"] = snapshot.Clock,
+                ["phase"] = snapshot.DayPhase,
+                ["link"] = remote
+                    ? new JObject
+                    {
+                        ["state"] = link.State switch
+                        {
+                            LinkState.Live => "live",
+                            LinkState.Stalled => "stalled",
+                            LinkState.Reconnecting => "reconnecting",
+                            LinkState.Failed => "failed",
+                            _ => "connecting",
+                        },
+                        // Rounded to 10 ms: a ping that wobbles by one would
+                        // otherwise resend the HUD every frame.
+                        ["ping"] = link.PingMilliseconds >= 0 ? link.PingMilliseconds / 10 * 10 : -1,
+                    }
+                    : null,
+                ["paused"] = _runner.IsPaused,
+                ["speed"] = float.IsInfinity(speed) ? (JToken)"max" : Mathf.RoundToInt(speed),
+                ["remote"] = remote,
+            };
+        }
+
+        private void OnHtmlCommand(string command, JObject args)
+        {
+            if (_runner == null)
+            {
+                return;
+            }
+
+            switch (command)
+            {
+                case "pause":
+                    // Same rule as the UI Toolkit button: a shared world's clock is not ours.
+                    if (!_runner.Link.IsRemote) _runner.TogglePause();
+                    break;
+                case "speed":
+                    var value = args["value"];
+                    OnSpeed(value?.Type == JTokenType.String ? float.PositiveInfinity : (float?)value ?? 1f);
+                    break;
+            }
+        }
+
         private void OnSpeed(float speed)
         {
             if (_runner == null)
@@ -362,22 +480,7 @@ namespace HexLive.UnityPresentation.UI
             // (заявленная × микро-подстройка буфера, ~0.98..1.02 каждый кадр),
             // и точное Approximately мигало подсветкой 1× непрерывно.
             // Кнопки представляют пресеты — подсвечивается БЛИЖАЙШИЙ.
-            var speed = _runner != null ? _runner.SpeedMultiplier : 1f;
-            var nearest = 0;
-            var nearestError = float.MaxValue;
-            for (var i = 0; i < Speeds.Length; i++)
-            {
-                var error = float.IsInfinity(Speeds[i])
-                    ? (float.IsInfinity(speed) ? 0f : float.MaxValue)
-                    : float.IsInfinity(speed)
-                        ? float.MaxValue
-                        : Mathf.Abs(Mathf.Log(Mathf.Max(0.01f, speed) / Speeds[i]));
-                if (error < nearestError)
-                {
-                    nearestError = error;
-                    nearest = i;
-                }
-            }
+            var nearest = NearestPreset(_runner != null ? _runner.SpeedMultiplier : 1f);
 
             for (var i = 0; i < _speedButtons.Count; i++)
             {
@@ -395,6 +498,27 @@ namespace HexLive.UnityPresentation.UI
                     label.style.color = active ? Ink : Text;
                 }
             }
+        }
+
+        private static int NearestPreset(float speed)
+        {
+            var nearest = 0;
+            var nearestError = float.MaxValue;
+            for (var i = 0; i < Speeds.Length; i++)
+            {
+                var error = float.IsInfinity(Speeds[i])
+                    ? (float.IsInfinity(speed) ? 0f : float.MaxValue)
+                    : float.IsInfinity(speed)
+                        ? float.MaxValue
+                        : Mathf.Abs(Mathf.Log(Mathf.Max(0.01f, speed) / Speeds[i]));
+                if (error < nearestError)
+                {
+                    nearestError = error;
+                    nearest = i;
+                }
+            }
+
+            return nearest;
         }
 
         private static VisualElement MakeButton()

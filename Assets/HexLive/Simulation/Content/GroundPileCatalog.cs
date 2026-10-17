@@ -159,6 +159,12 @@ public static class GroundPileCatalog
             var extent = (float)Math.Sqrt(3d) * target;
             Profiles[id] = new(id, new(-extent*.5f,0,-extent*.5f,extent*.5f,extent,extent*.5f), target, centerVisualXZ:true);
         }
+        {
+            var target = TargetWorldSize(HumanMeatCatalog.Head);
+            var extent = (float)Math.Sqrt(3d) * target;
+            Profiles[HumanMeatCatalog.Head] = new(HumanMeatCatalog.Head,
+                new(-extent*.5f,0,-extent*.5f,extent*.5f,extent,extent*.5f), target, centerVisualXZ:true);
+        }
         // #418: canonical FindObjectMain sources, fitted and seated by the real
         // FitObjectPrefab path; MeasureGroundRows.cs.txt reproduces these bounds.
         // 10 micrometre outward padding absorbs the measured float rounding.
@@ -3347,9 +3353,10 @@ public static class GroundPileCatalog
             if (definitionId == ContentIds.HerbYoung || definitionId == ContentIds.YuccaYoung) return r * 0.34f;
             if (definitionId == ContentIds.HerbBudding || definitionId == ContentIds.YuccaJuvenile) return r * 0.5f;
             if (definitionId == ContentIds.HerbSeed || definitionId == ContentIds.YuccaSeed) return r * 0.08f;
-            if (definitionId is HumanMeatCatalog.ArmRaw or HumanMeatCatalog.ArmCooked) return r * 0.4f;
-            if (definitionId is HumanMeatCatalog.LegRaw or HumanMeatCatalog.LegCooked) return r * 0.55f;
-            if (definitionId is HumanMeatCatalog.TorsoRaw or HumanMeatCatalog.TorsoCooked) return r * 0.6f;
+            // #485: actual source-body proportions at HexWorldRenderer.ActorScale,
+            // shared by ground/hand/spit. The old torso budget included a head.
+            if (HumanMeatCatalog.IsHumanPart(definitionId))
+                return PreparedHumanPartGeometry.SourceSpan(definitionId) * r * (11f / 30f) * 2.4f / 1.7f;
             // §54.2: PalmTreeFactory returns before generic fitting; palm_final
             // keeps its authored 1:1 dimensions.
             if (definitionId.Contains("tree")) return r * 2.2f;

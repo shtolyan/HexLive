@@ -1099,6 +1099,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // renderer, cleared with it on scene teardown).
     private const int CorpseBleedTicks = 120; // 30 sim seconds after death
     private HexLive.UnityPresentation.Environment.GroundBloodStains _bloodStains;
+    private readonly HexLive.UnityPresentation.Environment.ButcheryBloodEvents _butcheryBlood = new();
 
     private HexLive.UnityPresentation.Environment.GroundBloodStains EnsureBloodStains()
     {
@@ -2517,6 +2518,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
+        _butcheryBlood.Consume(snapshot, (npc, tick) =>
+        {
+            if (!_waterCoords.Contains(npc.Tile))
+                EnsureBloodStains().OnButchery(
+                    SimulationUnityMapper.ToUnityPosition(npc.Position, ActorGroundY(npc.Tile)), tick);
+        });
         _bloodStains?.Advance(snapshot.Tick);
         _waterBlood?.Advance(snapshot.Tick);
         _intimacyStains?.Advance(snapshot.Tick, snapshot.IsRaining);
@@ -4931,6 +4938,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     _collectorJunctions.Contains(worldObject.Junctions[0]);
                 var groundPile = worldObject.CraftWorkRequired <= 0 && !parkedBottle && _groundPileRank.ContainsKey(worldObject.Id.Value) &&
                     GroundPileCatalog.TryGet(worldObject.DefinitionId,false,out _);
+                // Body portions reserve separate ground anchors, never tidy stacks.
+                if (HumanMeatCatalog.IsHumanPart(worldObject.DefinitionId)) groundPile = false;
                 FitObjectPrefab(instance, worldObject.DefinitionId, worldObject.Id.Value,
                     scatter: worldObject.CraftWorkRequired <= 0 && !groundPile && !parkedBottle && worldObject.RotationDegrees == 0f, pile: groundPile);
                 if (groundPile) AttachGroundPile(prefabRoot,instance,worldObject);
@@ -7334,7 +7343,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 instance.transform.localRotation);
         }
 
-        GroundVisual(instance);
+        // A rolled anatomical mesh is irregular: the rotated renderer AABB can
+        // extend below every actual vertex and leave the prop floating. Seat
+        // the real surface once; generic props keep their established policy.
+        if (HumanMeatCatalog.IsHumanPart(definitionId) &&
+            ObjectFit.TryStaticMeshMinimumY(instance, out var surfaceMinimum))
+            instance.transform.localPosition += Vector3.up * (instance.transform.position.y - surfaceMinimum);
+        else
+            GroundVisual(instance);
         SuppressSmallPropShadows(instance);
     }
 
@@ -7403,6 +7419,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // rebuild, unlike UnityEngine.Random which would pop on each refresh.
         uint state = (uint)idValue * 2654435761u;
         var yaw = NextRand(ref state) * 360f;
+
+        if (HumanMeatCatalog.IsHumanPart(definitionId))
+            return HexLive.UnityPresentation.Environment.HumanPartGroundPose.Rotation(
+                definitionId, idValue, authoredRotation);
 
         if (LiesFlatOnGround(definitionId))
         {

@@ -49,6 +49,7 @@ public sealed class ManualCannibalismTests
         Assert.That(parts.Count(id => id == HumanMeatCatalog.ArmRaw), Is.EqualTo(1));
         Assert.That(parts.Count(id => id == HumanMeatCatalog.LegRaw), Is.EqualTo(2));
         Assert.That(parts.Count(id => id == HumanMeatCatalog.TorsoRaw), Is.EqualTo(1));
+        Assert.That(parts.Count(id => id == HumanMeatCatalog.Head), Is.EqualTo(1));
         Assert.That(world.Entities.Npcs.ContainsKey(victim.Id), Is.False);
         Assert.That(world.Entities.Corpses.ContainsKey(victim.Id), Is.False);
         Assert.That(ManualCommandExecutor.Apply(world, new ButcherPersonCommand(actor.Id, victim.Id)).Reason,
@@ -147,6 +148,9 @@ public sealed class ManualCannibalismTests
     [TestCase(HumanMeatCatalog.ArmRaw)]
     [TestCase(HumanMeatCatalog.LegRaw)]
     [TestCase(HumanMeatCatalog.TorsoRaw)]
+    [TestCase(HumanMeatCatalog.MaleArmRaw)]
+    [TestCase(HumanMeatCatalog.MaleLegRaw)]
+    [TestCase(HumanMeatCatalog.MaleTorsoRaw)]
     public void PartsRoastOnOrdinaryFireAndAreEdibleOnlyAfterCooking(string raw)
     {
         var world = TestWorld.CreateWorld();
@@ -164,5 +168,48 @@ public sealed class ManualCannibalismTests
         Assert.That(fire.Contents[0].DefinitionId, Is.EqualTo(HumanMeatCatalog.Cooked(raw)));
         Assert.That(world.Content.ObjectDefinitions[fire.Contents[0].DefinitionId].Interactions
             .Any(i=>i.Type==InteractionType.Eat && i.Effects.HungerDelta<0), Is.True);
+    }
+
+    [TestCase("Marta", HumanMeatCatalog.ArmRaw, HumanMeatCatalog.LegRaw, HumanMeatCatalog.TorsoRaw)]
+    [TestCase("Kshishtof", HumanMeatCatalog.MaleArmRaw, HumanMeatCatalog.MaleLegRaw, HumanMeatCatalog.MaleTorsoRaw)]
+    public void ButcheryKeepsBodyFamilyAndSeparateHeadThroughSave(string body, string arm, string leg, string torso)
+    {
+        var (engine, actor, victim) = Fixture();
+        victim.ActorMesh = body;
+        var world = engine.World;
+        Assert.That(ManualCommandExecutor.Apply(world, new ButcherPersonCommand(actor.Id, victim.Id)).Status,
+            Is.EqualTo(ManualCommandAdmissionStatus.Accepted));
+        Until(engine, () => world.Events.Items.Any(e => e.Type == "Butchered"));
+        string[] Parts(HexLive.Simulation.Core.WorldState state) => state.Entities.Objects.Values.Select(o => o.DefinitionId)
+            .Concat(state.Entities.Npcs.Values.SelectMany(n => n.Inventory.Items.Select(i => i.DefinitionId)))
+            .Where(HumanMeatCatalog.IsHumanPart).OrderBy(id => id).ToArray();
+        var expected = new[] { arm, arm, leg, leg, torso, HumanMeatCatalog.Head }.OrderBy(id => id).ToArray();
+        Assert.That(Parts(world), Is.EqualTo(expected));
+        using var bytes = new System.IO.MemoryStream();
+        using (var writer = new System.IO.BinaryWriter(bytes, System.Text.Encoding.UTF8, true))
+            HexLive.Simulation.Persistence.WorldSaveSerializer.Write(world, writer);
+        bytes.Position = 0;
+        var restored = TestWorld.CreateWorld();
+        using (var reader = new System.IO.BinaryReader(bytes, System.Text.Encoding.UTF8, true))
+            HexLive.Simulation.Persistence.WorldSaveSerializer.Read(restored, reader);
+        Assert.That(Parts(restored), Is.EqualTo(expected));
+        Assert.That(expected.All(id => GroundPileCatalog.Capacity(id) == 1), Is.True);
+    }
+
+    [Test]
+    public void UniversalHeadIsPortableButNotFoodOrRoastable()
+    {
+        var world = TestWorld.CreateWorld();
+        var head = world.Content.ObjectDefinitions[HumanMeatCatalog.Head];
+        Assert.That(head.Interactions.Any(i => i.Type == InteractionType.PickUp), Is.True);
+        Assert.That(head.Interactions.Any(i => i.Type == InteractionType.Eat), Is.False);
+        Assert.That(head.Tags, Does.Not.Contain(ObjectTags.Food));
+        Assert.That(HumanMeatCatalog.IsRaw(HumanMeatCatalog.Head), Is.False);
+        var fire = world.Entities.Objects.Values.First(o => o.DefinitionId == ContentIds.Campfire);
+        fire.ResourceAmount = 100000;
+        fire.Contents.Clear(); fire.Contents.Add(new ItemInstance(HumanMeatCatalog.Head));
+        for (var i = 0; i < 100; i++) { world.Tick += world.SlowIntervalTicks; new FireSystem().Run(world); }
+        Assert.That(fire.Contents.Single().DefinitionId, Is.EqualTo(HumanMeatCatalog.Head));
+        Assert.That(fire.Contents.Single().ResourceAmount, Is.Zero);
     }
 }

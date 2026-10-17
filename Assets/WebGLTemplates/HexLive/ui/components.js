@@ -3,6 +3,7 @@
 import { html, useState, useEffect, useRef } from './html.js';
 import { t } from './i18n.js';
 import { icons } from './icons.js';
+import { asset } from './bridge.js';
 
 const chevronIcon = html`<svg class="hx-disclosure__chevron" viewBox="0 0 16 16" aria-hidden="true">
   <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
@@ -157,4 +158,35 @@ export function Hole({ send, cmd, className = 'hx-inv__hole' }) {
     onPointerDown=${(e) => { drag.current = e.clientX; e.currentTarget.setPointerCapture(e.pointerId); }}
     onPointerMove=${(e) => { if (drag.current == null) return; send('dollRotate', { dx: e.clientX - drag.current }); drag.current = e.clientX; }}
     onPointerUp=${() => { drag.current = null; }}></div>`;
+}
+
+/** An item picture: the icon Unity sent, else its emoji while the icon is on its way. */
+export function Pic({ of, fallback }) {
+  const src = asset(of.icon);
+  if (src) return html`<img src=${src} alt="" />`;
+  if (of.emoji) return html`<span class="hx-pic-emoji" aria-hidden="true">${of.emoji}</span>`;
+  return fallback ?? null;
+}
+
+/** «How many?» for a stack: slider, −/+ and the number; starts at one. */
+export function Quantity({ title, max, confirm, danger, onConfirm, onClose, initial = 1 }) {
+  const [count, setCount] = useState(Math.max(1, Math.min(max, initial)));
+  const clamp = (v) => Math.max(1, Math.min(max, v));
+  return html`
+    <div class="hx-backdrop hx-surface" onPointerDown=${(e) => e.target === e.currentTarget && onClose()}>
+      <section class="hx-window hx-window--medium" role="dialog" aria-modal="true">
+        <h2 class="hx-title hx-title--left">${title}</h2>
+        <div class="hx-qty">
+          <button type="button" class="hx-pips__step" onClick=${() => setCount(clamp(count - 1))}>−</button>
+          <input type="range" min="1" max=${max} value=${count} style=${{ '--fill': `${((count - 1) / Math.max(1, max - 1)) * 100}%` }}
+            onInput=${(e) => setCount(Number(e.currentTarget.value))} />
+          <button type="button" class="hx-pips__step" onClick=${() => setCount(clamp(count + 1))}>+</button>
+          <b>${count}</b>
+        </div>
+        <div class="hx-actions">
+          <${Button} onClick=${onClose}>${t('loot.quantity_cancel')}<//>
+          <${Button} variant=${danger ? 'danger' : 'primary'} onClick=${() => onConfirm(count)}>${confirm}<//>
+        </div>
+      </section>
+    </div>`;
 }

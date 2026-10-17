@@ -229,6 +229,75 @@ function sendSide() {
   else { post({ t: 'hide', screen: 'journal' }); side.journal = false; }
 }
 
+// ---- the exchange window (LootTransferPanel): her things ⇄ another's ----
+const LOOT_GROUPS = {
+  person: [['carry', 'inv.carry', 2, true], ['bag', null, 6, false], ['holster', 'inv.holster', 3, false]],
+  container: [['basket', null, 8, false]],
+};
+const loot = { open: false, mode: 'exchange', other: 'person', pending: false, status: null, uid: 500, sides: {} };
+function lootReset() {
+  const mk = (list) => list.map(([def, count, group, extra]) => ({ uid: `u${loot.uid++}`, def, count, group, ...(extra || {}) }));
+  loot.sides.left = mk([['tool.knife', 1, 'carry', { hand: 'R' }], ['food.coconut', 2, 'carry'], ['resource.rope', 3, 'bag'],
+    ['resource.stick', 6, 'bag'], ['food.meat_cooked', 1, 'bag'], ['tool.sharp_stone', 1, 'holster'],
+    ['clothing.top_primal', 1, 'worn'], ['underwear.briefs_primal', 1, 'worn']]);
+  loot.sides.right = loot.other === 'container'
+    ? mk([['resource.palm_leaf', 7, 'basket'], ['food.coconut', 4, 'basket'], ['resource.stone', 5, 'basket'], ['resource.hide', 1, 'basket']])
+    : mk([['tool.axe_stone', 1, 'carry', { hand: 'R' }], ['resource.log', 1, 'carry', { hand: 'L' }], ['food.coconut_open', 1, 'bag'],
+      ['resource.cloth', 2, 'bag'], ['clothing.skirt_primal', 1, 'worn']]);
+  loot.pending = false; loot.status = null;
+}
+function lootItem(it) {
+  const d = itemDetail(it);
+  return { uid: it.uid, def: it.def, icon: `icon:${it.def}`, emoji: null, name: itemName(it.def), count: it.count,
+    detail: { category: d.category, desc: d.desc, stats: d.stats.map(([k, v]) => [tr(k), v]) } };
+}
+function lootPane(side) {
+  const items = loot.sides[side];
+  const person = side === 'left' || loot.other === 'person';
+  const who = side === 'left' ? (COLONY.find((x) => x.id === game.selected) || COLONY[0]) : COLONY.find((x) => x.id === 15);
+  const groups = LOOT_GROUPS[person ? 'person' : 'container'].map(([id, title, cap, hands]) => {
+    const inside = items.filter((i) => i.group === id);
+    const slots = [];
+    if (hands) for (const h of ['L', 'R']) {
+      const held = inside.find((i) => i.hand === h);
+      slots.push({ item: held ? lootItem(held) : null, hand: h === 'L' ? 'left' : 'right' });
+    }
+    const loose = inside.filter((i) => !i.hand);
+    for (let n = 0; n < cap; n++) slots.push({ item: loose[n] ? lootItem(loose[n]) : null });
+    const bagName = state.lang === 'ru' ? (id === 'bag' ? 'Плетёная сумка' : 'Корзина') : (id === 'bag' ? 'Woven bag' : 'Basket');
+    return { title: title ? tr(title) : bagName, filled: inside.length, cap: cap + (hands ? 2 : 0), overflow: false,
+      owner: id === 'bag' ? { uid: `${side}-bag`, def: 'resource.cloth', icon: 'icon:resource.cloth', name: bagName, count: 1 } : null, slots };
+  }).filter((g) => side === 'left' || loot.other === 'container' || g.filled > 0 || g.title === tr('inv.carry'));
+  return {
+    name: person ? who.name : (state.lang === 'ru' ? 'Корзина у костра' : 'Basket by the fire'),
+    face: person ? `face:${who.id}` : null, kind: person ? 'person' : 'container',
+    groups, worn: person ? items.filter((i) => i.group === 'worn').map(lootItem) : [],
+  };
+}
+function sendLoot() {
+  if (!ready) return;
+  if (loot.open && isGame(state.dialog)) {
+    post({ t: 'show', screen: 'loot', model: { mode: loot.mode, pending: loot.pending, status: loot.status, left: lootPane('left'), right: lootPane('right') } });
+  } else post({ t: 'hide', screen: 'loot' });
+}
+// C#: the order goes out, she walks over, the snapshot answers.
+function lootMove(uid, to, count, wear) {
+  const from = to === 'left' ? 'right' : 'left';
+  const it = loot.sides[from].find((i) => i.uid === uid);
+  if (!it) return;
+  loot.pending = true; loot.status = { key: wear ? 'loot.equipping' : 'loot.transferring', tone: 'busy' };
+  sendLoot();
+  setTimeout(() => {
+    const group = to === 'left' ? (wear ? 'worn' : 'bag') : (loot.other === 'container' ? 'basket' : 'bag');
+    const moved = { ...it, uid: `u${loot.uid++}`, count, group, hand: undefined };
+    it.count -= count;
+    if (it.count <= 0 || it.group === 'worn') loot.sides[from] = loot.sides[from].filter((i) => i !== it);
+    loot.sides[to].push(moved);
+    loot.pending = false; loot.status = null;
+    sendLoot();
+  }, 900);
+}
+
 // ---- the action menu (ContextMenuPanel): a right click on the world ----
 const ctx = { target: 'object', open: false, at: null, id: 0 };
 const E = (key, extra) => ({ label: tr(key).replace(/\s*▸$/, ''), enabled: true, hint: null, danger: false, ...(extra || {}) });
@@ -525,7 +594,7 @@ function sendHud() {
 }
 
 function showDialog(id) {
-  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); }
+  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); }
   if (shownDialog && !isGame(shownDialog) && ready) post({ t: 'hide', screen: isTitle(shownDialog) ? 'title' : isCreator(shownDialog) ? 'creator' : SCREEN_OF[shownDialog] || shownDialog });
   if (isGame(id)) {
     shownDialog = id;
@@ -540,8 +609,10 @@ function showDialog(id) {
     side.journal = id === 'gameJournal';
     if (side.health) game.selected = 13; // the most hurt one shows every kind of row
     ctx.open = id === 'gameContext';
+    loot.open = ['gameLoot', 'gameGift', 'gameBasket'].includes(id);
+    if (loot.open) { loot.mode = id === 'gameGift' ? 'gift' : 'exchange'; loot.other = id === 'gameBasket' ? 'container' : 'person'; lootReset(); }
     if (ctx.open) ctx.at = { x: 0.52, y: 0.42 };
-    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); }
+    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); }
     return;
   }
   if (!isTitle(id)) clearInterval(title.timer);
@@ -629,6 +700,35 @@ function handle(message) {
       if (it && a.kind === 'drop') { it.count -= a.count || 1; if (it.count <= 0) inv.items = inv.items.filter((x) => x !== it); }
     }
     sendInventory();
+    return;
+  }
+  if (message.screen === 'loot') {
+    const a = message.args || {};
+    if (message.cmd === 'close') { note(key, '→ закрыть окно'); loot.open = false; sendLoot(); return; }
+    if (message.cmd === 'move') {
+      const toRight = a.to === 'right';
+      note(key, `${args} → TransferInventoryCommand: ${toRight ? (loot.mode === 'gift' ? 'подарить' : 'отдать') : 'забрать'} ×${a.count}`);
+      lootMove(a.uid, a.to, a.count, false);
+      return;
+    }
+    if (message.cmd === 'quick') {
+      const mine = loot.sides.left.find((i) => i.uid === a.uid);
+      const theirs = loot.sides.right.find((i) => i.uid === a.uid);
+      if (!mine && loot.mode === 'gift') {
+        note(key, `${args} → отказ: подарок в одну сторону`);
+        loot.status = { key: 'gift.take_forbidden', tone: 'error' }; sendLoot(); return;
+      }
+      if (theirs) { note(key, `${args} → забрать (одежду — сразу надеть)`); lootMove(a.uid, 'left', theirs.count, isClothing(theirs.def)); return; }
+      if (mine && isClothing(mine.def)) {
+        note(key, `${args} → ${mine.group === 'worn' ? 'снять' : 'надеть'}`);
+        loot.pending = true; loot.status = { key: mine.group === 'worn' ? 'loot.removing' : 'loot.equipping', tone: 'busy' }; sendLoot();
+        setTimeout(() => { mine.group = mine.group === 'worn' ? 'bag' : 'worn'; loot.pending = false; loot.status = null; sendLoot(); }, 700);
+        return;
+      }
+      note(key, `${args} → нет быстрого действия`);
+      loot.status = { key: 'loot.no_quick_action', tone: 'hint' }; sendLoot();
+      return;
+    }
     return;
   }
   if (message.screen === 'contextMenu') {

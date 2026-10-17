@@ -30746,6 +30746,22 @@ MonoBehaviour:
       - 'тяжело'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'inv.hand_left.short'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'L'
+      - 'Л'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.hand_right.short'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'R'
+      - 'П'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

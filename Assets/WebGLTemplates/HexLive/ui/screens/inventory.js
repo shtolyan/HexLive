@@ -22,17 +22,8 @@
 // craftCancel { recipe } (drop what is queued; the item in the making is finished).
 import { html, useState, useRef } from '../html.js';
 import { t } from '../i18n.js';
-import { asset } from '../bridge.js';
 import { icons } from '../icons.js';
-import { Button, Hole } from '../components.js';
-
-// An item picture: the icon Unity sent, else its emoji while the icon is on its way.
-function Pic({ of, fallback }) {
-  const src = asset(of.icon);
-  if (src) return html`<img src=${src} alt="" />`;
-  if (of.emoji) return html`<span class="hx-pic-emoji" aria-hidden="true">${of.emoji}</span>`;
-  return fallback ?? null;
-}
+import { Button, Hole, Pic, Quantity } from '../components.js';
 
 function Slot({ item, selected, onSelect, onQuick, onDragItem }) {
   if (!item) return html`<li class="hx-slot hx-slot--empty" aria-hidden="true"></li>`;
@@ -72,26 +63,11 @@ function Detail({ item, model, send, onBack, onDrop }) {
     </section>`;
 }
 
+// «Выбросить» for a stack: how many.
 function DropQuantity({ item, send, onClose }) {
-  const [count, setCount] = useState(1);
-  const clamp = (v) => Math.max(1, Math.min(item.count, v));
-  return html`
-    <div class="hx-backdrop hx-surface" onPointerDown=${(e) => e.target === e.currentTarget && onClose()}>
-      <section class="hx-window hx-window--medium" role="dialog" aria-modal="true">
-        <h2 class="hx-title hx-title--left">${t('inv.drop_quantity_title', { 0: item.name })}</h2>
-        <div class="hx-qty">
-          <button type="button" class="hx-pips__step" onClick=${() => setCount(clamp(count - 1))}>−</button>
-          <input type="range" min="1" max=${item.count} value=${count} style=${{ '--fill': `${((count - 1) / Math.max(1, item.count - 1)) * 100}%` }}
-            onInput=${(e) => setCount(Number(e.currentTarget.value))} />
-          <button type="button" class="hx-pips__step" onClick=${() => setCount(clamp(count + 1))}>+</button>
-          <b>${count}</b>
-        </div>
-        <div class="hx-actions">
-          <${Button} onClick=${onClose}>${t('loot.quantity_cancel')}<//>
-          <${Button} variant="danger" onClick=${() => { send('action', { uid: item.uid, kind: 'drop', count }); onClose(); }}>${t('inv.drop_quantity_confirm')}<//>
-        </div>
-      </section>
-    </div>`;
+  return html`<${Quantity} title=${t('inv.drop_quantity_title', { 0: item.name })} max=${item.count}
+    confirm=${t('inv.drop_quantity_confirm')} danger onClose=${onClose}
+    onConfirm=${(count) => { send('action', { uid: item.uid, kind: 'drop', count }); onClose(); }} />`;
 }
 
 function Craft({ model, send }) {

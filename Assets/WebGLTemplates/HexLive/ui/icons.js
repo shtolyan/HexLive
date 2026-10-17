@@ -30,3 +30,24 @@ export const icons = {
   run: () => svg(html`<circle cx="12.5" cy="3.6" r="1.6" fill="currentColor" /><path d="M11.5 6.8L8.5 10l3 2.5-1.5 4.5M8.5 10L5 9.5M11.5 6.8l2.5 3 3 .5M11.5 12.5l-4 2" ...${stroke} stroke-width="1.7" />`),
   signal: () => svg(html`<circle cx="10" cy="10" r="4" fill="currentColor" />`, 'hx-icon hx-icon--dot'),
 };
+
+// §174.7: the need glyphs of the character card — VectorIcon.cs (Hunger,
+// Thirst, Energy, Comfort, Social, Thermal, Health, HeartFill, Think) drawn
+// on its own 24-unit grid, path for path.
+const svg24 = (body) => html`<svg class="hx-icon" viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`;
+const line = { stroke: 'currentColor', 'stroke-width': 1.9, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', fill: 'none' };
+const heart = 'M12 20C4.5 14.8 4 10.5 7 8.5 9.2 7.1 11.2 8 12 9.6 12.8 8 14.8 7.1 17 8.5 20 10.5 19.5 14.8 12 20Z';
+const drop = 'M12 3.5C14 7 18.5 11 18.5 15 18.5 18.6 15.6 20.5 12 20.5 8.4 20.5 5.5 18.6 5.5 15 5.5 11 10 7 12 3.5Z';
+const bolt = 'M13 2L4 14h7l-1 8 10-13h-7Z';
+export const needIcons = {
+  hunger: () => svg24(html`<circle cx="12" cy="13.5" r="6.2" ...${line} /><path d="M12 7.6l1-3.4" ...${line} />`),
+  thirst: () => svg24(html`<path d=${drop} ...${line} />`),
+  energy: () => svg24(html`<path d=${bolt} ...${line} />`),
+  comfort: () => svg24(html`<path d="M6 12V8.5h12V12M4.5 12v4.5h15V12M6 16.5v2M18 16.5v2" ...${line} />`),
+  social: () => svg24(html`<circle cx="9" cy="8" r="3" ...${line} /><circle cx="16.5" cy="9.5" r="2.4" ...${line} />
+    <path d="M4 19c0-3.3 2.3-5 5-5s5 1.7 5 5M14.8 18.4c.2-2.5 1.7-3.6 3.4-3.6S21 16 21 18.4" ...${line} />`),
+  thermal: () => svg24(html`<path d="M9.7 13.6V6c0-2 3.6-2 3.6 0v7.6" ...${line} /><circle cx="11.5" cy="16.6" r="3.2" fill="currentColor" />`),
+  health: () => svg24(html`<path d=${heart} ...${line} />`),
+  heartFill: () => svg24(html`<path d=${heart} fill="currentColor" />`),
+  think: () => svg24(html`<path d="M7.5 7h9c2.3 0 2.3 6.5 0 6.5h-5L8 16.5l.6-3H7.5c-2.3 0-2.3-6.5 0-6.5Z" ...${line} />`),
+};

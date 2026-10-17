@@ -927,7 +927,9 @@
 .hx-sheet { display: flex; flex-direction: column; gap: 0.625rem; }
 .hx-needs { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: 0.5rem 0.875rem; margin: 0; padding: 0; list-style: none; }
 .hx-needs li { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0.25rem 0.5rem; font-size: 0.75rem; }
-.hx-needs__label { color: var(--hx-text-dim); }
+.hx-needs__label { display: flex; align-items: center; gap: 0.375rem; min-width: 0; color: var(--hx-text-dim); }
+.hx-needs__icon { flex: none; display: grid; place-items: center; width: 1.125rem; height: 1.125rem; }
+.hx-needs__icon svg { width: 100%; height: 100%; }
 .hx-needs__deficit { color: rgb(242 112 104); font-weight: 700; font-size: 0.6875rem; }
 .hx-bar { grid-column: 1 / -1; position: relative; height: 0.4375rem; border-radius: 999px; background: var(--hx-raised); overflow: hidden; }
 .hx-bar i { position: absolute; top: 0; bottom: 0; left: 0; border-radius: inherit; }
@@ -1021,7 +1023,18 @@
   cursor: grab;
 }
 .hx-slot button:hover { border-color: var(--hx-stroke-strong); background: rgb(255 255 255 / 0.07); }
-.hx-slot button img { max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: none; }
+/* The picture is boxed explicitly: `max-height: 100%` of a content-sized grid
+   row does not constrain it in every browser, and a 128 px game icon then
+   spilled out of its square (WebGL build, 18.10.2026). */
+.hx-slot button img, .hx-slot button .hx-pic-emoji {
+  position: absolute;
+  inset: 0.375rem;
+  width: calc(100% - 0.75rem);
+  height: calc(100% - 0.75rem);
+  object-fit: contain;
+  pointer-events: none;
+}
+.hx-slot button .hx-pic-emoji { display: grid; place-items: center; font-size: 1.75rem; }
 .hx-slot.is-selected button { border-color: var(--hx-gold); background: rgb(240 180 92 / 0.1); }
 .hx-slot.is-overflow button { border-color: rgb(240 150 70); }
 .hx-slot--empty { border: 1px dashed rgb(255 255 255 / 0.08); border-radius: 0.625rem; }
@@ -1425,7 +1438,8 @@
 .hx-build__card:hover { background: var(--hx-hover); border-color: var(--hx-stroke-strong); }
 .hx-build__card.is-active { border-color: var(--hx-gold); box-shadow: inset 0 0 0 1px var(--hx-gold); }
 .hx-build__thumb { flex: 1; min-height: 3rem; display: grid; place-items: center; border-radius: 0.5rem; background: rgb(0 0 0 / 0.22); }
-.hx-build__thumb img { max-width: 80%; max-height: 3.75rem; object-fit: contain; }
+.hx-build__thumb { position: relative; }
+.hx-build__thumb img { position: absolute; inset: 0.375rem; width: calc(100% - 0.75rem); height: calc(100% - 0.75rem); object-fit: contain; }
 .hx-build__glyph { font-size: 2rem; line-height: 1; color: var(--hx-text-dim); }
 .hx-build__card.is-active .hx-build__glyph { color: var(--hx-gold); }
 .hx-build__card b { font-size: 0.75rem; line-height: 1.2; }

@@ -659,6 +659,15 @@ namespace HexLive.UnityPresentation.UI
         // could stick the flag on and block world-picking.
         private void UpdatePointerOverUi()
         {
+            if (_html)
+            {
+                // §174.7: the UI Toolkit card and roster are hidden but still laid
+                // out — their geometry would swallow world clicks under them. The
+                // page's own surfaces block the world through HtmlUi instead.
+                NpcSelection.PointerOverUi = _inventoryOpen || BlocksWorldPointer;
+                return;
+            }
+
             var mouse = Mouse.current;
             var panelHeight = _root != null ? _root.layout.height : 0f;
             if (mouse == null || panelHeight < 1f)
@@ -825,6 +834,8 @@ namespace HexLive.UnityPresentation.UI
             NpcSelection.BottomUiCoverage = rootHeight > 1f
                 ? Mathf.Clamp01(_stage.layout.height * eased / rootHeight)
                 : 0f;
+            // §174.7: on the web the HTML card is what covers the bottom; the page measures it.
+            if (_html) NpcSelection.BottomUiCoverage = _collapsed ? 0f : _htmlCoverage;
         }
 
         // ── refresh ───────────────────────────────────────────────────────

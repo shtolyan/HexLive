@@ -33,6 +33,7 @@ namespace HexLive.UnityPresentation.UI
         private bool _portraitOnScreen;
         private float _nextHtmlAt;
         private bool _htmlDirty;
+        private float _htmlCoverage;
 
         private void UpdateHtml()
         {
@@ -393,6 +394,10 @@ namespace HexLive.UnityPresentation.UI
                 case "expand": _collapsed = false; return;
                 case "groupMode": ToggleGroupManual(); return;
                 case "groupStop": StopGroup(); return;
+                case "coverage":
+                    // How much of the screen height the card covers from the bottom (0–1).
+                    _htmlCoverage = Mathf.Clamp01((float?)args["value"] ?? 0f);
+                    return;
                 case "portraitRect":
                     var vw = (float?)args["vw"] ?? 0; var vh = (float?)args["vh"] ?? 0;
                     var w = (float?)args["w"] ?? 0; var h = (float?)args["h"] ?? 0;

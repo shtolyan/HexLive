@@ -22,7 +22,7 @@ import { t } from '../i18n.js';
 import { asset } from '../bridge.js';
 import { Pips, Ring } from '../components.js';
 import { Face } from './roster.js';
-import { icons } from '../icons.js';
+import { icons, needIcons } from '../icons.js';
 
 const MODE_ICON = { ai: icons.ai, manual: icons.hand, call: icons.phone };
 
@@ -51,6 +51,32 @@ function Pills({ npc }) {
             </li>`)}
         </ul>`}
     </div>`;
+}
+
+// The orbit camera keeps the followed colonist above the card
+// (NpcSelection.BottomUiCoverage): tell C# how much of the height it covers.
+function useCoverage(ref, send) {
+  useEffect(() => {
+    const ui = document.getElementById('hex-ui');
+    const report = () => {
+      if (!ref.current || !ui) return;
+      const r = ref.current.getBoundingClientRect();
+      const s = ui.getBoundingClientRect();
+      send('coverage', { value: Math.max(0, Math.min(1, (s.bottom - r.top) / Math.max(1, s.height))) });
+    };
+    const observer = new ResizeObserver(report);
+    observer.observe(ref.current);
+    observer.observe(ui);
+    report();
+    const settle = setTimeout(report, 250); // after the rise-in transform
+    return () => { observer.disconnect(); clearTimeout(settle); send('coverage', { value: 0 }); };
+  }, []);
+}
+
+function CardBox({ className, send, children }) {
+  const ref = useRef(null);
+  useCoverage(ref, send);
+  return html`<div class=${className} ref=${ref}>${children}</div>`;
 }
 
 function Identity({ npc, send }) {
@@ -109,6 +135,21 @@ function Identity({ npc, send }) {
     </section>`;
 }
 
+// CharacterPanel.Needs: each need keeps the glyph and colour of the UI Toolkit card.
+const NEED_LOOK = {
+  hunger: ['hunger', 'rgb(232 145 60)'], thirst: ['thirst', 'rgb(71 182 230)'], energy: ['energy', 'rgb(95 196 106)'],
+  comfort: ['comfort', 'rgb(125 148 234)'], social: ['social', 'rgb(181 139 226)'], stamina: ['energy', 'rgb(95 196 106)'],
+  blood: ['health', 'rgb(232 86 112)'], hygiene: ['thirst', 'rgb(71 182 230)'], stress: ['think', 'rgb(181 139 226)'],
+  compassion: ['heartFill', 'rgb(236 115 150)'], breath: ['energy', 'rgb(71 182 230)'],
+};
+
+function NeedIcon({ need }) {
+  const look = need.thermal != null
+    ? ['thermal', need.thermal < -0.05 ? 'rgb(71 182 230)' : need.thermal > 0.05 ? 'rgb(232 116 107)' : 'rgb(154 166 173)']
+    : NEED_LOOK[need.id];
+  return look ? html`<i class="hx-needs__icon" style=${{ color: look[1] }}>${needIcons[look[0]]()}</i>` : null;
+}
+
 function Needs({ npc }) {
   const [tab, setTab] = useState('needs');
   return html`
@@ -121,7 +162,7 @@ function Needs({ npc }) {
         <ul class="hx-needs">
           ${npc.needs.map((n) => html`
             <li key=${n.id} title=${n.thermal != null ? undefined : `${Math.round(n.value * 100)}%`}>
-              <span class="hx-needs__label">${t(`need.${n.id}`)}</span>
+              <span class="hx-needs__label"><${NeedIcon} need=${n} />${t(`need.${n.id}`)}</span>
               ${n.thermal != null
                 ? html`<span class="hx-bar hx-bar--bipolar"><i style=${{ left: `${50 + Math.min(0, n.thermal) * 50}%`, width: `${Math.abs(n.thermal) * 50}%`,
                     background: n.thermal < 0 ? 'rgb(71 182 230)' : 'rgb(232 116 107)' }}></i></span>`
@@ -172,7 +213,7 @@ function Relations({ npc }) {
 
 function Group({ group, send }) {
   return html`
-    <div class="hx-card hx-card--group hx-surface">
+    <${CardBox} className="hx-card hx-card--group hx-surface" send=${send}>
       <div class="hx-group__sum">
         <b>${t('group.selected', { 0: group.count })}</b>
         <span class="hx-muted">${t('group.manual_summary', { 0: group.manual, 1: group.total })}</span>
@@ -187,7 +228,7 @@ function Group({ group, send }) {
         <button type="button" class="hx-btn hx-btn--danger" onClick=${() => send('groupStop')}>${t('group.stop')}</button>
         <span class="hx-muted">${group.feedback || t('group.order_hint')}</span>
       </div>
-    </div>`;
+    <//>`;
 }
 
 export function Character({ model, send }) {
@@ -200,11 +241,11 @@ export function Character({ model, send }) {
   return html`
     <div class="hx-bottom">
       <${Pills} npc=${npc} />
-      <div class="hx-card hx-surface">
+      <${CardBox} className="hx-card hx-surface" send=${send}>
         <${Identity} npc=${npc} send=${send} />
         <${Needs} npc=${npc} />
         <${Relations} key=${npc.id} npc=${npc} />
         <button type="button" class="hx-card__collapse" aria-label=${t('panel.close')} title=${t('panel.close')} onClick=${() => send('collapse')}>▼</button>
-      </div>
+      <//>
     </div>`;
 }

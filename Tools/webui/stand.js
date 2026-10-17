@@ -905,6 +905,7 @@ function handle(message) {
   if (message.screen === 'roster' || message.screen === 'character') {
     const a = message.args || {};
     if (message.cmd === 'portraitRect') { game.portraitRect = a; drawWorld(); return; }
+    if (message.cmd === 'coverage') return; // C#: keeps the followed colonist above the card
     note(key, `${args} → ${{
       select: 'выбрать колонистку (Shift — добавить к выбору)', selectClan: 'выбрать весь лагерь',
       control: 'сменить управление: ИИ / вручную / звонок', pace: 'темп приказов по умолчанию', stop: 'отменить текущий приказ',

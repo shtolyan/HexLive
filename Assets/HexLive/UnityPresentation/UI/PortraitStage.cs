@@ -126,9 +126,12 @@ namespace HexLive.UnityPresentation.UI
         /// screen (normalized, bottom-left). <see cref="ShowInTexture"/> returns
         /// it to the RenderTexture the UI Toolkit card shows.
         /// </summary>
+        private bool _onScreen;
+
         public void ShowOnScreen(Rect viewport)
         {
             if (_camera == null) return;
+            _onScreen = true;
             _camera.targetTexture = null;
             _camera.rect = viewport;
             _camera.depth = 40;
@@ -138,6 +141,7 @@ namespace HexLive.UnityPresentation.UI
         public void ShowInTexture()
         {
             if (_camera == null || _camera.targetTexture == _texture) return;
+            _onScreen = false;
             _camera.rect = new Rect(0, 0, 1, 1);
             _camera.targetTexture = _texture;
             _camera.ResetAspect();
@@ -194,7 +198,10 @@ namespace HexLive.UnityPresentation.UI
             // §168.11 / #434: камера портрета снимает только слой Portrait, но
             // в браузере (один поток) живой портрет всё равно не чаще 30 Гц;
             // между проходами текстура держит прошлый кадр.
-            if (Time.unscaledTime < _nextWebRenderAt)
+            // On the screen there is no texture to hold the last frame: the
+            // world camera repaints that rectangle every frame, so a skipped
+            // portrait pass shows as flicker (§174.7). Throttle only the texture.
+            if (!_onScreen && Time.unscaledTime < _nextWebRenderAt)
             {
                 _camera.enabled = false;
                 return;

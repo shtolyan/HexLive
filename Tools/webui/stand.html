@@ -111,6 +111,7 @@
         <button type="button" id="dialog-gameInventory" data-dialog="gameInventory" aria-pressed="false">Игра: рюкзак</button>
         <button type="button" id="dialog-gameHealth" data-dialog="gameHealth" aria-pressed="false">Игра: здоровье</button>
         <button type="button" id="dialog-gameJournal" data-dialog="gameJournal" aria-pressed="false">Игра: дневник</button>
+        <button type="button" id="dialog-gameContext" data-dialog="gameContext" aria-pressed="false">Игра: меню действий</button>
         <button type="button" id="dialog-gameMenu" data-dialog="gameMenu" aria-pressed="false">Игровое меню</button>
         <button type="button" id="dialog-connectionLost" data-dialog="connectionLost" aria-pressed="false">Связь потеряна</button>
         <button type="button" id="dialog-protocolUpdate" data-dialog="protocolUpdate" aria-pressed="false">Нужно обновление</button>
@@ -122,6 +123,13 @@
       <div class="seg" role="group" aria-label="Погода">
         <button type="button" id="weather-clear" data-weather="clear" aria-pressed="true">Ясно</button>
         <button type="button" id="weather-rain" data-weather="rain" aria-pressed="false">Дождь</button>
+      </div>
+    </div>
+    <div class="field">ПКМ по миру
+      <div class="seg" role="group" aria-label="Что под курсором">
+        <button type="button" data-target="object" aria-pressed="true">Костёр</button>
+        <button type="button" data-target="person" aria-pressed="false">Другая</button>
+        <button type="button" data-target="self" aria-pressed="false">Она сама</button>
       </div>
     </div>
     <div class="field">Связь
@@ -152,6 +160,7 @@
           <li><b>Игра: здоровье</b> (или кольцо здоровья на карточке). Слева кукла, раскрашенная по зонам (её рисует Unity; на стенде — цветные пятна), под ней шкала «цела → тяжело» и цвет ампутации. Куклу можно крутить мышью.</li>
           <li>Справа семь зон: процент и полоска; красная штриховка в конце полоски — тяжёлая травма. Под полоской — кровотечение, перевязка, шина, число ран, защита одежды 🛡 и справа порезы/ушибы. Ампутированная зона тёмная; протез — со своей прочностью и тем, на сколько работает.</li>
           <li><b>Игра: дневник</b> (или кнопка «Дневник»). Лист бумаги от руки — нарочно не похож на остальные окна. Новые записи сверху, непрочитанные отмечены точкой на полях и числом в шапке; тревожные — темнее и жирнее. У Джолли дневник пуст.</li>
+          <li><b>Игра: меню действий</b> — или правый клик по миру в любом игровом окне; что под курсором, выбирает «ПКМ по миру». Меню встаёт у клика и не вылезает за край; серые пункты видны вместе с причиной («нет инструмента»), красные — опасные. «Указание ▸» и «Помочь…» раскрывают список справа (у правого края — слева). Клавиатура: ↑↓, →/←, Enter, Esc. Клик мимо только закрывает меню.</li>
           <li><b>Игра: рюкзак</b>: сетка, кукла, одежда и крафт с очередью — уже согласован и подключён.</li>
         </ul>
       </section>

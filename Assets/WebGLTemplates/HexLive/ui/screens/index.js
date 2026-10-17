@@ -12,6 +12,7 @@ import { Character } from './character.js';
 import { Inventory } from './inventory.js';
 import { Health } from './health.js';
 import { Journal } from './journal.js';
+import { ContextMenu } from './contextMenu.js';
 
 export const SCREENS = {
   title: Title,
@@ -22,6 +23,7 @@ export const SCREENS = {
   inventory: Inventory,
   health: Health,
   journal: Journal,
+  contextMenu: ContextMenu,
   gameMenu: GameMenu,
   connectionLost: ConnectionLost,
   protocolUpdate: ProtocolUpdate,

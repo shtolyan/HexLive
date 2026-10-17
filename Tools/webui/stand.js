@@ -229,6 +229,48 @@ function sendSide() {
   else { post({ t: 'hide', screen: 'journal' }); side.journal = false; }
 }
 
+// ---- the action menu (ContextMenuPanel): a right click on the world ----
+const ctx = { target: 'object', open: false, at: null };
+const E = (key, extra) => ({ label: tr(key).replace(/\s*▸$/, ''), enabled: true, hint: null, danger: false, ...(extra || {}) });
+const OFF = (key, hintKey, extra) => E(key, { enabled: false, hint: tr(hintKey), ...(extra || {}) });
+function contextModel() {
+  const other = COLONY.find((x) => x.id === 15);
+  const me = COLONY.find((x) => x.id === game.selected) || COLONY[0];
+  const menus = {
+    object: { title: state.lang === 'ru' ? 'Костёр' : 'Campfire', entries: [
+      E('interaction.Fuel.verb'),
+      OFF('menu.cook_meat', 'menu.cook_meat.no_meat'),
+      E('interaction.take.from.spit.verb'),
+      OFF('interaction.Harvest.verb', 'menu.missing_tool'),
+      E('menu.steal', { danger: true }),
+      E('interaction.Observe.verb'),
+    ] },
+    person: { title: other.name, entries: [
+      E('menu.talk_to'),
+      E('menu.gift_person'),
+      E('menu.aid', { children: ['menu.aid.feed', 'menu.aid.hydrate', 'menu.aid.treat', 'menu.aid.console'].map((k) => E(k))
+        .concat([OFF('menu.aid.medicate', 'menu.needs_two_hands')]) }),
+      E('menu.directive', { children: ['menu.directive.firewood', 'menu.directive.stock_water', 'menu.directive.stock_food', 'menu.directive.build'].map((k) => E(k)) }),
+      OFF('menu.camp_merge.invite', 'menu.camp_merge.need_relation'),
+      E('menu.attack', { danger: true }),
+      E('menu.dark.prey', { danger: true }),
+      E('menu.select'),
+    ] },
+    self: { title: me.name, entries: [
+      ...['menu.self.call_help', 'menu.self.treat', 'menu.self.sit', 'menu.self.sleep', 'menu.self.bathe', 'menu.self.wash',
+        'menu.self.eat', 'menu.self.drink', 'menu.self.go_home'].map((k) => E(k)),
+      E('menu.shout', { children: ['menu.shout.firewood', 'menu.shout.stock_water', 'menu.shout.stock_food', 'menu.shout.build'].map((k) => E(k)) }),
+      E('menu.stop'),
+    ] },
+  };
+  return { at: ctx.at, ...menus[ctx.target] };
+}
+function sendContext() {
+  if (!ready) return;
+  if (ctx.open && isGame(state.dialog)) post({ t: 'show', screen: 'contextMenu', model: contextModel() });
+  else { ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); }
+}
+
 function sendFaces() {
   for (const def of ICONS) post({ t: 'asset', key: `icon:${def}`, url: `assets/icons/${def}.png` });
   for (const c of [...COLONY, ...OUTSIDERS]) post({ t: 'asset', key: `face:${c.id}`, url: thumb(c.skin, c.id % 2 ? 'LeonyPonytail' : 'Bob3Hair', 'tint.chestnut') });
@@ -483,7 +525,7 @@ function sendHud() {
 }
 
 function showDialog(id) {
-  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); }
+  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); }
   if (shownDialog && !isGame(shownDialog) && ready) post({ t: 'hide', screen: isTitle(shownDialog) ? 'title' : isCreator(shownDialog) ? 'creator' : SCREEN_OF[shownDialog] || shownDialog });
   if (isGame(id)) {
     shownDialog = id;
@@ -497,7 +539,9 @@ function showDialog(id) {
     side.health = id === 'gameHealth';
     side.journal = id === 'gameJournal';
     if (side.health) game.selected = 13; // the most hurt one shows every kind of row
-    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); }
+    ctx.open = id === 'gameContext';
+    if (ctx.open) ctx.at = { x: 0.52, y: 0.42 };
+    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); }
     return;
   }
   if (!isTitle(id)) clearInterval(title.timer);
@@ -585,6 +629,17 @@ function handle(message) {
       if (it && a.kind === 'drop') { it.count -= a.count || 1; if (it.count <= 0) inv.items = inv.items.filter((x) => x !== it); }
     }
     sendInventory();
+    return;
+  }
+  if (message.screen === 'contextMenu') {
+    if (message.cmd === 'pick') {
+      const m = contextModel();
+      const [i, j] = message.args.path;
+      const e = j == null ? m.entries[i] : m.entries[i].children[j];
+      note(key, `${args} → «${j == null ? '' : `${m.entries[i].label} › `}${e.label}»: приказ колонистке`);
+    } else note(key, '→ закрыть меню, клик дальше в мир не идёт');
+    ctx.open = false;
+    sendContext();
     return;
   }
   if (message.screen === 'health' || message.screen === 'journal') {
@@ -884,6 +939,15 @@ bindSegment('platform', (platform) => { state.platform = platform; state.updateF
 bindSegment('size', (size) => { state.size = size.split('x').map(Number); drawWorld(); layout(); });
 bindSegment('weather', (weather) => { state.hud.raining = weather === 'rain'; sendHud(); });
 bindSegment('link', (link) => { state.hud.link = link; sendHud(); });
+bindSegment('target', (target) => { ctx.target = target; if (ctx.open) sendContext(); });
+$('world').addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  if (!isGame(state.dialog)) return;
+  const r = $('world').getBoundingClientRect();
+  ctx.at = { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
+  ctx.open = true;
+  sendContext();
+});
 for (const button of document.querySelectorAll('[data-dialog]')) {
   button.addEventListener('click', () => { state.updateFailed = false; showDialog(button.dataset.dialog); });
 }

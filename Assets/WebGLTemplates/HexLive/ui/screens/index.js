@@ -15,6 +15,7 @@ import { Journal } from './journal.js';
 import { ContextMenu } from './contextMenu.js';
 import { Loot } from './loot.js';
 import { Build } from './build.js';
+import { BugReport, BugManager } from './bugs.js';
 
 export const SCREENS = {
   title: Title,
@@ -28,6 +29,8 @@ export const SCREENS = {
   contextMenu: ContextMenu,
   loot: Loot,
   build: Build,
+  bugReport: BugReport,
+  bugManager: BugManager,
   blueprint: Build, // the house constructor: the same tray with an editor header
   gameMenu: GameMenu,
   connectionLost: ConnectionLost,

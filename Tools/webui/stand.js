@@ -396,6 +396,56 @@ function sendBlueprint() {
   }
 }
 
+// ---- the bug tracker (BugReportPanel → Flashback): quick form + manager ----
+const BUGS = {
+  quick: false, manager: false, tab: 'open', filter: null, card: null, nextId: 489,
+  reports: [
+    { id: 488, status: 'created', text: 'Первый клик по колонистке в мире не выделяет её, второй не включает слежение.', created: '18.10 14:02',
+      context: 'seed=30430 tick=1840221 npc=16', comments: [], commits: [], agent: null, build: null },
+    { id: 487, status: 'in_progress', text: 'Лицо в карточке персонажа мигает, пока окно открыто.', created: '18.10 13:58',
+      context: 'seed=30430 tick=1839904 npc=13', agent: 'claude', comments: [{ author: 'claude', text: 'Взяла в работу: портрет пропускает кадры на экране.' }], commits: [], build: null },
+    { id: 485, status: 'ready_for_test', text: 'Иконки в рюкзаке больше ячеек и вылезают за край.', created: '18.10 13:51',
+      context: 'seed=30430 tick=1839517 npc=16', agent: 'claude', ready: '0.9.412', comments: [{ author: 'claude', text: 'Картинка ячейки теперь бокс внутри неё. Готово к проверке.' }],
+      commits: ['5ba607f9f'], build: 'not_included' },
+    { id: 479, status: 'rework', text: 'Сушилка не принимает мокрую одежду, если на ней уже висит одна вещь.', created: '16.10 21:14',
+      context: 'seed=30430 tick=1712203 npc=11', agent: 'codex', comments: [{ author: 'codex', text: 'Исправил выбор вешалки.' }, { author: 'user', text: 'Всё ещё не вешает вторую вещь, проверила на юбке.' }],
+      commits: ['a1f3c09d2'], build: 'included' },
+    { id: 471, status: 'fixed', text: 'Крафт верёвки не идёт, если листья в соседнем мешке.', created: '15.10 10:40',
+      context: 'seed=30430 tick=1611010', agent: 'claude', comments: [{ author: 'claude', text: 'Ингредиенты считаются из всех контейнеров.' }], commits: ['77c0e2b1a'], build: 'included' },
+    { id: 452, status: 'fixed', archived: true, text: 'Волк проходит сквозь закрытую дверь хижины.', created: '13.10 18:22',
+      context: 'seed=30430 tick=1488732', agent: 'codex', comments: [], commits: ['0be41f9aa'], build: 'included' },
+  ],
+};
+const bugTab = (r) => (r.archived ? 'archive' : r.status === 'fixed' ? 'fixed' : 'open');
+function bugManagerModel() {
+  const list = BUGS.reports.filter((r) => bugTab(r) === BUGS.tab && (!BUGS.filter || r.status === BUGS.filter));
+  const card = BUGS.reports.find((r) => r.id === BUGS.card);
+  const counts = { open: 0, fixed: 0, archive: 0 };
+  for (const r of BUGS.reports) counts[bugTab(r)] += 1;
+  return {
+    tab: BUGS.tab, filter: BUGS.filter, counts,
+    reports: list.map((r) => ({ id: r.id, status: r.status, archived: !!r.archived, title: r.text, created: r.created, comments: r.comments.length,
+      build: r.status === 'ready_for_test' || r.status === 'fixed' ? r.build : null })),
+    card: card && {
+      id: card.id, status: card.status, archived: !!card.archived, created: card.created,
+      meta: [card.agent && tr('bugs.assigned_agent', { 0: card.agent }), tr('bugs.reported_version', { 0: '0.9.405' }), card.ready && tr('bugs.ready_version', { 0: card.ready })].filter(Boolean),
+      build: card.status === 'ready_for_test' || card.status === 'fixed' ? card.build : null,
+      text: card.text, context: card.context, commits: card.commits,
+      comments: card.comments.map((c) => ({ author: c.author, text: c.text, editable: c.author === 'user' })),
+      can: { fix: card.status === 'ready_for_test' && !card.archived, rework: card.status === 'ready_for_test' && !card.archived,
+        archive: card.status === 'fixed' && !card.archived, restore: !!card.archived },
+    },
+  };
+}
+function sendBugs() {
+  if (!ready) return;
+  if (BUGS.manager) post({ t: 'show', screen: 'bugManager', model: bugManagerModel() });
+  else post({ t: 'hide', screen: 'bugManager' });
+  // The quick form opens on top of the manager («+ Новый отчёт»): hide and show raises it.
+  post({ t: 'hide', screen: 'bugReport' });
+  if (BUGS.quick) post({ t: 'show', screen: 'bugReport', model: { context: `seed=30430 tick=${1840000 + Math.round(state.hud.minutes)} npc=${game.selected}`, sending: false, error: null } });
+}
+
 // ---- the action menu (ContextMenuPanel): a right click on the world ----
 const ctx = { target: 'object', open: false, at: null, id: 0 };
 const E = (key, extra) => ({ label: tr(key).replace(/\s*▸$/, ''), enabled: true, hint: null, danger: false, ...(extra || {}) });
@@ -693,7 +743,7 @@ function sendHud() {
 }
 
 function showDialog(id) {
-  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); bp.open = false; post({ t: 'hide', screen: 'blueprint' }); }
+  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); bp.open = false; post({ t: 'hide', screen: 'blueprint' }); BUGS.quick = BUGS.manager = false; post({ t: 'hide', screen: 'bugReport' }); post({ t: 'hide', screen: 'bugManager' }); }
   if (shownDialog && !isGame(shownDialog) && ready) post({ t: 'hide', screen: isTitle(shownDialog) ? 'title' : isCreator(shownDialog) ? 'creator' : SCREEN_OF[shownDialog] || shownDialog });
   if (isGame(id)) {
     shownDialog = id;
@@ -708,6 +758,7 @@ function showDialog(id) {
     side.journal = id === 'gameJournal';
     if (side.health) game.selected = 13; // the most hurt one shows every kind of row
     ctx.open = id === 'gameContext';
+    BUGS.quick = id === 'gameBugQuick'; BUGS.manager = id === 'gameBugs'; if (BUGS.manager) { BUGS.tab = 'open'; BUGS.card = 485; }
     bp.open = id === 'gameProject' || id === 'gameFree';
     if (bp.open) { openBlueprint(id === 'gameFree' ? 'free' : 'project'); bp.undo = 3; bp.door = false; bp.active = 'architecture.wall.wood'; bp.category = 'walls'; }
     build.open = id === 'gameBuild';
@@ -715,7 +766,7 @@ function showDialog(id) {
     loot.open = ['gameLoot', 'gameGift', 'gameBasket'].includes(id);
     if (loot.open) { loot.mode = id === 'gameGift' ? 'gift' : 'exchange'; loot.other = id === 'gameBasket' ? 'container' : 'person'; lootReset(); }
     if (ctx.open) ctx.at = { x: 0.52, y: 0.42 };
-    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); if (build.open) sendBuild(); if (bp.open) sendBlueprint(); }
+    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); if (build.open) sendBuild(); if (bp.open) sendBlueprint(); sendBugs(); }
     return;
   }
   if (!isTitle(id)) clearInterval(title.timer);
@@ -804,6 +855,34 @@ function handle(message) {
       if (it && a.kind === 'drop') { it.count -= a.count || 1; if (it.count <= 0) inv.items = inv.items.filter((x) => x !== it); }
     }
     sendInventory();
+    return;
+  }
+  if (message.screen === 'bugReport' || message.screen === 'bugManager') {
+    const a = message.args || {};
+    const r = BUGS.reports.find((x) => x.id === a.id);
+    const say = { submit: 'POST /api/bugs/v1/reports (текст + seed/tick/npc)', manager: 'открыть менеджер', close: 'закрыть окно', new: 'новый отчёт — маленькое окно поверх',
+      tab: 'вкладка', filter: 'фильтр статуса', open: 'открыть карточку', back: 'к списку', editText: 'сохранить новый текст отчёта', comment: 'комментарий',
+      editComment: 'изменить свой комментарий', fixed: 'подтвердить исправление → fixed', rework: 'вернуть в доработку с комментарием', archive: 'архив / восстановить' };
+    note(key, `${message.cmd === 'submit' || message.cmd.startsWith('edit') || message.cmd === 'comment' || message.cmd === 'rework' ? '' : args} → ${say[message.cmd] || '?'}`);
+    switch (message.cmd) {
+      case 'submit':
+        BUGS.reports.unshift({ id: BUGS.nextId, status: 'created', text: a.text, created: '18.10 14:30', context: `seed=30430 tick=1840305 npc=${game.selected}`, comments: [], commits: [], agent: null, build: null });
+        BUGS.card = BUGS.nextId++; BUGS.quick = false; BUGS.manager = true; BUGS.tab = 'open'; BUGS.filter = null; break;
+      case 'manager': BUGS.quick = false; BUGS.manager = true; break;
+      case 'close': if (message.screen === 'bugReport') BUGS.quick = false; else BUGS.manager = false; break;
+      case 'new': BUGS.quick = true; break;
+      case 'tab': BUGS.tab = a.value; BUGS.card = null; break;
+      case 'filter': BUGS.filter = a.status; break;
+      case 'open': BUGS.card = a.id; break;
+      case 'back': BUGS.card = null; break;
+      case 'editText': if (r) r.text = a.text; break;
+      case 'comment': if (r) r.comments.push({ author: 'user', text: a.text }); break;
+      case 'editComment': if (r?.comments[a.index]) r.comments[a.index].text = a.text; break;
+      case 'fixed': if (r) { r.status = 'fixed'; BUGS.card = null; } break;
+      case 'rework': if (r) { r.status = 'rework'; r.comments.push({ author: 'user', text: a.text }); } break;
+      case 'archive': if (r) { r.archived = !!a.value; BUGS.card = null; } break;
+    }
+    sendBugs();
     return;
   }
   if (message.screen === 'blueprint') {

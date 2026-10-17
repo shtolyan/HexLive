@@ -278,7 +278,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 }
                 else if (npc.Mind.CurrentGoal == GoalType.Romance)
                 {
-                    RunRomance(world, npc);
+                    if (IsRomanceInvitation(npc)) RunRomanceInvitation(world, npc);
+                    else RunRomance(world, npc);
                 }
                 // §111: обыск лежащего. Ветка обязана стоять ДО фолбэка на
                 // Talk — по той же причине, по которой её понадобилось заводить

@@ -49,6 +49,17 @@ internal static class RomanceMath
         a != null && b != null && a.Sex != b.Sex &&
         a.Sex != GarmentSex.Any && b.Sex != GarmentSex.Any;
 
+    // An invitation is a conversation, not consent. Relationships, faction,
+    // pairing and cooldown are evaluated only when the listener answers.
+    public static bool CanInvite(WorldState world, NPCState a, NPCState b) =>
+        Spec127.RomanceEnabled && a.Id != b.Id &&
+        a.Health > 0f && b.Health > 0f &&
+        !a.IsUnconscious(world.Tick) && !b.IsUnconscious(world.Tick) &&
+        !a.IsDying && !b.IsDying && !a.IsFighting && !b.IsFighting &&
+        !a.Body.IsProne && !b.Body.IsProne &&
+        a.CarriedByNpcId is null && b.CarriedByNpcId is null &&
+        a.CarriedNpcId is null && b.CarriedNpcId is null;
+
     public static bool CanConsent(WorldState world, NPCState initiator, NPCState partner)
     {
         if (!Ready(world, initiator, partner) ||

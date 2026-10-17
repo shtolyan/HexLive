@@ -11,7 +11,7 @@ public sealed partial class PlanningSystem
 {
     private void BuildRomancePlan(WorldState world, NPCState npc)
     {
-        if (npc.Mind.RomancePartnerNpcId is not { } targetId ||
+        if ((npc.Plan.TargetAgentId ?? npc.Mind.RomancePartnerNpcId) is not { } targetId ||
             !world.Entities.Npcs.TryGetValue(targetId, out var target) ||
             target.CurrentJunction is not { } targetJunction ||
             !TryInstallRomancePlan(world, npc, target, targetJunction,
@@ -42,11 +42,13 @@ public sealed partial class PlanningSystem
         partner.Mind.PendingRomanceFrom = npc.Id;
         partner.Mind.PendingRomanceSinceTick = world.Tick;
         npc.Plan.Steps[npc.Plan.Steps.Count - 1].Interaction =
-            InteractionType.Romance;
+            forced ? InteractionType.Romance : InteractionType.Talk;
+        npc.Plan.RequestedTalkTopic = forced ? null : HexLive.Simulation.Social.TalkTopic.Flirt;
         npc.Plan.Goal = GoalType.Romance;
         npc.Mind.CurrentGoal = GoalType.Romance;
-        npc.Mind.RomancePartnerNpcId = partner.Id;
-        npc.Mind.RomanceLeaderNpcId = npc.Id;
+        // Scene ownership begins after an answer, not while walking over.
+        npc.Mind.RomancePartnerNpcId = forced ? partner.Id : null;
+        npc.Mind.RomanceLeaderNpcId = forced ? npc.Id : null;
         npc.Mind.RomanceForced = forced;
         SocialCueSignals.Stamp(world, npc,
             forced ? "RomanceForcedRequest" : "RomanceRequest", partner.Id);

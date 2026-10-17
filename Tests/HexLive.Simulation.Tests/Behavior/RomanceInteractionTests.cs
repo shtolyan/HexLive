@@ -18,6 +18,212 @@ namespace HexLive.Simulation.Tests.Behavior
 /// <summary>§127.9–12: command boundary, paired scene and authoritative outcomes.</summary>
 public sealed class RomanceInteractionTests
 {
+    private static (WorldState world, NPCState initiator, NPCState listener) InvitationPair(WorldState existing = null)
+    {
+        var world = existing ?? TestWorld.CreateWorld(12709);
+        world.Tick = 10;
+        var initiator = world.Entities.Npcs.Values.First(n => n.Sex == GarmentSex.Male);
+        var listener = world.Entities.Npcs.Values.First(n => n.Sex == GarmentSex.Female);
+        PreparePair(world, initiator, listener, allies: true);
+        initiator.Mind.ManualControl = true;
+        listener.Mind.ManualControl = false;
+        MakeMutualConsent(initiator, listener);
+        return (world, initiator, listener);
+    }
+
+    private static void StartInvitationConversation(WorldState world, NPCState initiator, NPCState listener)
+    {
+        var result = ManualCommandExecutor.Apply(world, new RomancePersonCommand(initiator.Id, listener.Id, false));
+        Assert.That(result.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted), result.Reason);
+        Assert.That(initiator.Mind.RomancePartnerNpcId, Is.Null, "an invitation does not own a paired scene");
+        Assert.That(listener.Mind.PendingRomanceFrom, Is.EqualTo(initiator.Id));
+        ArriveAtPlanTarget(world, initiator);
+        new ExecutionSystem().Run(world);
+        Assert.That(initiator.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Talk));
+        Assert.That(initiator.Execution.EndTick - world.Tick, Is.EqualTo(Spec127.InvitationTalkTicks));
+        Assert.That(initiator.Execution.CurrentTalkTopic, Is.EqualTo(TalkTopic.Flirt));
+        Assert.That(listener.Execution.CurrentTalkTopic, Is.EqualTo(TalkTopic.Flirt));
+        Assert.That(initiator.Mind.RomanceClipKey, Is.Empty);
+    }
+
+    [TestCase(0f, 0f, 0f)]
+    [TestCase(.95f, 0f, .95f)]
+    [TestCase(.95f, .95f, 0f)]
+    [TestCase(-.8f, 0f, 0f)]
+    public void RelationshipsDoNotBlockInvitationAndRefusalIsAConversationOutcome(float affinity, float trust, float familiarity)
+    {
+        var (world, initiator, listener) = InvitationPair();
+        var relationship = listener.Social.GetOrCreate(initiator.Id);
+        relationship.Affinity = affinity; relationship.Trust = trust; relationship.Familiarity = familiarity;
+        StartInvitationConversation(world, initiator, listener);
+        world.Tick = initiator.Execution.EndTick - 1;
+        new ExecutionSystem().Run(world);
+        Assert.That(initiator.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Talk));
+        world.Tick++;
+        new ExecutionSystem().Run(world);
+        Assert.Multiple(() =>
+        {
+            Assert.That(initiator.Plan.Status, Is.EqualTo(PlanStatus.Completed));
+            Assert.That(initiator.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+            Assert.That(listener.Mind.PendingRomanceFrom, Is.Null);
+            Assert.That(initiator.Mind.RomancePartnerNpcId, Is.Null);
+            Assert.That(listener.Mind.RomancePartnerNpcId, Is.Null);
+            Assert.That(initiator.Execution.CurrentTalkTopic, Is.Null);
+            Assert.That(listener.Execution.CurrentTalkTopic, Is.Null);
+            Assert.That(listener.Execution.LastSocialCueKind, Is.EqualTo("RomanceRefused"));
+            Assert.That(world.Events.Items.Any(e => e.Type == "ManualOrderRejected"), Is.False);
+            Assert.That(world.Events.Items.Any(e => e.Type == "RomanceInvitationDeclined"), Is.True);
+            Assert.That(relationship.Affinity, Is.EqualTo(affinity), "a polite refusal is not hostility");
+            Assert.That(listener.Mind.RomanceCooldownUntilTick, Is.Zero);
+        });
+    }
+
+    [Test]
+    public void GoodRelationshipsAnswerOnlyAfterConversationAndPlaceIsNotChosenBeforeAnswer()
+    {
+        var (world, initiator, listener) = InvitationPair();
+        StartInvitationConversation(world, initiator, listener);
+        world.Tick = initiator.Execution.EndTick;
+        new ExecutionSystem().Run(world);
+        Assert.Multiple(() =>
+        {
+            Assert.That(world.Events.Items.Any(e => e.Type == "RomanceInvitationAccepted"), Is.True);
+            Assert.That(initiator.Plan.Steps[^1].Interaction, Is.EqualTo(InteractionType.Romance));
+            Assert.That(initiator.Execution.CurrentInteraction, Is.Null);
+            Assert.That(initiator.Mind.RomanceClipKey, Is.Empty);
+            Assert.That(listener.Execution.LastSocialCueKind, Is.EqualTo("RomanceAccepted"));
+        });
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public void AnswerUsesCurrentRelationshipsRatherThanAdmissionSnapshot(bool initiallyGood)
+    {
+        var (world, initiator, listener) = InvitationPair();
+        listener.Social.GetOrCreate(initiator.Id).Trust = initiallyGood ? .8f : 0f;
+        StartInvitationConversation(world, initiator, listener);
+        listener.Social.GetOrCreate(initiator.Id).Trust = initiallyGood ? 0f : .8f;
+        world.Tick = initiator.Execution.EndTick;
+        new ExecutionSystem().Run(world);
+        Assert.That(world.Events.Items.Any(e => e.Type == "RomanceInvitationAccepted"), Is.EqualTo(!initiallyGood));
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public void StopByEitherParticipantClearsWaitingAndHeartTopics(bool stopInitiator)
+    {
+        var (world, initiator, listener) = InvitationPair();
+        StartInvitationConversation(world, initiator, listener);
+        var stopped = stopInitiator ? initiator : listener;
+        stopped.Mind.ManualControl = true;
+        var result = ManualCommandExecutor.Apply(world, new StopCommand(stopped.Id));
+        Assert.That(result.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted), result.Reason);
+        new ExecutionSystem().Run(world);
+        Assert.That(listener.Mind.PendingRomanceFrom, Is.Null);
+        Assert.That(initiator.Execution.CurrentTalkTopic, Is.Null);
+        Assert.That(listener.Execution.CurrentTalkTopic, Is.Null);
+        Assert.That(world.Events.Items.Any(e => e.Type == "RomanceInvitationAccepted"), Is.False);
+        Assert.That(listener.Mind.RomanceCooldownUntilTick, Is.Zero);
+    }
+
+    [Test]
+    public void InvitationDoesNotStealAnotherListenersClaim()
+    {
+        var (world, initiator, listener) = InvitationPair();
+        var other = world.Entities.Npcs.Values.First(n => n.Id != initiator.Id && n.Id != listener.Id);
+        listener.Mind.PendingRomanceFrom = other.Id;
+        var result = ManualCommandExecutor.Apply(world, new RomancePersonCommand(initiator.Id, listener.Id, false));
+        Assert.That(result.Status, Is.EqualTo(ManualCommandAdmissionStatus.Rejected));
+        Assert.That(result.Reason, Is.EqualTo("TargetUnavailable"));
+        Assert.That(listener.Mind.PendingRomanceFrom, Is.EqualTo(other.Id));
+    }
+
+    [Test]
+    public void RealSchedulerWalksToWaitingListenerThenConversesAndReleasesAfterRefusal()
+    {
+        var engine = TestWorld.CreateEngine(12709);
+        foreach (var npc in engine.World.Entities.Npcs.Values)
+        {
+            npc.Mind.ManualControl = true;
+            npc.Needs.Hunger = npc.Needs.Thirst = 0f;
+            npc.Needs.Energy = 1f;
+        }
+        var (world, initiator, listener) = InvitationPair(engine.World);
+        listener.Social.GetOrCreate(initiator.Id).Trust = 0f;
+        var start = listener.Position;
+        var admitted = ManualCommandExecutor.Apply(world, new RomancePersonCommand(initiator.Id, listener.Id, false));
+        Assert.That(admitted.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted), admitted.Reason);
+        var moved = false;
+        var talked = false;
+        for (var i = 0; i < 600 && !world.Events.Items.Any(e => e.Type == "RomanceInvitationDeclined"); i++)
+        {
+            engine.Step();
+            moved |= initiator.Movement.IsMoving;
+            talked |= initiator.Execution.CurrentInteraction == InteractionType.Talk;
+            Assert.That(listener.Position, Is.EqualTo(start), "listener waits instead of walking away");
+        }
+        Assert.That(moved, Is.True, "actual movement systems must run, not a test teleport");
+        Assert.That(talked, Is.True);
+        Assert.That(world.Events.Items.Any(e => e.Type == "RomanceInvitationDeclined"), Is.True);
+        Assert.That(listener.Mind.PendingRomanceFrom, Is.Null);
+        Assert.That(initiator.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+    }
+
+    [Test]
+    public void CooldownDoesNotBlockConversationButListenerCanDeclineAtItsEnd()
+    {
+        var (world, initiator, listener) = InvitationPair();
+        listener.Mind.RomanceCooldownUntilTick = world.Tick + 5000;
+        StartInvitationConversation(world, initiator, listener);
+        world.Tick = initiator.Execution.EndTick;
+        new ExecutionSystem().Run(world);
+        Assert.That(listener.Execution.LastSocialCueKind, Is.EqualTo("RomanceRefused"));
+        Assert.That(listener.Mind.RomanceCooldownUntilTick, Is.EqualTo(5010));
+    }
+
+    [Test]
+    public void EmergencyDuringConversationCancelsWithoutSceneTakeover()
+    {
+        var (world, initiator, listener) = InvitationPair();
+        StartInvitationConversation(world, initiator, listener);
+        listener.IsFighting = true;
+        new ExecutionSystem().Run(world);
+        Assert.That(listener.Mind.PendingRomanceFrom, Is.Null);
+        Assert.That(listener.Execution.CurrentTalkTopic, Is.Null);
+        Assert.That(initiator.Mind.RomancePartnerNpcId, Is.Null);
+        Assert.That(initiator.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+        Assert.That(listener.IsFighting, Is.True, "an invitation cannot suppress an emergency");
+    }
+
+    [Test]
+    public void MissingTargetEndsInvitationWithoutLeavingInitiatorStuck()
+    {
+        var (world, initiator, listener) = InvitationPair();
+        StartInvitationConversation(world, initiator, listener);
+        world.Entities.Npcs.Remove(listener.Id);
+        new ExecutionSystem().Run(world);
+        Assert.That(initiator.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+        Assert.That(initiator.Plan.Status, Is.EqualTo(PlanStatus.Completed));
+        Assert.That(initiator.Execution.CurrentTalkTopic, Is.Null);
+    }
+
+    [Test]
+    public void SavingAnInvitationDoesNotLeaveAnUnrestoredListenerWaitingOrKeepHeartTopics()
+    {
+        var (world, initiator, listener) = InvitationPair();
+        StartInvitationConversation(world, initiator, listener);
+        using var bytes = new MemoryStream();
+        using (var writer = new BinaryWriter(bytes, System.Text.Encoding.UTF8, true)) WorldSaveSerializer.Write(world, writer);
+        bytes.Position = 0;
+        var restored = TestWorld.CreateWorld(world.Seed);
+        using (var reader = new BinaryReader(bytes, System.Text.Encoding.UTF8, true)) WorldSaveSerializer.Read(restored, reader);
+        new ExecutionSystem().Run(restored);
+        Assert.That(restored.Entities.Npcs[listener.Id].Mind.PendingRomanceFrom, Is.Null);
+        Assert.That(restored.Entities.Npcs[initiator.Id].Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+        Assert.That(restored.Entities.Npcs[initiator.Id].Execution.CurrentTalkTopic, Is.Null);
+        Assert.That(restored.Entities.Npcs[listener.Id].Execution.CurrentTalkTopic, Is.Null);
+    }
+
     [Test]
     public void PlaybackStartsAtPointOneEndsAtOneAndClimaxRunsAtHalfSpeed()
     {
@@ -112,6 +318,11 @@ public sealed class RomanceInteractionTests
 
         ArriveAtPlanTarget(world, male);
         new ExecutionSystem().Run(world);
+
+        Assert.That(male.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Talk));
+        world.Tick = male.Execution.EndTick;
+        new ExecutionSystem().Run(world); // answer
+        new ExecutionSystem().Run(world); // existing continuation, after agreement
 
         Assert.Multiple(() =>
         {

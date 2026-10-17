@@ -30590,6 +30590,14 @@ MonoBehaviour:
       - 'Закрыть'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'toast.order_rejected.NoMutualConsent'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The other character is not ready for romance.'
+      - 'Партнёр пока не готов к романтическому сближению.'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

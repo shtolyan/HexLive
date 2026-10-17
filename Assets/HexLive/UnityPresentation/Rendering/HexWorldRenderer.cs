@@ -67,10 +67,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private readonly Dictionary<TileCoord, GameObject> _tileViews = new();
     private readonly Dictionary<int, GameObject> _junctionViews = new();
 
-    // Spec 40.17: a persistent "точечка на шве" — a small amber dot marking a
-    // climb seam (a one-step ledge you clamber up), always shown (not the
-    // debug-only junction spheres).
-    private readonly Dictionary<int, GameObject> _seamMarkers = new();
     private readonly Dictionary<int, GameObject> _objectViews = new();
 
     // §120: which owner objects are houses raised from a player PLAN (site or
@@ -1553,12 +1549,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (_showJunctionMarkers && !_junctionViews.ContainsKey(key))
             {
                 _junctionViews[key] = CreateJunctionView(junction);
-            }
-
-            // Spec 40.17: climb-seam dots — always shown, once per seam.
-            if (junction.IsClimbSeam && !_seamMarkers.ContainsKey(key))
-            {
-                _seamMarkers[key] = CreateSeamMarker(junction);
             }
         }
 
@@ -4517,29 +4507,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
         if (renderer is not null)
         {
             renderer.sharedMaterial = CreateMaterial(GetJunctionColor(junction));
-        }
-
-        return go;
-    }
-
-    // Spec 40.17: a small amber dot sitting on a climb seam — where an NPC
-    // clambers up a one-step ledge. Scaled below the debug junction sphere so
-    // it reads as a marker, lifted a touch above the ground.
-    private GameObject CreateSeamMarker(JunctionSnapshot junction)
-    {
-        var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        go.name = $"ClimbSeam {junction.Id.Value}";
-        go.transform.SetParent(_junctionsRoot, false);
-        go.transform.localScale = Vector3.one * (JunctionMarkerScale * 1.6f);
-        go.transform.position = SimulationUnityMapper.ToUnityPosition(
-            junction.WorldPosition,
-            SimulationUnityMapper.TileHeight + SimulationUnityMapper.PointMarkerLift * 2f);
-
-        var renderer = go.GetComponent<MeshRenderer>();
-        if (renderer is not null)
-        {
-            // Warm amber, distinct from terrain — reads as a climb hint.
-            renderer.sharedMaterial = CreateMaterial(new Color(0.88f, 0.54f, 0.24f));
         }
 
         return go;

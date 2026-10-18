@@ -120,6 +120,7 @@ function itemDetail(it) {
 }
 
 // §121 / §171: why an order failed, and the call's state (CharacterPanel toasts, ServerVoice).
+const THOUGHT = { on: false, thinking: true, timer: 0 };
 const TOAST = { key: null, timer: 0, cycle: 0, i: 0 };
 const TOAST_KEYS = ['toast.order_rejected.MissingTool', 'toast.order_interrupted.SleepHunger', 'toast.order_rejected.Unreachable', 'toast.manual_expired'];
 function showToast(key) {
@@ -743,7 +744,10 @@ function npcModel(c) {
     status: c.status, statusTone: c.tone, uv: 'mid', shade: false, badge: c.fighting ? 'fighting' : null,
     journalUnread: 2, goal: c.goal, dream: 'OwnBed', directive: { kind: 'Firewood', from: null },
     effects: [{ slug: 'wellfed', emoji: '😋', buff: true }, { slug: 'bandaged', emoji: '🩹', buff: true },
-      { slug: 'strongsun', emoji: '🌞', buff: false }, { slug: 'soaked', emoji: '💦', buff: false }],
+      { slug: 'strongsun', emoji: '🌞', buff: false, intensity: 0.9 }, { slug: 'soaked', emoji: '💦', buff: false, intensity: 0.2 }],
+    // §160 an attached agent speaks for her in the 💭 pill (scene «Игра: агент ведёт»).
+    thought: THOUGHT.on ? (THOUGHT.thinking ? { thinking: true } : { thinking: false, text: state.lang === 'ru' ? 'Схожу за водой, потом помогу Марте с костром' : 'I will fetch water, then help Marta with the fire' }) : null,
+    compassion: 62, perks: ['perk.strength.high', 'perk.perception.high', 'perk.wits.low'],
     needs: [
       { id: 'hunger', value: 0.78, impacts: [{ emoji: '😋', title: 'effect.wellfed.title', up: true }] },
       { id: 'thirst', value: 0.42, impacts: [{ emoji: '🌞', title: 'effect.strongsun.title', up: false }] }, { id: 'energy', value: 0.66 }, { id: 'comfort', value: 0.55 },
@@ -770,7 +774,7 @@ function characterModel() {
   if (state.dialog === 'gameGroup') {
     const ids = game.group.length ? game.group : [11, 12, 15];
     return { mode: 'group', group: { count: ids.length, manual: 2, total: ids.length, blocked: 0, fighting: 1, mode: 'mixed',
-      faces: ids.map((id) => { const c = COLONY.find((x) => x.id === id); return { id, name: c.name, face: `face:${id}` }; }), feedback: null } };
+      faces: ids.map((id) => { const c = COLONY.find((x) => x.id === id); return { id, name: c.name, face: `face:${id}`, fighting: !!c.fighting }; }), feedback: null } };
   }
   const c = COLONY.find((x) => x.id === game.selected) || COLONY[0];
   return { mode: 'single', collapsed: game.collapsed, npc: npcModel(c) };
@@ -1014,6 +1018,8 @@ function showDialog(id) {
     DEBUG.open = id === 'gameDebug';
     DEBUG.on.hexInspector = id === 'gameInspector';
     SD.open = id === 'gameSimDebug';
+    clearInterval(THOUGHT.timer); THOUGHT.on = id === 'gameThought'; THOUGHT.thinking = true;
+    if (THOUGHT.on) THOUGHT.timer = setInterval(() => { THOUGHT.thinking = !THOUGHT.thinking; sendGame(); }, 2500);
     clearInterval(TOAST.cycle); TOAST.key = null; clearInterval(CALL.timer); clearTimeout(CALL.timer); CALL.state = null;
     if (id === 'gameCall') { game.control = 'ai'; CALL.state = 'failed'; CALL.reason = 'agent.call.credit'; }
     if (id === 'gameToast') {

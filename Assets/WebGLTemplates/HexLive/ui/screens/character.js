@@ -11,12 +11,13 @@
 //          toast: null | I2 key,              // §121: why her last order was refused or cut short (2.5 s)
 //          pace: 'walk'|'run', canStop, health 0–1, healthColor, status, statusTone, uv, shade, badge,
 //          journalUnread, goal, dream, directive: { kind, from } | null,
-//          effects: [{ slug, emoji, buff, intensity }],
+//          thought: null | { thinking, text },   // §160 an attached agent's own line instead of her goal
+//          effects: [{ slug, emoji, buff, intensity 0–1 }],   // a debuff shades amber → red with intensity
 //          needs: [{ id, value 0–1 (1 = good), thermal? −1…1, deficit? }],
-//          nature: [{ id, value 0–10 }], skills: [{ id, value 0–10 }], traits: [key],
+//          nature: [{ id, value 0–10 }], compassion: 0–100 | null, perks: [key], skills: [{ id, value 0–10 }], traits: [key],
 //          relations: [{ id, name, face, tag, affinity −1…1, familiarity 0–1, trust 0–1 }] },
 //          // her bond with the player's own voice (§171) is one of them, id −159, no face
-//   group: { count, manual, total, blocked, fighting, mode, faces: [{ id, name, face }], feedback },
+//   group: { count, manual, total, blocked, fighting, mode, faces: [{ id, name, face, fighting }], feedback },
 // }
 // Commands: control { mode }, pace { value }, stop, open { window: 'inventory'|'journal'|'health' },
 // collapse, expand, select { id }, groupMode, groupStop, portraitRect { x, y, w, h, vw, vh }.
@@ -47,14 +48,15 @@ function Pills({ npc }) {
   return html`
     <div class="hx-pills hx-surface">
       <div class="hx-pills__row">
-        <${Pill}><span aria-hidden="true">💭</span>${npc.status === 'dead' ? t('state.dead') : t(`goal.${npc.goal}`)}<//>
+        <${Pill}><span aria-hidden="true">💭</span>${npc.status === 'dead' ? t('state.dead')
+          : npc.thought ? (npc.thought.thinking ? t('agent.thinking') : npc.thought.text) : t(`goal.${npc.goal}`)}<//>
         ${npc.dream && html`<${Pill} tone="dream"><span aria-hidden="true">✨</span>${t(`dream.${npc.dream}`)}<//>`}
         ${directive && html`<${Pill} tone="directive"><span aria-hidden="true">🤝</span>${directive}<//>`}
       </div>
       ${npc.effects?.length > 0 && html`
         <ul class="hx-effects">
           ${npc.effects.map((e) => html`
-            <li key=${e.slug} class=${e.buff ? 'is-buff' : 'is-debuff'}
+            <li key=${e.slug} class=${e.buff ? 'is-buff' : 'is-debuff'} style=${e.buff ? undefined : { '--sev': Math.max(0, Math.min(1, e.intensity ?? 0)) }}
               ...${tip(() => ({ icon: e.emoji, title: t(`effect.${e.slug}.title`), tone: e.buff ? 'buff' : 'debuff', desc: t(e.desc || `effect.${e.slug}.desc`) }))}>
               <span aria-hidden="true">${e.emoji}</span><span class="hx-sr">${t(`effect.${e.slug}.title`)}</span>
             </li>`)}
@@ -164,7 +166,7 @@ function Identity({ npc, send }) {
         <div class="hx-vitals">
           <div class="hx-vitals__text">
             <span class="hx-roster__status" data-tone=${npc.statusTone}><i aria-hidden="true"></i>${t(`state.${npc.status}`)}</span>
-            <span class="hx-muted">${t(`uv.${npc.uv}`)}${npc.shade ? ` · ${t('uv.shade')}` : ''}</span>
+            <span class="hx-muted hx-uv" data-uv=${npc.uv}>${t(`uv.${npc.uv}`)}${npc.shade ? ` · ${t('uv.shade')}` : ''}</span>
           </div>
           <button type="button" class="hx-vitals__hp" title=${t('panel.health')} onClick=${() => send('open', { window: 'health' })}>
             <${Ring} value=${npc.health} color=${npc.healthColor} size="4rem" stroke="0.375rem" label=${t('panel.health')}>
@@ -226,6 +228,8 @@ function Needs({ npc }) {
                 : html`<span class="hx-bar"><i style=${{ width: `${n.value * 100}%`, background: good(n.value) }}></i></span>`}
             </li>`)}
         </ul>`}
+      ${tab === 'nature' && npc.perks?.length > 0 && html`
+        <ul class="hx-perks">${npc.perks.map((k) => html`<li key=${k} class=${k.endsWith('.high') ? 'is-gift' : ''}>${t(k)}</li>`)}</ul>`}
       ${(tab === 'nature' || tab === 'skills') && html`
         <ul class="hx-stats">
           ${(tab === 'nature' ? npc.nature : npc.skills).map((s) => html`
@@ -233,6 +237,10 @@ function Needs({ npc }) {
               desc: t(`${tab === 'nature' ? 'attr' : 'skill'}.${s.id}.desc`) }))}>
               <span>${t(`${tab === 'nature' ? 'attr' : 'skill'}.${s.id}`)}</span><${Pips} value=${s.value} /><b>${s.value}</b>
             </li>`)}
+          ${tab === 'nature' && npc.compassion != null && html`
+            <li class="hx-stats__share" ...${tip(() => ({ icon: '🤲', title: t('trait.compassion'), desc: t('trait.compassion.desc') }))}>
+              <span>${t('trait.compassion')}</span><span class="hx-bar"><i style=${{ width: `${npc.compassion}%` }}></i></span><b>${npc.compassion}%</b>
+            </li>`}
         </ul>`}
       ${tab === 'character' && (npc.traits.length === 0
         ? html`<p class="hx-muted">${t('sheet.character.empty')}</p>`
@@ -279,7 +287,7 @@ function Group({ group, send }) {
         ${(group.blocked > 0 || group.fighting > 0) && html`<span class="hx-warn">${t('group.alerts', { 0: group.blocked, 1: group.fighting })}</span>`}
       </div>
       <div class="hx-group__faces">
-        ${group.faces.map((f) => html`<button type="button" key=${f.id} title=${f.name} onClick=${() => send('select', { id: f.id })}>
+        ${group.faces.map((f) => html`<button type="button" key=${f.id} title=${f.name} class=${f.fighting ? 'is-fighting' : undefined} onClick=${() => send('select', { id: f.id })}>
           <${Face} face=${f.face} name=${f.name} size="3.25rem" /></button>`)}
       </div>
       <div class="hx-group__cmd">

@@ -6,6 +6,7 @@ using HexLive.UnityPresentation.Bootstrap;
 // UnityEngine.InputSystem, и короткое имя рискует стать неоднозначным.
 using NpcSelection = HexLive.UnityPresentation.Input.NpcSelection;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Platform;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
@@ -13,7 +14,7 @@ using UnityEngine.UIElements;
 namespace HexLive.UnityDebug.UI
 {
     [RequireComponent(typeof(UIDocument))]
-    public sealed class SimulationDebugPanel : MonoBehaviour
+    public sealed partial class SimulationDebugPanel : MonoBehaviour
     {
         [SerializeField] private SimulationRunnerBehaviour _runner;
 
@@ -137,7 +138,7 @@ namespace HexLive.UnityDebug.UI
             if (keyboard != null && keyboard.tabKey.wasPressedThisFrame)
             {
                 _visible = !_visible;
-                _document.rootVisualElement.style.display = _visible
+                _document.rootVisualElement.style.display = _visible && !HtmlUi.Active
                     ? DisplayStyle.Flex
                     : DisplayStyle.None;
 
@@ -145,6 +146,9 @@ namespace HexLive.UnityDebug.UI
                 // export — only ask for them while the panel is on screen.
                 WorldSnapshotExporter.IncludeDebugDetails = _visible;
             }
+
+            // §174.7: on the web the page draws the overlay («simDebug»).
+            if (HtmlUi.Active) { UpdateHtml(); return; }
 
             if (!_visible) return;
 
@@ -159,7 +163,7 @@ namespace HexLive.UnityDebug.UI
         {
             var root = _document.rootVisualElement;
             root.Clear();
-            root.style.display = _visible ? DisplayStyle.Flex : DisplayStyle.None;
+            root.style.display = _visible && !HtmlUi.Active ? DisplayStyle.Flex : DisplayStyle.None;
             root.style.flexGrow = 1f;
             root.style.flexDirection = FlexDirection.Row;
             root.style.justifyContent = Justify.FlexStart;

@@ -536,7 +536,7 @@ function sendSimDebug() {
       needs: { health: c.health, hunger: 0.64, thirst: 0.31, energy: 0.72, comfort: 0.55, social: 0.40, thermal: 0.12 },
       relations: ['Марта: friend 0.62 / trust 0.48', 'Яна: rival −0.21 / trust 0.10'] },
     sim: { plan: 'Active 2/4 (MoveTo → PickUp → Eat)', goalLock: SD.tick + 40, cooldowns: ['Socialize', 'Wash'], known: 137, target: [5, -2],
-      movement: SD.paused ? 'Arrived' : 'Moving', execution: 'InProgress', path: [[4, -2], [5, -3], [5, -2]],
+      movement: SD.paused ? 'Arrived' : 'Moving', execution: 'InProgress', path: '5121 -> 5122 -> 5130',
       clock: '15:10', phase: 'Day', uv: 0.71, raining: false, temperature: 28.4, reserved: 6, occupied: 9 },
     scores: [{ goal: 'GetFood', score: 0.812 }, { goal: 'Drink', score: 0.574 }, { goal: 'Sleep', score: 0.312 }, { goal: 'Socialize', score: 0.208 }, { goal: 'Idle', score: 0.05 }],
     trace: { recorder: true, rows: [

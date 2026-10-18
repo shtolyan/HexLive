@@ -10,7 +10,7 @@
 //                 starving, fighting, needs: { health, hunger, thirst, energy, comfort, social, thermal } (0–1),
 //                 relations: [text] },
 //   sim: null | { plan, goalLock (tick | null), cooldowns: [goal], known, target: [q, r] | null, movement,
-//                 execution, path: [[q, r]], clock, phase, uv, raining, temperature, reserved, occupied },
+//                 execution, path: 'junction ids' | null, clock, phase, uv, raining, temperature, reserved, occupied },
 //   scores: [{ goal, score }],
 //   trace: { recorder (bool: the per-NPC flight recorder, else the colony ring), rows: [[tick, type, message]] },
 // }
@@ -102,7 +102,7 @@ export function SimDebug({ model, send }) {
             [t('simdebug.target_tile'), tile(s.target), null, true],
             [t('simdebug.movement'), s.movement || '—', MOVE_TONE[s.movement]],
             [t('simdebug.execution'), s.execution || '—', EXEC_TONE[s.execution]],
-            [t('simdebug.path'), s.path?.length ? s.path.map(tile).join(' → ') : '—', null, true],
+            [t('simdebug.path'), s.path || '—', null, true],
             [t('simdebug.time'), `${s.clock} (${s.phase}) UV ${s.uv.toFixed(2)}${s.raining ? ` · ${t('weather.rain')}` : ''}`, null, true],
             [t('simdebug.temperature'), `${s.temperature.toFixed(1)} °C`, s.temperature < 12 ? 'thermal' : 'energy', true],
             [t('simdebug.reserved_pts'), s.reserved, null, true],

@@ -23,6 +23,42 @@ public sealed class HumanButcheryPresentationTests
     private static Type EnvironmentType(string name) => typeof(GroundBloodStains).Assembly.GetType(
         "HexLive.UnityPresentation.Environment." + name, true);
 
+    [TestCase("food.human_arm_raw")]
+    [TestCase("food.human_arm_cooked")]
+    [TestCase("food.human_arm_male_raw")]
+    [TestCase("food.human_arm_male_cooked")]
+    [TestCase("food.human_leg_raw")]
+    [TestCase("food.human_leg_cooked")]
+    [TestCase("food.human_leg_male_raw")]
+    [TestCase("food.human_leg_male_cooked")]
+    [TestCase("food.human_torso_raw")]
+    [TestCase("food.human_torso_cooked")]
+    [TestCase("food.human_torso_male_raw")]
+    [TestCase("food.human_torso_male_cooked")]
+    [TestCase("resource.human_head")]
+    public void EverySourcePartHasSkinAndAnActuallyUsedCutSurface(string id)
+    {
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+            "Assets/HexLiveContent/RuntimeSource/Objects/" + id + ".fbx");
+        Assert.That(prefab, Is.Not.Null, id);
+        var prefix = id.EndsWith("cooked") ? "HumanCooked" : "HumanRaw";
+        ulong skinIndices = 0, cutIndices = 0;
+        foreach (var renderer in prefab.GetComponentsInChildren<MeshRenderer>(true))
+        {
+            var mesh = renderer.GetComponent<MeshFilter>().sharedMesh;
+            Assert.That(renderer.sharedMaterials.Length, Is.EqualTo(mesh.subMeshCount), id);
+            for (var i = 0; i < mesh.subMeshCount; i++)
+            {
+                var material = renderer.sharedMaterials[i];
+                Assert.That(material, Is.Not.Null, id);
+                if (material.name.StartsWith(prefix + "Skin")) skinIndices += mesh.GetIndexCount(i);
+                if (material.name.StartsWith(prefix + "Cut")) cutIndices += mesh.GetIndexCount(i);
+            }
+        }
+        Assert.That(skinIndices, Is.GreaterThan(0), id + " must retain the source skin");
+        Assert.That(cutIndices, Is.GreaterThan(0), id + " needs real cut triangles, not an unused material slot");
+    }
+
     [Test]
     public void AllThirteenSourceCutsFitAndRestOnGroundInProductionPose()
     {

@@ -21,7 +21,7 @@ public static class Spec127
     public const float MinTrust = 0.25f;
     public const float MinFamiliarity = 0.45f;
 
-    public const float ConsentSocialGain = 0.85f;
+    public const float ConsentSocialTarget = 1f;
     public const float ConsentAffinityGain = 0.10f;
     public const float ConsentTrustGain = 0.06f;
     public const float ConsentFamiliarityGain = 0.08f;

@@ -18,6 +18,7 @@ import { Build } from './build.js';
 import { BugReport, BugManager } from './bugs.js';
 import { History } from './history.js';
 import { EndSummary } from './endSummary.js';
+import { CraftProject } from './craftProject.js';
 
 export const SCREENS = {
   title: Title,
@@ -33,6 +34,7 @@ export const SCREENS = {
   build: Build,
   history: History,
   endSummary: EndSummary,
+  craftProject: CraftProject,
   bugReport: BugReport,
   bugManager: BugManager,
   blueprint: Build, // the house constructor: the same tray with an editor header

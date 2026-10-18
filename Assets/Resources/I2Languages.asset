@@ -30818,6 +30818,102 @@ MonoBehaviour:
       - 'Стройка'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'craft.project.take'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Take item'
+      - 'Забрать предмет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.project.resume'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Continue work'
+      - 'Продолжить работу'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.project.details'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Details'
+      - 'Подробности'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.project.ready'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ready to collect'
+      - 'Готово — можно забрать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.project.active'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Work in progress'
+      - 'Идёт работа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.project.paused'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Work paused'
+      - 'Работа приостановлена'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.project.current_worker'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Working now: {0}'
+      - 'Сейчас работает: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.project.last_worker'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Last worked on by: {0}'
+      - 'Последний раз работала: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.project.unknown_worker'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Unknown'
+      - 'Неизвестно'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.project.remaining'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Work remaining: {0} of {1}'
+      - 'Осталось работы: {0} из {1}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.project.close'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Close'
+      - 'Закрыть'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.project.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Work in hand'
+      - 'Работа над вещью'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

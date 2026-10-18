@@ -476,6 +476,23 @@ function sendHistory() {
   else post({ t: 'hide', screen: 'history' });
 }
 
+// ---- an unfinished craft project (CraftProjectDetailsPanel) ----
+const PROJECT = { open: false, done: 7 };
+function projectModel() {
+  const required = 12;
+  return { name: itemName('resource.rope'), icon: 'icon:resource.rope', emoji: null, batch: 3,
+    status: PROJECT.done >= required ? 'ready' : PROJECT.done % 2 ? 'active' : 'paused',
+    worker: { name: 'Марта', current: PROJECT.done % 2 === 1 && PROJECT.done < required },
+    progress: PROJECT.done / required, remaining: required - PROJECT.done, required };
+}
+function sendProject() {
+  if (!ready) return;
+  if (PROJECT.open && isGame(state.dialog)) post({ t: 'show', screen: 'craftProject', model: projectModel() });
+  else post({ t: 'hide', screen: 'craftProject' });
+}
+// C# refreshes the card five times a second while work goes on.
+setInterval(() => { if (PROJECT.open && PROJECT.done < 12) { PROJECT.done += 1; sendProject(); } }, 1500);
+
 // ---- the end of the game (EndSummaryPanel): the raft is done ----
 const END = { open: false };
 function endModel() {
@@ -794,7 +811,7 @@ function sendHud() {
 }
 
 function showDialog(id) {
-  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); bp.open = false; post({ t: 'hide', screen: 'blueprint' }); BUGS.quick = BUGS.manager = false; post({ t: 'hide', screen: 'bugReport' }); post({ t: 'hide', screen: 'bugManager' }); post({ t: 'hide', screen: 'history' }); END.open = false; post({ t: 'hide', screen: 'endSummary' }); }
+  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); bp.open = false; post({ t: 'hide', screen: 'blueprint' }); BUGS.quick = BUGS.manager = false; post({ t: 'hide', screen: 'bugReport' }); post({ t: 'hide', screen: 'bugManager' }); post({ t: 'hide', screen: 'history' }); END.open = false; post({ t: 'hide', screen: 'endSummary' }); PROJECT.open = false; post({ t: 'hide', screen: 'craftProject' }); }
   if (shownDialog && !isGame(shownDialog) && ready) post({ t: 'hide', screen: isTitle(shownDialog) ? 'title' : isCreator(shownDialog) ? 'creator' : SCREEN_OF[shownDialog] || shownDialog });
   if (isGame(id)) {
     shownDialog = id;
@@ -811,6 +828,7 @@ function showDialog(id) {
     ctx.open = id === 'gameContext';
     HISTORY.collapsed = id !== 'gameHistory'; HISTORY.shown = 10;
     END.open = id === 'gameEnd';
+    PROJECT.open = id === 'gameProject2'; PROJECT.done = 7;
     BUGS.quick = id === 'gameBugQuick'; BUGS.manager = id === 'gameBugs'; if (BUGS.manager) { BUGS.tab = 'open'; BUGS.card = 485; }
     bp.open = id === 'gameProject' || id === 'gameFree';
     if (bp.open) { openBlueprint(id === 'gameFree' ? 'free' : 'project'); bp.undo = 3; bp.door = false; bp.active = 'architecture.wall.wood'; bp.category = 'walls'; }
@@ -819,7 +837,7 @@ function showDialog(id) {
     loot.open = ['gameLoot', 'gameGift', 'gameBasket'].includes(id);
     if (loot.open) { loot.mode = id === 'gameGift' ? 'gift' : 'exchange'; loot.other = id === 'gameBasket' ? 'container' : 'person'; lootReset(); }
     if (ctx.open) ctx.at = { x: 0.52, y: 0.42 };
-    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); if (build.open) sendBuild(); if (bp.open) sendBlueprint(); sendBugs(); sendHistory(); sendEnd(); }
+    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); if (build.open) sendBuild(); if (bp.open) sendBlueprint(); sendBugs(); sendHistory(); sendEnd(); sendProject(); }
     return;
   }
   if (!isTitle(id)) clearInterval(title.timer);
@@ -908,6 +926,11 @@ function handle(message) {
       if (it && a.kind === 'drop') { it.count -= a.count || 1; if (it.count <= 0) inv.items = inv.items.filter((x) => x !== it); }
     }
     sendInventory();
+    return;
+  }
+  if (message.screen === 'craftProject') {
+    note(key, '→ закрыть карточку');
+    PROJECT.open = false; sendProject();
     return;
   }
   if (message.screen === 'endSummary') {

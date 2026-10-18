@@ -406,21 +406,22 @@ namespace HexLive.UnityPresentation.Input
                 }
             }
 
-            if (UI.RuntimeWindow.BlocksWorldInput || UI.CraftProjectDetailsPanel.BlocksWorldInput || UI.CharacterPanel.BlocksWorldPointer)
+            var allowWorldInput = !(UI.RuntimeWindow.BlocksWorldInput || UI.CraftProjectDetailsPanel.BlocksWorldInput || UI.CharacterPanel.BlocksWorldPointer);
+            if (!allowWorldInput)
             {
                 _leftPressActive = false; _rightPressActive = false;
                 _selectionDragging = false; _rightDragging = false;
-                _worldPointerBlockedLastFrame = true;
-                return;
             }
 
+            // HTML roster clicks request Follow while the pointer is still on
+            // the menu. Block world gestures, not the camera rig (bug #488).
             if (_mode == Mode.Orbit)
             {
-                UpdateOrbit();
+                UpdateOrbit(allowWorldInput);
             }
             else
             {
-                UpdateFree();
+                UpdateFree(allowWorldInput);
             }
 
             RefreshOverviewProfile();
@@ -471,7 +472,7 @@ namespace HexLive.UnityPresentation.Input
 
         // ---- Free mode -------------------------------------------------------
 
-        private void UpdateFree()
+        private void UpdateFree(bool allowWorldInput)
         {
             var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
             PruneInvisibleSelection(snapshot);
@@ -481,7 +482,7 @@ namespace HexLive.UnityPresentation.Input
                 FrameSelection(snapshot);
             }
 
-            if (!UI.GameMenu.IsOpen && !UI.AdminVoicePanel.BlocksGameInput && !UI.EndSummaryPanel.IsOpen)
+            if (allowWorldInput && !UI.GameMenu.IsOpen && !UI.AdminVoicePanel.BlocksGameInput && !UI.EndSummaryPanel.IsOpen)
             {
                 HandleFreePan();
                 HandleZoom();
@@ -1418,7 +1419,7 @@ namespace HexLive.UnityPresentation.Input
             _pivotVelocity = Vector3.zero;
         }
 
-        private void UpdateOrbit()
+        private void UpdateOrbit(bool allowWorldInput)
         {
             var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
             if (snapshot == null)
@@ -1432,14 +1433,14 @@ namespace HexLive.UnityPresentation.Input
                 return;
             }
 
-            if (HasPanInput())
+            if (allowWorldInput && HasPanInput())
             {
                 ExitOrbit();
-                UpdateFree();
+                UpdateFree(allowWorldInput);
                 return;
             }
 
-            HandlePointerGesture(snapshot);
+            if (allowWorldInput) HandlePointerGesture(snapshot);
             // A world click is handled inside UpdateOrbit itself. Selecting a
             // different NPC fires OnSelectionChanged -> ExitOrbit; do not let
             // the remainder of this old orbit tick pull once toward the new
@@ -1469,8 +1470,11 @@ namespace HexLive.UnityPresentation.Input
                 _requestedDistance = FitDistance(radius);
             }
 
-            HandleOrbitInput();
-            HandleScrollYaw();
+            if (allowWorldInput)
+            {
+                HandleOrbitInput();
+                HandleScrollYaw();
+            }
 
             _currentDistance = Mathf.Clamp(
                 _requestedDistance, _orbitMinDistance, _orbitMaxDistance);

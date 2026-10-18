@@ -29,7 +29,7 @@ namespace HexLive.UnityPresentation.UI
         private bool _dollOnScreen;
         private Rect _dollShownAt;
         private bool _inventoryHtmlHidden;
-        private readonly VisualElement _statScratch = new();
+        private VisualElement _statScratch;
 
         private void UpdateHtmlInventory(WorldSnapshot snapshot)
         {
@@ -256,6 +256,8 @@ namespace HexLive.UnityPresentation.UI
             var isWater = !worn && IsWaterContainerId(id);
 
             // The card's own rows, read back as (label, value).
+            // UITK elements cannot be constructed in a MonoBehaviour initializer.
+            _statScratch ??= new VisualElement();
             BuildItemStats(def, info, worn, durability, water, stacks, wetness, dirtiness,
                 sourceIndex, ResolveInventoryOwnerId(id, worn, sourceIndex), _statScratch);
             var stats = StatRows(_statScratch);

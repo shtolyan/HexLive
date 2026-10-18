@@ -1832,3 +1832,81 @@
 .hx-inspect__people li { display: flex; justify-content: space-between; padding: 0.3125rem 0.625rem; border-radius: 0.375rem; background: rgb(25 31 36); font-size: 0.8125rem; }
 .hx-inspect__people li span { color: var(--hx-text-dim); font-variant-numeric: tabular-nums; }
 .hx-inspect__junctions { display: flex; flex-direction: column; gap: 0.125rem; margin: 0; padding: 0.5rem 0.625rem; border-radius: 0.375rem; background: rgb(25 31 36); list-style: none; color: var(--hx-text-dim); font: 0.6875rem/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+/* §174.7 voice: the admin window, the shared recording card, the reply line */
+.hx-admin { display: flex; flex-direction: column; gap: 0.75rem; padding: 0 1.25rem 1.25rem; }
+.hx-admin__status { display: flex; flex-direction: column; gap: 0.25rem; margin: 0; padding: 0.625rem 0.75rem; border-left: 3px solid var(--hx-stroke-strong); border-radius: 0.375rem; background: var(--hx-raised); font-size: 0.875rem; line-height: 1.4; }
+.hx-admin__status span { color: var(--hx-text-dim); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+.hx-admin__status.is-approved { border-left-color: var(--hx-leaf); }
+.hx-admin__status.is-pending { border-left-color: var(--hx-gold); }
+.hx-admin__status.is-rejected, .hx-admin__status.is-expired, .hx-admin__status.is-revoked,
+.hx-admin__status.is-invalid, .hx-admin__status.is-queue_full { border-left-color: var(--hx-warm-red); }
+.hx-admin__field { display: flex; flex-direction: column; gap: 0.3125rem; font-size: 0.8125rem; font-weight: 700; }
+.hx-admin textarea {
+  width: 100%;
+  min-height: 4.5rem;
+  resize: vertical;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--hx-stroke-strong);
+  border-radius: 0.5rem;
+  background: rgb(0 0 0 / 0.25);
+  color: var(--hx-text);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  line-height: 1.4;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.hx-admin textarea:focus { outline: 2px solid var(--hx-focus); outline-offset: 1px; }
+.hx-admin__typed textarea { font: 0.8125rem/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.hx-admin__hint { margin: 0; color: var(--hx-text-dim); font-size: 0.75rem; line-height: 1.45; white-space: pre-line; }
+.hx-admin__row { display: flex; justify-content: flex-end; align-items: center; gap: 0.5rem; }
+.hx-admin__mic { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; margin-right: auto; border: 1px solid var(--hx-stroke-strong); border-radius: 50%; background: var(--hx-raised); color: var(--hx-gold); cursor: pointer; }
+.hx-admin__mic:hover:not(:disabled) { background: var(--hx-hover); }
+.hx-admin__mic:disabled { opacity: 0.45; cursor: default; }
+.hx-admin__mic.is-on { background: var(--hx-danger); color: var(--hx-text); border-color: transparent; animation: hx-pulse 0.9s ease-in-out infinite alternate; }
+.hx-admin__mic svg { width: 1.375rem; height: 1.375rem; }
+.hx-admin__confirm { display: flex; flex-direction: column; gap: 0.375rem; padding: 0.625rem 0.75rem; border: 1px solid rgb(242 115 89 / 0.55); border-radius: 0.5rem; background: rgb(191 51 46 / 0.12); font-size: 0.875rem; }
+.hx-admin__confirm p { margin: 0; white-space: pre-line; }
+.hx-admin__typed { display: flex; flex-direction: column; gap: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--hx-stroke); }
+.hx-admin__typed[open] { gap: 0.5rem; }
+.hx-admin__typed summary { color: var(--hx-text-dim); font-size: 0.8125rem; font-weight: 700; cursor: pointer; }
+.hx-admin__typed > :not(summary) { margin-top: 0.5rem; }
+.hx-admin__typed .hx-btn { align-self: flex-end; }
+
+.hx-capture { display: flex; justify-content: center; align-items: flex-start; padding-top: 6rem; background: rgb(2 9 14 / 0.6); } /* high enough to leave the reply line below it readable */
+.hx-capture__card { display: flex; flex-direction: column; align-items: center; width: min(19rem, 90%); padding: 1.75rem; border: 1px solid rgb(45 133 144); border-radius: 1.5rem; background: rgb(7 24 31); box-shadow: var(--hx-shadow); animation: hx-rise 160ms ease-out; }
+.hx-capture__icon { display: grid; place-items: center; width: 4rem; height: 4rem; border-radius: 50%; background: rgb(46 235 225 / 0.1); color: rgb(46 235 225); }
+.hx-capture__icon svg { width: 2.5rem; height: 2.5rem; }
+.hx-capture__card h2 { margin: 1rem 0 0; color: rgb(222 244 247); font-size: 1.25rem; font-weight: 600; text-align: center; }
+.hx-capture__meter { display: flex; align-items: center; gap: 0.1875rem; height: 2.375rem; margin: 1.25rem 0 1.5rem; }
+.hx-capture__meter i { width: 0.4375rem; height: 100%; border-radius: 0.25rem; background: rgb(23 61 71); transition: background 60ms linear; }
+.hx-capture__meter i.is-lit { background: rgb(69 222 209); }
+.hx-capture__done { align-self: stretch; height: 2.875rem; border: 0; border-radius: 0.875rem; background: rgb(45 178 165); color: rgb(3 23 29); font: inherit; font-size: 1.125rem; font-weight: 700; cursor: pointer; }
+.hx-capture__done:hover { background: rgb(69 205 191); }
+.hx-capture__cancel { margin-top: 0.625rem; padding: 0.375rem 0.75rem; border: 0; background: none; color: rgb(140 180 186); font: inherit; font-size: 0.9375rem; cursor: pointer; }
+.hx-capture__cancel:hover { color: rgb(222 244 247); }
+
+.hx-subtitle {
+  position: absolute;
+  z-index: 5; /* over the recording card's dimmer: a reply can arrive mid-recording */
+  left: 25%;
+  right: 25%;
+  bottom: 14.5rem; /* above the character card */
+  margin: 0;
+  padding: 0.625rem 1.125rem;
+  border: 1px solid rgb(30 98 104);
+  border-radius: 0.625rem;
+  background: rgb(3 8 10 / 0.94);
+  color: rgb(220 227 230);
+  font-size: 1.125rem;
+  line-height: 1.4;
+  text-align: center;
+  white-space: pre-line;
+  pointer-events: none;
+  animation: hx-fade 160ms ease-out;
+}
+.hx-subtitle[data-tone="success"] { border-color: rgb(61 140 80); color: rgb(133 230 151); }
+.hx-subtitle[data-tone="error"] { border-color: rgb(170 65 63); color: rgb(255 154 150); }
+.hx-seg.is-recording { background: var(--hx-danger); color: var(--hx-text); animation: hx-pulse 0.9s ease-in-out infinite alternate; }

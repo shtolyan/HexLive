@@ -8,9 +8,11 @@
 //   paused, speed: 1 | 2 | 4 | 50 | 'max' (nearest preset), remote,
 //   build: null | { open },                  // §120.7 build mode, when it can be used
 //   bugs: null | { ready, canReport },       // §114: report a bug; ready = waiting for your test
-//   debug: null | { open } }                 // the developer tools drawer
+//   debug: null | { open },                  // the developer tools drawer
+//   admin: null | { recording } }            // §161 admin voice: only on a server that has it
 // Commands: pause (toggle), speed { value }, build (toggle the build tray), bug (the quick
-// bug report), debug (toggle the drawer). On a shared world (remote) the
+// bug report), debug (toggle the drawer), admin (the admin microphone:
+// opens the window until access is granted, then records / stops). On a shared world (remote) the
 // server owns the clock: pause and >1× stay visible but disabled (§83).
 import { html } from '../html.js';
 import { t } from '../i18n.js';
@@ -72,11 +74,13 @@ function Build({ model, send }) {
 // The bug report is the player's tool in every test round: its own button,
 // with the number of fixes waiting for their check. DEBUG opens the dev tools.
 function Tools({ model, send }) {
-  if (!model.bugs && !model.debug) return null;
+  if (!model.bugs && !model.debug && !model.admin) return null;
   return html`<div class="hx-pill hx-surface">
     ${model.bugs && html`<button class="hx-seg hx-seg--wide" type="button" disabled=${!model.bugs.canReport}
       title=${t('debug.report')} onClick=${() => send('bug')}>${icons.bug()}
       ${model.bugs.ready > 0 && html`<b class="hx-hud__badge" title=${t('bugs.debug.ready', { 0: model.bugs.ready })}>${model.bugs.ready}</b>`}</button>`}
+    ${model.admin && html`<button class=${`hx-seg${model.admin.recording ? ' is-recording' : ''}`} type="button" aria-pressed=${!!model.admin.recording}
+      title=${t('admin.voice.title')} aria-label=${t('admin.voice.title')} onClick=${() => send('admin')}>${icons.mic()}</button>`}
     ${model.debug && html`<button class="hx-seg" type="button" aria-pressed=${!!model.debug.open} title="DEBUG" onClick=${() => send('debug')}>DEBUG</button>`}
   </div>`;
 }

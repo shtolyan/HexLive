@@ -490,6 +490,39 @@ function sendDebug() {
   sendInspector();
 }
 
+// ---- voice (§160/§161): the admin window, the recording card, the reply line ----
+const VOICE = { open: false, access: 'approved', busy: false, confirm: null, recording: false, level: 0, subtitle: null };
+let voiceTimer = 0, subtitleTimer = 0;
+function subtitle(text, tone, seconds = 5) {
+  VOICE.subtitle = { text, tone };
+  clearTimeout(subtitleTimer);
+  subtitleTimer = setTimeout(() => { VOICE.subtitle = null; sendVoice(); }, seconds * 1000);
+  sendVoice();
+}
+function finishCapture() {
+  VOICE.recording = false; sendHud();
+  VOICE.busy = true; sendVoice();
+  setTimeout(() => { VOICE.busy = false; subtitle(`${tr('admin.voice.title')}: ${state.lang === 'ru' ? 'Рита вылечена: раны закрыты, кровь 100%.' : 'Rita healed: wounds closed, blood 100%.'}`, 'success'); }, 1200);
+}
+function sendVoice() {
+  if (!ready) return;
+  const game = isGame(state.dialog);
+  if (game && VOICE.open) post({ t: 'show', screen: 'adminVoice', model: {
+    access: VOICE.access, expires: VOICE.access === 'approved' ? (state.lang === 'ru' ? 'до 25.10.2026 18:00' : 'until 2026-10-25 18:00') : null,
+    showRequest: true, canRequest: true, busy: VOICE.busy, confirm: VOICE.confirm, mic: { recording: VOICE.recording } } });
+  else post({ t: 'hide', screen: 'adminVoice' });
+  if (game && VOICE.recording) post({ t: 'show', screen: 'voiceCapture', model: { title: `${tr('admin.voice.title')} · ${tr('agent.voice.listening')}`, level: VOICE.level } });
+  else post({ t: 'hide', screen: 'voiceCapture' });
+  if (game && VOICE.subtitle) post({ t: 'show', screen: 'voiceSubtitle', model: VOICE.subtitle });
+  else post({ t: 'hide', screen: 'voiceSubtitle' });
+  clearInterval(voiceTimer);
+  if (game && VOICE.recording) voiceTimer = setInterval(() => {
+    // A voice: the level breathes, as FmodMicrophoneCapture.Level does.
+    VOICE.level = Math.max(0.05, Math.min(1, 0.45 + 0.4 * Math.sin(Date.now() / 160) * Math.sin(Date.now() / 470)));
+    post({ t: 'show', screen: 'voiceCapture', model: { title: `${tr('admin.voice.title')} · ${tr('agent.voice.listening')}`, level: VOICE.level } });
+  }, 70);
+}
+
 // ---- the hex inspector (HexInspectorPanel): DEBUG → «Инспектор гекса» ----
 function sendInspector() {
   if (!ready) return;
@@ -890,6 +923,7 @@ function hudModel() {
     build: isGame(state.dialog) && !bp.open ? { open: build.open } : null, // CanOpen is false while the constructor is open
     bugs: isGame(state.dialog) ? { ready: BUGS.reports.filter((r) => r.status === 'ready_for_test' && !r.archived).length, canReport: true } : null,
     debug: isGame(state.dialog) ? { open: DEBUG.open } : null,
+    admin: isGame(state.dialog) ? { recording: VOICE.recording } : null,
   };
 }
 
@@ -901,7 +935,7 @@ function sendHud() {
 }
 
 function showDialog(id) {
-  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); bp.open = false; post({ t: 'hide', screen: 'blueprint' }); BUGS.quick = BUGS.manager = false; post({ t: 'hide', screen: 'bugReport' }); post({ t: 'hide', screen: 'bugManager' }); post({ t: 'hide', screen: 'history' }); END.open = false; post({ t: 'hide', screen: 'endSummary' }); PROJECT.open = false; post({ t: 'hide', screen: 'craftProject' }); post({ t: 'hide', screen: 'map' }); mapTerrainSent = false; DEBUG.open = false; post({ t: 'hide', screen: 'debug' }); post({ t: 'hide', screen: 'inspector' }); }
+  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); bp.open = false; post({ t: 'hide', screen: 'blueprint' }); BUGS.quick = BUGS.manager = false; post({ t: 'hide', screen: 'bugReport' }); post({ t: 'hide', screen: 'bugManager' }); post({ t: 'hide', screen: 'history' }); END.open = false; post({ t: 'hide', screen: 'endSummary' }); PROJECT.open = false; post({ t: 'hide', screen: 'craftProject' }); post({ t: 'hide', screen: 'map' }); mapTerrainSent = false; DEBUG.open = false; post({ t: 'hide', screen: 'debug' }); post({ t: 'hide', screen: 'inspector' }); VOICE.open = VOICE.recording = false; VOICE.subtitle = null; sendVoice(); }
   if (shownDialog && !isGame(shownDialog) && ready) post({ t: 'hide', screen: isTitle(shownDialog) ? 'title' : isCreator(shownDialog) ? 'creator' : SCREEN_OF[shownDialog] || shownDialog });
   if (isGame(id)) {
     shownDialog = id;
@@ -918,6 +952,8 @@ function showDialog(id) {
     ctx.open = id === 'gameContext';
     DEBUG.open = id === 'gameDebug';
     DEBUG.on.hexInspector = id === 'gameInspector';
+    VOICE.open = id === 'gameAdmin'; VOICE.recording = id === 'gameVoice'; VOICE.busy = false; VOICE.confirm = null; VOICE.access = id === 'gameAdmin' ? 'unrequested' : 'approved';
+    VOICE.subtitle = id === 'gameVoice' ? { text: state.lang === 'ru' ? 'Рита: Слышу тебя. Скажи, что нужно, и я пойду.' : 'Rita: I hear you. Tell me what you need and I will go.', tone: null } : null;
     HISTORY.collapsed = id !== 'gameHistory'; HISTORY.shown = 10;
     END.open = id === 'gameEnd';
     PROJECT.open = id === 'gameProject2'; PROJECT.done = 7;
@@ -929,7 +965,7 @@ function showDialog(id) {
     loot.open = ['gameLoot', 'gameGift', 'gameBasket'].includes(id);
     if (loot.open) { loot.mode = id === 'gameGift' ? 'gift' : 'exchange'; loot.other = id === 'gameBasket' ? 'container' : 'person'; lootReset(); }
     if (ctx.open) ctx.at = { x: 0.52, y: 0.42 };
-    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); if (build.open) sendBuild(); if (bp.open) sendBlueprint(); sendBugs(); sendHistory(); sendEnd(); sendProject(); sendMap(); sendDebug(); }
+    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); if (build.open) sendBuild(); if (bp.open) sendBlueprint(); sendBugs(); sendHistory(); sendEnd(); sendProject(); sendMap(); sendDebug(); sendVoice(); }
     return;
   }
   if (!isTitle(id)) clearInterval(title.timer);
@@ -1020,6 +1056,37 @@ function handle(message) {
       if (it && a.kind === 'drop') { it.count -= a.count || 1; if (it.count <= 0) inv.items = inv.items.filter((x) => x !== it); }
     }
     sendInventory();
+    return;
+  }
+  if (message.screen === 'adminVoice') {
+    const a = message.args || {};
+    if (message.cmd === 'close') { VOICE.open = false; note(key, '→ закрыть'); }
+    else if (message.cmd === 'request') {
+      VOICE.access = 'pending'; note(key, '→ request_access');
+      // The server owner approves it; AdminVoicePanel then closes the window and says so.
+      setTimeout(() => { VOICE.access = 'approved'; subtitle(`${tr('admin.voice.title')}: ${tr('admin.voice.access.approved')}`, 'success'); }, 1800);
+    }
+    else if (message.cmd === 'mic') { if (VOICE.recording) finishCapture(); else { VOICE.recording = true; VOICE.open = false; sendHud(); } note(key, '→ микрофон'); }
+    else if (message.cmd === 'send') {
+      note(key, `→ text: ${a.text}`);
+      VOICE.busy = true; sendVoice();
+      setTimeout(() => {
+        VOICE.busy = false;
+        VOICE.confirm = /удал|delete|снеси|demolish/i.test(a.text) ? `${tr('admin.voice.action.delete_npc')} — Яна (#9)` : null;
+        if (!VOICE.confirm) subtitle(`${tr('admin.voice.title')}: ${tr('admin.voice.done')}`, 'success');
+        sendVoice();
+      }, 900);
+      return;
+    }
+    else if (message.cmd === 'confirm') { note(key, `→ confirm ${a.accept}`); VOICE.confirm = null; subtitle(`${tr('admin.voice.title')}: ${tr(a.accept ? 'admin.voice.done' : 'admin.voice.reason.Cancelled')}`, a.accept ? 'success' : 'error'); }
+    else if (message.cmd === 'typed') { note(key, `→ debug_command ${a.json}`); try { JSON.parse(a.json); subtitle(`${tr('admin.voice.title')}: ${tr('admin.voice.done')}`, 'success'); } catch { subtitle(`${tr('admin.voice.title')}: ${tr('admin.voice.reason.InvalidInput')}`, 'error'); } }
+    sendVoice();
+    return;
+  }
+  if (message.screen === 'voiceCapture') {
+    note(key, `→ ${message.cmd}`);
+    if (message.cmd === 'done') finishCapture();
+    else { VOICE.recording = false; sendVoice(); sendHud(); }
     return;
   }
   if (message.screen === 'inspector') {
@@ -1276,6 +1343,12 @@ function handle(message) {
     if (message.cmd === 'build') { setBuild(!build.open); return; }
     if (message.cmd === 'bug') { BUGS.quick = true; BUGS.manager = false; sendBugs(); return; }
     if (message.cmd === 'debug') { DEBUG.open = !DEBUG.open; sendDebug(); sendHud(); return; }
+    if (message.cmd === 'admin') {
+      // AdminVoicePanel.Microphone: the window until access is granted, then record / stop.
+      if (VOICE.recording) { finishCapture(); return; }
+      if (VOICE.access !== 'approved') { VOICE.open = true; note(key, '→ окно админа'); sendVoice(); return; }
+      VOICE.recording = true; note(key, '→ запись'); sendVoice(); sendHud(); return;
+    }
     sendHud();
     return;
   }

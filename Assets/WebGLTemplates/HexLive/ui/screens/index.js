@@ -19,6 +19,7 @@ import { BugReport, BugManager } from './bugs.js';
 import { History } from './history.js';
 import { EndSummary } from './endSummary.js';
 import { CraftProject } from './craftProject.js';
+import { MapScreen } from './map.js';
 
 export const SCREENS = {
   title: Title,
@@ -32,6 +33,7 @@ export const SCREENS = {
   contextMenu: ContextMenu,
   loot: Loot,
   build: Build,
+  map: MapScreen,
   history: History,
   endSummary: EndSummary,
   craftProject: CraftProject,

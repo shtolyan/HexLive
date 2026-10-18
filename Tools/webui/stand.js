@@ -476,6 +476,57 @@ function sendHistory() {
   else post({ t: 'hide', screen: 'history' });
 }
 
+// ---- the HUD map (TacticalMapPanel): a generated island ----
+const MAP = (() => {
+  const R = 1.5, rows = [];
+  const world = (q, r) => [R * Math.sqrt(3) * (q + r / 2), 1.5 * R * r];
+  const noise = (q, r) => (Math.sin(q * 12.9898 + r * 78.233) * 43758.5453) % 1;
+  for (let r = -10; r <= 10; r++) for (let q = -10; q <= 10; q++) {
+    const d = (Math.abs(q) + Math.abs(r) + Math.abs(q + r)) / 2;
+    const land = d + Math.abs(noise(q, r)) * 2.2 < 8.2;
+    const [x, z] = world(q, r);
+    rows.push({ q, r, x, z, d, water: !land, elev: land ? Math.max(0, Math.round(4 - d / 2 + Math.abs(noise(r, q)) * 1.5)) : 0 });
+  }
+  return { collapsed: false, cam: { x: 0, z: 0 }, rows, world };
+})();
+const hexDist = (a, b) => (Math.abs(a.q - b.q) + Math.abs(a.r - b.r) + Math.abs(a.q + a.r - b.q - b.r)) / 2;
+const MAP_PEOPLE = [[11, 2, 1], [12, -2, 2], [13, 1, -2], [14, -1, 0], [15, 4, -1], [16, 0, 1], [41, -6, 5]];
+function mapTerrain() {
+  return JSON.stringify({ radius: 1.5, tiles: MAP.rows.map((t) => [+t.x.toFixed(2), +t.z.toFixed(2), t.water ? 1 : 0, t.elev]) });
+}
+function mapModel() {
+  const at = (q, r) => { const [x, z] = MAP.world(q, r); return { x: +x.toFixed(2), z: +z.toFixed(2) }; };
+  const people = MAP_PEOPLE.map(([id, q, r]) => ({ id, q, r, ...at(q, r) }));
+  const fog = MAP.rows.map((t) => (people.slice(0, 6).some((p) => hexDist(p, t) <= 3) ? '2' : t.d <= 6 ? '1' : '0')).join('');
+  const land = MAP.rows.filter((t) => !t.water);
+  const pick = (n, salt) => land.filter((t, i) => (i * 7 + salt) % n === 0 && t.d > 1);
+  const { x: cx, z: cz } = MAP.cam;
+  return {
+    collapsed: MAP.collapsed,
+    terrain: 'terrain:stand-island',
+    fog,
+    markers: [{ kind: 'camp', ...at(0, 0), live: true, lit: true },
+      ...pick(9, 3).map((t) => ({ kind: 'palm', ...at(t.q, t.r), live: t.d <= 6 })),
+      ...pick(23, 5).map((t) => ({ kind: 'resource', ...at(t.q, t.r), live: t.d <= 4 })),
+      { kind: 'item', ...at(3, -3), live: true, icon: 'icon:tool.knife' }],
+    people: people.map((p) => ({ id: p.id, x: p.x, z: p.z, owned: p.id !== 41, hostile: p.id === 41, selected: p.id === game.selected,
+      dead: false, controlled: p.id === 16, face: `face:${p.id}` })),
+    strangers: [at(-7, 2)],
+    mobs: [{ ...at(5, 2), kind: 'wolf' }, { ...at(-4, 7), kind: 'crab' }],
+    footprint: [[cx - 7, cz + 5], [cx + 7, cz + 5], [cx + 5, cz - 4], [cx - 5, cz - 4]],
+  };
+}
+let mapTerrainSent = false;
+function sendMap() {
+  if (!ready) return;
+  if (isGame(state.dialog)) {
+    // C#: HtmlUi.Asset once per island; the model then names it on every frame.
+    if (!mapTerrainSent) { post({ t: 'asset', key: 'terrain:stand-island', url: mapTerrain() }); mapTerrainSent = true; }
+    post({ t: 'show', screen: 'map', model: mapModel() });
+  }
+  else { post({ t: 'hide', screen: 'map' }); mapTerrainSent = false; }
+}
+
 // ---- an unfinished craft project (CraftProjectDetailsPanel) ----
 const PROJECT = { open: false, done: 7 };
 function projectModel() {
@@ -610,6 +661,7 @@ function sendGame() {
   post({ t: 'show', screen: 'roster', model: rosterModel() });
   if (!build.open && !bp.open) post({ t: 'show', screen: 'character', model: characterModel() });
   if (side.health || side.journal) sendSide();
+  if (typeof MAP !== 'undefined') sendMap(); // the selected face grows on the map
 }
 
 // Stand-only stand-ins for the thumbnails Unity renders from the real model.
@@ -811,7 +863,7 @@ function sendHud() {
 }
 
 function showDialog(id) {
-  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); bp.open = false; post({ t: 'hide', screen: 'blueprint' }); BUGS.quick = BUGS.manager = false; post({ t: 'hide', screen: 'bugReport' }); post({ t: 'hide', screen: 'bugManager' }); post({ t: 'hide', screen: 'history' }); END.open = false; post({ t: 'hide', screen: 'endSummary' }); PROJECT.open = false; post({ t: 'hide', screen: 'craftProject' }); }
+  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); bp.open = false; post({ t: 'hide', screen: 'blueprint' }); BUGS.quick = BUGS.manager = false; post({ t: 'hide', screen: 'bugReport' }); post({ t: 'hide', screen: 'bugManager' }); post({ t: 'hide', screen: 'history' }); END.open = false; post({ t: 'hide', screen: 'endSummary' }); PROJECT.open = false; post({ t: 'hide', screen: 'craftProject' }); post({ t: 'hide', screen: 'map' }); mapTerrainSent = false; }
   if (shownDialog && !isGame(shownDialog) && ready) post({ t: 'hide', screen: isTitle(shownDialog) ? 'title' : isCreator(shownDialog) ? 'creator' : SCREEN_OF[shownDialog] || shownDialog });
   if (isGame(id)) {
     shownDialog = id;
@@ -837,7 +889,7 @@ function showDialog(id) {
     loot.open = ['gameLoot', 'gameGift', 'gameBasket'].includes(id);
     if (loot.open) { loot.mode = id === 'gameGift' ? 'gift' : 'exchange'; loot.other = id === 'gameBasket' ? 'container' : 'person'; lootReset(); }
     if (ctx.open) ctx.at = { x: 0.52, y: 0.42 };
-    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); if (build.open) sendBuild(); if (bp.open) sendBlueprint(); sendBugs(); sendHistory(); sendEnd(); sendProject(); }
+    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); if (build.open) sendBuild(); if (bp.open) sendBlueprint(); sendBugs(); sendHistory(); sendEnd(); sendProject(); sendMap(); }
     return;
   }
   if (!isTitle(id)) clearInterval(title.timer);
@@ -926,6 +978,15 @@ function handle(message) {
       if (it && a.kind === 'drop') { it.count -= a.count || 1; if (it.count <= 0) inv.items = inv.items.filter((x) => x !== it); }
     }
     sendInventory();
+    return;
+  }
+  if (message.screen === 'map') {
+    const a = message.args || {};
+    if (message.cmd === 'click') { MAP.cam = { x: a.x, z: a.z }; note(key, `${args} → RtsCameraController.MoveToMapPoint`); }
+    else note(key, `→ ${message.cmd === 'collapse' ? 'свернуть карту' : 'развернуть карту'}`);
+    if (message.cmd === 'collapse') MAP.collapsed = true;
+    if (message.cmd === 'expand') MAP.collapsed = false;
+    sendMap();
     return;
   }
   if (message.screen === 'craftProject') {

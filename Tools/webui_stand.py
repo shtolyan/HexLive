@@ -124,6 +124,9 @@ def main() -> int:
         return 0
     tables = i2_tables()
     print(f"I2: {len(tables['en'])} EN / {len(tables['ru'])} RU terms")
+    # The page loads ~25 ES modules at once; Python's default listen backlog
+    # of 5 makes the OS reset the overflow (ERR_CONNECTION_RESET in the stand).
+    http.server.ThreadingHTTPServer.request_queue_size = 128
     server = http.server.ThreadingHTTPServer(("127.0.0.1", args.port), StandHandler)
     print(f"стенд: http://localhost:{args.port}/")
     try:

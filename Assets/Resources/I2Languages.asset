@@ -30914,6 +30914,14 @@ MonoBehaviour:
       - 'Работа над вещью'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'map.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Map'
+      - 'Карта'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

@@ -273,7 +273,21 @@ public sealed class WorldStateFactory
     /// this is seconds — and the checksum is identical by construction, because
     /// the checksum deliberately hashes worldgen-static integers only (tiles
     /// and the junction graph), never <c>Blocked</c>, objects or NPCs.
+    /// The remote path additionally restricts definitions to the explicit server
+    /// wire vocabulary; the server SimData must already have been applied.
     /// </summary>
+    public WorldState CreateRemoteTopology(WorldBootstrapDefinition bootstrap, IReadOnlyList<string> serverObjectIds)
+    {
+        var world = CreateTopology(bootstrap);
+        if (!SimDataFile.RestrictToRemoteObjectCatalog(world.Content, serverObjectIds))
+        {
+            throw new System.InvalidOperationException(
+                "The server handshake has no valid complete world-object catalog. " +
+                "Refusing to decode numeric definition ids using local defaults.");
+        }
+        return world;
+    }
+
     public WorldState CreateTopology(WorldBootstrapDefinition bootstrap)
     {
         var world = new WorldState

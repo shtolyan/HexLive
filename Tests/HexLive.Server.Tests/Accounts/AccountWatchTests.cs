@@ -54,6 +54,10 @@ public sealed class AccountWatchTests
             Assert.That(otherCreated.IsSuccessStatusCode, Is.True, await otherCreated.Content.ReadAsStringAsync());
             using var socket = await Open(server.Address, session.SessionToken, second.PlayerId, browser);
             var handshake = await ReadHandshake(socket);
+            Assert.That(DefinitionIdTable.IsCanonical(handshake.ObjectDefinitionIds), Is.True,
+                "#487: the actual Kestrel/browser path must transmit the server encoder vocabulary");
+            Assert.That(handshake.ObjectDefinitionIds, Does.Contain("tree.palm"));
+            Assert.That(handshake.ObjectDefinitionIds, Does.Contain("station.workbench"));
             Assert.That(handshake.ControlEnabled, Is.True);
             Assert.That(handshake.ControlOwner, Is.EqualTo("ws:" + session.PlayerId));
             Assert.That(handshake.AssignedNpcIds, Has.Count.EqualTo(1), "--player-characters 8 cannot expand account cap");
@@ -67,6 +71,7 @@ public sealed class AccountWatchTests
             Assert.That((await Command(socket, otherHandshake.AssignedNpcIds.Single(), 11)).Reason, Is.EqualTo("NotAssigned"));
             using var reconnect = await Open(server.Address, session.SessionToken, "invalid-client-id", browser);
             var again = await ReadHandshake(reconnect);
+            Assert.That(again.ObjectDefinitionIds, Is.EqualTo(handshake.ObjectDefinitionIds));
             Assert.That(again.AssignedNpcIds, Is.EqualTo(new[] { assigned }));
             server.Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.SessionToken);
             Assert.That((await server.Client.DeleteAsync(AccountEndpoints.Prefix + "/session")).StatusCode, Is.EqualTo(HttpStatusCode.NoContent));

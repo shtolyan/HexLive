@@ -148,6 +148,7 @@ public sealed class ViewerConnection
             handshake.AssignedNpcIds.AddRange(_assignedNpcIds);
             handshake.AssignedNpcIds.Sort();
         }
+        handshake.ObjectDefinitionIds.AddRange(_host.ObjectDefinitionIds);
 
         if (ControlEnabled && _currentAssignments != null)
             handshake.AssignmentNotices.AddRange(_currentAssignments.PendingNotices(_controlOwner!.Substring(3)));

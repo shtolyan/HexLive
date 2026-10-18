@@ -24394,8 +24394,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Prosthetics workbench
-      - "\u0412\u0435\u0440\u0441\u0442\u0430\u043A \u043F\u0440\u043E\u0442\u0435\u0437\u043E\u0432"
+      - Workbench
+      - "\u0412\u0435\u0440\u0441\u0442\u0430\u043A"
       Flags: 0101
       Languages_Touch: []
     - Term: blueprint.catalog.workbench.description

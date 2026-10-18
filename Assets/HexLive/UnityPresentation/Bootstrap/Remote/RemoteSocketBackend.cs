@@ -1332,8 +1332,21 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
             return;
         }
 
+        if (!DefinitionIdTable.IsCanonical(handshake.ObjectDefinitionIds))
+        {
+            Fail("The server handshake has no valid object-definition vocabulary.");
+            _ready = false;
+            return;
+        }
+
         if (_ready)
         {
+            if (!DefinitionIdTable.Matches(handshake.ObjectDefinitionIds))
+            {
+                Fail("The server object catalog changed. Reload the client before reconnecting.");
+                _ready = false;
+                return;
+            }
             // Reconnected. A different seed or mode means the operator
             // restarted the server on another world — nothing we are showing
             // is valid any more.
@@ -1406,7 +1419,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
         // junctions alone. On the production big island the full build was the
         // main course of a 237-second connect.
         clock.Restart();
-        var world = new WorldStateFactory().CreateTopology(definition);
+        var world = new WorldStateFactory().CreateRemoteTopology(definition, handshake.ObjectDefinitionIds);
         var topologyMs = clock.ElapsedMilliseconds;
 
         clock.Restart();

@@ -4,13 +4,14 @@ using HexLive.Simulation.Runtime;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Platform;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace HexLive.UnityPresentation.UI
 {
     [RequireComponent(typeof(UIDocument))]
-    public sealed class EndSummaryPanel : MonoBehaviour
+    public sealed partial class EndSummaryPanel : MonoBehaviour
     {
         public static bool IsOpen { get; private set; }
 
@@ -70,6 +71,7 @@ namespace HexLive.UnityPresentation.UI
             }
 
             Build();
+            HtmlUi.Handle(HtmlScreen, OnHtmlCommand);
             IsOpen = false;
         }
 
@@ -136,7 +138,8 @@ namespace HexLive.UnityPresentation.UI
         {
             if (_overlay != null)
             {
-                _overlay.style.display = DisplayStyle.Flex;
+                // §174.7: on the web the page draws the summary (EndSummaryPanel.Html).
+                _overlay.style.display = HtmlUi.Active ? DisplayStyle.None : DisplayStyle.Flex;
             }
 
             IsOpen = true;
@@ -152,6 +155,7 @@ namespace HexLive.UnityPresentation.UI
             }
 
             IsOpen = false;
+            HideHtml();
             if (wasOpen && NpcSelection.PointerOverUi)
             {
                 NpcSelection.PointerOverUi = false;
@@ -403,6 +407,7 @@ namespace HexLive.UnityPresentation.UI
 
             RebuildSurvivors(colony);
             RebuildDeaths(snapshot.DeathRecords);
+            PushHtml(snapshot, colony, total, finalDay);
         }
 
         private void RebuildSurvivors(IReadOnlyList<NpcSnapshot> survivors)

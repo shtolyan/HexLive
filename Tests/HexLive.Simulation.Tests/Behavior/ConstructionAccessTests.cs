@@ -289,6 +289,54 @@ public sealed class ConstructionAccessTests
         FreeArchitecturePlacementData.FromElement(new BlueprintElementData
         { Kind = BlueprintElementKind.FloorSector, FloorSector = new FloorSectorKey(tile, 0) });
 
+    [Test]
+    public void ForeignBuildSessionIsRejectedBeforeFetchingEvenOwnedMaterials()
+    {
+        var (engine, actor, site) = SessionFixture();
+        var world = engine.World;
+        var anchor = site.Junctions[0];
+        var material = WorldObjectMutations.SpawnObject(world, ContentIds.Stick,
+            world.Junctions.Items[anchor].Fragment, site.Tile, anchor);
+        material.Owner = actor.Id;
+        Assert.That(ManualBuildSession.Next(world, actor, site).Kind, Is.EqualTo(ManualBuildSession.StepKind.Fetch),
+            "The unguarded session would start fetching our material for the foreign site.");
+        RejectUnchanged(engine, new InteractCommand(actor.Id, site.Id, InteractionType.Build));
+        Assert.That(ManualBuildSession.IsActive(actor.Mind), Is.False);
+    }
+
+    [Test]
+    public void BuildSessionRechecksOwnershipBeforeItsNextStep()
+    {
+        var (engine, actor, site) = SessionFixture();
+        site.OwnerFaction = Faction.Colony;
+        ManualBuildSession.Arm(actor.Mind, site);
+        site.OwnerFaction = Faction.Colony2;
+        var before = Save(engine.World);
+        ManualCommandExecutor.ContinueBuildAll(engine.World, actor, previousCompleted: true);
+        Assert.That(ManualBuildSession.IsActive(actor.Mind), Is.False);
+        Assert.That(Save(engine.World), Is.EqualTo(before));
+        Assert.That(engine.World.Events.Items.Any(e => e.Type == "ManualBuildFinished" &&
+            e.Message.Contains("Outcome=Refused Reason=" + ConstructionAccess.ForeignReason)), Is.True);
+    }
+
+    private static (SimulationEngine Engine, NPCState Actor, WorldObjectState Site) SessionFixture()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        world.FactionHomes.Clear();
+        var actor = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        actor.Mind.ManualControl = true;
+        actor.Inventory.Items.Clear();
+        var tile = Buildable(world);
+        var anchor = StructurePlacement.CenterJunction(world, tile).Value;
+        var site = WorldObjectMutations.SpawnObject(world, ContentIds.BuildSite,
+            world.Junctions.Items[anchor].Fragment, tile, anchor);
+        site.BuildProduct = ContentIds.DryingRack;
+        site.BillSticks = 1;
+        site.OwnerFaction = Faction.Colony2;
+        return (engine, actor, site);
+    }
+
     private static TileCoord Buildable(WorldState world) => world.Tiles.Items.Values
         .Where(t => t.Flags.HasFlag(TileFlags.Walkable) && !t.Flags.HasFlag(TileFlags.Water) && !t.Flags.HasFlag(TileFlags.Blocked))
         .OrderBy(t => Math.Abs(t.Coord.Q) + Math.Abs(t.Coord.R)).First().Coord;

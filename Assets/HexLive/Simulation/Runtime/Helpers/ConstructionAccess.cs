@@ -29,13 +29,26 @@ public static class ConstructionAccess
             (assigned == null || assigned.Contains(npc.Id.Value)))
             .Select(npc => npc.Faction).ToHashSet();
 
-    public static bool CanEditTile(WorldState world, IReadOnlyCollection<Faction> factions, TileCoord tile) =>
-        factions.Count > 0 && !world.FactionHomes.Any(home => !factions.Contains(home.Key) &&
-            HexSpatialMath.HexDistance(tile, home.Value) <= TheftMath.PrivateGroundRadiusTiles);
+    public static bool CanEditTile(WorldState world, IReadOnlyCollection<Faction> factions, TileCoord tile)
+    {
+        if (factions.Count == 0) return false;
+        foreach (var home in world.FactionHomes)
+            if (!factions.Contains(home.Key) &&
+                HexSpatialMath.HexDistance(tile, home.Value) <= TheftMath.PrivateGroundRadiusTiles) return false;
+        return true;
+    }
 
-    public static bool CanEditTile(WorldSnapshot snapshot, IReadOnlyCollection<Faction> factions, TileCoord tile) =>
-        factions.Count > 0 && !snapshot.CampHomes.Any(home => !factions.Contains(home.Faction) &&
-            HexSpatialMath.HexDistance(tile, home.Tile) <= TheftMath.PrivateGroundRadiusTiles);
+    public static bool CanEditTile(WorldSnapshot snapshot, IReadOnlyCollection<Faction> factions, TileCoord tile)
+    {
+        if (factions.Count == 0) return false;
+        for (var i = 0; i < snapshot.CampHomes.Count; i++)
+        {
+            var home = snapshot.CampHomes[i];
+            if (!factions.Contains(home.Faction) &&
+                HexSpatialMath.HexDistance(tile, home.Tile) <= TheftMath.PrivateGroundRadiusTiles) return false;
+        }
+        return true;
+    }
 
     public static bool CanEditObject(WorldState world, IReadOnlyCollection<Faction> factions, WorldObjectState obj) =>
         (obj.OwnerFaction is not { } owner || factions.Contains(owner)) &&
@@ -103,11 +116,12 @@ public static class ConstructionAccess
                 { reason = "InvalidArchitectureGesture"; return false; }
                 tiles = free.Placements.Where(p => p != null)
                     .SelectMany(p => ElementTiles(p.ToElement("access")).Append(p.AnchorTile));
-                var removed = new HashSet<string>(free.RemovedSlotKeys, StringComparer.Ordinal);
+                var editedSlots = new HashSet<string>(free.RemovedSlotKeys, StringComparer.Ordinal);
+                foreach (var placement in free.Placements)
+                    if (placement != null) editedSlots.Add(placement.SlotKey);
                 foreach (var piece in FreeArchitectureRules.FreePieces(world))
                 {
-                    if (!removed.Contains(piece.ArchitectureElements[0].SlotKey) &&
-                        !free.Placements.Any(p => p != null && p.SlotKey == piece.ArchitectureElements[0].SlotKey)) continue;
+                    if (!editedSlots.Contains(piece.ArchitectureElements[0].SlotKey)) continue;
                     if (CanEditObject(world, factions, piece)) continue;
                     reason = ForeignReason; return false;
                 }

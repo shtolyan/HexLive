@@ -3321,6 +3321,13 @@ internal static class ManualCommandExecutor
         WorldState world, NPCState npc, WorldObjectState site,
         string interactionId, AdmissionTracker admission)
     {
+        // Fetching is already part of the building order: refuse a foreign
+        // site before collecting resources or arming a deferred session.
+        if (!ConstructionAccess.CanEditObject(world, new[] { npc.Faction }, site))
+        {
+            Reject(world, npc.Id, "Build", ConstructionAccess.ForeignReason, admission);
+            return;
+        }
         var step = ManualBuildSession.Next(world, npc, site);
         bool started;
         switch (step.Kind)
@@ -3401,6 +3408,12 @@ internal static class ManualCommandExecutor
             var built = site is not null ||
                 ManualBuildSession.ProductStandsOnTile(world, npc.Mind);
             FinishBuildAll(world, npc, built ? "Built" : "SiteGone", visible: true);
+            return;
+        }
+
+        if (!ConstructionAccess.CanEditObject(world, new[] { npc.Faction }, site))
+        {
+            FinishBuildAll(world, npc, "Refused", visible: true, ConstructionAccess.ForeignReason);
             return;
         }
 

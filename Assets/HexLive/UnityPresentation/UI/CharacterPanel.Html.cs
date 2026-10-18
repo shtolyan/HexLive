@@ -300,6 +300,7 @@ namespace HexLive.UnityPresentation.UI
                 if (!EffectCatalog.TryGet(e.Kind, out var def)) continue;
                 var slug = def.TitleKey.Substring("effect.".Length, def.TitleKey.Length - "effect.".Length - ".title".Length);
                 effects.Add(new JObject { ["slug"] = slug, ["emoji"] = def.Emoji, ["buff"] = def.Polarity != EffectPolarity.Debuff,
+                    ["intensity"] = Mathf.Round(Mathf.Clamp01(e.Intensity) * 100f) / 100f, // a debuff's ring: amber → red
                     ["desc"] = string.IsNullOrEmpty(e.DetailKey) ? def.DescKey : e.DetailKey }); // the chip's tooltip
             }
 
@@ -360,15 +361,40 @@ namespace HexLive.UnityPresentation.UI
                 ["journalUnread"] = _journalUnread,
                 // §40.6 r14: washing runs under the Bathe goal; the card says what she is doing.
                 ["goal"] = npc.CurrentInteraction == "WashClothes" && npc.ExecutionStatus == "InProgress" ? "WashClothes" : npc.CurrentGoal,
+                // §160: an attached agent speaks for her in the 💭 pill (RefreshAgentVoice's _thoughtValue).
+                ["thought"] = HtmlAgentThought(npc),
                 ["dream"] = !isDead && !string.IsNullOrEmpty(npc.CurrentDream) && npc.CurrentDream != "None" ? npc.CurrentDream : null,
                 ["directive"] = directive,
                 ["effects"] = effects,
                 ["needs"] = needs,
                 ["nature"] = SheetModel(AttributeRows, npc.Attributes),
+                ["compassion"] = SheetShare("CompassionTrait", npc.Attributes), // §76: a share, shown as N%
+                ["perks"] = new JArray(npc.Perks), // §76.6: badges an extreme attribute earns
                 ["skills"] = SheetModel(SkillRows, npc.Skills),
                 ["traits"] = new JArray(npc.Traits),
                 ["relations"] = relations,
             };
+        }
+
+        private JObject HtmlAgentThought(NpcSnapshot npc)
+        {
+            if (_runner == null || !_runner.TryGetAgentState(npc.Id, out var state) || !state.Attached) return null;
+            if (state.Phase == HexLive.Simulation.Wire.AgentPhase.Thinking) return new JObject { ["thinking"] = true };
+            return string.IsNullOrWhiteSpace(state.IntentSummary) ? null
+                : new JObject { ["thinking"] = false, ["text"] = state.IntentSummary };
+        }
+
+        private static int? SheetShare(string id, List<string> values)
+        {
+            foreach (var line in values)
+            {
+                var tab = line.IndexOf('\t');
+                if (tab != id.Length || string.CompareOrdinal(line, 0, id, 0, tab) != 0) continue;
+                return float.TryParse(line.Substring(tab + 1), System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var value)
+                    ? Mathf.RoundToInt(Mathf.Clamp01(value) * 100f) : null;
+            }
+            return null;
         }
 
         private static JArray SheetModel(SheetConfig[] rows, List<string> values)
@@ -404,7 +430,8 @@ namespace HexLive.UnityPresentation.UI
                 if (npc.IsManualControl) manual++;
                 if (npc.IsDying || npc.IsUnconscious || npc.IsFainted) blocked++;
                 if (npc.IsFighting) fighting++;
-                faces.Add(new JObject { ["id"] = npc.Id.Value, ["name"] = Loc.NpcName(npc.DisplayName), ["face"] = FaceKey(npc.Id.Value) });
+                faces.Add(new JObject { ["id"] = npc.Id.Value, ["name"] = Loc.NpcName(npc.DisplayName), ["face"] = FaceKey(npc.Id.Value),
+                    ["fighting"] = npc.IsFighting });
             }
             if (count <= 1) return null;
             return new JObject

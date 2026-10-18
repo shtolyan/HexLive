@@ -33,6 +33,12 @@ Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.RestHygiene.cs	#6
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.RestHygiene.cs	#7
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.Romance.cs	#1
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.Romance.cs	#2
+# §127.9: #1 transitions the successful talk phase into the same active plan;
+# retain its listener claim/approach. #2 completes a refused talk after releasing
+# that claim/approach. Neither is Abort. RomanceInteractionTests covers both
+# reservation lifecycles and player cues with diagnostics on and off.
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.RomanceInvitation.cs	#1
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.RomanceInvitation.cs	#2
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.SelfTreat.cs	#1
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.Social.cs	#1
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.Social.cs	#2

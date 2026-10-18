@@ -18,6 +18,59 @@ namespace HexLive.Simulation.Tests.Behavior
 /// <summary>§127.9–12: command boundary, paired scene and authoritative outcomes.</summary>
 public sealed class RomanceInteractionTests
 {
+    [TestCase(false, false)]
+    [TestCase(false, true)]
+    [TestCase(true, false)]
+    [TestCase(true, true)]
+    public void InvitationOwnsApproachUntilAnswerAndCuesDoNotDependOnDiagnostics(bool consent, bool diagnostics)
+    {
+        var (world, initiator, listener) = InvitationPair();
+        var previousTrace = SimTrace.Enabled;
+        SimTrace.Enabled = diagnostics;
+        try
+        {
+            if (!consent) listener.Social.GetOrCreate(initiator.Id).Trust = 0f;
+            StartInvitationConversation(world, initiator, listener);
+            var approach = initiator.Plan.TargetJunctionId!.Value;
+            var listenerJunction = listener.CurrentJunction!.Value;
+            Assert.That(approach, Is.Not.EqualTo(listenerJunction));
+            Assert.That(SpatialMutations.TryReserveJunction(world, approach, initiator.Id, world.Tick, 1000), Is.True);
+            Assert.That(SpatialMutations.TryReserveJunction(world, listenerJunction, listener.Id, world.Tick, 1000), Is.True);
+
+            world.Tick = initiator.Execution.EndTick;
+            new ExecutionSystem().Run(world);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(listener.Execution.LastSocialCueKind, Is.EqualTo(consent ? "RomanceAccepted" : "RomanceRefused"));
+                Assert.That(initiator.Execution.Status, Is.EqualTo(ExecutionStatus.None));
+                Assert.That(initiator.Execution.CurrentTalkTopic, Is.Null);
+                Assert.That(listener.Execution.CurrentTalkTopic, Is.Null);
+                Assert.That(initiator.Plan.Status, Is.EqualTo(consent ? PlanStatus.Active : PlanStatus.Completed));
+                Assert.That(listener.Mind.PendingRomanceFrom, Is.EqualTo(consent ? (EntityId?)initiator.Id : null));
+                Assert.That(world.Reservations.Junctions.ContainsKey(approach), Is.EqualTo(consent));
+                Assert.That(world.Occupancy.JunctionOwner.TryGetValue(approach, out var owner) && owner == initiator.Id, Is.EqualTo(consent));
+                Assert.That(world.Reservations.Junctions[listenerJunction].Owner, Is.EqualTo(listener.Id), "never release someone else's reservation");
+                Assert.That(world.Events.Items.Any(e => e.Type == "ManualOrderInterrupted"), Is.False, "an answer is not an aborted order");
+                Assert.That(world.Events.Items.Any(e => e.Type == "RomanceInvitationStarted"), Is.EqualTo(diagnostics));
+                Assert.That(world.Events.Items.Any(e => e.Type == (consent ? "RomanceInvitationAccepted" : "RomanceInvitationDeclined")), Is.EqualTo(diagnostics));
+            });
+            if (consent)
+            {
+                Assert.That(initiator.Plan.Steps[^1].Interaction, Is.EqualTo(InteractionType.Romance));
+            }
+            else
+            {
+                Assert.That(initiator.Plan.Steps, Is.Empty);
+                Assert.That(initiator.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+            }
+        }
+        finally
+        {
+            SimTrace.Enabled = previousTrace;
+        }
+    }
+
     private static (WorldState world, NPCState initiator, NPCState listener) InvitationPair(WorldState existing = null)
     {
         var world = existing ?? TestWorld.CreateWorld(12709);

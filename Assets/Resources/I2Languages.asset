@@ -30778,6 +30778,46 @@ MonoBehaviour:
       - 'Повернуть вправо (E)'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'history.filter.all'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'All'
+      - 'Всё'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.filter.good'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Good'
+      - 'Хорошее'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.filter.bad'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Trouble'
+      - 'Тревожное'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.filter.social'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'People'
+      - 'Люди'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.filter.build'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Building'
+      - 'Стройка'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

@@ -446,6 +446,36 @@ function sendBugs() {
   if (BUGS.quick) post({ t: 'show', screen: 'bugReport', model: { context: `seed=30430 tick=${1840000 + Math.round(state.hud.minutes)} npc=${game.selected}`, sending: false, error: null } });
 }
 
+// ---- the colony history (GameHistoryPanel): a drawer on the left ----
+const HISTORY = { collapsed: true, shown: 10, entries: [
+  ['4, 18:40', 'Рита хорошо поговорила с Мартой.', 'Общение стало лучше. Отношения улучшились.', 'social'],
+  ['4, 18:05', 'Костер погас.', '', 'bad'],
+  ['4, 17:30', 'Маша атакована собакой.', 'Нападающий: собака #3.', 'danger'],
+  ['4, 16:10', 'Яна получила рану.', 'Причина: нападение собаки.', 'danger'],
+  ['4, 15:50', 'Молли помогла Яне.', 'Помощь: лечение ран. Отношения улучшились.', 'good'],
+  ['4, 14:20', 'Марта сделала сушилку.', '', 'build'],
+  ['4, 12:00', 'Начался дождь.', '', 'neutral'],
+  ['4, 10:45', 'Джолли разожгла костер.', '', 'good'],
+  ['4, 09:15', 'Рита срубила дерево.', '', 'neutral'],
+  ['4, 07:30', 'Маша поссорилась с Яной.', 'Общение случилось, но отношения ухудшились.', 'social'],
+  ['3, 22:10', 'Хижина достроена.', '', 'build'],
+  ['3, 20:40', 'На закате на лагерь напали собаки.', '', 'danger'],
+  ['3, 19:00', 'Молли получила еду от Риты.', '', 'good'],
+  ['3, 16:30', 'Мясо испортилось.', '', 'bad'],
+] };
+function historyModel() {
+  return { collapsed: HISTORY.collapsed, more: HISTORY.shown < HISTORY.entries.length,
+    entries: HISTORY.entries.slice(0, HISTORY.shown).map(([when, title, detail, tone], i) => {
+      const [day, clock] = when.split(', ');
+      return { id: i, time: tr('history.time', { 0: day, 1: clock }), title, detail, tone };
+    }) };
+}
+function sendHistory() {
+  if (!ready) return;
+  if (isGame(state.dialog)) post({ t: 'show', screen: 'history', model: historyModel() });
+  else post({ t: 'hide', screen: 'history' });
+}
+
 // ---- the action menu (ContextMenuPanel): a right click on the world ----
 const ctx = { target: 'object', open: false, at: null, id: 0 };
 const E = (key, extra) => ({ label: tr(key).replace(/\s*▸$/, ''), enabled: true, hint: null, danger: false, ...(extra || {}) });
@@ -743,7 +773,7 @@ function sendHud() {
 }
 
 function showDialog(id) {
-  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); bp.open = false; post({ t: 'hide', screen: 'blueprint' }); BUGS.quick = BUGS.manager = false; post({ t: 'hide', screen: 'bugReport' }); post({ t: 'hide', screen: 'bugManager' }); }
+  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); bp.open = false; post({ t: 'hide', screen: 'blueprint' }); BUGS.quick = BUGS.manager = false; post({ t: 'hide', screen: 'bugReport' }); post({ t: 'hide', screen: 'bugManager' }); post({ t: 'hide', screen: 'history' }); }
   if (shownDialog && !isGame(shownDialog) && ready) post({ t: 'hide', screen: isTitle(shownDialog) ? 'title' : isCreator(shownDialog) ? 'creator' : SCREEN_OF[shownDialog] || shownDialog });
   if (isGame(id)) {
     shownDialog = id;
@@ -758,6 +788,7 @@ function showDialog(id) {
     side.journal = id === 'gameJournal';
     if (side.health) game.selected = 13; // the most hurt one shows every kind of row
     ctx.open = id === 'gameContext';
+    HISTORY.collapsed = id !== 'gameHistory'; HISTORY.shown = 10;
     BUGS.quick = id === 'gameBugQuick'; BUGS.manager = id === 'gameBugs'; if (BUGS.manager) { BUGS.tab = 'open'; BUGS.card = 485; }
     bp.open = id === 'gameProject' || id === 'gameFree';
     if (bp.open) { openBlueprint(id === 'gameFree' ? 'free' : 'project'); bp.undo = 3; bp.door = false; bp.active = 'architecture.wall.wood'; bp.category = 'walls'; }
@@ -766,7 +797,7 @@ function showDialog(id) {
     loot.open = ['gameLoot', 'gameGift', 'gameBasket'].includes(id);
     if (loot.open) { loot.mode = id === 'gameGift' ? 'gift' : 'exchange'; loot.other = id === 'gameBasket' ? 'container' : 'person'; lootReset(); }
     if (ctx.open) ctx.at = { x: 0.52, y: 0.42 };
-    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); if (build.open) sendBuild(); if (bp.open) sendBlueprint(); sendBugs(); }
+    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); if (build.open) sendBuild(); if (bp.open) sendBlueprint(); sendBugs(); sendHistory(); }
     return;
   }
   if (!isTitle(id)) clearInterval(title.timer);
@@ -855,6 +886,14 @@ function handle(message) {
       if (it && a.kind === 'drop') { it.count -= a.count || 1; if (it.count <= 0) inv.items = inv.items.filter((x) => x !== it); }
     }
     sendInventory();
+    return;
+  }
+  if (message.screen === 'history') {
+    note(key, `→ ${{ expand: 'развернуть историю', collapse: 'свернуть', more: 'ещё страница записей (GameHistoryLog.ReadTail)' }[message.cmd] || '?'}`);
+    if (message.cmd === 'expand') HISTORY.collapsed = false;
+    if (message.cmd === 'collapse') HISTORY.collapsed = true;
+    if (message.cmd === 'more') HISTORY.shown += 10;
+    sendHistory();
     return;
   }
   if (message.screen === 'bugReport' || message.screen === 'bugManager') {

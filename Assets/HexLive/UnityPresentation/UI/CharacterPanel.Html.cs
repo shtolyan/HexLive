@@ -110,6 +110,19 @@ namespace HexLive.UnityPresentation.UI
             Gone(_journalModal?.Backdrop);
         }
 
+        /// <summary>§171: the call under the switch, as RenderServerVoiceButton reads it.</summary>
+        private JObject HtmlCallState(NpcSnapshot npc)
+        {
+            var phase = _serverVoice?.Current ?? WebVoiceAgent.Phase.Off;
+            var inCall = phase is WebVoiceAgent.Phase.Listening or WebVoiceAgent.Phase.Speaking;
+            var ringing = phase == WebVoiceAgent.Phase.Connecting || _callPreparing;
+            if (ringing) return new JObject { ["state"] = "ringing" };
+            if (inCall) return new JObject { ["state"] = phase == WebVoiceAgent.Phase.Speaking ? "speaking" : "listening" };
+            return _callFailureTerm.Length > 0 && _callFailureNpcId == npc.Id.Value
+                ? new JObject { ["state"] = "failed", ["reason"] = _callFailureTerm }
+                : null;
+        }
+
         private static void Gone(VisualElement element)
         {
             if (element == null) return;
@@ -332,6 +345,9 @@ namespace HexLive.UnityPresentation.UI
                 ["control"] = call ? "call" : _manualControlNow ? "manual" : "ai",
                 ["controlLocked"] = _controlAvailable || call ? null : agentControlled ? "panel.control.agent" : "panel.control.readonly",
                 ["canCall"] = ServerVoiceEligible || call,
+                ["call"] = HtmlCallState(npc),
+                // §121: why her last order was refused or cut short — the card's toast, 2.5 s.
+                ["toast"] = ManualOrderFeedback.IsFresh(npc.Id.Value) ? ManualOrderFeedback.ReasonKey : null,
                 ["pace"] = _runByDefaultNow ? "run" : "walk",
                 ["canStop"] = _controlAvailable && _manualControlNow && !call,
                 ["health"] = Mathf.Round(hp * 100f) / 100f,

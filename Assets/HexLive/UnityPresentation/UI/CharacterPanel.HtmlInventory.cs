@@ -237,6 +237,8 @@ namespace HexLive.UnityPresentation.UI
                 ["name"] = Loc.NpcName(npc.DisplayName),
                 ["readonly"] = !_inventoryMutable,
                 ["outfitLocked"] = _outfitLockedNow,
+                ["toast"] = HexLive.UnityPresentation.Input.ManualOrderFeedback.IsFresh(npc.Id.Value)
+                    ? HexLive.UnityPresentation.Input.ManualOrderFeedback.ReasonKey : null, // §121, as on the card
                 ["capacity"] = new JObject { ["used"] = npc.InventoryUsedSlots, ["cap"] = Math.Max(0, npc.InventoryCapacity) },
                 ["slots"] = slots,
                 ["dollLayer"] = _invVisibleWearLayer.ToString().ToLowerInvariant(),

@@ -476,6 +476,18 @@ function sendHistory() {
   else post({ t: 'hide', screen: 'history' });
 }
 
+// ---- developer tools (DebugControlsPanel): a drawer under the HUD ----
+const DEBUG = { open: false, on: { clothesHidden: false, fog: true, fogSelected: false, culling: true, trace: false, hexInspector: false }, shade: 0 };
+const SHADES = ['Desaturate', 'Darken', 'Sepia'];
+function sendDebug() {
+  if (!ready) return;
+  if (DEBUG.open && isGame(state.dialog)) {
+    const who = COLONY.find((c) => c.id === game.selected);
+    post({ t: 'show', screen: 'debug', model: { target: state.dialog === 'gameNone' ? null : who?.name ?? null, on: DEBUG.on, shade: SHADES[DEBUG.shade],
+      ready: BUGS.reports.filter((r) => r.status === 'ready_for_test' && !r.archived).length, canReport: true, canManage: true, console: state.platform === 'desktop' } });
+  } else post({ t: 'hide', screen: 'debug' });
+}
+
 // ---- the HUD map (TacticalMapPanel): a generated island ----
 const MAP = (() => {
   const R = 1.5, rows = [];
@@ -852,6 +864,8 @@ function hudModel() {
     speed: remote ? 1 : h.speed,
     remote,
     build: isGame(state.dialog) && !bp.open ? { open: build.open } : null, // CanOpen is false while the constructor is open
+    bugs: isGame(state.dialog) ? { ready: BUGS.reports.filter((r) => r.status === 'ready_for_test' && !r.archived).length, canReport: true } : null,
+    debug: isGame(state.dialog) ? { open: DEBUG.open } : null,
   };
 }
 
@@ -863,7 +877,7 @@ function sendHud() {
 }
 
 function showDialog(id) {
-  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); bp.open = false; post({ t: 'hide', screen: 'blueprint' }); BUGS.quick = BUGS.manager = false; post({ t: 'hide', screen: 'bugReport' }); post({ t: 'hide', screen: 'bugManager' }); post({ t: 'hide', screen: 'history' }); END.open = false; post({ t: 'hide', screen: 'endSummary' }); PROJECT.open = false; post({ t: 'hide', screen: 'craftProject' }); post({ t: 'hide', screen: 'map' }); mapTerrainSent = false; }
+  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); bp.open = false; post({ t: 'hide', screen: 'blueprint' }); BUGS.quick = BUGS.manager = false; post({ t: 'hide', screen: 'bugReport' }); post({ t: 'hide', screen: 'bugManager' }); post({ t: 'hide', screen: 'history' }); END.open = false; post({ t: 'hide', screen: 'endSummary' }); PROJECT.open = false; post({ t: 'hide', screen: 'craftProject' }); post({ t: 'hide', screen: 'map' }); mapTerrainSent = false; DEBUG.open = false; post({ t: 'hide', screen: 'debug' }); }
   if (shownDialog && !isGame(shownDialog) && ready) post({ t: 'hide', screen: isTitle(shownDialog) ? 'title' : isCreator(shownDialog) ? 'creator' : SCREEN_OF[shownDialog] || shownDialog });
   if (isGame(id)) {
     shownDialog = id;
@@ -878,6 +892,7 @@ function showDialog(id) {
     side.journal = id === 'gameJournal';
     if (side.health) game.selected = 13; // the most hurt one shows every kind of row
     ctx.open = id === 'gameContext';
+    DEBUG.open = id === 'gameDebug';
     HISTORY.collapsed = id !== 'gameHistory'; HISTORY.shown = 10;
     END.open = id === 'gameEnd';
     PROJECT.open = id === 'gameProject2'; PROJECT.done = 7;
@@ -889,7 +904,7 @@ function showDialog(id) {
     loot.open = ['gameLoot', 'gameGift', 'gameBasket'].includes(id);
     if (loot.open) { loot.mode = id === 'gameGift' ? 'gift' : 'exchange'; loot.other = id === 'gameBasket' ? 'container' : 'person'; lootReset(); }
     if (ctx.open) ctx.at = { x: 0.52, y: 0.42 };
-    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); if (build.open) sendBuild(); if (bp.open) sendBlueprint(); sendBugs(); sendHistory(); sendEnd(); sendProject(); sendMap(); }
+    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); if (build.open) sendBuild(); if (bp.open) sendBlueprint(); sendBugs(); sendHistory(); sendEnd(); sendProject(); sendMap(); sendDebug(); }
     return;
   }
   if (!isTitle(id)) clearInterval(title.timer);
@@ -933,6 +948,8 @@ function note(from, text) {
 
 // What the C# side does with each command, in words.
 const EFFECT = {
+  'hud.bug': 'открыть быстрое окно отчёта об ошибке',
+  'hud.debug': 'открыть / закрыть DEBUG',
   'hud.build': 'открыть / закрыть режим стройки (клавиша B)',
   'gameMenu.continue': 'закрыть меню, мир продолжает идти',
   'gameMenu.mainMenu': 'сохранить игру и вернуться в главное меню',
@@ -978,6 +995,17 @@ function handle(message) {
       if (it && a.kind === 'drop') { it.count -= a.count || 1; if (it.count <= 0) inv.items = inv.items.filter((x) => x !== it); }
     }
     sendInventory();
+    return;
+  }
+  if (message.screen === 'debug') {
+    const id = message.args?.id;
+    if (message.cmd === 'close') { DEBUG.open = false; note(key, '→ закрыть'); sendDebug(); sendHud(); return; }
+    note(key, `${args} → DebugControlsPanel: ${id}`);
+    if (id in DEBUG.on) DEBUG.on[id] = !DEBUG.on[id];
+    if (id === 'shade') DEBUG.shade = (DEBUG.shade + 1) % SHADES.length;
+    if (id === 'report') { BUGS.quick = true; sendBugs(); }
+    if (id === 'manager') { BUGS.manager = true; BUGS.tab = 'open'; sendBugs(); }
+    sendDebug();
     return;
   }
   if (message.screen === 'map') {
@@ -1216,6 +1244,8 @@ function handle(message) {
     if (message.cmd === 'pause') state.hud.paused = !state.hud.paused;
     if (message.cmd === 'speed') { state.hud.speed = message.args.value; state.hud.paused = false; }
     if (message.cmd === 'build') { setBuild(!build.open); return; }
+    if (message.cmd === 'bug') { BUGS.quick = true; BUGS.manager = false; sendBugs(); return; }
+    if (message.cmd === 'debug') { DEBUG.open = !DEBUG.open; sendDebug(); sendHud(); return; }
     sendHud();
     return;
   }

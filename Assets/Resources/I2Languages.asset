@@ -30922,6 +30922,230 @@ MonoBehaviour:
       - 'Карта'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'debug.target.all'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Acting on: everyone'
+      - 'Действует на всех'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.target.one'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Acting on: {0}'
+      - 'Действует на: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.group.health'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Health'
+      - 'Здоровье'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.group.look'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Appearance'
+      - 'Внешность'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.group.view'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'View'
+      - 'Вид'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.group.tools'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tools'
+      - 'Инструменты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.group.bugs'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bugs'
+      - 'Ошибки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.wound'
+      TermType: 0
+      Description: 
+      Languages:
+      - '+ Random wound'
+      - '+ Случайная рана'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.bruise'
+      TermType: 0
+      Description: 
+      Languages:
+      - '+ Random bruise'
+      - '+ Случайный синяк'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.clearWounds'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Clear wounds'
+      - 'Убрать раны'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.dirtPlus'
+      TermType: 0
+      Description: 
+      Languages:
+      - '+ Dirt'
+      - '+ Грязь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.dirtMinus'
+      TermType: 0
+      Description: 
+      Languages:
+      - '− Dirt (wash)'
+      - '− Грязь (помыть)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.tanPlus'
+      TermType: 0
+      Description: 
+      Languages:
+      - '+ Tan'
+      - '+ Загар'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.tanMinus'
+      TermType: 0
+      Description: 
+      Languages:
+      - '− Tan'
+      - '− Загар'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.sweatPlus'
+      TermType: 0
+      Description: 
+      Languages:
+      - '+ Sweat'
+      - '+ Пот'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.sweatMinus'
+      TermType: 0
+      Description: 
+      Languages:
+      - '− Sweat'
+      - '− Пот'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.tear'
+      TermType: 0
+      Description: 
+      Languages:
+      - '+ Tear clothes'
+      - '+ Порвать одежду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.clothesHidden'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide clothes'
+      - 'Скрыть одежду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.fog'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fog of war'
+      - 'Туман войны'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.fogSelected'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fog: selected only'
+      - 'Туман: только выбранная'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.culling'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Perception culling'
+      - 'Отсечение по восприятию'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.shade'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Memory: {0}'
+      - 'Память: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.trace'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Trace (diagnostics)'
+      - 'Трассировка (диагностика)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.hexInspector'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hex inspector'
+      - 'Инспектор гекса'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.adminVoice'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Admin voice'
+      - 'Голос админа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.console'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Console'
+      - 'Консоль'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.report'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Report a bug'
+      - 'Сообщить об ошибке'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'debug.manager'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bug manager'
+      - 'Менеджер ошибок'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

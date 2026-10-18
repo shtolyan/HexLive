@@ -20,6 +20,7 @@ import { History } from './history.js';
 import { EndSummary } from './endSummary.js';
 import { CraftProject } from './craftProject.js';
 import { MapScreen } from './map.js';
+import { Debug } from './debug.js';
 
 export const SCREENS = {
   title: Title,
@@ -34,6 +35,7 @@ export const SCREENS = {
   loot: Loot,
   build: Build,
   map: MapScreen,
+  debug: Debug,
   history: History,
   endSummary: EndSummary,
   craftProject: CraftProject,

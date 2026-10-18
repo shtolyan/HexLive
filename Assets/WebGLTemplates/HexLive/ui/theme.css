@@ -1703,3 +1703,49 @@
   font-size: 1.125rem;
   cursor: pointer;
 }
+
+/* ---- developer tools (DebugControlsPanel) -------------------------------- */
+.hx-hud__badge { min-width: 1.125rem; height: 1.125rem; padding: 0 0.25rem; border-radius: 999px; background: rgb(87 117 199); color: #fff; font-size: 0.6875rem; line-height: 1.125rem; }
+.hx-debug {
+  position: absolute;
+  top: 4.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(40rem, calc(100% - 1.75rem)); /* stays clear of the roster on the right */
+  max-height: calc(100% - 6rem);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: 0.75rem 0.875rem 0.875rem;
+  border: 1px solid var(--hx-stroke);
+  border-radius: 0.875rem;
+  background: rgb(19 24 28 / 0.97);
+  box-shadow: var(--hx-shadow);
+  animation: hx-pop 120ms ease-out;
+}
+.hx-debug__head { display: flex; align-items: center; gap: 0.75rem; }
+.hx-debug__head h2 { margin: 0; font-size: 0.875rem; letter-spacing: 0.14em; color: var(--hx-gold); }
+.hx-debug__head .hx-close { margin-left: auto; }
+.hx-debug__groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); gap: 0.75rem 1rem; }
+.hx-debug__group .hx-section__title { margin: 0 0 0.375rem; }
+.hx-debug__buttons { display: flex; flex-wrap: wrap; gap: 0.3125rem; }
+.hx-debug__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 1.875rem;
+  padding: 0 0.625rem;
+  border: 1px solid var(--hx-stroke);
+  border-radius: 0.5rem;
+  background: var(--hx-raised);
+  color: var(--hx-text);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.hx-debug__btn:hover:not(:disabled) { background: var(--hx-hover); }
+.hx-debug__btn:disabled { opacity: 0.45; cursor: default; }
+.hx-debug__btn.is-danger { border-color: rgb(191 51 46 / 0.6); }
+.hx-debug__btn.is-accent { background: rgb(71 97 140); }
+.hx-debug__btn[aria-pressed="true"] { border-color: var(--hx-gold); }
+.hx-debug__check { display: grid; place-items: center; width: 0.875rem; height: 0.875rem; border: 1px solid var(--hx-stroke-strong); border-radius: 0.1875rem; font-style: normal; font-size: 0.625rem; color: var(--hx-gold); }

@@ -81,6 +81,27 @@ namespace HexLive.UnityPresentation.Diagnostics
 
         public static long Begin() => Enabled ? Stopwatch.GetTimestamp() : 0;
 
+        // Named sub-sections: the same markers the editor Profiler shows
+        // (stripped from a release web player), timed here too under ?perf=1.
+        private static readonly Dictionary<string, long> NamedTicks = new();
+        private static readonly Dictionary<string, string> NamedRows = new();
+        private static readonly Stack<(string name, long start)> NamedStack = new();
+
+        public static void BeginNamed(string name)
+        {
+            UnityEngine.Profiling.Profiler.BeginSample(name);
+            if (Enabled) NamedStack.Push((name, Stopwatch.GetTimestamp()));
+        }
+
+        public static void EndNamed()
+        {
+            UnityEngine.Profiling.Profiler.EndSample();
+            if (!Enabled || NamedStack.Count == 0) return;
+            var (name, start) = NamedStack.Pop();
+            NamedTicks.TryGetValue(name, out var ticks);
+            NamedTicks[name] = ticks + Stopwatch.GetTimestamp() - start;
+        }
+
         public static void End(int section, long start)
         {
             if (start == 0) return;
@@ -192,6 +213,18 @@ namespace HexLive.UnityPresentation.Diagnostics
                 SectionCalls[s] = 0;
             }
 
+            if (NamedTicks.Count > 0)
+            {
+                foreach (var pair in NamedTicks)
+                {
+                    if (pair.Value == 0) continue;
+                    if (!NamedRows.TryGetValue(pair.Key, out var row)) NamedRows[pair.Key] = row = "  » " + pair.Key;
+                    Add(row, pair.Value * TicksToMs);
+                }
+
+                foreach (var name in NamedRows.Keys) NamedTicks[name] = 0;
+            }
+
             var now = Time.realtimeSinceStartup;
             if (now - _windowStart < 1f) return;
             _text = Report();
@@ -233,7 +266,7 @@ namespace HexLive.UnityPresentation.Diagnostics
             foreach (var row in rows)
             {
                 var avg = row.Value / n;
-                if (avg < 0.2 || shown >= 16) break;
+                if (avg < 0.2 || shown >= 24) break;
                 sb.Append($"{avg,6:0.0} ms  (max {_windowMax[row.Key],5:0})  {row.Key}\n");
                 shown++;
             }

@@ -1560,46 +1560,66 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // §152: the live snapshot is also the incremental content working set.
         // Existing ids are cache hits; a newly crafted/looted/spawned owner
         // starts one main+icon bundle load before any panel can reveal it.
+        HexLive.UnityPresentation.Diagnostics.WebPerf.BeginNamed("Hex.RS.Prewarm");
         ScenePrewarm.ForSnapshot(snapshot);
+        HexLive.UnityPresentation.Diagnostics.WebPerf.EndNamed();
 
-        UnityEngine.Profiling.Profiler.BeginSample("Hex.RS.TilesWater");
+        HexLive.UnityPresentation.Diagnostics.WebPerf.BeginNamed("Hex.RS.TilesWater");
         // §148: что наш лагерь видит и что помнит — считается ПЕРВЫМ делом:
         // от этого зависит, какие гексы вообще строить.
+        HexLive.UnityPresentation.Diagnostics.WebPerf.BeginNamed("Hex.RST.Culling");
         RebuildPerceptionCulling(snapshot);
+        HexLive.UnityPresentation.Diagnostics.WebPerf.EndNamed();
 
-        // Spec 31C.4: the river gets banks — tiles adjacent to water are sand.
-        _waterCoords.Clear();
-        _swimCoords.Clear();
-        _tileElevations.Clear();
-        _indoorCoords.Clear();
-        _floorTiles.Clear();
-        foreach (var tile in snapshot.Tiles)
+        // §168.11 PERF: the five tile sets below were rebuilt from all tiles
+        // every tick (8160 dictionary and set writes on «Огромный остров»)
+        // though elevation and flags almost never change. One arithmetic pass
+        // fingerprints them; the sets are rebuilt only when it moves.
+        HexLive.UnityPresentation.Diagnostics.WebPerf.BeginNamed("Hex.RST.Sets");
+        var tileSignature = TileSetSignature(snapshot);
+        var rebuildTileSets = tileSignature != _tileSetSignature;
+        _tileSetSignature = tileSignature;
+        if (rebuildTileSets)
         {
-            _tileElevations[tile.Coord] = tile.Elevation;
-            if (tile.Water)
+            // Spec 31C.4: the river gets banks — tiles adjacent to water are sand.
+            _waterCoords.Clear();
+            _swimCoords.Clear();
+            _tileElevations.Clear();
+            _indoorCoords.Clear();
+            _floorTiles.Clear();
+            foreach (var tile in snapshot.Tiles)
             {
-                _waterCoords.Add(tile.Coord);
-
-                // §40.18-B: deep (unwalkable) water is swum, not waded — the
-                // actor's root sinks below the surface there.
-                if (!tile.Walkable)
+                _tileElevations[tile.Coord] = tile.Elevation;
+                if (tile.Water)
                 {
-                    _swimCoords.Add(tile.Coord);
-                }
-            }
+                    _waterCoords.Add(tile.Coord);
 
-            if (tile.Indoor)
-            {
-                _indoorCoords.Add(tile.Coord);
-            }
-            if (tile.HasFloor)
-            {
-                _floorTiles.Add(tile.Coord);
+                    // §40.18-B: deep (unwalkable) water is swum, not waded — the
+                    // actor's root sinks below the surface there.
+                    if (!tile.Walkable)
+                    {
+                        _swimCoords.Add(tile.Coord);
+                    }
+                }
+
+                if (tile.Indoor)
+                {
+                    _indoorCoords.Add(tile.Coord);
+                }
+                if (tile.HasFloor)
+                {
+                    _floorTiles.Add(tile.Coord);
+                }
             }
         }
 
+        HexLive.UnityPresentation.Diagnostics.WebPerf.EndNamed();
+        HexLive.UnityPresentation.Diagnostics.WebPerf.BeginNamed("Hex.RST.Views");
         foreach (var tile in snapshot.Tiles)
         {
+            // Once every tile has its view there is nothing left to discover.
+            if (_tileViews.Count >= snapshot.Tiles.Count) break;
+
             // §148: земля появляется, только когда её впервые увидели свои.
             if (!_tileViews.ContainsKey(tile.Coord) && TileDiscovered(tile.Coord))
             {
@@ -1615,6 +1635,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 }
             }
         }
+
+        HexLive.UnityPresentation.Diagnostics.WebPerf.EndNamed();
 
         // Spec 20.16: one merged, finely-tessellated water surface for an even
         // seam-free wave across every water hex (see EnsureWaterSurface).
@@ -1633,8 +1655,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             RebuildJunctionLookup(snapshot);
         }
 
-        UnityEngine.Profiling.Profiler.EndSample();
-        UnityEngine.Profiling.Profiler.BeginSample("Hex.RS.Prep");
+        HexLive.UnityPresentation.Diagnostics.WebPerf.EndNamed();
+        HexLive.UnityPresentation.Diagnostics.WebPerf.BeginNamed("Hex.RS.Prep");
 
         // Snapshot-diff despawn (spec 31.15): destroy views whose object
         // disappeared from the simulation (eaten/picked-up apples).
@@ -1831,8 +1853,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
-        UnityEngine.Profiling.Profiler.EndSample();
-        UnityEngine.Profiling.Profiler.BeginSample("Hex.RS.Objects");
+        HexLive.UnityPresentation.Diagnostics.WebPerf.EndNamed();
+        HexLive.UnityPresentation.Diagnostics.WebPerf.BeginNamed("Hex.RS.Objects");
         var frozenViewsBuilt = 0; // #321: бюджет памяти тумана на один пасс
         foreach (var worldObject in snapshot.Objects)
         {
@@ -2222,8 +2244,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
 
-        UnityEngine.Profiling.Profiler.EndSample();
-        UnityEngine.Profiling.Profiler.BeginSample("Hex.RS.Actors");
+        HexLive.UnityPresentation.Diagnostics.WebPerf.EndNamed();
+        HexLive.UnityPresentation.Diagnostics.WebPerf.BeginNamed("Hex.RS.Actors");
         // PERF: пространственный индекс маршрутов интерполяции — пересборка
         // только когда сменился мир или чей-то Blocked (стройка/дверь).
         if (!_routeIndex.IsCurrent(snapshot.Junctions, snapshot.JunctionsBlockedStamp))
@@ -2231,9 +2253,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             _routeIndex.Rebuild(snapshot.Junctions, snapshot.JunctionsBlockedStamp);
         }
 
-        UnityEngine.Profiling.Profiler.BeginSample("Hex.RSA.Architecture");
+        HexLive.UnityPresentation.Diagnostics.WebPerf.BeginNamed("Hex.RSA.Architecture");
         BindArchitectureElementViews(snapshot);
-        UnityEngine.Profiling.Profiler.EndSample();
+        HexLive.UnityPresentation.Diagnostics.WebPerf.EndNamed();
 
         // §155.5: вне шторки за один снапшот-пасс собирается не больше ОДНОЙ
         // новой девушки — сборка вью (тело + пришивка одежды + ткань) стоит
@@ -2373,7 +2395,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
                 if (locomoting)
                 {
-                    UnityEngine.Profiling.Profiler.BeginSample("Hex.RSA.Route");
+                    HexLive.UnityPresentation.Diagnostics.WebPerf.BeginNamed("Hex.RSA.Route");
                     if (!_npcMovementRoutes.TryGetValue(key, out var route))
                     {
                         route = new List<Float2>();
@@ -2402,7 +2424,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                             previousPose = targetPose;
                         }
                     }
-                    UnityEngine.Profiling.Profiler.EndSample();
+                    HexLive.UnityPresentation.Diagnostics.WebPerf.EndNamed();
                 }
                 else
                 {
@@ -2456,9 +2478,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 speedActor.SetSimulationMovementIntent(npc.MovementStatus == "Moving");
             }
 
-            UnityEngine.Profiling.Profiler.BeginSample("Hex.RSA.SyncActor");
+            HexLive.UnityPresentation.Diagnostics.WebPerf.BeginNamed("Hex.RSA.SyncActor");
             SyncActorView(snapshot, npc, paintHidden);
-            UnityEngine.Profiling.Profiler.EndSample();
+            HexLive.UnityPresentation.Diagnostics.WebPerf.EndNamed();
 
             // §127: the sim's completion cue is the one-shot edge. Sampling
             // the live hip bone here preserves the authored pose offset, then
@@ -2470,7 +2492,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // her feet; IN THE WATER (iteration 1: detected via _npcOnWater) it
             // billows on the surface around her instead — different spawn, no
             // ground puddle underwater.
-            UnityEngine.Profiling.Profiler.BeginSample("Hex.RSA.Blood");
+            HexLive.UnityPresentation.Diagnostics.WebPerf.BeginNamed("Hex.RSA.Blood");
             if (_npcOnWater.TryGetValue(key, out var onWaterNow) && onWaterNow)
             {
                 var waterSurfaceY = GroundY(npc.Tile) + ElevationStep * SwimVisuals.SurfaceStepOffset;
@@ -2480,7 +2502,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             {
                 EnsureBloodStains().OnNpcTick(key, npc.Blood, targetPos, snapshot.Tick);
             }
-            UnityEngine.Profiling.Profiler.EndSample();
+            HexLive.UnityPresentation.Diagnostics.WebPerf.EndNamed();
         }
 
         SyncRomancePairs(snapshot);
@@ -2524,9 +2546,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _waterBlood?.Advance(snapshot.Tick);
         _intimacyStains?.Advance(snapshot.Tick, snapshot.IsRaining);
 
-        UnityEngine.Profiling.Profiler.BeginSample("Hex.RSA.Grass");
+        HexLive.UnityPresentation.Diagnostics.WebPerf.BeginNamed("Hex.RSA.Grass");
         UpdateGrassFlattening(snapshot);
-        UnityEngine.Profiling.Profiler.EndSample();
+        HexLive.UnityPresentation.Diagnostics.WebPerf.EndNamed();
 
         // §80/§107.4: фотосессия — сразу на входе в мир, дальше раз в игровые
         // сутки; свет даёт вспышка, поэтому часа суток тут нет. В снапшоте
@@ -2545,8 +2567,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 snapshot.Tick, HexLive.Simulation.Runtime.WorldBalance.DayLengthTicks, _portraitIds);
         }
 
-        UnityEngine.Profiling.Profiler.EndSample();
-        UnityEngine.Profiling.Profiler.BeginSample("Hex.RS.AnimalsCorpses");
+        HexLive.UnityPresentation.Diagnostics.WebPerf.EndNamed();
+        HexLive.UnityPresentation.Diagnostics.WebPerf.BeginNamed("Hex.RS.AnimalsCorpses");
         SyncAnimalViews(snapshot);
 
         // A dead housemate leaves a corpse object - her walking view goes.
@@ -2653,7 +2675,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // impostors in the same anchors. Buildings, stations, furniture,
         // corpses, mobs and VFX keep their real renderers at any zoom, so
         // visible geometry and the analytic click path cannot diverge.
-        UnityEngine.Profiling.Profiler.EndSample();
+        HexLive.UnityPresentation.Diagnostics.WebPerf.EndNamed();
 
         // §155: учёт прохода закрыт — если буфер скрывшихся переполнен,
         // вытесняем самых давних (вью рушит EvictResidencyView, ссылки на
@@ -3237,9 +3259,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             hopEdgePoint,
             hopFlightDirection,
             snapshot.TickDeltaTime);
-        UnityEngine.Profiling.Profiler.BeginSample("Hex.RSA.SyncWorn");
+        HexLive.UnityPresentation.Diagnostics.WebPerf.BeginNamed("Hex.RSA.SyncWorn");
         actorView.SyncWorn(npc.WornItems);
-        UnityEngine.Profiling.Profiler.EndSample();
+        HexLive.UnityPresentation.Diagnostics.WebPerf.EndNamed();
         var earlyThermalForSweat = UI.DebugControlsPanel.SweatOverride ?? npc.ThermalComfort;
         var earlyUncoveredForDecals = UI.DebugControlsPanel.HideClothing ? AllBodyZones : npc.UncoveredParts;
         var earlyRainWet = snapshot.IsRaining && !_indoorCoords.Contains(npc.Tile) ? 1f : 0f;
@@ -3250,11 +3272,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // SetActive) один вызов дорисовывает всё накопившееся.
         if (!paintHidden)
         {
-            UnityEngine.Profiling.Profiler.BeginSample("Hex.RSA.BodyCondition");
+            HexLive.UnityPresentation.Diagnostics.WebPerf.BeginNamed("Hex.RSA.BodyCondition");
             actorView.SetBodyCondition(npc.BodyParts, earlyUncoveredForDecals, npc.Hygiene, earlyThermalForSweat,
                 earlyRainWet, earlyWaterWet, npc.WornWetness, npc.WornDirtiness, npc.WornBloodiness,
                 npc.Wounds, npc.BandagedZones, npc.SeveredParts, npc.BodyPartConditions);
-            UnityEngine.Profiling.Profiler.EndSample();
+            HexLive.UnityPresentation.Diagnostics.WebPerf.EndNamed();
         }
         var heldItemId = npc.HeldItemId;
         // §77.5: the interaction window goes with the verb — the view fits one
@@ -5462,6 +5484,24 @@ public sealed class HexWorldRenderer : MonoBehaviour
     /// never deactivated — the frozen ones simply stop being updated (and a
     /// future pass will restyle them from <see cref="CullFrozenTiles"/>).
     /// Dead colonists contribute no eyes — a wiped camp freezes whole.</summary>
+    private long _tileSetSignature = long.MinValue;
+
+    /// <summary>A 64-bit fingerprint of every tile's elevation and flags, in
+    /// snapshot order; any change in either rebuilds the per-tile sets.</summary>
+    private static long TileSetSignature(WorldSnapshot snapshot)
+    {
+        var hash = unchecked((long)0xcbf29ce484222325) ^ snapshot.Tiles.Count;
+        foreach (var tile in snapshot.Tiles)
+        {
+            var bits = tile.Elevation * 32 +
+                       (tile.Water ? 1 : 0) + (tile.Walkable ? 2 : 0) + (tile.Indoor ? 4 : 0) +
+                       (tile.HasFloor ? 8 : 0);
+            hash = unchecked((hash ^ bits) * 0x100000001b3L);
+        }
+
+        return hash;
+    }
+
     private void RebuildPerceptionCulling(WorldSnapshot snapshot)
     {
         var active = UI.DebugControlsPanel.PerceptionCulling;

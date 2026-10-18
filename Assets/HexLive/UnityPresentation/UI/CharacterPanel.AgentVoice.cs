@@ -32,11 +32,6 @@ namespace HexLive.UnityPresentation.UI
             public float trust;
             public float affinity;
             public string voiceName;
-            public string reason;
-            public bool hasChange;
-            public float familiarityDelta;
-            public float trustDelta;
-            public float affinityDelta;
         }
 
         private VisualElement? _agentVoiceButton;
@@ -99,19 +94,7 @@ namespace HexLive.UnityPresentation.UI
         private float _agentTrust;
         private float _agentAffinity;
         private string _agentVoiceName = "voice";
-        private string _agentRelationReason = "";
-        private bool _agentRelationHasChange;
-        private float _agentFamiliarityDelta;
-        private float _agentTrustDelta;
-        private float _agentAffinityDelta;
         private int _agentRelationTick = -1;
-        private VisualElement? _agentRelationTooltip;
-        private Label? _agentRelationTooltipTitle;
-        private VisualElement? _agentRelationTooltipMetrics;
-        private Label? _agentRelationTooltipReason;
-        private VisualElement? _agentRelationTooltipAnchor;
-        private int _agentRelationTooltipPositionGeneration;
-        private bool _agentRelationTooltipHasCurrentGeometry;
         private bool _agentJournalReady;
         private readonly List<JournalEntrySnapshot> _agentJournal = new();
         private readonly List<JournalEntrySnapshot> _agentMergedJournal = new();
@@ -168,7 +151,6 @@ namespace HexLive.UnityPresentation.UI
         private void ClearAgentSelection()
         {
             ResetAgentVoiceSelection();
-            HideAgentRelationTooltip();
             _agentAttachedNpcId = -1;
             _agentRelationReady = false;
             _agentJournalReady = false;
@@ -681,7 +663,6 @@ namespace HexLive.UnityPresentation.UI
             {
                 if (_agentRelationReady)
                 {
-                    HideAgentRelationTooltip();
                     _agentRelationReady = false;
                     _relationSig.Clear();
                 }
@@ -695,194 +676,21 @@ namespace HexLive.UnityPresentation.UI
                 var trust = Mathf.Clamp01(value.trust);
                 var affinity = Mathf.Clamp(value.affinity, -1f, 1f);
                 var voiceName = string.IsNullOrWhiteSpace(value.voiceName) ? "voice" : value.voiceName;
-                var reason = value.reason ?? "";
                 var changed = !_agentRelationReady ||
                     !Mathf.Approximately(_agentFamiliarity, familiarity) ||
                     !Mathf.Approximately(_agentTrust, trust) ||
                     !Mathf.Approximately(_agentAffinity, affinity) ||
-                    _agentVoiceName != voiceName || _agentRelationReason != reason ||
-                    _agentRelationHasChange != value.hasChange ||
-                    !Mathf.Approximately(_agentFamiliarityDelta, value.familiarityDelta) ||
-                    !Mathf.Approximately(_agentTrustDelta, value.trustDelta) ||
-                    !Mathf.Approximately(_agentAffinityDelta, value.affinityDelta);
+                    _agentVoiceName != voiceName;
                 if (!changed) return;
-                HideAgentRelationTooltip();
                 _agentFamiliarity = familiarity;
                 _agentTrust = trust;
                 _agentAffinity = affinity;
                 _agentVoiceName = voiceName;
-                _agentRelationReason = reason;
-                _agentRelationHasChange = value.hasChange;
-                _agentFamiliarityDelta = value.familiarityDelta;
-                _agentTrustDelta = value.trustDelta;
-                _agentAffinityDelta = value.affinityDelta;
                 _agentRelationTick = _runner?.CurrentTick ?? 0;
                 _agentRelationReady = true;
                 _relationSig.Clear();
             }
             catch (ArgumentException) { }
-        }
-
-        private VisualElement BuildAgentRelationFeedback()
-        {
-            var row = new VisualElement();
-            row.AddToClassList("agent-relation-feedback");
-            var sheet = Resources.Load<StyleSheet>("HexLive/UI/AgentRelations");
-            if (sheet != null) row.styleSheets.Add(sheet);
-            row.Add(BuildAgentRelationDelta(_agentAffinityDelta, RelationColor(_agentAffinity), _agentRelationHasChange));
-            row.Add(BuildAgentRelationDelta(_agentFamiliarityDelta, Social, _agentRelationHasChange));
-            row.Add(BuildAgentRelationDelta(_agentTrustDelta, Good, _agentRelationHasChange));
-            row.RegisterCallback<MouseEnterEvent>(_ => ShowAgentRelationTooltip(row));
-            row.RegisterCallback<MouseLeaveEvent>(_ => HideAgentRelationTooltip());
-            row.RegisterCallback<DetachFromPanelEvent>(_ => HideAgentRelationTooltip());
-            return row;
-        }
-
-        private static VisualElement BuildAgentRelationDelta(float delta, Color color, bool known)
-        {
-            var metric = new VisualElement { pickingMode = PickingMode.Ignore };
-            metric.AddToClassList("agent-relation-delta-slot");
-            var value = new Label(FormatAgentRelationDelta(delta, false, known))
-                { enableRichText = false, pickingMode = PickingMode.Ignore };
-            value.AddToClassList("agent-relation-delta");
-            value.style.color = color;
-            value.style.backgroundColor = new Color(color.r, color.g, color.b, 0.10f);
-            value.style.borderLeftColor = color;
-            value.style.borderTopColor = color;
-            value.style.borderRightColor = color;
-            value.style.borderBottomColor = color;
-            metric.Add(value);
-            return metric;
-        }
-
-        private void ShowAgentRelationTooltip(VisualElement anchor)
-        {
-            EnsureAgentRelationTooltip();
-            _agentRelationTooltipAnchor = anchor;
-            _agentRelationTooltipHasCurrentGeometry = false;
-            var positionGeneration = ++_agentRelationTooltipPositionGeneration;
-            _agentRelationTooltipTitle!.text = Loc.Get("rel.last_voice_impact");
-            _agentRelationTooltipMetrics!.Clear();
-            _agentRelationTooltipMetrics.Add(BuildAgentRelationTooltipMetric(
-                Loc.Get("rel.affinity"), _agentAffinityDelta, RelationColor(_agentAffinity), _agentRelationHasChange));
-            _agentRelationTooltipMetrics.Add(BuildAgentRelationTooltipMetric(
-                Loc.Get("rel.familiarity"), _agentFamiliarityDelta, Social, _agentRelationHasChange));
-            _agentRelationTooltipMetrics.Add(BuildAgentRelationTooltipMetric(
-                Loc.Get("rel.trust"), _agentTrustDelta, Good, _agentRelationHasChange));
-            _agentRelationTooltipReason!.text = _agentRelationReason;
-            _agentRelationTooltip.style.visibility = Visibility.Hidden;
-            _agentRelationTooltip.style.display = DisplayStyle.Flex;
-            _agentRelationTooltip.BringToFront();
-            ScheduleAgentRelationTooltipPosition(anchor, positionGeneration, 4);
-        }
-
-        private void EnsureAgentRelationTooltip()
-        {
-            if (_agentRelationTooltip != null)
-            {
-                if (_agentRelationTooltip.parent == null) _root.Add(_agentRelationTooltip);
-                return;
-            }
-            _agentRelationTooltip = new VisualElement { pickingMode = PickingMode.Ignore };
-            _agentRelationTooltip.AddToClassList("agent-relation-tooltip");
-            var sheet = Resources.Load<StyleSheet>("HexLive/UI/AgentRelations");
-            if (sheet != null) _agentRelationTooltip.styleSheets.Add(sheet);
-
-            _agentRelationTooltipTitle = new Label
-                { enableRichText = false, pickingMode = PickingMode.Ignore };
-            _agentRelationTooltipTitle.AddToClassList("agent-relation-tooltip-title");
-            _agentRelationTooltip.Add(_agentRelationTooltipTitle);
-
-            _agentRelationTooltipMetrics = new VisualElement { pickingMode = PickingMode.Ignore };
-            _agentRelationTooltipMetrics.AddToClassList("agent-relation-tooltip-metrics");
-            _agentRelationTooltip.Add(_agentRelationTooltipMetrics);
-
-            _agentRelationTooltipReason = new Label
-                { enableRichText = false, pickingMode = PickingMode.Ignore };
-            _agentRelationTooltipReason.AddToClassList("agent-relation-tooltip-reason");
-            _agentRelationTooltip.Add(_agentRelationTooltipReason);
-            _agentRelationTooltip.RegisterCallback<GeometryChangedEvent>(OnAgentRelationTooltipGeometryChanged);
-            _root.Add(_agentRelationTooltip);
-        }
-
-        private static VisualElement BuildAgentRelationTooltipMetric(string name, float delta, Color color, bool known)
-        {
-            var row = new VisualElement { pickingMode = PickingMode.Ignore };
-            row.AddToClassList("agent-relation-tooltip-metric");
-            var label = new Label(name) { enableRichText = false, pickingMode = PickingMode.Ignore };
-            label.AddToClassList("agent-relation-tooltip-metric-name");
-            row.Add(label);
-            var value = new Label(FormatAgentRelationDelta(delta, true, known))
-                { enableRichText = false, pickingMode = PickingMode.Ignore };
-            value.AddToClassList("agent-relation-tooltip-metric-value");
-            value.style.color = color;
-            row.Add(value);
-            return row;
-        }
-
-        private void OnAgentRelationTooltipGeometryChanged(GeometryChangedEvent evt)
-        {
-            if (_agentRelationTooltip == null || _agentRelationTooltip.style.display.value == DisplayStyle.None ||
-                _agentRelationTooltipAnchor == null || evt.newRect.width <= 0f || evt.newRect.height <= 0f) return;
-            _agentRelationTooltipHasCurrentGeometry = true;
-            TryPositionAgentRelationTooltip(_agentRelationTooltipAnchor, true);
-        }
-
-        private void ScheduleAgentRelationTooltipPosition(
-            VisualElement anchor, int positionGeneration, int attemptsRemaining)
-        {
-            _agentRelationTooltip?.schedule.Execute(() =>
-            {
-                if (positionGeneration != _agentRelationTooltipPositionGeneration ||
-                    !ReferenceEquals(anchor, _agentRelationTooltipAnchor)) return;
-                TryPositionAgentRelationTooltip(anchor, attemptsRemaining <= 1);
-                if (attemptsRemaining > 1)
-                    ScheduleAgentRelationTooltipPosition(anchor, positionGeneration, attemptsRemaining - 1);
-            });
-        }
-
-        private bool TryPositionAgentRelationTooltip(VisualElement anchor, bool allowGeometryFallback)
-        {
-            if (_agentRelationTooltip == null || _agentRelationTooltip.style.display.value == DisplayStyle.None ||
-                anchor.panel == null || _root.panel == null) return true;
-            if (!_agentRelationTooltipHasCurrentGeometry && !allowGeometryFallback) return false;
-            if (_agentRelationTooltip.resolvedStyle.display == DisplayStyle.None) return false;
-            var bounds = anchor.worldBound;
-            var topLeft = _root.WorldToLocal(new Vector2(bounds.xMin, bounds.yMin));
-            var bottomLeft = _root.WorldToLocal(new Vector2(bounds.xMin, bounds.yMax));
-            var width = _agentRelationTooltip.resolvedStyle.width;
-            var height = _agentRelationTooltip.resolvedStyle.height;
-            if (!float.IsFinite(width) || !float.IsFinite(height) || width <= 0f || height <= 0f ||
-                !float.IsFinite(_root.contentRect.width) || !float.IsFinite(_root.contentRect.height) ||
-                _root.contentRect.width <= 0f || _root.contentRect.height <= 0f) return false;
-            const float margin = 8f;
-            var maxLeft = Mathf.Max(margin, _root.contentRect.width - width - margin);
-            var maxTop = Mathf.Max(margin, _root.contentRect.height - height - margin);
-            _agentRelationTooltip.style.left = Mathf.Clamp(topLeft.x, margin, maxLeft);
-            var above = topLeft.y - height - margin;
-            _agentRelationTooltip.style.top = Mathf.Clamp(
-                above >= margin ? above : bottomLeft.y + margin, margin, maxTop);
-            _agentRelationTooltip.style.visibility = Visibility.Visible;
-            return true;
-        }
-
-        private void HideAgentRelationTooltip()
-        {
-            ++_agentRelationTooltipPositionGeneration;
-            _agentRelationTooltipAnchor = null;
-            _agentRelationTooltipHasCurrentGeometry = false;
-            if (_agentRelationTooltip != null)
-            {
-                _agentRelationTooltip.style.visibility = Visibility.Hidden;
-                _agentRelationTooltip.style.display = DisplayStyle.None;
-            }
-        }
-
-        private static string FormatAgentRelationDelta(float delta, bool percent, bool known)
-        {
-            if (!known) return "—";
-            var points = Mathf.RoundToInt(Mathf.Clamp(delta, -1f, 1f) * 100f);
-            return (points >= 0 ? "+" : "") + points + (percent ? "%" : "");
         }
 
         private void RefreshAgentJournal(string text, int npcId)

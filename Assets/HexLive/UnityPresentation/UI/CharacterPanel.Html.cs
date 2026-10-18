@@ -291,29 +291,15 @@ namespace HexLive.UnityPresentation.UI
             }
 
             var relations = new JArray();
-            // §171: her bond with the player's own voice (the server keeps it per
-            // call; CharacterPanel.ServerVoice reads it) — first in the row, with
-            // what the last talk changed and why.
-            if (_agentRelationReady && _agentAttachedNpcId == npc.Id.Value)
-            {
-                relations.Add(new JObject
-                {
-                    ["id"] = -159, ["voice"] = true, ["name"] = _agentVoiceName, ["face"] = null,
-                    ["tag"] = RelationKindKey(_agentAffinity),
-                    ["affinity"] = Mathf.Round(Mathf.Clamp(_agentAffinity, -1f, 1f) * 100f) / 100f,
-                    ["familiarity"] = Mathf.Round(Mathf.Clamp01(_agentFamiliarity) * 100f) / 100f,
-                    ["trust"] = Mathf.Round(Mathf.Clamp01(_agentTrust) * 100f) / 100f,
-                    ["impact"] = new JObject
-                    {
-                        ["known"] = _agentRelationHasChange,
-                        ["affinity"] = Mathf.Round(Mathf.Clamp(_agentAffinityDelta, -1f, 1f) * 100f) / 100f,
-                        ["familiarity"] = Mathf.Round(Mathf.Clamp(_agentFamiliarityDelta, -1f, 1f) * 100f) / 100f,
-                        ["trust"] = Mathf.Round(Mathf.Clamp(_agentTrustDelta, -1f, 1f) * 100f) / 100f,
-                        ["reason"] = string.IsNullOrWhiteSpace(_agentRelationReason) ? null : _agentRelationReason,
-                    },
-                });
-            }
             var rels = new List<RelationshipSnapshot>(npc.RelationshipDetails);
+            // §171: her bond with the player's own voice is one more relation,
+            // drawn and ordered like the rest (as UpdateRelations does).
+            if (_agentRelationReady && _agentAttachedNpcId == npc.Id.Value)
+                rels.Add(new RelationshipSnapshot
+                {
+                    OtherId = -159, OtherName = _agentVoiceName, Familiarity = _agentFamiliarity,
+                    Trust = _agentTrust, Affinity = _agentAffinity, LastInteractionTick = _agentRelationTick,
+                });
             rels.Sort((a, b) => b.LastInteractionTick.CompareTo(a.LastInteractionTick));
             foreach (var r in rels)
             {

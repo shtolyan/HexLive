@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Platform;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -13,7 +14,7 @@ namespace HexLive.UnityPresentation.UI
     /// dialog and a large tabbed manager. The store remains the source of truth.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
-    public sealed class BugReportPanel : MonoBehaviour
+    public sealed partial class BugReportPanel : MonoBehaviour
     {
         [SerializeField] private SimulationRunnerBehaviour _runner;
 
@@ -58,7 +59,12 @@ namespace HexLive.UnityPresentation.UI
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => IsOpen = false;
 
-        private void OnDestroy() => IsOpen = false;
+        private void OnDestroy()
+        {
+            IsOpen = false;
+            HtmlUi.Unhandle(HtmlQuick, OnHtmlCommand);
+            HtmlUi.Unhandle(HtmlManager, OnHtmlCommand);
+        }
 
         private void Awake()
         {
@@ -78,6 +84,8 @@ namespace HexLive.UnityPresentation.UI
 
             Build(document.rootVisualElement);
             ApplyVisible();
+            HtmlUi.Handle(HtmlQuick, OnHtmlCommand);
+            HtmlUi.Handle(HtmlManager, OnHtmlCommand);
         }
 
         private void OnEnable() => Loc.LanguageChanged += Relocalize;
@@ -108,6 +116,7 @@ namespace HexLive.UnityPresentation.UI
                 if (_quickVisible && !ClosedTestAccess.Can("bugs.create")) SetQuickVisible(false);
                 if (_managerVisible && !ClosedTestAccess.Can("bugs.read")) SetManagerVisible(false);
             }
+            UpdateHtml();
             if (!Visible || Time.unscaledTime < _nextExternalCheck)
             {
                 return;
@@ -117,6 +126,7 @@ namespace HexLive.UnityPresentation.UI
             if (BugReportStore.CheckExternalChange() && _managerVisible)
             {
                 RebuildManager();
+                _htmlDirty = true;
             }
         }
 
@@ -164,6 +174,7 @@ namespace HexLive.UnityPresentation.UI
             IsOpen = Visible;
             _quickModal?.Show(_quickVisible);
             _managerModal?.Show(_managerVisible);
+            HideToolkitUnderHtml();
             if (_quickWindow != null)
             {
                 _quickWindow.style.display = _quickVisible ? DisplayStyle.Flex : DisplayStyle.None;

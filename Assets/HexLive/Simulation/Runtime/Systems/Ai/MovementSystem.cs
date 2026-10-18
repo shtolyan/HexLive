@@ -846,6 +846,15 @@ public sealed class MovementSystem : ISimulationSystem
             // владеет гейт запуска прыжка.
             var standingAtTakeoff = hopApproach &&
                 HexSpatialMath.Distance(npc.Position, target) <= 0.0001f;
+            // §71.11: то же самое у ОБЫЧНОГО узла. Шаг, на волосок (< 1e-4)
+            // короче звена, ставит тело на узел, но не засчитывает его — у
+            // Кшиштофа под дождём 0.29293×1.6×мокрая ≈ 0.37495 против звена
+            // 0.37499914, и так на КАЖДОМ узле. Нулевой вектор давал курс 0°,
+            // идущей на запад это разворот кругом (§71.7), потом кругом назад:
+            // «бежит, разворачивается» по 10 тиков на звено. Стоящей на цели
+            // курс не нужен: ниже она приходит на узел и переносит остаток.
+            var standingOnTarget = !hopApproach &&
+                HexSpatialMath.Distance(npc.Position, target) <= 0.0001f;
             // §76: a nimble girl also pivots faster (same reasoning as the pace
             // above — multiplied in, never stored on npc.TurnSpeed).
             var turnPerTick = npc.TurnSpeed * SimBalance.BaseTurnSpeedFactor *
@@ -869,7 +878,7 @@ public sealed class MovementSystem : ISimulationSystem
             // deadzone (see ambientAlignment below).
             var initialFacingError = 0f;
             var facingError = 0f;
-            if (npc.Movement.HopTimer <= 0f && !standingAtTakeoff)
+            if (npc.Movement.HopTimer <= 0f && !standingAtTakeoff && !standingOnTarget)
             {
                 npc.Movement.DesiredDirection = direction;
                 npc.Movement.DesiredRotationDegrees = HexSpatialMath.AngleDegrees(direction);

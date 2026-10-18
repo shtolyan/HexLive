@@ -7,8 +7,6 @@
 // preview: Unity renders that camera into portraitRect. Model: {
 //   mode: 'none' | 'single' | 'group', collapsed,
 //   npc: { id, name, control: 'ai'|'manual'|'call', controlLocked (I2 key | null), canCall, call (null|'ringing'|…),
-//          agent: null | { state: 'ready'|'listening'|'recognizing'|'thinking'|'speaking'|'offline'|'no_stt'|'no_microphone',
-//                          label, tip, disabled },   // §160 an MCP agent attached to her: talk to it by voice
 //          pace: 'walk'|'run', canStop, health 0–1, healthColor, status, statusTone, uv, shade, badge,
 //          journalUnread, goal, dream, directive: { kind, from } | null,
 //          effects: [{ slug, emoji, buff, intensity }],
@@ -18,7 +16,7 @@
 //   group: { count, manual, total, blocked, fighting, mode, faces: [{ id, name, face }], feedback },
 // }
 // Commands: control { mode }, pace { value }, stop, open { window: 'inventory'|'journal'|'health' },
-// collapse, expand, select { id }, groupMode, groupStop, portraitRect { x, y, w, h, vw, vh }, agentMic.
+// collapse, expand, select { id }, groupMode, groupStop, portraitRect { x, y, w, h, vw, vh }.
 import { html, useState, useEffect, useRef } from '../html.js';
 import { t } from '../i18n.js';
 import { asset } from '../bridge.js';
@@ -145,10 +143,6 @@ function Identity({ npc, send }) {
         <button type="button" class="hx-id__btn" title=${t('inv.button')} onClick=${() => send('open', { window: 'inventory' })}>${icons.bag()}<span>${t('inv.button')}</span></button>
         <button type="button" class="hx-id__btn" title=${t('journal.button')} onClick=${() => send('open', { window: 'journal' })}>${icons.book()}<span>${t('journal.button')}</span>
           ${npc.journalUnread > 0 && html`<b class="hx-dot-count">${npc.journalUnread}</b>`}</button>
-        ${npc.agent && html`
-          <button type="button" class="hx-id__btn hx-id__agent" data-state=${npc.agent.state} disabled=${npc.agent.disabled}
-            title=${npc.agent.tip} aria-label=${npc.agent.tip} onClick=${() => send('agentMic')}>
-            ${icons.mic()}<span>${npc.agent.label}</span></button>`}
       </div>
       <div class="hx-id__bottom">
         <div class="hx-toggle hx-toggle--small" role="group" title=${t('panel.pace.tooltip')}>

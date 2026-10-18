@@ -491,24 +491,7 @@ function sendDebug() {
 }
 
 // ---- voice (§160/§161): the admin window, the recording card, the reply line ----
-// §160 the MCP agent attached to the selected colonist: its microphone on the card.
-const AGENT = { on: false, state: 'ready' };
-function agentModel() {
-  return { state: AGENT.state, label: tr(`agent.voice.${AGENT.state}`), tip: tr('agent.voice.button'), disabled: false };
-}
-function captureTitle() {
-  return VOICE.who === 'agent' ? `Claude · ${tr('agent.voice.listening')}` : `${tr('admin.voice.title')} · ${tr('agent.voice.listening')}`;
-}
-function agentTurn() {
-  // CharacterPanel.AgentVoice: Deepgram, then the agent's turn, then her voice with a subtitle.
-  const step = (state, ms, then) => setTimeout(() => { AGENT.state = state; sendGame(); then?.(); }, ms);
-  AGENT.state = 'recognizing'; sendGame();
-  step('thinking', 900, () => step('speaking', 1400, () => {
-    subtitle(state.lang === 'ru' ? 'Рита: Хорошо, схожу за водой и вернусь к костру.' : 'Rita: All right, I will fetch water and come back to the fire.', null, 4);
-    step('ready', 3800);
-  }));
-}
-const VOICE = { who: 'admin', open: false, access: 'approved', busy: false, confirm: null, recording: false, level: 0, subtitle: null };
+const VOICE = { open: false, access: 'approved', busy: false, confirm: null, recording: false, level: 0, subtitle: null };
 let voiceTimer = 0, subtitleTimer = 0;
 function subtitle(text, tone, seconds = 5) {
   VOICE.subtitle = { text, tone };
@@ -528,7 +511,7 @@ function sendVoice() {
     access: VOICE.access, expires: VOICE.access === 'approved' ? (state.lang === 'ru' ? 'до 25.10.2026 18:00' : 'until 2026-10-25 18:00') : null,
     showRequest: true, canRequest: true, busy: VOICE.busy, confirm: VOICE.confirm, mic: { recording: VOICE.recording } } });
   else post({ t: 'hide', screen: 'adminVoice' });
-  if (game && VOICE.recording) post({ t: 'show', screen: 'voiceCapture', model: { title: captureTitle(), level: VOICE.level } });
+  if (game && VOICE.recording) post({ t: 'show', screen: 'voiceCapture', model: { title: `${tr('admin.voice.title')} · ${tr('agent.voice.listening')}`, level: VOICE.level } });
   else post({ t: 'hide', screen: 'voiceCapture' });
   if (game && VOICE.subtitle) post({ t: 'show', screen: 'voiceSubtitle', model: VOICE.subtitle });
   else post({ t: 'hide', screen: 'voiceSubtitle' });
@@ -536,7 +519,7 @@ function sendVoice() {
   if (game && VOICE.recording) voiceTimer = setInterval(() => {
     // A voice: the level breathes, as FmodMicrophoneCapture.Level does.
     VOICE.level = Math.max(0.05, Math.min(1, 0.45 + 0.4 * Math.sin(Date.now() / 160) * Math.sin(Date.now() / 470)));
-    post({ t: 'show', screen: 'voiceCapture', model: { title: captureTitle(), level: VOICE.level } });
+    post({ t: 'show', screen: 'voiceCapture', model: { title: `${tr('admin.voice.title')} · ${tr('agent.voice.listening')}`, level: VOICE.level } });
   }, 70);
 }
 
@@ -708,7 +691,6 @@ function rosterModel() {
 function npcModel(c) {
   return {
     id: c.id, name: c.name, control: game.control, controlLocked: null, canCall: true, call: null,
-    agent: AGENT.on ? agentModel() : null,
     pace: game.pace, canStop: game.control === 'manual', health: c.health, healthColor: healthColor(c.health),
     status: c.status, statusTone: c.tone, uv: 'mid', shade: false, badge: c.fighting ? 'fighting' : null,
     journalUnread: 2, goal: c.goal, dream: 'OwnBed', directive: { kind: 'Firewood', from: null },
@@ -980,7 +962,6 @@ function showDialog(id) {
     ctx.open = id === 'gameContext';
     DEBUG.open = id === 'gameDebug';
     DEBUG.on.hexInspector = id === 'gameInspector';
-    AGENT.on = id === 'gameAgent'; AGENT.state = 'ready'; VOICE.who = 'admin';
     VOICE.open = id === 'gameAdmin'; VOICE.recording = id === 'gameVoice'; VOICE.busy = false; VOICE.confirm = null; VOICE.access = id === 'gameAdmin' ? 'unrequested' : 'approved';
     VOICE.subtitle = id === 'gameVoice' ? { text: state.lang === 'ru' ? 'Рита: Слышу тебя. Скажи, что нужно, и я пойду.' : 'Rita: I hear you. Tell me what you need and I will go.', tone: null } : null;
     HISTORY.collapsed = id !== 'gameHistory'; HISTORY.shown = 10;
@@ -1120,11 +1101,6 @@ function handle(message) {
   }
   if (message.screen === 'voiceCapture') {
     note(key, `→ ${message.cmd}`);
-    if (VOICE.who === 'agent') {
-      VOICE.recording = false; VOICE.who = 'admin'; sendVoice();
-      if (message.cmd === 'done') agentTurn(); else { AGENT.state = 'ready'; sendGame(); }
-      return;
-    }
     if (message.cmd === 'done') finishCapture();
     else { VOICE.recording = false; sendVoice(); sendHud(); }
     return;
@@ -1294,14 +1270,6 @@ function handle(message) {
     if (message.screen === 'journal') { side.read[game.selected] = 0; side.journal = false; }
     else { side.health = false; side.healthRect = null; drawWorld(); }
     sendSide();
-    return;
-  }
-  if (message.screen === 'character' && message.cmd === 'agentMic') {
-    // ToggleAgentCapture: record, or finish a recording already running.
-    note(key, '→ ToggleAgentCapture');
-    if (AGENT.state === 'listening') { VOICE.recording = false; VOICE.who = 'admin'; sendVoice(); agentTurn(); return; }
-    if (AGENT.state !== 'ready') return;
-    AGENT.state = 'listening'; VOICE.who = 'agent'; VOICE.recording = true; sendGame(); sendVoice();
     return;
   }
   if (message.screen === 'roster' || message.screen === 'character') {

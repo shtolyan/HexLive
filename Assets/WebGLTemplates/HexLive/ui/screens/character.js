@@ -81,6 +81,34 @@ function CardBox({ className, send, children }) {
   return html`<div class=${className} ref=${ref}>${children}</div>`;
 }
 
+// Just the name (player's request 18.10.2026); a click copies the id for bug reports.
+function copyText(text) {
+  const fallback = () => {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.cssText = 'position:absolute;left:-9999px;top:0';
+    document.body.appendChild(area);
+    area.select();
+    try { document.execCommand('copy'); } catch { /* nothing more to try */ }
+    area.remove();
+  };
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).catch(fallback);
+  else fallback();
+}
+
+function NameCopy({ npc }) {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return undefined;
+    const timer = setTimeout(() => setCopied(false), 1400);
+    return () => clearTimeout(timer);
+  }, [copied]);
+  return html`<button type="button" class="hx-id__name" title=${t('panel.copy_id')}
+    onClick=${() => { copyText(String(npc.id)); setCopied(true); }}>
+    <b>${npc.name}</b>${copied && html`<span class="hx-id__copied" role="status">${t('panel.id_copied')}</span>`}</button>`;
+}
+
 function Identity({ npc, send }) {
   const hole = useRef(null);
   useEffect(() => {
@@ -108,7 +136,7 @@ function Identity({ npc, send }) {
               title=${mode === 'call' ? t('agent.call.button') : t(`panel.control.${mode}`)}
               onClick=${() => send('control', { mode })}>${MODE_ICON[mode]()}${mode !== 'call' && html`<span>${t(`panel.control.${mode}`)}</span>`}</button>`)}
         </div>
-        <div class="hx-id__name"><b>${npc.name}</b><span>${t('panel.role')} · #${npc.id}</span></div>
+        <${NameCopy} npc=${npc} />
       </div>
       ${npc.badge && html`<span class="hx-id__badge">${t(`badge.${npc.badge}`)}</span>`}
       <div class="hx-id__side">

@@ -31178,6 +31178,22 @@ MonoBehaviour:
       - 'Насколько она готова на неё положиться.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'panel.copy_id'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Click to copy the character id'
+      - 'Нажмите — id персонажа скопируется'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.id_copied'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Id copied'
+      - 'Id скопирован'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

@@ -875,9 +875,11 @@
 .hx-id { position: relative; border-radius: var(--hx-radius); outline: 1px solid var(--hx-stroke); overflow: hidden; }
 .hx-id__portrait { position: absolute; inset: 0; }
 .hx-id__top { position: absolute; top: 0.5rem; left: 0.5rem; right: 4rem; display: flex; flex-direction: column; align-items: flex-start; gap: 0.375rem; }
-.hx-id__name { display: flex; flex-direction: column; padding: 0.25rem 0.5rem; border-radius: 0.5rem; background: rgb(0 0 0 / 0.45); }
+.hx-id__name { position: relative; display: flex; flex-direction: column; align-items: flex-start; padding: 0.25rem 0.5rem; border: 0; border-radius: 0.5rem; background: rgb(0 0 0 / 0.45); color: inherit; text-align: left; cursor: copy; }
+.hx-id__name:hover { background: rgb(0 0 0 / 0.6); }
+.hx-id__copied { position: absolute; z-index: 3; left: 0.5rem; top: 100%; margin-top: 0.25rem; padding: 0.0625rem 0.375rem; border-radius: 0.375rem; background: var(--hx-leaf); color: var(--hx-ink); font-size: 0.6875rem; font-weight: 700; white-space: nowrap; animation: hx-id-copied 140ms ease-out; }
+@keyframes hx-id-copied { from { opacity: 0; transform: translateY(-0.25rem); } }
 .hx-id__name b { font-size: 1.125rem; }
-.hx-id__name span { color: var(--hx-text-dim); font-size: 0.75rem; }
 .hx-id__badge { position: absolute; left: 0.5rem; top: 6.5rem; padding: 0.1875rem 0.5rem; border-radius: 0.375rem; background: rgb(191 51 46); font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.06em; }
 .hx-id__side { position: absolute; top: 0.5rem; right: 0.5rem; display: flex; flex-direction: column; gap: 0.375rem; }
 .hx-id__btn {

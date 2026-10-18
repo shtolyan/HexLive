@@ -1,7 +1,7 @@
 {
   "version": 1,
   "definitionId": "furniture.hearth",
-  "modelSha256": "a1ba09af6c85a1084d6ebb8e6d6ebf1bd032671cea4709a58dcaa4c596e5e45b",
+  "modelSha256": "fc6fb1bdb73bcff2684f6d9bcb70b61abfbaaabbc5fb6f818d1e1b7b093eb64e",
   "basis": {
     "up": "+Z",
     "forward": "+Y",

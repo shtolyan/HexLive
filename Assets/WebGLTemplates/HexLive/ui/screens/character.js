@@ -127,7 +127,7 @@ function Identity({ npc, send }) {
           </div>
           <button type="button" class="hx-vitals__hp" title=${t('panel.health')} onClick=${() => send('open', { window: 'health' })}>
             <${Ring} value=${npc.health} color=${npc.healthColor} size="4rem" stroke="0.375rem" label=${t('panel.health')}>
-              <b>${Math.round(npc.health * 100)}</b>
+              <b class="hx-hp">${Math.round(npc.health * 100)}<span aria-hidden="true">❤️</span></b>
             <//>
           </button>
         </div>
@@ -212,9 +212,10 @@ function Relations({ npc }) {
         <div class="hx-rel__focus">
           <div class="hx-rel__who"><b>${r.name}</b><span data-tone=${TAG_TONE[r.tag] || ''}>${t(`rel.${r.tag}`)}</span></div>
           <div class="hx-rel__rings">
-            ${[['affinity', (r.affinity + 1) / 2, r.affinity >= 0 ? 'var(--hx-leaf)' : 'rgb(232 104 92)'],
-               ['familiarity', r.familiarity, 'rgb(120 170 230)'], ['trust', r.trust, 'var(--hx-gold)']].map(([id, v, c]) => html`
-              <figure key=${id}><${Ring} value=${v} color=${c} size="3rem" stroke="0.3125rem" label=${t(`rel.${id}`)}><b>${Math.round(v * 100)}</b><//>
+            ${[['affinity', (r.affinity + 1) / 2, r.affinity >= 0 ? 'var(--hx-leaf)' : 'rgb(232 104 92)', r.affinity >= 0 ? '💗' : '💔'],
+               ['familiarity', r.familiarity, 'rgb(120 170 230)', '👥'], ['trust', r.trust, 'var(--hx-gold)', '🤝']].map(([id, v, c, glyph]) => html`
+              <figure key=${id}><${Ring} value=${v} color=${c} size="3rem" stroke="0.3125rem" label=${t(`rel.${id}`)}>
+                <span class="hx-rel__value"><i aria-hidden="true">${glyph}</i><b>${Math.round(v * 100)}</b></span><//>
                 <figcaption>${t(`rel.${id}`)}</figcaption></figure>`)}
           </div>
         </div>`}

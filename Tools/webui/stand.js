@@ -289,7 +289,8 @@ function lootPane(side) {
       slots.push({ item: held ? lootItem(held) : null, hand: h === 'L' ? 'left' : 'right' });
     }
     const loose = inside.filter((i) => !i.hand);
-    for (let n = 0; n < cap; n++) slots.push({ item: loose[n] ? lootItem(loose[n]) : null });
+    // The holster's free places are typed (InventorySlotSnapshot.AcceptedItemDefinitionId): only a stone axe goes there.
+    for (let n = 0; n < cap; n++) slots.push({ item: loose[n] ? lootItem(loose[n]) : null, accepts: !loose[n] && id === 'holster' ? itemName('tool.axe_stone') : undefined });
     const bagName = state.lang === 'ru' ? (id === 'bag' ? 'Плетёная сумка' : 'Корзина') : (id === 'bag' ? 'Woven bag' : 'Basket');
     return { title: title ? tr(title) : bagName, filled: inside.length, cap: cap + (hands ? 2 : 0), overflow: false,
       owner: id === 'bag' ? { uid: `${side}-bag`, def: 'resource.cloth', icon: 'icon:resource.cloth', name: bagName, count: 1 } : null, slots };
@@ -297,6 +298,8 @@ function lootPane(side) {
   return {
     name: person ? who.name : (state.lang === 'ru' ? 'Корзина у костра' : 'Basket by the fire'),
     face: person ? `face:${who.id}` : null, kind: person ? 'person' : 'container',
+    // LootTransferPanel: a person's header is her own inventory count, not the groups' sum (hands included).
+    count: person ? { used: items.filter((i) => !i.hand && i.group !== 'worn').length, cap: 11 } : undefined,
     groups, worn: person ? items.filter((i) => i.group === 'worn').map(lootItem) : [],
   };
 }
@@ -621,7 +624,7 @@ function mapModel() {
     collapsed: MAP.collapsed,
     terrain: 'terrain:stand-island',
     fog,
-    markers: [{ kind: 'camp', ...at(0, 0), live: true, lit: true },
+    markers: [{ kind: 'camp', ...at(0, 0), live: false, lit: true, home: true }, // her own camp stays bright out of sight
       ...pick(9, 3).map((t) => ({ kind: 'palm', ...at(t.q, t.r), live: t.d <= 6 })),
       ...pick(23, 5).map((t) => ({ kind: 'resource', ...at(t.q, t.r), live: t.d <= 4 })),
       { kind: 'item', ...at(3, -3), live: true, icon: 'icon:tool.knife' }],

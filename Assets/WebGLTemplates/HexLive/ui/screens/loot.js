@@ -10,8 +10,10 @@
 //   status: { key, tone: 'hint'|'busy'|'error' },
 //   left, right: {
 //     name, face?, kind: 'person'|'container',
+//     count?: { used, cap },                    // a person's own inventory count (the groups also hold hands)
 //     groups: [{ title, filled, cap, overflow, owner?: item,      // owner: the bag itself
-//                slots: [{ item: item|null, hand?: 'left'|'right' }] }],  // hand: a hand, not a pocket
+//                slots: [{ item: item|null, hand?: 'left'|'right',
+//                          accepts?: name }] }],  // hand: a hand, not a pocket; accepts: a slot kept for one thing
 //     worn: [item],                             // clothes that hold nothing
 //   },
 //   info: null | { uid, detail: { category, desc, stats: [[label, value]] } },  // the card asked for
@@ -55,7 +57,10 @@ function Cell({ slot, ctx }) {
   const it = slot.item;
   const hand = slot.hand ? t(`inv.hand_${slot.hand}`) : undefined;
   if (!it) {
-    return html`<li class="hx-slot hx-slot--empty" title=${hand}><${Hand} side=${slot.hand} /></li>`;
+    // A typed slot: only one kind of thing goes in — say which, or a drop there looks broken.
+    const typed = slot.accepts ? `${t('inv.typed_slot')}: ${slot.accepts}` : null;
+    return html`<li class=${`hx-slot hx-slot--empty${typed ? ' is-typed' : ''}`} title=${[hand, typed].filter(Boolean).join(' · ') || undefined}>
+      <${Hand} side=${slot.hand} /></li>`;
   }
   return html`<li class=${`hx-slot${ctx.selected === it.uid ? ' is-selected' : ''}`} title=${hand ? `${hand}: ${it.name}` : undefined}>
     <button type="button" draggable=${!ctx.pending} title=${hand ? undefined : it.name} disabled=${ctx.pending}
@@ -93,8 +98,8 @@ function Info({ item, detail, onClose }) {
 
 function Pane({ side, pane, ctx, accepts }) {
   const face = pane.face && asset(pane.face);
-  const used = (pane.groups || []).reduce((n, g) => n + g.filled, 0);
-  const cap = (pane.groups || []).reduce((n, g) => n + g.cap, 0);
+  const used = pane.count?.used ?? (pane.groups || []).reduce((n, g) => n + g.filled, 0);
+  const cap = pane.count?.cap ?? (pane.groups || []).reduce((n, g) => n + g.cap, 0);
   const info = ctx.selected && sideOf(ctx.model, ctx.selected) === side ? findItem(ctx.model, ctx.selected) : null;
   const detail = info && ctx.model.info?.uid === info.uid ? ctx.model.info.detail : null;
   const target = ctx.dragging && sideOf(ctx.model, ctx.dragging) !== side;

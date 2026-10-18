@@ -20,6 +20,7 @@
 // }
 // Commands — tray: mode { value }, category { id }, card { id }, rotate { dir: -1|1 }, delete, edit, finish.
 // Commands — blueprint: mode, category, card, select, undo, redo, delete, done (drop the selection), exit, build.
+// The constructor's mouse/keyboard hint (blueprint.shortcuts) runs along its bottom edge.
 // Q/E, Ctrl+Z and Escape stay Unity's keys: the tray never takes the keyboard.
 import { html } from '../html.js';
 import { t } from '../i18n.js';
@@ -97,5 +98,6 @@ export function Build({ model, send }) {
           </div>
         </aside>
       </div>
+      ${ed && html`<p class="hx-build__hint" title=${t('blueprint.shortcuts')}>${t('blueprint.shortcuts')}</p>`}
     </section>`;
 }

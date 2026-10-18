@@ -8,7 +8,7 @@
 //   terrain: asset key → JSON { radius, tiles: [[x, z, water 0|1, elevation]] } (world units),
 //            sent once per island through HtmlUi.Asset: a model is last-one-wins, an asset is kept
 //   fog: string,                       // per tile: '0' unknown, '1' remembered, '2' in sight
-//   markers: [{ kind: 'camp'|'palm'|'resource'|'item', x, z, live, lit, icon? }],
+//   markers: [{ kind: 'camp'|'palm'|'resource'|'item', x, z, live, lit, home?, icon? }],  // home: her own camp, never dimmed
 //   people: [{ id, x, z, owned, hostile, selected, dead, controlled, face? }],
 //   strangers: [{ x, z }],             // seen as someone, not yet known
 //   mobs: [{ x, z, kind: 'wolf'|'crab'|'other' }],
@@ -93,7 +93,7 @@ function draw(canvas, model, redraw) {
     if (stroke) { g.strokeStyle = stroke; g.lineWidth = 1.2; g.stroke(); }
   };
   for (const m of model.markers || []) {
-    g.globalAlpha = m.live ? 1 : 0.55;
+    g.globalAlpha = m.live || m.home ? 1 : 0.55;
     if (m.kind === 'camp') { dot(m.x, m.z, 5, C.campRing); dot(m.x, m.z, 2.6, m.lit ? C.fire : C.cold); }
     else if (m.kind === 'palm') dot(m.x, m.z, 2, C.palm);
     else if (m.kind === 'resource') dot(m.x, m.z, 1.8, C.resource);
@@ -117,7 +117,9 @@ function draw(canvas, model, redraw) {
     g.save(); g.beginPath(); g.arc(px, py, r, 0, Math.PI * 2); g.clip();
     if (img) g.drawImage(img, px - r, py - r, r * 2, r * 2); else { g.fillStyle = 'rgb(40 48 54)'; g.fillRect(px - r, py - r, r * 2, r * 2); }
     g.restore();
-    if (p.controlled) { g.fillStyle = 'rgb(240 180 92)'; g.font = `bold ${Math.round(r * 1.5)}px system-ui`; g.fillText('★', px + r - 2, py - r + 3); }
+    // The selected one wears a white outline (TacticalMapView); the dead lose the controller's star.
+    if (p.selected) { g.beginPath(); g.arc(px, py, r + 3.2, 0, Math.PI * 2); g.strokeStyle = 'rgb(255 255 255 / 0.9)'; g.lineWidth = 1.4; g.stroke(); }
+    if (p.controlled && !p.dead) { g.fillStyle = 'rgb(240 180 92)'; g.font = `bold ${Math.round(r * 1.5)}px system-ui`; g.fillText('★', px + r - 2, py - r + 3); }
   }
   if (model.footprint?.length > 2) {
     g.beginPath();

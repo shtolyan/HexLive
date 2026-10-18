@@ -1,0 +1,94 @@
+# key	English	Русский
+# §58.9: лента колонии в роде того, кто действует. Слот 0 — человек в {0}, 1 — в {1}, 2 — в {2}.
+# Неизвестный пол = женская форма, так строка читается ровно как до разметки.
+history.AidStarted	{0} went to help {1}.	{0} [[0:пошла|пошёл]] помогать {1}.
+history.AidRequested	{0} noticed {1} needs help.	{0} [[0:заметила|заметил]], что {1} нужна помощь.
+history.AidWaitTimeout	{0} stopped waiting for help.	{0} [[0:перестала|перестал]] ждать помощи.
+history.Aided	{0} helped {1}.	{0} [[0:помогла|помог]] {1}.
+history.TalkRequested	{0} invited {1} to talk.	{0} [[0:позвала|позвал]] {1} поговорить.
+history.TalkStarted	{0} started a conversation with {1}.	{0} [[0:начала|начал]] разговор с {1}.
+history.ItemStolen	{0} stole {1}.	{0} [[0:украла|украл]] {1}.
+history.GiftGiven	{0} gave {1} a gift.	{0} [[0:сделала|сделал]] подарок {1}.
+history.detail.gift.Liked	[[1:She|He]] was glad to get it.	[[1:Ей|Ему]] было приятно.
+history.detail.gift.Neutral	[[1:She|He]] took it without much feeling.	[[1:Приняла|Принял]] без особых чувств.
+history.detail.gift.Disliked	[[1:She|He]] did not understand the point of it.	[[1:Не поняла, зачем ей|Не понял, зачем ему]] это.
+history.TalkCompleted	{0} had a good talk with {1}.	{0} хорошо [[0:поговорила|поговорил]] с {1}.
+history.CaughtCheating	{0} caught {1} with {2}.	{0} [[0:застала|застал]] {1} с {2}.
+history.CampsMerged	{0} united two camps.	{0} [[0:объединила|объединил]] два лагеря.
+history.TalkQuarreled	{0} quarreled with {1}.	{0} [[0:поссорилась|поссорился]] с {1}.
+history.TalkWaitTimeout	{0} stopped waiting for the conversation.	{0} [[0:перестала|перестал]] ждать разговора.
+history.GroupHuntPactFormed	{0} agreed to go after the stranger together.	{0} [[0:сговорилась|сговорился]] идти на чужака вместе с остальными.
+history.GroupHuntEngaged	{0} laid into the stranger.	{0} [[0:набросилась|набросился]] на чужака.
+history.GroupHuntDone	{0} got even with the stranger.	{0} [[0:поквиталась|поквитался]] с чужаком.
+history.GroupHuntFailed	{0} did not get to the stranger.	{0} не [[0:добралась|добрался]] до чужака.
+history.InteractionBlocked	{0} could not use a busy object.	{0} не [[0:смогла|смог]] воспользоваться занятым объектом.
+history.FoodShared	{0} received food from {1}.	{0} [[0:получила|получил]] еду от {1}.
+history.Mourned	{0} paid respects to the dead.	{0} [[0:почтила|почтил]] память погибших.
+history.Looted	{0} took something from a body.	{0} [[0:забрала|забрал]] вещь с тела.
+history.StrippedHelpless	{0} stripped a helpless enemy.	{0} [[0:обчистила|обчистил]] беспомощного врага.
+history.NpcDied	{0} died.	{0} [[0:погибла|погиб]].
+history.BledOut	{0} bled out.	{0} [[0:истекла|истёк]] кровью.
+history.StarvedToDeath	{0} died from hunger or thirst.	{0} [[0:умерла|умер]] от голода или жажды.
+history.Drowned	{0} drowned.	{0} [[0:утонула|утонул]].
+history.VitalPartDestroyed	{0} suffered a fatal wound.	{0} [[0:получила|получил]] смертельную рану.
+history.DogShot	{0} fired at a dog.	{0} [[0:выстрелила|выстрелил]] в собаку.
+history.HelpCry	{0} called for help.	{0} [[0:позвала|позвал]] на помощь.
+history.HelpCryAnswered	{0} answered a call for help.	{0} [[0:откликнулась|откликнулся]] на клич о помощи.
+history.HelpCryIgnored	{0} did not answer the call for help.	{0} не [[0:откликнулась|откликнулся]] на клич о помощи.
+history.HelpCryAssistStarted	{0} ran to defend a housemate.	{0} [[0:побежала|побежал]] защищать своих.
+history.HelpCryAssistArrived	{0} joined the fight.	{0} [[0:вступила|вступил]] в бой.
+history.HelpCryAssistLost	{0} lost the attacker.	{0} [[0:потеряла|потерял]] нападающего.
+history.HelpCryDefended	{0} struck the attacker.	{0} [[0:ударила|ударил]] нападающего.
+history.FriendGuard	{0} rushed to defend a friend.	{0} [[0:бросилась|бросился]] защищать друга.
+history.Preyed	{0} attacked a housemate.	{0} [[0:напала|напал]] на своих.
+history.PreyFoughtBack	{0} fought back.	{0} [[0:дала|дал]] отпор.
+history.PreyFled	{0} fled from an attacker.	{0} [[0:сбежала|сбежал]] от нападавшего.
+history.Murdered	A housemate was killed for meat.	Кого-то из своих убили ради мяса.
+history.SharkBite	{0} was bitten by a shark.	{0} укусила акула.
+history.LimbSevered	{0} lost a limb.	{0} [[0:потеряла|потерял]] конечность.
+history.Fainted	{0} fainted.	{0} [[0:потеряла|потерял]] сознание.
+history.FellAsleepExhausted	{0} collapsed from exhaustion.	{0} [[0:свалилась|свалился]] без сил.
+history.FaintedBloodLoss	{0} passed out from blood loss.	{0} [[0:отключилась|отключился]] от потери крови.
+history.WokeUp	{0} came to.	{0} [[0:пришла|пришёл]] в себя.
+history.WoundInflicted	{0} was wounded.	{0} [[0:получила|получил]] рану.
+history.GotSick	{0} got sick from raw water.	{0} [[0:заболела|заболел]] от сырой воды.
+history.ThreatSpotted	{0} spotted a predator.	{0} [[0:заметила|заметил]] хищника.
+history.Bandaged	{0} dressed the wounds.	{0} [[0:перевязала|перевязал]] раны.
+history.Medicated	{0} used medicine.	{0} [[0:приняла|принял]] лекарство.
+history.Sunburn	{0} was burned by the sun.	{0} [[0:обгорела|обгорел]] на солнце.
+history.TreeChopped	{0} felled a tree.	{0} [[0:срубила|срубил]] дерево.
+history.BoulderBroken	{0} broke a boulder.	{0} [[0:разбила|разбил]] валун.
+history.LogSplit	{0} split a log into sticks.	{0} [[0:расколола|расколол]] бревно на палки.
+history.CrownChopped	{0} cut palm leaves.	{0} [[0:нарубила|нарубил]] пальмовых листьев.
+history.CoconutProcessed	{0} opened a coconut.	{0} [[0:вскрыла|вскрыл]] кокос.
+history.CoconutDrank	{0} drank coconut water.	{0} [[0:выпила|выпил]] кокосовую воду.
+history.CoconutEaten	{0} ate coconut.	{0} [[0:съела|съел]] кокос.
+history.BottleFilled	{0} filled a bottle.	{0} [[0:наполнила|наполнил]] бутылку.
+history.DrankBottle	{0} drank from a bottle.	{0} [[0:попила|попил]] из бутылки.
+history.FireLit	{0} lit the fire.	{0} [[0:разожгла|разжёг]] костер.
+history.FireFueled	{0} fed the fire.	{0} [[0:подбросила|подбросил]] топлива в костер.
+history.MeatHungOnSpit	{0} hung meat over the fire.	{0} [[0:повесила|повесил]] мясо над костром.
+history.MeatEaten	{0} ate roasted meat.	{0} [[0:съела|съел]] жареное мясо.
+history.BuildProgress	{0} built part of the shelter.	{0} [[0:построила|построил]] часть укрытия.
+history.FurnitureBuilt	{0} finished furniture.	{0} [[0:закончила|закончил]] мебель.
+history.BedCrafted	{0} made a bed.	{0} [[0:сделала|сделал]] постель.
+history.TentCrafted	{0} made a sun shelter.	{0} [[0:сделала|сделал]] навес от солнца.
+history.RackCrafted	{0} made a drying rack.	{0} [[0:сделала|сделал]] сушилку.
+history.Butchered	{0} butchered a body.	{0} [[0:разделала|разделал]] тушу.
+history.EmergencyUnload	{0} dropped supplies to make room for food.	{0} [[0:сбросила|сбросил]] припасы, чтобы освободить место для еды.
+history.Crafted	{0} crafted something useful.	{0} что-то [[0:смастерила|смастерил]].
+history.rel.warmed	{0} warmed toward {1}.	{0} [[0:стала|стал]] теплее к {1}.
+history.rel.colder	{0} grew colder toward {1}.	{0} [[0:стала|стал]] хуже относиться к {1}.
+history.detail.AidWaitTimeout	The promised helper did not arrive in time.	Помощь не успела прийти вовремя.
+history.detail.TalkWaitTimeout	The invited NPC did not arrive in time.	Собеседник не успел подойти вовремя.
+history.cause.Preyed	housemate attack	нападение своих
+# §167 обещания: глагол о том, кто действует (слот s = 0 = он/она).
+history.DirectiveAsked	asked for help	[[s:попросила|попросил]]
+history.DirectiveAccepted	agreed	[[s:согласилась|согласился]]
+history.DirectiveRefused	refused	[[s:отказала|отказал]]
+history.DirectiveShout	shouted	[[s:крикнула|крикнул]]
+history.DirectiveDone	kept [[s:her|his]] word	[[s:сделала, как обещала|сделал, как обещал]]
+history.DirectiveExpired	forgot [[s:her|his]] promise	[[s:забыла|забыл]] обещание
+history.detail.DirectiveAccepted	agreed: {0}	[[s:согласилась|согласился]]: {0}
+history.detail.DirectiveRefused	refused: {0}	[[s:отказала|отказал]]: {0}
+history.detail.CampsMerged	The residents chose one main camp. Their people, supplies and shelters are now shared.	Жители выбрали один основной лагерь. Теперь люди, припасы и постройки у них общие.

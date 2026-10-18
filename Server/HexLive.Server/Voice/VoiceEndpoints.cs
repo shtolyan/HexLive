@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Runtime;
 using HexLive.VoiceBrain;
 using HexLive.Server.Accounts;
@@ -128,7 +129,8 @@ public static class VoiceEndpoints
             if (slot.Count > SessionsPerMinute) return Results.StatusCode(StatusCodes.Status429TooManyRequests);
             var host = worlds.Host;
             var facts = host.Read(w => w.Entities.Npcs.TryGetValue(new EntityId(request.NpcId), out var npc)
-                ? (Alive: npc.Health > 0f, npc.DisplayName, npc.VoiceBank) : (Alive: false, DisplayName: "", VoiceBank: ""));
+                ? (Alive: npc.Health > 0f, npc.DisplayName, npc.VoiceBank, npc.ActorMesh, Male: npc.Sex == GarmentSex.Male)
+                : (Alive: false, DisplayName: "", VoiceBank: "", ActorMesh: "", Male: false));
             if (!facts.Alive) return Results.NotFound();
             var owner = "ws:" + playerId;
             if (!CanSpend(owner)) return Results.Json(new { error = "insufficient_credit" }, statusCode: 402);
@@ -175,7 +177,7 @@ public static class VoiceEndpoints
                 return Results.Json(new
                 {
                     conversationToken = token, ticket, sessionId = signed.SessionId, name = facts.DisplayName,
-                    voiceId = voice.VoiceFor(null, facts.VoiceBank, facts.DisplayName), firstMessage,
+                    voiceId = voice.VoiceFor(null, facts.VoiceBank, facts.DisplayName, facts.ActorMesh, facts.Male), firstMessage,
                 });
             }
             finally { greetingBudget.Cancel(); }

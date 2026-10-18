@@ -432,7 +432,7 @@ public sealed class NPCState
     // отдельно: тело и пол — это одно и то же, и второе поле рано или поздно
     // разошлось бы с первым. Зеркало презентационного ActorSex.Of.
     public Content.GarmentSex Sex =>
-        ActorMesh is "Kshishtof" or "Tonny"
+        Common.GenderedText.IsMaleBody(ActorMesh)
             ? Content.GarmentSex.Male
             : Content.GarmentSex.Female;
 

@@ -66,6 +66,27 @@ public sealed class CharacterViewTests
     }
 
     [Test]
+    public void AManSpeaksOfHimselfInTheMasculine()
+    {
+        // §58.9: a Kshishtof body on the phone said «я устала» and «голодна».
+        using var needs = JsonDocument.Parse("""{"hunger":0.71,"energy":{"value":0.2},"health":0.3}""");
+        Assert.That(CharacterView.Feelings(needs.RootElement, male: true).ToList(),
+            Is.EquivalentTo(new[] { "голоден", "очень устал, хочет спать", "ранен" }));
+        using var man = JsonDocument.Parse("""
+            {"name":"Kshishtof","sex":"male","knownPeople":[{"npcId":2,"nameId":"Jolly","sex":"female"}]}
+            """);
+        var view = CharacterView.Build(man.RootElement);
+        Assert.Multiple(() =>
+        {
+            Assert.That(CharacterView.IsMale(man.RootElement), Is.True);
+            Assert.That(view, Does.Contain("Пол: мужчина"));
+            Assert.That(view, Does.Contain("Jolly (женщина)"));
+        });
+        using var woman = JsonDocument.Parse("""{"name":"Jolly"}""");
+        Assert.That(CharacterView.Build(woman.RootElement), Does.Contain("Пол: женщина"), "no field = the old feminine default");
+    }
+
+    [Test]
     public void ProjectionStaysSmall()
     {
         var items = string.Join(",", Enumerable.Range(1, 200).Select(i =>

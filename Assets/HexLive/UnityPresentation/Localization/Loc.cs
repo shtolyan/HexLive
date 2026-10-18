@@ -1,4 +1,5 @@
 using System;
+using HexLive.Simulation.Common;
 using I2.Loc;
 
 namespace HexLive.UnityPresentation.Localization
@@ -55,7 +56,47 @@ namespace HexLive.UnityPresentation.Localization
         public static bool Has(string key) =>
             LocalizationManager.TryGetTranslation(key, out _);
 
-        public static string Get(string key)
+        /// <summary>
+        /// §58.9: whom the screen is about — the selected character. The card,
+        /// its tooltips, order toasts and the web page's whole string table all
+        /// speak of them, so slot <c>s</c> of a plain <see cref="Get(string)"/>
+        /// takes their grammatical gender. People in <c>{0}</c>/<c>{1}</c>
+        /// stay feminine unless the caller passes <see cref="GenderSlots"/>.
+        /// </summary>
+        public static bool SubjectMale { get; private set; }
+
+        /// <summary>
+        /// Switching between a man and a woman re-reads every string exactly
+        /// like a language switch does — the same panels, the same web table.
+        /// </summary>
+        public static void SetSubject(bool male)
+        {
+            if (SubjectMale == male)
+            {
+                return;
+            }
+
+            SubjectMale = male;
+            LanguageChanged?.Invoke();
+        }
+
+        /// <summary>
+        /// The term in the current language. §58.9 gender markup
+        /// (<c>[[s:пошла|пошёл]]</c>) resolves for the selected character
+        /// (<see cref="SubjectMale"/>), every other slot to the feminine form —
+        /// the text every caller saw before the markup existed. A caller that
+        /// knows who the line is about passes <see cref="GenderSlots"/> instead.
+        /// </summary>
+        public static string Get(string key) => Get(key, GenderSlots.Of(SubjectMale));
+
+        /// <summary>§58.9: the term with its gender markup resolved for these people.</summary>
+        public static string Get(string key, GenderSlots gender) =>
+            GenderedText.Resolve(Raw(key), gender);
+
+        /// <summary>§58.9: the term in the character's own grammatical gender.</summary>
+        public static string Get(string key, bool male) => Get(key, GenderSlots.Of(male));
+
+        private static string Raw(string key)
         {
             if (LocalizationManager.TryGetTranslation(key, out var text) &&
                 !string.IsNullOrEmpty(text))

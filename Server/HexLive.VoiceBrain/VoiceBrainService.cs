@@ -72,12 +72,16 @@ public sealed partial class VoiceBrainService
             NpcId = ticket.NpcId, SessionId = ticket.SessionId });
     }
 
-    /// <summary>Character voice: an explicit request, else the character's voice bank/name, else Masha.</summary>
-    public string VoiceFor(string? requested, string? voiceBank, string? name)
+    /// <summary>
+    /// Character voice: an explicit request, else the character's voice bank/body/name, else the default
+    /// voice of their sex — Masha for a woman, Kshishtof for a man (§58.9: a Tonny body with no voice bank
+    /// used to answer the phone in Masha's voice).
+    /// </summary>
+    public string VoiceFor(string? requested, string? voiceBank, string? name, string? actorMesh = null, bool male = false)
     {
-        foreach (var key in new[] { requested, voiceBank, name })
+        foreach (var key in new[] { requested, voiceBank, actorMesh, name })
             if (key is { Length: > 0 } k && _voices.TryGetValue(k, out var id)) return id;
-        return _voices.GetValueOrDefault("Masha", "");
+        return male && _voices.TryGetValue("Kshishtof", out var man) ? man : _voices.GetValueOrDefault("Masha", "");
     }
 
     public object RelationshipView(string characterId, string ownerUserId)

@@ -378,12 +378,16 @@ namespace HexLive.UnityPresentation.UI
             _journalActorId = npc.Id.Value;
             _journalSig = signature;
 
+            // §58.9: дневник пишется в роде автора, а люди в нём — в своём.
+            NpcGender.Remember(snapshot);
+            var author = NpcGender.IsMale(npc);
+
             _journalEntries.Clear();
             _journalEmpty.style.display = entries.Count == 0 ? DisplayStyle.Flex : DisplayStyle.None;
 
             var name = Loc.NpcName(npc.DisplayName);
             _journalTitle.text = string.IsNullOrEmpty(name) ? Loc.Get("panel.journal") : name;
-            _journalSubtitle.text = string.Format(Loc.Get("journal.subtitle"), name);
+            _journalSubtitle.text = string.Format(Loc.Get("journal.subtitle", author), name);
 
             // ⭐ НОВЫЕ СВЕРХУ. Игрок не должен листать вниз, чтобы узнать, что
             // случилось только что: непрочитанное обязано быть первым, что он
@@ -392,7 +396,7 @@ namespace HexLive.UnityPresentation.UI
             _journalShownReadTo = readTo; // §174.7: the page marks what was new on opening
             for (var i = entries.Count - 1; i >= 0; i--)
             {
-                _journalEntries.Add(MakeJournalEntry(entries[i], entries[i].Tick > readTo));
+                _journalEntries.Add(MakeJournalEntry(entries[i], entries[i].Tick > readTo, author));
             }
 
             _journalDragScroll?.Cancel();
@@ -405,9 +409,9 @@ namespace HexLive.UnityPresentation.UI
             }
         }
 
-        private VisualElement MakeJournalEntry(JournalEntrySnapshot entry, bool unread)
+        private VisualElement MakeJournalEntry(JournalEntrySnapshot entry, bool unread, bool authorMale)
         {
-            var text = JournalFormatter.Format(entry);
+            var text = JournalFormatter.Format(entry, authorMale);
 
             var row = new VisualElement();
             row.style.flexDirection = FlexDirection.Column;

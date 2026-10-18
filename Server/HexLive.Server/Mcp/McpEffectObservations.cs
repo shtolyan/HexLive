@@ -4,6 +4,8 @@ using System.IO;
 using System.Text.Json;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Agents.Effects;
+using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 
 namespace HexLive.Server.Mcp;
@@ -28,7 +30,7 @@ internal static class McpEffectObservations
     public static View Read(WorldState world, NPCState npc)
     {
         var view = new View();
-        var sink = new Sink(view);
+        var sink = new Sink(view, GenderSlots.Of(npc.Sex == GarmentSex.Male));
         EffectReadModel.Visit(world, npc, ref sink);
         return view;
     }
@@ -50,7 +52,14 @@ internal static class McpEffectObservations
     private readonly struct Sink : IEffectSink
     {
         private readonly View _view;
-        public Sink(View view) => _view = view;
+        // §58.9: «держит её в тонусе» — о носителе эффекта, в его роде.
+        private readonly GenderSlots _gender;
+
+        public Sink(View view, GenderSlots gender)
+        {
+            _view = view;
+            _gender = gender;
+        }
 
         public void Add(ActiveEffect effect)
         {
@@ -78,7 +87,12 @@ internal static class McpEffectObservations
             return definition;
         }
 
-        private void IncludeTerm(string key) => _view.Terms.TryAdd(key, Terms.Value[key]);
+        private void IncludeTerm(string key)
+        {
+            if (_view.Terms.ContainsKey(key)) return;
+            var text = Terms.Value[key];
+            _view.Terms.Add(key, new TextPair(GenderedText.Resolve(text.en, _gender), GenderedText.Resolve(text.ru, _gender)));
+        }
     }
 
     private static Dictionary<string, TextPair> LoadTerms()

@@ -25,22 +25,26 @@ public static class CharacterView
         needs.TryGetProperty(key, out var v) ? v.ValueKind == JsonValueKind.Number ? v.GetDouble()
             : v.ValueKind == JsonValueKind.Object && v.TryGetProperty("value", out var inner) ? inner.GetDouble() : null : null;
 
-    /// <summary>Need scales turned into what she would say about herself.</summary>
-    public static IEnumerable<string> Feelings(JsonElement needs)
+    /// <summary>§58.9: the body decides the grammar — «he» for Kshishtof and Tonny bodies, «she» otherwise.</summary>
+    public static bool IsMale(JsonElement d) => Text(d, "sex") == "male";
+
+    /// <summary>Need scales turned into what the character would say about themself, in their own grammatical gender.</summary>
+    public static IEnumerable<string> Feelings(JsonElement needs, bool male = false)
     {
         static string? Bad(double? v, string mild, string strong, string severe) =>
             v is not { } x ? null : x >= .85 ? severe : x >= .6 ? strong : x >= .35 ? mild : null;
         static string? Low(double? v, string mild, string strong, string severe) =>
             v is not { } x ? null : x <= .15 ? severe : x <= .35 ? strong : x <= .6 ? mild : null;
+        string G(string female, string masculine) => male ? masculine : female;
         var list = new[]
         {
-            Bad(Need(needs, "hunger"), "немного голодна", "голодна", "умирает от голода"),
+            Bad(Need(needs, "hunger"), G("немного голодна", "немного голоден"), G("голодна", "голоден"), "умирает от голода"),
             Bad(Need(needs, "thirst"), "хочет пить", "сильная жажда", "умирает от жажды"),
-            Low(Need(needs, "energy"), "немного устала", "очень устала, хочет спать", "валится с ног"),
-            Low(Need(needs, "stamina"), "чуть запыхалась", "выдохлась", "совсем нет сил"),
-            Low(Need(needs, "health"), "побаливает", "ранена", "тяжело ранена"),
+            Low(Need(needs, "energy"), G("немного устала", "немного устал"), G("очень устала, хочет спать", "очень устал, хочет спать"), "валится с ног"),
+            Low(Need(needs, "stamina"), G("чуть запыхалась", "чуть запыхался"), G("выдохлась", "выдохся"), "совсем нет сил"),
+            Low(Need(needs, "health"), "побаливает", G("ранена", "ранен"), G("тяжело ранена", "тяжело ранен")),
             Low(Need(needs, "blood"), "слабость от потери крови", "сильная кровопотеря", "на грани от кровопотери"),
-            Low(Need(needs, "hygiene"), "немного грязная", "грязная", "очень грязная"),
+            Low(Need(needs, "hygiene"), G("немного грязная", "немного грязный"), G("грязная", "грязный"), G("очень грязная", "очень грязный")),
         }.Where(x => x != null).Select(x => x!).ToList();
         return list.Count > 0 ? list : ["чувствует себя хорошо"];
     }
@@ -48,7 +52,12 @@ public static class CharacterView
     public static string Build(JsonElement d, string query = "")
     {
         var sb = new StringBuilder();
+        var male = IsMale(d);
         sb.Append("Имя: ").Append(Name(d)).Append('\n');
+        // §58.9: без этой строки модель по умолчанию говорила «я устала» и мужским голосом.
+        sb.Append("Пол: ").Append(male
+            ? "мужчина — о себе говоришь в мужском роде (я пошёл, я устал, я рад)"
+            : "женщина — о себе говоришь в женском роде (я пошла, я устала, я рада)").Append('\n');
         if (d.TryGetProperty("tick", out var tick) && tick.TryGetInt64(out var t))
             sb.Append("Свежий снимок сервера, tick=").Append(t).Append('\n');
         if(d.TryGetProperty("perceptionTick",out var pt) && pt.TryGetInt32(out var observed))
@@ -59,7 +68,7 @@ public static class CharacterView
         if (d.TryGetProperty("stateSummary", out var state)) sb.Append("Тело и занятие: ").Append(state.GetString()).Append('\n');
         if (d.TryGetProperty("bodyNeeds", out var needs))
             // Words, not numbers: the model read hunger 0.71 ("1 = starving") as "barely hungry".
-            sb.Append("Самочувствие: ").Append(string.Join(", ", Feelings(needs))).Append('\n');
+            sb.Append("Самочувствие: ").Append(string.Join(", ", Feelings(needs, male))).Append('\n');
         if (d.TryGetProperty("inOwnCamp", out var camp) && camp.ValueKind is JsonValueKind.True or JsonValueKind.False)
             sb.Append("В своём лагере: ").Append(camp.GetBoolean() ? "да" : "нет").Append('\n');
         if (d.TryGetProperty("campStock", out var stock)) sb.Append("Запасы лагеря: ").Append(stock.GetRawText()).Append('\n');
@@ -81,7 +90,7 @@ public static class CharacterView
             {
                 var name = n.TryGetProperty("names", out var names) && names.TryGetProperty("ru", out var ru) ? ru.GetString()
                     : n.TryGetProperty("nameId", out var nid) ? nid.GetString() : "?";
-                sb.Append("- npcId=").Append(n.GetProperty("npcId").GetInt32()).Append(' ').Append(name)
+                sb.Append("- npcId=").Append(n.GetProperty("npcId").GetInt32()).Append(' ').Append(name).Append(PersonSex(n))
                   .Append(" дистанция=").Append(n.TryGetProperty("distance", out var dist) ? dist.GetDouble().ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) : "?");
                 foreach (var flag in new[] { "hostile", "unconscious", "dying", "sameCamp" })
                     if (n.TryGetProperty(flag, out var f) && f.ValueKind == JsonValueKind.True) sb.Append(' ').Append(flag);
@@ -175,7 +184,7 @@ public static class CharacterView
         {
             var name = p.TryGetProperty("names", out var names) && names.ValueKind == JsonValueKind.Object &&
                 names.TryGetProperty("ru", out var ru) && ru.GetString() is { Length: > 0 } r ? r : Text(p, "nameId");
-            sb.Append("- ").Append(name.Length > 0 ? name : "?").Append(" (npcId=").Append(Number(p, "npcId")).Append(')');
+            sb.Append("- ").Append(name.Length > 0 ? name : "?").Append(PersonSex(p)).Append(" (npcId=").Append(Number(p, "npcId")).Append(')');
             if (CampLabel(Text(p, "camp")) is { } camp) sb.Append(", ").Append(camp).Append(Flag(p, "sameCamp") ? " (твой)" : "");
             sb.Append(": ").Append(p.TryGetProperty("relationship", out var rel) && Relation(rel) is { Length: > 0 } words
                 ? words : "видели друг друга, больше ничего");
@@ -205,6 +214,14 @@ public static class CharacterView
         if (Axis("authority") >= .5) parts.Add("к советам этого человека прислушиваешься");
         return string.Join(", ", parts);
     }
+
+    // §58.9: «он» или «она» о другом человеке — из того же тела, что и у себя.
+    private static string PersonSex(JsonElement row) => Text(row, "sex") switch
+    {
+        "male" => " (мужчина)",
+        "female" => " (женщина)",
+        _ => "",
+    };
 
     internal static string? CampLabel(string faction) => faction switch
     {

@@ -79,6 +79,7 @@ internal static class McpSocialObservations
                 ["npcId"] = id.Value,
                 ["nameId"] = nameId,
                 ["names"] = McpNpcObservations.LocalizedNames(nameId),
+                ["sex"] = McpNpcObservations.SexOf(body),
                 ["camp"] = camp.ToString(),
                 ["sameCamp"] = camp == npc.Faction,
                 ["relationship"] = relation == null ? null : new

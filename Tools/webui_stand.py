@@ -19,6 +19,7 @@ import argparse
 import functools
 import http.server
 import json
+import re
 import pathlib
 import sys
 
@@ -45,6 +46,14 @@ _UnityLoader.add_multi_constructor(
 )
 
 
+# §58.9: разметка рода «[[слот:женская|мужская]]»; Loc.Get без героя-мужчины даёт женскую.
+_GENDER = re.compile(r"\[\[(?:s|0|1|2):([^|\]]*)\|[^\]]*\]\]")
+
+
+def _feminine(text: str) -> str:
+    return _GENDER.sub(lambda match: match.group(1), text)
+
+
 @functools.lru_cache(maxsize=1)
 def i2_tables() -> dict[str, dict[str, str]]:
     document = yaml.load(I2_ASSET.read_text(encoding="utf-8"), Loader=_UnityLoader)
@@ -55,8 +64,8 @@ def i2_tables() -> dict[str, dict[str, str]]:
     tables: dict[str, dict[str, str]] = {"en": {}, "ru": {}}
     for term in source["mTerms"]:
         values = [value or "" for value in (term.get("Languages") or [])]
-        en = values[english] if english < len(values) else ""
-        ru = values[russian] if russian < len(values) else ""
+        en = _feminine(values[english] if english < len(values) else "")
+        ru = _feminine(values[russian] if russian < len(values) else "")
         if en:
             tables["en"][term["Term"]] = en
         if ru or en:

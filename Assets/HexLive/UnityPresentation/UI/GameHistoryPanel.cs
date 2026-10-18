@@ -272,6 +272,8 @@ namespace HexLive.UnityPresentation.UI
 
             _scratch.Clear();
             _scratch.AddRange(GameHistoryLog.ReadTail(seed, _visibleCount));
+            // §58.9: лента знает только id; кто из них мужчина, помнит книга.
+            NpcGender.Remember(_runner.CreateSnapshot());
             if (HtmlUi.Active)
             {
                 PushHtmlEntries();

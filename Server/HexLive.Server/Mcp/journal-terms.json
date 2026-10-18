@@ -1,63 +1,67 @@
 {
   "history.AidRequested": {
     "en": "{0} noticed {1} needs help.",
-    "ru": "{0} заметила, что {1} нужна помощь."
+    "ru": "{0} [[0:заметила|заметил]], что {1} нужна помощь."
   },
   "history.AidStarted": {
     "en": "{0} went to help {1}.",
-    "ru": "{0} пошла помогать {1}."
+    "ru": "{0} [[0:пошла|пошёл]] помогать {1}."
   },
   "history.AidWaitTimeout": {
     "en": "{0} stopped waiting for help.",
-    "ru": "{0} перестала ждать помощи."
+    "ru": "{0} [[0:перестала|перестал]] ждать помощи."
   },
   "history.Aided": {
     "en": "{0} helped {1}.",
-    "ru": "{0} помогла {1}."
+    "ru": "{0} [[0:помогла|помог]] {1}."
   },
   "history.Bandaged": {
     "en": "{0} dressed the wounds.",
-    "ru": "{0} перевязала раны."
+    "ru": "{0} [[0:перевязала|перевязал]] раны."
   },
   "history.BedCrafted": {
     "en": "{0} made a bed.",
-    "ru": "{0} сделала постель."
+    "ru": "{0} [[0:сделала|сделал]] постель."
   },
   "history.BledOut": {
     "en": "{0} bled out.",
-    "ru": "{0} истекла кровью."
+    "ru": "{0} [[0:истекла|истёк]] кровью."
   },
   "history.BottleFilled": {
     "en": "{0} filled a bottle.",
-    "ru": "{0} наполнила бутылку."
+    "ru": "{0} [[0:наполнила|наполнил]] бутылку."
   },
   "history.BoulderBroken": {
     "en": "{0} broke a boulder.",
-    "ru": "{0} разбила валун."
+    "ru": "{0} [[0:разбила|разбил]] валун."
   },
   "history.BuildProgress": {
     "en": "{0} built part of the shelter.",
-    "ru": "{0} построила часть укрытия."
+    "ru": "{0} [[0:построила|построил]] часть укрытия."
   },
   "history.Butchered": {
     "en": "{0} butchered a body.",
-    "ru": "{0} разделала тушу."
+    "ru": "{0} [[0:разделала|разделал]] тушу."
   },
   "history.CampsMerged": {
     "en": "{0} united two camps.",
-    "ru": "{0} объединила два лагеря."
+    "ru": "{0} [[0:объединила|объединил]] два лагеря."
+  },
+  "history.CaughtCheating": {
+    "en": "{0} caught {1} with {2}.",
+    "ru": "{0} [[0:застала|застал]] {1} с {2}."
   },
   "history.CoconutDrank": {
     "en": "{0} drank coconut water.",
-    "ru": "{0} выпила кокосовую воду."
+    "ru": "{0} [[0:выпила|выпил]] кокосовую воду."
   },
   "history.CoconutEaten": {
     "en": "{0} ate coconut.",
-    "ru": "{0} съела кокос."
+    "ru": "{0} [[0:съела|съел]] кокос."
   },
   "history.CoconutProcessed": {
     "en": "{0} opened a coconut.",
-    "ru": "{0} вскрыла кокос."
+    "ru": "{0} [[0:вскрыла|вскрыл]] кокос."
   },
   "history.Collapsed": {
     "en": "{0} is dying.",
@@ -65,11 +69,11 @@
   },
   "history.Crafted": {
     "en": "{0} crafted something useful.",
-    "ru": "{0} что-то смастерила."
+    "ru": "{0} что-то [[0:смастерила|смастерил]]."
   },
   "history.CrownChopped": {
     "en": "{0} cut palm leaves.",
-    "ru": "{0} нарубила пальмовых листьев."
+    "ru": "{0} [[0:нарубила|нарубил]] пальмовых листьев."
   },
   "history.DireStraits": {
     "en": "The colony is in crisis.",
@@ -77,19 +81,19 @@
   },
   "history.DirectiveAccepted": {
     "en": "agreed",
-    "ru": "согласилась"
+    "ru": "[[s:согласилась|согласился]]"
   },
   "history.DirectiveAsked": {
     "en": "asked for help",
-    "ru": "попросила"
+    "ru": "[[s:попросила|попросил]]"
   },
   "history.DirectiveDone": {
-    "en": "kept her word",
-    "ru": "сделала, как обещала"
+    "en": "kept [[s:her|his]] word",
+    "ru": "[[s:сделала, как обещала|сделал, как обещал]]"
   },
   "history.DirectiveExpired": {
-    "en": "forgot her promise",
-    "ru": "забыла обещание"
+    "en": "forgot [[s:her|his]] promise",
+    "ru": "[[s:забыла|забыл]] обещание"
   },
   "history.DirectivePending": {
     "en": "is deciding",
@@ -97,11 +101,11 @@
   },
   "history.DirectiveRefused": {
     "en": "refused",
-    "ru": "отказала"
+    "ru": "[[s:отказала|отказал]]"
   },
   "history.DirectiveShout": {
     "en": "shouted",
-    "ru": "крикнула"
+    "ru": "[[s:крикнула|крикнул]]"
   },
   "history.DogAggro": {
     "en": "A wild dog noticed the camp.",
@@ -117,39 +121,39 @@
   },
   "history.DogShot": {
     "en": "{0} fired at a dog.",
-    "ru": "{0} выстрелила в собаку."
+    "ru": "{0} [[0:выстрелила|выстрелил]] в собаку."
   },
   "history.DrankBottle": {
     "en": "{0} drank from a bottle.",
-    "ru": "{0} попила из бутылки."
+    "ru": "{0} [[0:попила|попил]] из бутылки."
   },
   "history.Drowned": {
     "en": "{0} drowned.",
-    "ru": "{0} утонула."
+    "ru": "{0} [[0:утонула|утонул]]."
   },
   "history.EmergencyUnload": {
     "en": "{0} dropped supplies to make room for food.",
-    "ru": "{0} сбросила припасы, чтобы освободить место для еды."
+    "ru": "{0} [[0:сбросила|сбросил]] припасы, чтобы освободить место для еды."
   },
   "history.Fainted": {
     "en": "{0} fainted.",
-    "ru": "{0} потеряла сознание."
+    "ru": "{0} [[0:потеряла|потерял]] сознание."
   },
   "history.FaintedBloodLoss": {
     "en": "{0} passed out from blood loss.",
-    "ru": "{0} отключилась от потери крови."
+    "ru": "{0} [[0:отключилась|отключился]] от потери крови."
   },
   "history.FellAsleepExhausted": {
     "en": "{0} collapsed from exhaustion.",
-    "ru": "{0} свалилась без сил."
+    "ru": "{0} [[0:свалилась|свалился]] без сил."
   },
   "history.FireFueled": {
     "en": "{0} fed the fire.",
-    "ru": "{0} подбросила топлива в костер."
+    "ru": "{0} [[0:подбросила|подбросил]] топлива в костер."
   },
   "history.FireLit": {
     "en": "{0} lit the fire.",
-    "ru": "{0} разожгла костер."
+    "ru": "{0} [[0:разожгла|разжёг]] костер."
   },
   "history.FireOut": {
     "en": "The fire went out.",
@@ -157,7 +161,7 @@
   },
   "history.FoodShared": {
     "en": "{0} received food from {1}.",
-    "ru": "{0} получила еду от {1}."
+    "ru": "{0} [[0:получила|получил]] еду от {1}."
   },
   "history.FoodStolen": {
     "en": "Food was stolen in the camp.",
@@ -165,19 +169,19 @@
   },
   "history.FriendGuard": {
     "en": "{0} rushed to defend a friend.",
-    "ru": "{0} бросилась защищать подругу."
+    "ru": "{0} [[0:бросилась|бросился]] защищать друга."
   },
   "history.FurnitureBuilt": {
     "en": "{0} finished furniture.",
-    "ru": "{0} закончила мебель."
+    "ru": "{0} [[0:закончила|закончил]] мебель."
   },
   "history.GiftGiven": {
     "en": "{0} gave {1} a gift.",
-    "ru": "{0} сделала подарок {1}."
+    "ru": "{0} [[0:сделала|сделал]] подарок {1}."
   },
   "history.GotSick": {
     "en": "{0} got sick from raw water.",
-    "ru": "{0} заболела от сырой воды."
+    "ru": "{0} [[0:заболела|заболел]] от сырой воды."
   },
   "history.Grieving": {
     "en": "{0} is grieving.",
@@ -185,19 +189,19 @@
   },
   "history.GroupHuntDone": {
     "en": "{0} got even with the stranger.",
-    "ru": "{0} поквиталась с чужаком."
+    "ru": "{0} [[0:поквиталась|поквитался]] с чужаком."
   },
   "history.GroupHuntEngaged": {
     "en": "{0} laid into the stranger.",
-    "ru": "{0} набросилась на чужака."
+    "ru": "{0} [[0:набросилась|набросился]] на чужака."
   },
   "history.GroupHuntFailed": {
     "en": "{0} did not get to the stranger.",
-    "ru": "{0} не добралась до чужака."
+    "ru": "{0} не [[0:добралась|добрался]] до чужака."
   },
   "history.GroupHuntPactFormed": {
     "en": "{0} agreed to go after the stranger together.",
-    "ru": "{0} сговорилась идти на чужака вместе с остальными."
+    "ru": "{0} [[0:сговорилась|сговорился]] идти на чужака вместе с остальными."
   },
   "history.GroupHuntTargetFled": {
     "en": "{0} ran from the women.",
@@ -205,31 +209,31 @@
   },
   "history.HelpCry": {
     "en": "{0} called for help.",
-    "ru": "{0} позвала на помощь."
+    "ru": "{0} [[0:позвала|позвал]] на помощь."
   },
   "history.HelpCryAnswered": {
     "en": "{0} answered a call for help.",
-    "ru": "{0} откликнулась на клич о помощи."
+    "ru": "{0} [[0:откликнулась|откликнулся]] на клич о помощи."
   },
   "history.HelpCryAssistArrived": {
     "en": "{0} joined the fight.",
-    "ru": "{0} вступила в бой."
+    "ru": "{0} [[0:вступила|вступил]] в бой."
   },
   "history.HelpCryAssistLost": {
     "en": "{0} lost the attacker.",
-    "ru": "{0} потеряла нападающего."
+    "ru": "{0} [[0:потеряла|потерял]] нападающего."
   },
   "history.HelpCryAssistStarted": {
     "en": "{0} ran to defend a housemate.",
-    "ru": "{0} побежала защищать соседку."
+    "ru": "{0} [[0:побежала|побежал]] защищать своих."
   },
   "history.HelpCryDefended": {
     "en": "{0} struck the attacker.",
-    "ru": "{0} ударила нападающего."
+    "ru": "{0} [[0:ударила|ударил]] нападающего."
   },
   "history.HelpCryIgnored": {
     "en": "{0} did not answer the call for help.",
-    "ru": "{0} не откликнулась на клич о помощи."
+    "ru": "{0} не [[0:откликнулась|откликнулся]] на клич о помощи."
   },
   "history.HelpMoan": {
     "en": "{0} is faintly calling for help.",
@@ -241,7 +245,7 @@
   },
   "history.InteractionBlocked": {
     "en": "{0} could not use a busy object.",
-    "ru": "{0} не смогла воспользоваться занятым объектом."
+    "ru": "{0} не [[0:смогла|смог]] воспользоваться занятым объектом."
   },
   "history.InteractionRejected": {
     "en": "{0}'s talk was refused.",
@@ -249,27 +253,27 @@
   },
   "history.ItemStolen": {
     "en": "{0} stole {1}.",
-    "ru": "{0} украла {1}."
+    "ru": "{0} [[0:украла|украл]] {1}."
   },
   "history.LimbSevered": {
     "en": "{0} lost a limb.",
-    "ru": "{0} потеряла конечность."
+    "ru": "{0} [[0:потеряла|потерял]] конечность."
   },
   "history.LogSplit": {
     "en": "{0} split a log into sticks.",
-    "ru": "{0} расколола бревно на палки."
+    "ru": "{0} [[0:расколола|расколол]] бревно на палки."
   },
   "history.Looted": {
     "en": "{0} took something from a body.",
-    "ru": "{0} забрала вещь с тела."
+    "ru": "{0} [[0:забрала|забрал]] вещь с тела."
   },
   "history.MeatEaten": {
     "en": "{0} ate roasted meat.",
-    "ru": "{0} съела жареное мясо."
+    "ru": "{0} [[0:съела|съел]] жареное мясо."
   },
   "history.MeatHungOnSpit": {
     "en": "{0} hung meat over the fire.",
-    "ru": "{0} повесила мясо над костром."
+    "ru": "{0} [[0:повесила|повесил]] мясо над костром."
   },
   "history.MeatRoasted": {
     "en": "Meat finished roasting on the spit.",
@@ -281,7 +285,7 @@
   },
   "history.Medicated": {
     "en": "{0} used medicine.",
-    "ru": "{0} приняла лекарство."
+    "ru": "{0} [[0:приняла|принял]] лекарство."
   },
   "history.MobAteLimb": {
     "en": "The beast finished its prize and went off sated.",
@@ -297,11 +301,11 @@
   },
   "history.Mourned": {
     "en": "{0} paid respects to the dead.",
-    "ru": "{0} почтила память погибшей."
+    "ru": "{0} [[0:почтила|почтил]] память погибших."
   },
   "history.Murdered": {
     "en": "A housemate was killed for meat.",
-    "ru": "Соседку убили ради мяса."
+    "ru": "Кого-то из своих убили ради мяса."
   },
   "history.NightRaid": {
     "en": "Dogs raided the camp at dusk.",
@@ -309,7 +313,7 @@
   },
   "history.NpcDied": {
     "en": "{0} died.",
-    "ru": "{0} погибла."
+    "ru": "{0} [[0:погибла|погиб]]."
   },
   "history.PredatorKilled": {
     "en": "An attacker was killed in self-defence.",
@@ -317,19 +321,19 @@
   },
   "history.PreyFled": {
     "en": "{0} fled from an attacker.",
-    "ru": "{0} сбежала от нападавшей."
+    "ru": "{0} [[0:сбежала|сбежал]] от нападавшего."
   },
   "history.PreyFoughtBack": {
     "en": "{0} fought back.",
-    "ru": "{0} дала отпор."
+    "ru": "{0} [[0:дала|дал]] отпор."
   },
   "history.Preyed": {
     "en": "{0} attacked a housemate.",
-    "ru": "{0} напала на соседку."
+    "ru": "{0} [[0:напала|напал]] на своих."
   },
   "history.RackCrafted": {
     "en": "{0} made a drying rack.",
-    "ru": "{0} сделала сушилку."
+    "ru": "{0} [[0:сделала|сделал]] сушилку."
   },
   "history.RaftLaunched": {
     "en": "The raft is finished.",
@@ -365,7 +369,7 @@
   },
   "history.StarvedToDeath": {
     "en": "{0} died from hunger or thirst.",
-    "ru": "{0} умерла от голода или жажды."
+    "ru": "{0} [[0:умерла|умер]] от голода или жажды."
   },
   "history.StatusDehydrated": {
     "en": "{0} is dehydrated.",
@@ -385,55 +389,55 @@
   },
   "history.StrippedHelpless": {
     "en": "{0} stripped a helpless enemy.",
-    "ru": "{0} обчистила беспомощного врага."
+    "ru": "{0} [[0:обчистила|обчистил]] беспомощного врага."
   },
   "history.Sunburn": {
     "en": "{0} was burned by the sun.",
-    "ru": "{0} обгорела на солнце."
+    "ru": "{0} [[0:обгорела|обгорел]] на солнце."
   },
   "history.TalkCompleted": {
     "en": "{0} had a good talk with {1}.",
-    "ru": "{0} хорошо поговорила с {1}."
+    "ru": "{0} хорошо [[0:поговорила|поговорил]] с {1}."
   },
   "history.TalkQuarreled": {
     "en": "{0} quarreled with {1}.",
-    "ru": "{0} поссорилась с {1}."
+    "ru": "{0} [[0:поссорилась|поссорился]] с {1}."
   },
   "history.TalkRequested": {
     "en": "{0} invited {1} to talk.",
-    "ru": "{0} позвала {1} поговорить."
+    "ru": "{0} [[0:позвала|позвал]] {1} поговорить."
   },
   "history.TalkStarted": {
     "en": "{0} started a conversation with {1}.",
-    "ru": "{0} начала разговор с {1}."
+    "ru": "{0} [[0:начала|начал]] разговор с {1}."
   },
   "history.TalkWaitTimeout": {
     "en": "{0} stopped waiting for the conversation.",
-    "ru": "{0} перестала ждать разговора."
+    "ru": "{0} [[0:перестала|перестал]] ждать разговора."
   },
   "history.TentCrafted": {
     "en": "{0} made a sun shelter.",
-    "ru": "{0} сделала навес от солнца."
+    "ru": "{0} [[0:сделала|сделал]] навес от солнца."
   },
   "history.ThreatSpotted": {
     "en": "{0} spotted a predator.",
-    "ru": "{0} заметила хищника."
+    "ru": "{0} [[0:заметила|заметил]] хищника."
   },
   "history.TreeChopped": {
     "en": "{0} felled a tree.",
-    "ru": "{0} срубила дерево."
+    "ru": "{0} [[0:срубила|срубил]] дерево."
   },
   "history.VitalPartDestroyed": {
     "en": "{0} suffered a fatal wound.",
-    "ru": "{0} получила смертельную рану."
+    "ru": "{0} [[0:получила|получил]] смертельную рану."
   },
   "history.WokeUp": {
     "en": "{0} came to.",
-    "ru": "{0} пришла в себя."
+    "ru": "{0} [[0:пришла|пришёл]] в себя."
   },
   "history.WoundInflicted": {
     "en": "{0} was wounded.",
-    "ru": "{0} получила рану."
+    "ru": "{0} [[0:получила|получил]] рану."
   },
   "history.aid.Console": {
     "en": "comfort",
@@ -485,7 +489,7 @@
   },
   "history.cause.Preyed": {
     "en": "housemate attack",
-    "ru": "нападение соседки"
+    "ru": "нападение своих"
   },
   "history.cause.SharkBite": {
     "en": "shark bite",
@@ -509,7 +513,7 @@
   },
   "history.detail.AidWaitTimeout": {
     "en": "The promised helper did not arrive in time.",
-    "ru": "Помощница не успела прийти вовремя."
+    "ru": "Помощь не успела прийти вовремя."
   },
   "history.detail.Aided": {
     "en": "Help: {0}. Relationship improved.",
@@ -517,7 +521,7 @@
   },
   "history.detail.CampsMerged": {
     "en": "The residents chose one main camp. Their people, supplies and shelters are now shared.",
-    "ru": "Жительницы выбрали один основной лагерь. Теперь люди, припасы и постройки у них общие."
+    "ru": "Жители выбрали один основной лагерь. Теперь люди, припасы и постройки у них общие."
   },
   "history.detail.DireStraits": {
     "en": "Several survivors need urgent attention.",
@@ -525,7 +529,7 @@
   },
   "history.detail.DirectiveAccepted": {
     "en": "agreed: {0}",
-    "ru": "согласилась: {0}"
+    "ru": "[[s:согласилась|согласился]]: {0}"
   },
   "history.detail.DirectiveAsked": {
     "en": "asked: {0}",
@@ -541,7 +545,7 @@
   },
   "history.detail.DirectiveRefused": {
     "en": "refused: {0}",
-    "ru": "отказала: {0}"
+    "ru": "[[s:отказала|отказал]]: {0}"
   },
   "history.detail.DirectiveShout": {
     "en": "shouted: {0}",
@@ -581,7 +585,7 @@
   },
   "history.detail.TalkWaitTimeout": {
     "en": "The invited NPC did not arrive in time.",
-    "ru": "Собеседница не успела подойти вовремя."
+    "ru": "Собеседник не успел подойти вовремя."
   },
   "history.detail.affinity": {
     "en": "Affinity now {0}.",
@@ -601,27 +605,27 @@
   },
   "history.detail.attacker.npc": {
     "en": "Attacker: NPC #{0}.",
-    "ru": "Нападающая: NPC #{0}."
+    "ru": "Кто напал: NPC #{0}."
   },
   "history.detail.cause": {
     "en": "Cause: {0}.",
     "ru": "Причина: {0}."
   },
   "history.detail.gift.Disliked": {
-    "en": "She did not understand the point of it.",
-    "ru": "Не поняла, зачем ей это."
+    "en": "[[1:She|He]] did not understand the point of it.",
+    "ru": "[[1:Не поняла, зачем ей|Не понял, зачем ему]] это."
   },
   "history.detail.gift.Liked": {
-    "en": "She was glad to get it.",
-    "ru": "Ей было приятно."
+    "en": "[[1:She|He]] was glad to get it.",
+    "ru": "[[1:Ей|Ему]] было приятно."
   },
   "history.detail.gift.Loved": {
     "en": "Exactly what she needed.",
     "ru": "Именно то, что было нужно."
   },
   "history.detail.gift.Neutral": {
-    "en": "She took it without much feeling.",
-    "ru": "Приняла без особых чувств."
+    "en": "[[1:She|He]] took it without much feeling.",
+    "ru": "[[1:Приняла|Принял]] без особых чувств."
   },
   "history.detail.helpcry.decision": {
     "en": "For NPC #{0}: score {1}, roll {2}.",
@@ -635,6 +639,26 @@
     "en": "No important events yet.",
     "ru": "Пока нет важных событий."
   },
+  "history.filter.all": {
+    "en": "All",
+    "ru": "Всё"
+  },
+  "history.filter.bad": {
+    "en": "Trouble",
+    "ru": "Тревожное"
+  },
+  "history.filter.build": {
+    "en": "Building",
+    "ru": "Стройка"
+  },
+  "history.filter.good": {
+    "en": "Good",
+    "ru": "Хорошее"
+  },
+  "history.filter.social": {
+    "en": "People",
+    "ru": "Люди"
+  },
   "history.refresh": {
     "en": "Refresh",
     "ru": "Обновить"
@@ -645,11 +669,11 @@
   },
   "history.rel.colder": {
     "en": "{0} grew colder toward {1}.",
-    "ru": "{0} стала хуже относиться к {1}."
+    "ru": "{0} [[0:стала|стал]] хуже относиться к {1}."
   },
   "history.rel.warmed": {
     "en": "{0} warmed toward {1}.",
-    "ru": "{0} стала теплее к {1}."
+    "ru": "{0} [[0:стала|стал]] теплее к {1}."
   },
   "history.show_older": {
     "en": "Show older",
@@ -741,87 +765,87 @@
   },
   "journal.AidRequested.did.v0": {
     "en": "I set off to help {0} — {1}.",
-    "ru": "Пошла к {0} — {1}."
+    "ru": "[[s:Пошла|Пошёл]] к {0} — {1}."
   },
   "journal.AidStarted.did.v0": {
     "en": "I got to {0} and started on it — {1}.",
-    "ru": "Дошла до {0} и взялась — {1}."
+    "ru": "[[s:Дошла|Дошёл]] до {0} и [[s:взялась|взялся]] — {1}."
   },
   "journal.AidWaitTimeout.got.bitter.v0": {
     "en": "I waited for {0} for so long. Nobody came at all.",
-    "ru": "Я так долго ждала {0}. Не пришёл вообще никто."
+    "ru": "Я так долго [[s:ждала|ждал]] {0}. Не пришёл вообще никто."
   },
   "journal.AidWaitTimeout.got.v0": {
-    "en": "I waited for {0}. She never came.",
-    "ru": "Я ждала {0}. Она не пришла."
+    "en": "I waited for {0}. [[0:She|He]] never came.",
+    "ru": "Я [[s:ждала|ждал]] {0}. [[0:Она не пришла|Он не пришёл]]."
   },
   "journal.Aided.did.tender.beloved.v0": {
     "en": "I looked after {0} today. I would do it again tomorrow.",
-    "ru": "Сегодня я возилась с {0}. И завтра снова буду."
+    "ru": "Сегодня я [[s:возилась|возился]] с {0}. И завтра снова буду."
   },
   "journal.Aided.did.v0": {
-    "en": "I helped {0} — {1}. She needed it.",
-    "ru": "Я помогла {0} — {1}. Ей было нужно."
+    "en": "I helped {0} — {1}. [[0:She|He]] needed it.",
+    "ru": "Я [[s:помогла|помог]] {0} — {1}. [[0:Ей|Ему]] было нужно."
   },
   "journal.Aided.did.v1": {
     "en": "{0} was in a bad way. I did what I could.",
-    "ru": "{0} было плохо. Я сделала что могла."
+    "ru": "{0} было плохо. Я [[s:сделала что могла|сделал что мог]]."
   },
   "journal.Aided.did.weary.v0": {
     "en": "I helped {0}. I had nothing left myself, but I helped.",
-    "ru": "Помогла {0}. У самой ничего не осталось, но помогла."
+    "ru": "[[s:Помогла|Помог]] {0}. У [[s:самой|самого]] ничего не осталось, но [[s:помогла|помог]]."
   },
   "journal.Aided.got.cold.v0": {
     "en": "{0} helped me. Fine. I said thank you and we both pretended.",
-    "ru": "{0} мне помогла. Ладно. Я сказала спасибо, и обе сделали вид."
+    "ru": "{0} мне [[0:помогла|помог]]. Ладно. Я [[s:сказала|сказал]] спасибо, и мы друг перед другом сделали вид."
   },
   "journal.Aided.got.dying.v0": {
     "en": "{0} got to me in time. I was already saying goodbye to everything.",
-    "ru": "{0} успела. Я уже со всем прощалась."
+    "ru": "{0} [[0:успела|успел]]. Я уже со всем [[s:прощалась|прощался]]."
   },
   "journal.Aided.got.hated.v0": {
     "en": "Of all people, {0} was the one to help me. I hate that I needed it.",
-    "ru": "Помогла мне именно {0}. Ненавижу, что мне это было нужно."
+    "ru": "[[0:Помогла|Помог]] мне именно {0}. Ненавижу, что мне это было нужно."
   },
   "journal.Aided.got.hurt.beloved.v0": {
-    "en": "How wonderful {0} is. I adore her — especially for giving me water when I was so far gone.",
-    "ru": "Какая {0} классная. Я её обожаю — особенно за то, что напоила меня, когда мне было так плохо."
+    "en": "How wonderful {0} is. I adore [[0:her|him]] — especially for giving me water when I was so far gone.",
+    "ru": "[[0:Какая|Какой]] {0} [[0:классная. Я её|классный. Я его]] обожаю — особенно за то, что [[0:напоила|напоил]] меня, когда мне было так плохо."
   },
   "journal.Aided.got.hurt.beloved.v1": {
-    "en": "{0}. Always {0}. She sat with me and made it stop hurting so much.",
-    "ru": "{0}. Всегда {0}. Она посидела рядом, и стало не так больно."
+    "en": "{0}. Always {0}. [[0:She|He]] sat with me and made it stop hurting so much.",
+    "ru": "{0}. Всегда {0}. [[0:Она посидела|Он посидел]] рядом, и стало не так больно."
   },
   "journal.Aided.got.hurt.v0": {
-    "en": "I was in a bad way, and {0} helped me — {1}. I love her for that.",
-    "ru": "Мне было совсем худо, и {0} мне помогла — {1}. За это я её и люблю."
+    "en": "I was in a bad way, and {0} helped me — {1}. I love [[0:her|him]] for that.",
+    "ru": "Мне было совсем худо, и {0} мне [[0:помогла|помог]] — {1}. За это я [[0:её|его]] и люблю."
   },
   "journal.Aided.got.hurt.v1": {
     "en": "{0} found me. I don't know what I would have done alone.",
-    "ru": "{0} меня нашла. Не знаю, что бы я делала одна."
+    "ru": "{0} меня [[0:нашла|нашёл]]. Не знаю, что бы я [[s:делала одна|делал один]]."
   },
   "journal.Aided.got.tender.beloved.v0": {
-    "en": "{0} took care of me today. She is the best thing on this island.",
-    "ru": "{0} сегодня обо мне позаботилась. Она — лучшее, что есть на этом острове."
+    "en": "{0} took care of me today. [[0:She|He]] is the best thing on this island.",
+    "ru": "{0} сегодня обо мне [[0:позаботилась. Она|позаботился. Он]] — лучшее, что есть на этом острове."
   },
   "journal.Aided.got.tender.v0": {
-    "en": "{0} is wonderful. She helped me — {1} — and I could have cried.",
-    "ru": "{0} замечательная. Она мне помогла — {1}, — и я чуть не расплакалась."
+    "en": "{0} is wonderful. [[0:She|He]] helped me — {1} — and I could have cried.",
+    "ru": "{0} [[0:замечательная. Она мне помогла|замечательный. Он мне помог]] — {1}, — и я чуть не [[s:расплакалась|расплакался]]."
   },
   "journal.Aided.got.tender.v1": {
-    "en": "I love {0}. Really love her.",
+    "en": "I love {0}. Really love [[0:her|him]].",
     "ru": "Я обожаю {0}. Правда обожаю."
   },
   "journal.Aided.got.v0": {
     "en": "{0} helped me. I won't forget it.",
-    "ru": "{0} мне помогла. Я этого не забуду."
+    "ru": "{0} мне [[0:помогла|помог]]. Я этого не забуду."
   },
   "journal.Aided.got.v1": {
     "en": "{0} came to me with {1}. Just came, without being asked twice.",
-    "ru": "{0} пришла ко мне — {1}. Просто пришла, не заставила просить дважды."
+    "ru": "{0} [[0:пришла|пришёл]] ко мне — {1}. Просто [[0:пришла, не заставила|пришёл, не заставил]] просить дважды."
   },
   "journal.Bandaged.did.v0": {
     "en": "I dressed my wounds. Badly, but I dressed them.",
-    "ru": "Перевязала раны. Плохо, но перевязала."
+    "ru": "[[s:Перевязала|Перевязал]] раны. Плохо, но [[s:перевязала|перевязал]]."
   },
   "journal.BedCrafted.did.v0": {
     "en": "I have a bed. A real place of my own to lie down.",
@@ -829,7 +853,7 @@
   },
   "journal.Butchered.did.v0": {
     "en": "I butchered it. There is meat now. I try not to think about it.",
-    "ru": "Разделала. Теперь есть мясо. Стараюсь об этом не думать."
+    "ru": "[[s:Разделала|Разделал]]. Теперь есть мясо. Стараюсь об этом не думать."
   },
   "journal.CampsMerged.did.v0": {
     "en": "We united our camp with {0}. We chose one home together.",
@@ -837,7 +861,15 @@
   },
   "journal.CampsMerged.got.v0": {
     "en": "{0} offered to unite our camps. I agreed; now we share one home.",
-    "ru": "{0} предложила объединить наши лагеря. Я согласилась — теперь у нас один общий дом."
+    "ru": "{0} [[0:предложила|предложил]] объединить наши лагеря. Я [[s:согласилась|согласился]] — теперь у нас один общий дом."
+  },
+  "journal.CaughtCheating.did.v0": {
+    "en": "I saw {0} with someone else with my own eyes. How could I ever trust that again?",
+    "ru": "Я своими глазами [[s:видела|видел]] {0} с другим человеком. Как после такого верить?"
+  },
+  "journal.CaughtCheating.got.v0": {
+    "en": "{0} caught me with someone else.",
+    "ru": "{0} [[0:застала|застал]] меня с другим человеком."
   },
   "journal.Collapsed.got.dying.v0": {
     "en": "I feel so bad. I think I'm dying. Is this really how it ends?",
@@ -857,39 +889,39 @@
   },
   "journal.Collapsed.got.v0": {
     "en": "My legs went. I went down and I did not get up.",
-    "ru": "Ноги подкосились. Я упала и не встала."
+    "ru": "Ноги подкосились. Я [[s:упала и не встала|упал и не встал]]."
   },
   "journal.Crafted.did.v0": {
     "en": "Made myself {1}.",
-    "ru": "Смастерила себе {1}."
+    "ru": "[[s:Смастерила|Смастерил]] себе {1}."
   },
   "journal.CryingBreakdown.got.bitter.v0": {
     "en": "I broke. Just lay there and howled like an animal.",
-    "ru": "Меня сорвало. Просто лежала и выла, как зверь."
+    "ru": "Меня сорвало. Просто [[s:лежала и выла|лежал и выл]], как зверь."
   },
   "journal.CryingBreakdown.got.v0": {
     "en": "I lay down and cried and could not stop.",
-    "ru": "Я легла и плакала, и не могла перестать."
+    "ru": "Я [[s:легла и плакала, и не могла|лёг и плакал, и не мог]] перестать."
   },
   "journal.DireStraits.got.v0": {
     "en": "Things are bad. Properly bad, for all of us.",
     "ru": "Дела плохи. По-настоящему плохи, у всех."
   },
   "journal.DirectiveAccepted.did.v0": {
-    "en": "I promised her: {0}. Let's see.",
-    "ru": "Пообещала ей: {0}. Посмотрим."
+    "en": "I promised [[0:her|him]]: {0}. Let's see.",
+    "ru": "[[s:Пообещала|Пообещал]] [[0:ей|ему]]: {0}. Посмотрим."
   },
   "journal.DirectiveAccepted.did.v1": {
     "en": "Said I would do it: {0}.",
-    "ru": "Сказала, что сделаю: {0}."
+    "ru": "[[s:Сказала|Сказал]], что сделаю: {0}."
   },
   "journal.DirectiveAccepted.got.v0": {
-    "en": "She said yes: {0}.",
-    "ru": "Она согласилась: {0}."
+    "en": "[[0:She|He]] said yes: {0}.",
+    "ru": "[[0:Она согласилась|Он согласился]]: {0}."
   },
   "journal.DirectiveAsked.did.v0": {
-    "en": "I asked her to help with {0}.",
-    "ru": "Попросила её помочь: {0}."
+    "en": "I asked [[0:her|him]] to help with {0}.",
+    "ru": "[[s:Попросила её|Попросил его]] помочь: {0}."
   },
   "journal.DirectiveAsked.did.v1": {
     "en": "Had to ask for a hand: {0}.",
@@ -897,43 +929,43 @@
   },
   "journal.DirectiveDone.did.v0": {
     "en": "Kept my word: {0}.",
-    "ru": "Сдержала слово: {0}."
+    "ru": "[[s:Сдержала|Сдержал]] слово: {0}."
   },
   "journal.DirectiveDone.did.v1": {
     "en": "Done what I promised: {0}.",
-    "ru": "Сделала, что обещала: {0}."
+    "ru": "[[s:Сделала, что обещала|Сделал, что обещал]]: {0}."
   },
   "journal.DirectiveExpired.v0": {
     "en": "Never got round to it: {0}.",
     "ru": "Так и не дошли руки: {0}."
   },
   "journal.DirectiveRefused.did.v0": {
-    "en": "Told her no: {0}. Not today.",
-    "ru": "Сказала ей нет: {0}. Не сегодня."
+    "en": "Told [[0:her|him]] no: {0}. Not today.",
+    "ru": "[[s:Сказала|Сказал]] [[0:ей|ему]] нет: {0}. Не сегодня."
   },
   "journal.DirectiveRefused.got.v0": {
-    "en": "She refused: {0}. Fine.",
-    "ru": "Она отказала: {0}. Ну и ладно."
+    "en": "[[0:She|He]] refused: {0}. Fine.",
+    "ru": "[[0:Она отказала|Он отказал]]: {0}. Ну и ладно."
   },
   "journal.DirectiveRefused.got.v1": {
-    "en": "Asked her about {0} — no.",
-    "ru": "Просила её: {0} — нет."
+    "en": "Asked [[0:her|him]] about {0} — no.",
+    "ru": "[[s:Просила её|Просил его]]: {0} — нет."
   },
   "journal.DirectiveShout.v0": {
     "en": "Shouted to everyone: {0}!",
-    "ru": "Крикнула всем: {0}!"
+    "ru": "[[s:Крикнула|Крикнул]] всем: {0}!"
   },
   "journal.DogFight.did.v0": {
     "en": "I fought it off. My hands are still shaking.",
-    "ru": "Я отбилась. Руки до сих пор трясутся."
+    "ru": "Я [[s:отбилась|отбился]]. Руки до сих пор трясутся."
   },
   "journal.DogFight.got.v0": {
     "en": "I fought it off. My hands are still shaking.",
-    "ru": "Я отбилась. Руки до сих пор трясутся."
+    "ru": "Я [[s:отбилась|отбился]]. Руки до сих пор трясутся."
   },
   "journal.Fainted.got.v0": {
     "en": "I blacked out. I don't know for how long.",
-    "ru": "Я отключилась. Не знаю, надолго ли."
+    "ru": "Я [[s:отключилась|отключился]]. Не знаю, надолго ли."
   },
   "journal.FaintedBloodLoss.got.v0": {
     "en": "Everything went white and then went out.",
@@ -941,71 +973,71 @@
   },
   "journal.FellAsleepExhausted.got.v0": {
     "en": "I simply switched off. Mid-step.",
-    "ru": "Я просто выключилась. Прямо на ходу."
+    "ru": "Я просто [[s:выключилась|выключился]]. Прямо на ходу."
   },
   "journal.FellAsleepExhausted.got.weary.v0": {
     "en": "There was nothing left in me. I went down where I stood.",
-    "ru": "Во мне уже ничего не осталось. Легла там, где стояла."
+    "ru": "Во мне уже ничего не осталось. [[s:Легла там, где стояла|Лёг там, где стоял]]."
   },
   "journal.FireLit.did.v0": {
     "en": "I got the fire going. It's warm.",
-    "ru": "Развела костёр. Тепло."
+    "ru": "[[s:Развела|Развёл]] костёр. Тепло."
   },
   "journal.FireOut.got.v0": {
     "en": "The fire went out. It got cold at once.",
     "ru": "Костёр погас. Сразу стало холодно."
   },
   "journal.FoodShared.did.v0": {
-    "en": "I gave {0} some of mine. She looked worse than me.",
-    "ru": "Отдала {0} часть своего. Она выглядела хуже меня."
+    "en": "I gave {0} some of mine. [[0:She|He]] looked worse than me.",
+    "ru": "[[s:Отдала|Отдал]] {0} часть своего. [[0:Она выглядела|Он выглядел]] хуже меня."
   },
   "journal.FoodShared.got.hurt.beloved.v0": {
     "en": "{0} fed me when I had nothing. I will remember that for as long as I live.",
-    "ru": "{0} накормила меня, когда у меня не было ничего. Буду помнить, пока живу."
+    "ru": "{0} [[0:накормила|накормил]] меня, когда у меня не было ничего. Буду помнить, пока живу."
   },
   "journal.FoodShared.got.tender.v0": {
-    "en": "{0} shared her food with me. Nobody made her.",
-    "ru": "{0} поделилась со мной едой. Её никто не заставлял."
+    "en": "{0} shared [[0:her|his]] food with me. Nobody made [[0:her|him]].",
+    "ru": "{0} [[0:поделилась|поделился]] со мной едой. [[0:Её|Его]] никто не заставлял."
   },
   "journal.FoodShared.got.v0": {
     "en": "{0} gave me food. I was starving.",
-    "ru": "{0} дала мне поесть. Я умирала с голоду."
+    "ru": "{0} [[0:дала|дал]] мне поесть. Я [[s:умирала|умирал]] с голоду."
   },
   "journal.FoodStolen.got.v0": {
     "en": "{0} took my food. Right out of my hands.",
-    "ru": "{0} забрала мою еду. Прямо из рук."
+    "ru": "{0} [[0:забрала|забрал]] мою еду. Прямо из рук."
   },
   "journal.FriendGuard.did.v0": {
     "en": "I stood over {0} until it backed off.",
-    "ru": "Я стояла над {0}, пока оно не отступило."
+    "ru": "Я [[s:стояла|стоял]] над {0}, пока оно не отступило."
   },
   "journal.FriendGuard.got.tender.beloved.v0": {
     "en": "{0} guarded me today. I keep thinking about it.",
-    "ru": "Сегодня {0} меня прикрыла. Я всё об этом думаю."
+    "ru": "Сегодня {0} меня [[0:прикрыла|прикрыл]]. Я всё об этом думаю."
   },
   "journal.FriendGuard.got.v0": {
-    "en": "{0} put herself between me and it. She didn't have to.",
-    "ru": "{0} встала между мной и этим. Её никто не просил."
+    "en": "{0} put [[0:herself|himself]] between me and it. [[0:She|He]] didn't have to.",
+    "ru": "{0} [[0:встала|встал]] между мной и этим. [[0:Её|Его]] никто не просил."
   },
   "journal.FurnitureBuilt.did.v0": {
     "en": "Finished the build. It stands.",
-    "ru": "Достроила. Стоит."
+    "ru": "[[s:Достроила|Достроил]]. Стоит."
   },
   "journal.GotSick.got.v0": {
     "en": "Something is wrong with me. It came on fast.",
     "ru": "Со мной что-то не так. Накрыло быстро."
   },
   "journal.Grieving.got.hurt.beloved.v0": {
-    "en": "{0} is gone. I don't know how to be here without her.",
-    "ru": "{0} больше нет. Я не знаю, как здесь быть без неё."
+    "en": "{0} is gone. I don't know how to be here without [[0:her|him]].",
+    "ru": "{0} больше нет. Я не знаю, как здесь быть без [[0:неё|него]]."
   },
   "journal.Grieving.got.v0": {
-    "en": "{0} is dead. I keep turning round to look for her.",
-    "ru": "{0} умерла. Я всё оборачиваюсь её искать."
+    "en": "{0} is dead. I keep turning round to look for [[0:her|him]].",
+    "ru": "{0} [[0:умерла|умер]]. Я всё оборачиваюсь [[0:её|его]] искать."
   },
   "journal.Grieving.got.v1": {
     "en": "{0} died today. The island got quieter.",
-    "ru": "Сегодня умерла {0}. На острове стало тише."
+    "ru": "Сегодня [[0:умерла|умер]] {0}. На острове стало тише."
   },
   "journal.GroupHuntPactFormed.did.v0": {
     "en": "We agreed about {0} today. There was no other way.",
@@ -1017,51 +1049,51 @@
   },
   "journal.HelpCry.got.dying.v0": {
     "en": "I called and called. Nobody. Just the sound of my own voice.",
-    "ru": "Я звала и звала. Никого. Только мой собственный голос."
+    "ru": "Я [[s:звала и звала|звал и звал]]. Никого. Только мой собственный голос."
   },
   "journal.HelpCry.got.v0": {
     "en": "I screamed for help until my throat gave out.",
-    "ru": "Я звала на помощь, пока не сорвала голос."
+    "ru": "Я [[s:звала|звал]] на помощь, пока не [[s:сорвала|сорвал]] голос."
   },
   "journal.HelpCryAnswered.did.v0": {
     "en": "{0} was screaming. I ran.",
-    "ru": "{0} кричала. Я побежала."
+    "ru": "{0} [[0:кричала|кричал]]. Я [[s:побежала|побежал]]."
   },
   "journal.HelpCryAnswered.got.v0": {
     "en": "I screamed, and {0} came.",
-    "ru": "Я закричала — и {0} пришла."
+    "ru": "Я [[s:закричала|закричал]] — и {0} [[0:пришла|пришёл]]."
   },
   "journal.HelpCryAssistArrived.did.v0": {
     "en": "I got there and threw myself into it.",
-    "ru": "Добежала и влезла в драку."
+    "ru": "[[s:Добежала и влезла|Добежал и влез]] в драку."
   },
   "journal.HelpCryAssistLost.did.v0": {
     "en": "I ran, and by the time I got there it was already over.",
-    "ru": "Бежала, а когда добежала — всё уже кончилось."
+    "ru": "[[s:Бежала, а когда добежала|Бежал, а когда добежал]] — всё уже кончилось."
   },
   "journal.HelpCryDefended.did.v0": {
-    "en": "I got between {0} and the thing that wanted her.",
-    "ru": "Я встала между {0} и тем, что до неё добиралось."
+    "en": "I got between {0} and the thing that wanted [[0:her|him]].",
+    "ru": "Я [[s:встала|встал]] между {0} и тем, что до [[0:неё|него]] добиралось."
   },
   "journal.HelpCryDefended.got.tender.beloved.v0": {
     "en": "{0} fought for me today. I have never had anyone do that.",
-    "ru": "Сегодня {0} за меня дралась. За меня никто никогда не дрался."
+    "ru": "Сегодня {0} за меня [[0:дралась|дрался]]. За меня никто никогда не дрался."
   },
   "journal.HelpCryDefended.got.v0": {
     "en": "{0} stepped in front of me. In front of ME.",
-    "ru": "{0} встала передо мной. Передо МНОЙ."
+    "ru": "{0} [[0:встала|встал]] передо мной. Передо МНОЙ."
   },
   "journal.HelpCryIgnored.got.bitter.v0": {
-    "en": "So that's how it is. I called for {0} and she looked away.",
-    "ru": "Вот, значит, как. Я звала {0}, а она отвернулась."
+    "en": "So that's how it is. I called for {0} and [[0:she|he]] looked away.",
+    "ru": "Вот, значит, как. Я [[s:звала|звал]] {0}, а [[0:она отвернулась|он отвернулся]]."
   },
   "journal.HelpCryIgnored.got.v0": {
     "en": "I screamed. {0} heard me. {0} did not come.",
-    "ru": "Я кричала. {0} слышала. {0} не пришла."
+    "ru": "Я [[s:кричала|кричал]]. {0} [[0:слышала|слышал]]. {0} не [[0:пришла|пришёл]]."
   },
   "journal.HelpMoan.got.dying.v0": {
     "en": "I couldn't scream any more. I could only lie there and make a sound.",
-    "ru": "Кричать я уже не могла. Только лежать и мычать."
+    "ru": "Кричать я уже не [[s:могла|мог]]. Только лежать и мычать."
   },
   "journal.HutCompleted.did.v0": {
     "en": "The hut is finished. We have walls.",
@@ -1069,27 +1101,27 @@
   },
   "journal.InteractionRejected.got.bitter.v0": {
     "en": "{0} brushed me off. I won't ask twice.",
-    "ru": "{0} от меня отмахнулась. Второй раз я не попрошу."
+    "ru": "{0} от меня [[0:отмахнулась|отмахнулся]]. Второй раз я не попрошу."
   },
   "journal.InteractionRejected.got.v0": {
     "en": "{0} did not want to talk to me. Fine.",
-    "ru": "{0} не захотела со мной говорить. Ну и ладно."
+    "ru": "{0} не [[0:захотела|захотел]] со мной говорить. Ну и ладно."
   },
   "journal.ItemStolen.did": {
     "en": "I stole {1} from someone else's camp.",
-    "ru": "Я украла {1} с чужой земли."
+    "ru": "Я [[s:украла|украл]] {1} с чужой земли."
   },
   "journal.LimbSevered.got.dying.v0": {
     "en": "{1}. I looked at where it used to be and I stopped understanding anything.",
-    "ru": "{1}. Я посмотрела туда, где она была, и перестала что-либо понимать."
+    "ru": "{1}. Я [[s:посмотрела|посмотрел]] туда, где она была, и [[s:перестала|перестал]] что-либо понимать."
   },
   "journal.LimbSevered.got.v0": {
     "en": "I lost it. {1}. It's gone and it is not coming back.",
-    "ru": "Я её лишилась. {1}. Её нет, и она не вернётся."
+    "ru": "Я её [[s:лишилась|лишился]]. {1}. Её нет, и она не вернётся."
   },
   "journal.MeatEaten.did.v0": {
     "en": "I ate properly for once — {1}.",
-    "ru": "Наконец нормально поела — {1}."
+    "ru": "Наконец нормально [[s:поела|поел]] — {1}."
   },
   "journal.MeatSpoiled.got.bitter.v0": {
     "en": "The meat rotted. All of it. All that work.",
@@ -1101,7 +1133,7 @@
   },
   "journal.Medicated.did.v0": {
     "en": "I took a pill. Now I wait.",
-    "ru": "Приняла таблетку. Теперь жду."
+    "ru": "[[s:Приняла|Принял]] таблетку. Теперь жду."
   },
   "journal.MobTookLimb.got.v0": {
     "en": "It took it away in its teeth. Mine. It took a part of me away.",
@@ -1109,35 +1141,35 @@
   },
   "journal.Mourned.did.v0": {
     "en": "I sat with {0} for a while. It was the only thing left to do.",
-    "ru": "Посидела немного с {0}. Больше сделать было нечего."
+    "ru": "[[s:Посидела|Посидел]] немного с {0}. Больше сделать было нечего."
   },
   "journal.NightRaid.got.v0": {
     "en": "They came in the dark. I heard them before I saw them.",
-    "ru": "Они пришли в темноте. Я услышала их раньше, чем увидела."
+    "ru": "Они пришли в темноте. Я [[s:услышала|услышал]] их раньше, чем [[s:увидела|увидел]]."
   },
   "journal.PreyFled.got.v0": {
     "en": "I ran from {0}. I ran and I did not look back.",
-    "ru": "Я убежала от {0}. Бежала и не оглядывалась."
+    "ru": "Я [[s:убежала|убежал]] от {0}. [[s:Бежала и не оглядывалась|Бежал и не оглядывался]]."
   },
   "journal.PreyFoughtBack.got.v0": {
     "en": "I fought {0} off. I didn't think I had it in me.",
-    "ru": "Я отбилась от {0}. Не думала, что смогу."
+    "ru": "Я [[s:отбилась|отбился]] от {0}. Не [[s:думала|думал]], что смогу."
   },
   "journal.Preyed.did.bitter.v0": {
     "en": "I went for {0}. I am not writing down why. I know why.",
-    "ru": "Я бросилась на {0}. Не пишу зачем. Я знаю зачем."
+    "ru": "Я [[s:бросилась|бросился]] на {0}. Не пишу зачем. Я знаю зачем."
   },
   "journal.Preyed.did.v0": {
     "en": "I did it. I was so hungry that I stopped seeing a person in {0}.",
-    "ru": "Я это сделала. Мне было так голодно, что я перестала видеть в {0} человека."
+    "ru": "Я это [[s:сделала|сделал]]. Мне было так голодно, что я [[s:перестала|перестал]] видеть в {0} человека."
   },
   "journal.Preyed.got.hurt.v0": {
-    "en": "{0} looked at me like I was meat. And then she was on me.",
-    "ru": "{0} смотрела на меня, как на мясо. А потом бросилась."
+    "en": "{0} looked at me like I was meat. And then [[0:she|he]] was on me.",
+    "ru": "{0} [[0:смотрела|смотрел]] на меня, как на мясо. А потом [[0:бросилась|бросился]]."
   },
   "journal.Preyed.got.v0": {
     "en": "{0} came at me. {0}. One of ours.",
-    "ru": "{0} напала на меня. {0}. Своя."
+    "ru": "{0} [[0:напала|напал]] на меня. {0}. [[0:Своя|Свой]]."
   },
   "journal.RackCrafted.did.v0": {
     "en": "The drying rack is up.",
@@ -1149,11 +1181,11 @@
   },
   "journal.Rescued.got.dying.v0": {
     "en": "They pulled me back. I was already gone, and they pulled me back.",
-    "ru": "Меня вытащили. Я уже уходила — и меня вытащили."
+    "ru": "Меня вытащили. Я уже [[s:уходила|уходил]] — и меня вытащили."
   },
   "journal.Rescued.got.tender.v0": {
     "en": "I opened my eyes and I was alive. I am still not used to it.",
-    "ru": "Я открыла глаза и была жива. До сих пор не привыкну."
+    "ru": "Я [[s:открыла|открыл]] глаза и [[s:была жива|был жив]]. До сих пор не привыкну."
   },
   "journal.Rescued.got.v0": {
     "en": "Someone got to me. I am still here.",
@@ -1173,7 +1205,7 @@
   },
   "journal.SharkBite.got.v0": {
     "en": "Something took me from below. I didn't even see it.",
-    "ru": "Что-то взяло меня снизу. Я даже не увидела."
+    "ru": "Что-то взяло меня снизу. Я даже не [[s:увидела|увидел]]."
   },
   "journal.StatusDehydrated.got.v0": {
     "en": "My mouth is sand. I think about water and nothing else.",
@@ -1192,16 +1224,16 @@
     "ru": "Море пошло поверх всего. Мы просто держались."
   },
   "journal.StrippedHelpless.did.v0": {
-    "en": "{0} was lying there and I took what she had. I am not proud.",
-    "ru": "{0} лежала, и я забрала, что у неё было. Гордиться нечем."
+    "en": "{0} was lying there and I took what [[0:she|he]] had. I am not proud.",
+    "ru": "{0} [[0:лежала|лежал]], и я [[s:забрала|забрал]], что у [[0:неё|него]] было. Гордиться нечем."
   },
   "journal.StrippedHelpless.got.bitter.v0": {
     "en": "{0} stripped me while I could not move. I will remember.",
-    "ru": "{0} обобрала меня, пока я не могла шевельнуться. Я запомню."
+    "ru": "{0} [[0:обобрала|обобрал]] меня, пока я не [[s:могла|мог]] шевельнуться. Я запомню."
   },
   "journal.StrippedHelpless.got.v0": {
     "en": "I was lying there and {0} went through my things. I felt every hand.",
-    "ru": "Я лежала, а {0} рылась в моих вещах. Я чувствовала каждое прикосновение."
+    "ru": "Я [[s:лежала|лежал]], а {0} [[0:рылась|рылся]] в моих вещах. Я [[s:чувствовала|чувствовал]] каждое прикосновение."
   },
   "journal.Sunburn.got.v0": {
     "en": "The sun took {1}. It burns to touch.",
@@ -1209,7 +1241,7 @@
   },
   "journal.TalkCompleted.did.tender.beloved.v0": {
     "en": "I talked to {0} for a long time. Those hours are the reason I'm still sane.",
-    "ru": "Долго говорила с {0}. Только на таких часах я и держусь."
+    "ru": "Долго [[s:говорила|говорил]] с {0}. Только на таких часах я и держусь."
   },
   "journal.TalkCompleted.did.v0": {
     "en": "{0} and I talked. It was good to just talk.",
@@ -1217,7 +1249,7 @@
   },
   "journal.TalkQuarreled.did.bitter.v0": {
     "en": "I shouted at {0}. I meant every word of it and I hate that.",
-    "ru": "Я наорала на {0}. Каждое слово всерьёз — и мне за это противно."
+    "ru": "Я [[s:наорала|наорал]] на {0}. Каждое слово всерьёз — и мне за это противно."
   },
   "journal.TalkQuarreled.did.v0": {
     "en": "{0} and I had it out. Both of us said too much.",
@@ -1225,43 +1257,43 @@
   },
   "journal.TalkQuarreled.got.v0": {
     "en": "{0} went at me over nothing. Or maybe not over nothing.",
-    "ru": "{0} накинулась на меня из-за ерунды. А может, и не из-за ерунды."
+    "ru": "{0} [[0:накинулась|накинулся]] на меня из-за ерунды. А может, и не из-за ерунды."
   },
   "journal.TentCrafted.did.v0": {
     "en": "I put up a shelter. There is shade now.",
-    "ru": "Поставила навес. Теперь есть тень."
+    "ru": "[[s:Поставила|Поставил]] навес. Теперь есть тень."
   },
   "journal.ThreatSpotted.got.v0": {
     "en": "I saw it before it saw me. That is the only reason I am writing this.",
-    "ru": "Я заметила его раньше, чем он меня. Только поэтому и пишу это."
+    "ru": "Я [[s:заметила|заметил]] его раньше, чем он меня. Только поэтому и пишу это."
   },
   "journal.TreeChopped.did.v0": {
     "en": "Took a tree down. My arms are dead.",
-    "ru": "Свалила дерево. Руки отваливаются."
+    "ru": "[[s:Свалила|Свалил]] дерево. Руки отваливаются."
   },
   "journal.WearPermissionGranted.did.v0": {
-    "en": "I lent {0} my things. She needed them more.",
-    "ru": "Отдала {0} свои вещи поносить. Ей нужнее."
+    "en": "I lent {0} my things. [[0:She|He]] needed them more.",
+    "ru": "[[s:Отдала|Отдал]] {0} свои вещи поносить. [[0:Ей|Ему]] нужнее."
   },
   "journal.WearPermissionGranted.got.v0": {
-    "en": "{0} lent me her things. That's not a small thing here.",
-    "ru": "{0} одолжила мне свои вещи. Здесь это немало."
+    "en": "{0} lent me [[0:her|his]] things. That's not a small thing here.",
+    "ru": "{0} [[0:одолжила|одолжил]] мне свои вещи. Здесь это немало."
   },
   "journal.WearPermissionRefused.did.bitter.v0": {
     "en": "{0} wanted my things. No. I have little enough as it is.",
-    "ru": "{0} хотела мои вещи. Нет. У меня и так почти ничего нет."
+    "ru": "{0} [[0:хотела|хотел]] мои вещи. Нет. У меня и так почти ничего нет."
   },
   "journal.WearPermissionRefused.did.v0": {
     "en": "{0} asked for my things. I said no. They're mine.",
-    "ru": "{0} просила мои вещи. Я отказала. Они мои."
+    "ru": "{0} [[0:просила|просил]] мои вещи. Я [[s:отказала|отказал]]. Они мои."
   },
   "journal.WearPermissionRefused.got.v0": {
-    "en": "{0} wouldn't lend me her things. Hers is hers, I suppose.",
-    "ru": "{0} не дала мне свои вещи. Своё есть своё, наверное."
+    "en": "{0} wouldn't lend me [[0:her|his]] things. [[0:Hers is hers|His is his]], I suppose.",
+    "ru": "{0} не [[0:дала|дал]] мне свои вещи. Своё есть своё, наверное."
   },
   "journal.WokeUp.got.v0": {
     "en": "I woke up. Still here, then.",
-    "ru": "Я очнулась. Значит, всё ещё здесь."
+    "ru": "Я [[s:очнулась|очнулся]]. Значит, всё ещё здесь."
   },
   "journal.WoundInflicted.got.dying.v0": {
     "en": "{1}. I can't stop the bleeding. I can't stop it.",
@@ -1269,7 +1301,7 @@
   },
   "journal.WoundInflicted.got.dying.v1": {
     "en": "There's so much blood. I never knew there was so much in me.",
-    "ru": "Крови так много. Я не знала, что во мне столько."
+    "ru": "Крови так много. Я не [[s:знала|знал]], что во мне столько."
   },
   "journal.WoundInflicted.got.hurt.v0": {
     "en": "{1}. I keep pressing on it and it keeps coming through.",
@@ -1285,83 +1317,83 @@
   },
   "journal.chore.BandageCrafted": {
     "en": "rolled bandages",
-    "ru": "крутила бинты"
+    "ru": "[[s:крутила|крутил]] бинты"
   },
   "journal.chore.BottleFilled": {
     "en": "filled the bottle",
-    "ru": "наполняла бутылку"
+    "ru": "[[s:наполняла|наполнял]] бутылку"
   },
   "journal.chore.BoulderBroken": {
     "en": "broke stone",
-    "ru": "била камень"
+    "ru": "[[s:била|бил]] камень"
   },
   "journal.chore.BuildProgress": {
     "en": "worked on the build",
-    "ru": "возилась со стройкой"
+    "ru": "[[s:возилась|возился]] со стройкой"
   },
   "journal.chore.ClothesStowed": {
     "en": "put clothes away",
-    "ru": "убирала одежду"
+    "ru": "[[s:убирала|убирал]] одежду"
   },
   "journal.chore.CoconutDrank": {
     "en": "drank coconut water",
-    "ru": "пила кокосовую воду"
+    "ru": "[[s:пила|пил]] кокосовую воду"
   },
   "journal.chore.CoconutEaten": {
     "en": "ate coconut",
-    "ru": "ела кокос"
+    "ru": "[[s:ела|ел]] кокос"
   },
   "journal.chore.CoconutProcessed": {
     "en": "husked coconuts",
-    "ru": "чистила кокосы"
+    "ru": "[[s:чистила|чистил]] кокосы"
   },
   "journal.chore.CrownChopped": {
     "en": "cut down a crown",
-    "ru": "срубала крону"
+    "ru": "[[s:срубала|срубал]] крону"
   },
   "journal.chore.DrankBottle": {
     "en": "drank from the bottle",
-    "ru": "пила из бутылки"
+    "ru": "[[s:пила|пил]] из бутылки"
   },
   "journal.chore.FireFueled": {
     "en": "fed the fire",
-    "ru": "подкидывала в костёр"
+    "ru": "[[s:подкидывала|подкидывал]] в костёр"
   },
   "journal.chore.FireLit": {
     "en": "lit the fire",
-    "ru": "разжигала костёр"
+    "ru": "[[s:разжигала|разжигал]] костёр"
   },
   "journal.chore.InteractionBlocked": {
     "en": "waited my turn",
-    "ru": "ждала своей очереди"
+    "ru": "[[s:ждала|ждал]] своей очереди"
   },
   "journal.chore.LogSplit": {
     "en": "split logs",
-    "ru": "колола брёвна"
+    "ru": "[[s:колола|колол]] брёвна"
   },
   "journal.chore.MeatEaten": {
     "en": "ate meat",
-    "ru": "ела мясо"
+    "ru": "[[s:ела|ел]] мясо"
   },
   "journal.chore.MeatHungOnSpit": {
     "en": "hung meat on the spit",
-    "ru": "вешала мясо на вертел"
+    "ru": "[[s:вешала|вешал]] мясо на вертел"
   },
   "journal.chore.MeatRoasted": {
     "en": "roasted meat",
-    "ru": "жарила мясо"
+    "ru": "[[s:жарила|жарил]] мясо"
   },
   "journal.chore.RaftProgress": {
     "en": "worked on the raft",
-    "ru": "возилась с плотом"
+    "ru": "[[s:возилась|возился]] с плотом"
   },
   "journal.chore.TalkRequested": {
     "en": "tried to talk to someone",
-    "ru": "звала кого-то поговорить"
+    "ru": "[[s:звала|звал]] кого-то поговорить"
   },
   "journal.chore.TreeChopped": {
     "en": "felled a tree",
-    "ru": "валила дерево"
+    "ru": "[[s:валила|валил]] дерево"
   },
   "journal.empty": {
     "en": "The first page is still blank.",
@@ -1425,7 +1457,7 @@
   },
   "journal.subtitle": {
     "en": "{0}'s own words",
-    "ru": "Её словами"
+    "ru": "[[s:Её|Его]] словами"
   },
   "journal.unread": {
     "en": "new",

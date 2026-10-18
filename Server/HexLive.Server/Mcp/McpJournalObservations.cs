@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Runtime.Journal;
@@ -40,46 +42,50 @@ internal static class McpJournalObservations
                 ["quietHours"] = (int)entry.QuietHours,
                 ["type"] = entry.Type ?? string.Empty,
                 ["mood"] = RegisterSlug(entry.Register),
-                ["text"] = Text(world, entry),
+                ["text"] = Text(world, npc, entry),
             });
         }
         return rows;
     }
 
-    internal static string Text(WorldState world, JournalEntry entry)
+    internal static string Text(WorldState world, NPCState npc, JournalEntry entry)
     {
         if (entry.Type == "CompanionNarrative") return entry.Extra ?? string.Empty;
-        return entry.IsQuiet ? Quiet(entry) : Event(world, entry);
+        var self = npc.Sex == GarmentSex.Male;
+        return entry.IsQuiet ? Quiet(entry, self) : Event(world, entry, self);
     }
 
-    private static string Event(WorldState world, JournalEntry entry)
+    private static string Event(WorldState world, JournalEntry entry, bool self)
     {
+        // §58.9: «s» — автор дневника, «0»/«1» — тот, кто стоит в {0}/{1}.
+        var other = SubjectMale(world, entry.SubjectNameId);
         var who = string.IsNullOrEmpty(entry.SubjectNameId) ? string.Empty
             : McpNpcObservations.LocalizedNames(entry.SubjectNameId)[Language];
         var what = ExtraText(world, entry.Extra);
         var key = BestKey(entry);
-        if (key != null) return Safe(Get(key), who, what, string.Empty);
+        if (key != null) return Safe(Get(key, new GenderSlots(self, other)), who, what, string.Empty);
 
         // Same fallback as the player's diary: the colony feed's words, «я» as
         // the doer, or «X … мне» when it was done TO her.
         var fallback = "history." + entry.Type;
         if (!Terms.Value.ContainsKey(fallback)) return entry.Type ?? string.Empty;
         return entry.Perspective == JournalPerspective.Received && who.Length > 0
-            ? Safe(Get(fallback), who, Get("journal.me.dative"), what)
-            : Safe(Get(fallback), Get("journal.me"), who, what);
+            ? Safe(Get(fallback, new GenderSlots(self, other, self)), who, Get("journal.me.dative"), what)
+            : Safe(Get(fallback, new GenderSlots(self, self, other)), Get("journal.me"), who, what);
     }
 
-    private static string Quiet(JournalEntry entry)
+    private static string Quiet(JournalEntry entry, bool self)
     {
+        var slots = GenderSlots.Of(self);
         var chores = new List<string>(3);
         foreach (var chore in new[] { entry.Chore0, entry.Chore1, entry.Chore2 })
             if (!string.IsNullOrEmpty(chore) && Terms.Value.TryGetValue("journal.chore." + chore, out var word))
-                chores.Add(word);
+                chores.Add(GenderedText.Resolve(word, slots));
         var head = entry.QuietHours > 1
-            ? Safe(Get(Pick("journal.quiet.span", entry.Variant) ?? "journal.quiet.span"), entry.QuietHours.ToString(), "", "")
-            : Get(Pick("journal.quiet", entry.Variant) ?? "journal.quiet");
+            ? Safe(Get(Pick("journal.quiet.span", entry.Variant) ?? "journal.quiet.span", slots), entry.QuietHours.ToString(), "", "")
+            : Get(Pick("journal.quiet", entry.Variant) ?? "journal.quiet", slots);
         return chores.Count == 0 ? head
-            : head + " " + Safe(Get(Pick("journal.quiet.chores", entry.Variant) ?? "journal.quiet.chores"),
+            : head + " " + Safe(Get(Pick("journal.quiet.chores", entry.Variant) ?? "journal.quiet.chores", slots),
                 string.Join(", ", chores), "", "");
     }
 
@@ -110,11 +116,28 @@ internal static class McpJournalObservations
         if (world.Content.ObjectDefinitions.TryGetValue(extra, out var definition) && !string.IsNullOrEmpty(definition.DisplayName))
             return definition.DisplayName;
         foreach (var prefix in ExtraPrefixes)
-            if (Terms.Value.TryGetValue(prefix + extra, out var text)) return text;
+            if (Terms.Value.TryGetValue(prefix + extra, out var text)) return GenderedText.Feminine(text);
         return extra;
     }
 
-    private static string Get(string key) => Terms.Value.TryGetValue(key, out var text) ? text : key;
+    private static string Get(string key) => Get(key, GenderSlots.Feminine);
+
+    private static string Get(string key, GenderSlots slots) =>
+        Terms.Value.TryGetValue(key, out var text) ? GenderedText.Resolve(text, slots) : key;
+
+    /// <summary>
+    /// §58.9: пол того, кто назван в записи. Запись хранит только id имени, поэтому тело ищется
+    /// среди живых и мёртвых по нему; не нашли — женская форма, как и было до разметки.
+    /// </summary>
+    private static bool SubjectMale(WorldState world, string? nameId)
+    {
+        if (string.IsNullOrEmpty(nameId)) return false;
+        foreach (var body in world.Entities.Npcs.Values)
+            if (body.DisplayName == nameId) return body.Sex == GarmentSex.Male;
+        foreach (var body in world.Entities.Corpses.Values)
+            if (body.DisplayName == nameId) return body.Sex == GarmentSex.Male;
+        return false;
+    }
 
     private static string Safe(string format, string a, string b, string c)
     {

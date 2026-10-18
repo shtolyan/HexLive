@@ -89,18 +89,18 @@ public sealed class McpTools
                 ("arguments", "object", "аргументы действия", true))),
 
         new("list_colonists",
-            "Все колонистки: id, имя, фракция, тайл, здоровье, текущая цель, под ручным ли " +
+            "Все персонажи: id, имя, фракция, тайл, здоровье, текущая цель, под ручным ли " +
             "управлением и кто держит лиз. С этого начинают.",
             Schema()),
 
         new("describe_colonist",
-            "Полная картина по одной колонистке: состояние, восприятие (объекты рядом с их " +
+            "Полная картина по одному персонажу: состояние, восприятие (объекты рядом с их " +
             "id и доступными взаимодействиями, союзницы, враги и звери) и память. Ровно " +
             "тот текст, который получает LLM-контур. Отсюда берут objectId для interact " +
             "и mobId для attack_mob. effects и effectImpacts — статусы и текущие причины " +
             "изменения параметров этого тела, как в UI; effectDefinitions/effectTerms " +
             "дают их канонические объяснения EN/RU.",
-            Schema(("npcId", "integer", "id колонистки", true),
+            Schema(("npcId", "integer", "id персонажа", true),
                 ("perceptionEpoch", "string", "epoch из recentPerception предыдущего завершённого хода", false),
                 ("perceptionSince", "integer", "watermark из recentPerception завершённого хода", false))),
 
@@ -111,7 +111,7 @@ public sealed class McpTools
             "catalogInteractions — возможности типа, не обещание текущей доступности. " +
             "В Agent Studio выбор этого tool запрашивает данные перед финальным решением, без публикации предварительной речи. " +
             "Пустой результат означает отсутствие знания, а не отсутствие предметов в мире.",
-            Schema(("npcId", "integer", "id колонистки", true),
+            Schema(("npcId", "integer", "id персонажа", true),
                    ("definitionPrefix", "string", "префикс definition id, до 128 символов; пустой — любые", false),
                    ("interaction", "string", "имя InteractionType для фильтра по каталогу; пустой — любые", false),
                    ("limit", "integer", "1..64, по умолчанию 16", false))),
@@ -197,7 +197,7 @@ public sealed class McpTools
 
         new("read_inventory_drop",
             "Проверить место для одного carried-предмета по штатной геометрии Drop. При NoDropSpot ищет подход в радиусе approachRadiusTiles (по умолчанию 2, максимум 6). Не двигает NPC и не резервирует место; маршрут не проверен. После движения перечитать инвентарь и место.",
-            Schema(("npcId", "integer", "id колонистки", true),
+            Schema(("npcId", "integer", "id персонажа", true),
                 ("index", "integer", "актуальный физический sourceIndex carried-предмета", true),
                 ("expectedDefinitionId", "string", "definitionId выбранного экземпляра", true),
                 ("approachRadiusTiles", "integer", "радиус поиска подхода 1..6 тайлов; по умолчанию 2", false))),
@@ -221,33 +221,33 @@ public sealed class McpTools
             "его нельзя. truncated=true — упёрлись в limit, позовите ещё раз.",
             Schema(("sinceSeq", "integer", "вотермарка прошлого ответа; без неё — свежий хвост", false),
                    ("limit", "integer", "сколько событий максимум (по умолчанию 100)", false),
-                   ("npcId", "integer", "оставить только события про эту колонистку", false))),
+                   ("npcId", "integer", "оставить только события про этого персонажа", false))),
 
         new("list_leases",
             "Кто кем сейчас владеет и сколько секунд простаивает.",
             Schema()),
 
         new("acquire_control",
-            "Взять колонистку под управление: занимает лиз и включает ручной режим (§121). " +
+            "Взять персонажа под управление: занимает лиз и включает ручной режим (§121). " +
             "Пока лиз ваш, ИИ ей не распоряжается, а другой агент не может отдать ей приказ. " +
             "Повторный вызов тем же владельцем продлевает лиз.",
-            Schema(("npcId", "integer", "id колонистки", true),
+            Schema(("npcId", "integer", "id персонажа", true),
                    ("ttlSeconds", "integer", "TTL аренды 15..120 секунд", false))),
 
         new("acquire_npc_control",
             "Имя §159 для той же единой аренды §121: взять NPC под управление только " +
             "на время одного действия компаньона. TTL 15..120 секунд.",
-            Schema(("npcId", "integer", "id колонистки", true),
+            Schema(("npcId", "integer", "id персонажа", true),
                    ("ttlSeconds", "integer", "TTL аренды 15..120 секунд", false))),
 
         new("release_control",
-            "Вернуть колонистку ИИ и отпустить лиз. Вызывать, закончив работу: иначе она " +
+            "Вернуть персонажа ИИ и отпустить лиз. Вызывать, закончив работу: иначе персонаж " +
             "простоит под управлением до истечения лиза.",
-            Schema(("npcId", "integer", "id колонистки", true))),
+            Schema(("npcId", "integer", "id персонажа", true))),
 
         new("move_to",
             "Идти в точку мира (координаты, а не узел — ближайший узел найдёт симуляция).",
-            Schema(("npcId", "integer", "id колонистки", true),
+            Schema(("npcId", "integer", "id персонажа", true),
                    ("x", "number", "мировая координата X", true),
                    ("y", "number", "мировая координата Y", true),
                    ("run", "boolean", "бежать вместо шага", false))),
@@ -255,14 +255,14 @@ public sealed class McpTools
         new("interact",
             "Подойти к объекту и сделать с ним ровно это. objectId и допустимые глаголы — " +
             "из describe_colonist (поле interactions у объекта).",
-            Schema(("npcId", "integer", "id колонистки", true),
+            Schema(("npcId", "integer", "id персонажа", true),
                    ("objectId", "integer", "id объекта", true),
                    ("interaction", "string", "глагол взаимодействия, например PickUp/Drink/Sleep", true))),
 
         new("craft_item",
             "Заказать крафт по outputId из read_recipes (§138.6). " +
             "Старый recipeGoal также поддерживается; укажите ровно один из них.",
-            Schema(("npcId", "integer", "id колонистки", true),
+            Schema(("npcId", "integer", "id персонажа", true),
                    ("outputId", "string", "definition id результата из read_recipes", false),
                    ("recipeGoal", "string", "старая цель рецепта", false),
                    ("requestId", "string", "ключ повтора заказа: до 96 букв ASCII, цифр, -, _, .; новый заказ — новый ключ", false))),
@@ -275,15 +275,15 @@ public sealed class McpTools
         new("attack_mob",
             "Напасть на зверя. mobId — из поля mobs в describe_colonist: там ровно те, " +
             "кого она сейчас видит. targetsMe=true значит зверь идёт именно за ней.",
-            Schema(("npcId", "integer", "id колонистки", true),
+            Schema(("npcId", "integer", "id персонажа", true),
                    ("mobId", "integer", "id зверя", true))),
 
         new("stop",
             "Отставить текущий приказ. Не выключает ручной режим — это разные вещи (§121).",
-            Schema(("npcId", "integer", "id колонистки", true))),
+            Schema(("npcId", "integer", "id персонажа", true))),
 
         new("talk_to",
-            "Подойти и поговорить с колонисткой (§121.9/§28). Занятая или не в духе цель " +
+            "Подойти и поговорить с персонажем (§121.9/§28). Занятая или не в духе цель " +
             "откажет ПО ПРИБЫТИИ — это штатный исход, не ошибка инструмента. " +
             "Необязательная topic выбирает общую тему и штатную реплику Hexkufa, без TTS.",
             TalkToSchema()),
@@ -291,26 +291,26 @@ public sealed class McpTools
         new("shout_directive",
             "§167.2: крикнуть всем своим в радиусе 8 тайлов просьбу о деле (Build / StockFood / StockWater / " +
             "Firewood). Каждая слышащая решает сама по симпатии, доверию и власти; откликов не больше трёх; " +
-            "ручные и спящие не слышат. Личная просьба одной колонистке — talk_to с темой Ask*. " +
+            "ручные и спящие не слышат. Личная просьба одному персонажу — talk_to с темой Ask*. " +
             "Итог — события DirectiveAccepted / DirectiveRefused в read_events.",
             DirectiveKindSchema()),
 
         new("respond_directive",
-            "§167.8: ответить на просьбу колонистки, пришедшую в инбокс сообщением с полем directive. " +
+            "§167.8: ответить на просьбу персонажа, пришедшую в инбокс сообщением с полем directive. " +
             "accept=true — обещание записано (Authority просившей растёт), false — отказ. Без ответа " +
             "симуляция решит сама через ~90 тиков. Принятое обещание — твоя цель (§163.3b), тяги ИИ у тебя нет.",
-            Schema(("attachmentId", "string", "attachment твоей колонистки", true),
+            Schema(("attachmentId", "string", "attachment твоего персонажа", true),
                    ("fromNpcId", "integer", "кто просил (directive.fromNpcId)", true),
                    ("kind", "string", "Build / StockFood / StockWater / Firewood", true),
                    ("accept", "boolean", "согласиться или отказать", true))),
 
         new("send_agent_message",
-            "§167.8: текст ДРУГОМУ агенту (LLM-колонистке) на естественном языке — попадает в её инбокс с " +
+            "§167.8: текст ДРУГОМУ агенту (LLM-персонажу) на естественном языке — попадает в его инбокс с " +
             "senderId npc:<твой id>. Адресат должен быть attached с capability agentText и стоять не дальше " +
             "8 тайлов (сначала подойди: talk_to / move_to). NPC без агента текст не поймёт — ей нужен talk_to " +
             "с темой Ask* или shout_directive.",
-            Schema(("attachmentId", "string", "attachment твоей колонистки", true),
-                   ("targetNpcId", "integer", "id колонистки-адресата", true),
+            Schema(("attachmentId", "string", "attachment твоего персонажа", true),
+                   ("targetNpcId", "integer", "id персонажа-адресата", true),
                    ("language", "string", "язык текста (ru, en, …)", true),
                    ("text", "string", "текст до 4096 символов", true),
                    ("messageId", "string", "идемпотентный id сообщения; по умолчанию новый GUID", false))),
@@ -320,12 +320,12 @@ public sealed class McpTools
             "соглашается или отказывает. Сначала подойдите: радиус подарка 1.95 wu и проверка " +
             "препятствий; автоматического подхода нет, вне досягаемости TooFar. " +
             "Completed/Transferred означает реальную передачу; отказ не меняет вещи владельца.",
-            Schema(("npcId", "integer", "id просящей колонистки", true),
+            Schema(("npcId", "integer", "id просящего персонажа", true),
                    ("targetNpcId", "integer", "id владельца предмета", true),
                    ("definitionId", "string", "определение нужного предмета; передаётся ровно один экземпляр", true))),
 
         new("aid_person",
-            "Помочь конкретной колонистке ЯВНЫМ видом помощи (§53): Feed/Hydrate/Treat/" +
+            "Помочь конкретному персонажу ЯВНЫМ видом помощи (§53): Feed/Hydrate/Treat/" +
             "Medicate/Console. Помощь стоит припаса ПОМОЩНИЦЫ (§53.7); отказ NoSupplies " +
             "значит «нечем» — сначала добудьте еду/воду/бинт.",
             Schema(("npcId", "integer", "id помощницы", true),
@@ -348,12 +348,12 @@ public sealed class McpTools
             "Explore — один разведывательный переход штатного планировщика без выдумывания координат; " +
             "можно ограниченно повторять в очереди, затем query_known_objects. " +
             "Не гарантирует находку или безопасность сна; NoExploreDestination — нет допустимой цели перехода.",
-            Schema(("npcId", "integer", "id колонистки", true),
+            Schema(("npcId", "integer", "id персонажа", true),
                    ("kind", "string",
                     "вид: " + string.Join("/", Enum.GetNames(typeof(SelfActionKind))), true))),
 
         new("rest_until", "Ограниченный отдых только внутри execute_agent_command: Energy — сон на земле, Stamina — отдых сидя. Сервер сам завершит отдых при достижении target; прерывание считается сбоем.",
-            Schema(("npcId", "integer", "id колонистки", true),
+            Schema(("npcId", "integer", "id персонажа", true),
                 ("need", "string", "Energy или Stamina", true),
                 ("target", "number", "целевой показатель больше 0 и не больше 1", true))),
 
@@ -362,14 +362,14 @@ public sealed class McpTools
             "useTargetCamp=false оставляет общий дом в лагере npcId, true — в лагере targetNpcId. " +
             "Нужно подойти для разговора; обе направленные Affinity строго выше 0.50. " +
             "Нельзя пригласить бессознательную, лежащую, переносимую или сражающуюся NPC. " +
-            "Это не принудительный перевод одной девушки: отказы TargetUnavailable, " +
+            "Это не принудительный перевод одного персонажа: отказы TargetUnavailable, " +
             "RelationshipTooLow, TooFarToTalk сохраняют мир без изменений.",
             Schema(("npcId", "integer", "кто предлагает объединение", true),
                    ("targetNpcId", "integer", "кому предлагает", true),
                    ("useTargetCamp", "boolean", "true — её дом; false — наш дом (по умолчанию)", false))),
 
         new("carry_person",
-            "Взять на руки лежащую (или свою — и стоящую) колонистку (§124). Руки должны " +
+            "Взять на руки лежащего (или своего — и стоящего) персонажа (§124). Руки должны " +
             "быть свободны.",
             Schema(("npcId", "integer", "id носильщицы", true),
                    ("targetNpcId", "integer", "кого поднять", true))),
@@ -390,7 +390,7 @@ public sealed class McpTools
             "картинки (id не совпал — приказ честно отклоняется). Удаление сдвигает следующие " +
             "физические индексы. Для очереди Drop отдельных обычных предметов используй " +
             "убывающие исходные индексы; после Wear/Stow/изменения контейнера перечитай инвентарь.",
-            Schema(("npcId", "integer", "id колонистки", true),
+            Schema(("npcId", "integer", "id персонажа", true),
                    ("source", "string", "Carried или Worn", true),
                    ("index", "integer", "номер ячейки", true),
                    ("expectedDefinitionId", "string", "ожидаемый id предмета в ячейке", true),
@@ -398,7 +398,7 @@ public sealed class McpTools
 
         new("transfer_inventory",
             "Give: подарить предмет живому человеку (§153); Take: взять у беспомощного по §128. Проверки цели и предмета выполняются при исполнении.",
-            Schema(("npcId", "integer", "id колонистки", true),
+            Schema(("npcId", "integer", "id персонажа", true),
                    ("otherNpcId", "integer", "id получателя подарка или цели обыска", true),
                    ("source", "string", "Carried или Worn — чья ячейка описывается", true),
                    ("index", "integer", "номер ячейки", true),
@@ -409,7 +409,7 @@ public sealed class McpTools
         new("transfer_container",
             "Обыск вещи (§128.5): истлевшее тело, снятый рюкзак, аптечка. slotIndex и " +
             "expectedDefinitionId — из содержимого объекта в describe_colonist.",
-            Schema(("npcId", "integer", "id колонистки", true),
+            Schema(("npcId", "integer", "id персонажа", true),
                    ("containerObjectId", "integer", "id объекта-контейнера", true),
                    ("slotIndex", "integer", "номер ячейки содержимого", true),
                    ("expectedDefinitionId", "string", "ожидаемый id предмета", true),
@@ -923,6 +923,8 @@ public sealed class McpTools
                 ["npcId"] = npc.Id.Value,
                 ["profileId"] = npc.ProfileId ?? string.Empty,
                 ["name"] = npc.DisplayName ?? string.Empty,
+                // §58.9: мужчина говорит о себе в мужском роде.
+                ["sex"] = McpNpcObservations.SexOf(npc),
                 ["tick"] = context.Tick,
                 ["position"] = new Dictionary<string, object?>
                 {
@@ -1009,7 +1011,7 @@ public sealed class McpTools
         if (text == null)
         {
             isError = true;
-            return $"Нет колонистки с id {npcId} — сверься со списком (list_colonists).";
+            return $"Нет персонажа с id {npcId} — сверься со списком (list_colonists).";
         }
 
         isError = false;
@@ -1480,7 +1482,7 @@ public sealed class McpTools
         if (!known)
         {
             isError = true;
-            return $"Нет колонистки с id {npcId}.";
+            return $"Нет персонажа с id {npcId}.";
         }
 
         if (!_leases.TryAcquire(npcId, owner, timeoutSeconds, out var leaseId, out var heldBy))
@@ -2009,7 +2011,7 @@ public sealed class McpTools
             additionalProperties = false,
             properties = new
             {
-                npcId = new { type = "integer", description = "id кричащей колонистки (нужен lease)" },
+                npcId = new { type = "integer", description = "id кричащего персонажа (нужен lease)" },
                 kind = new { type = "string", description = "вид просьбы", @enum = kinds },
             },
             required = new[] { "npcId", "kind" },
@@ -2069,7 +2071,7 @@ public sealed class McpTools
         if (target == npcId || text.Length == 0 || text.Length > 4096 || language.Length is 0 or > 16)
         {
             isError = true;
-            return "targetNpcId должен быть другой колонисткой, text 1..4096, language 1..16.";
+            return "targetNpcId должен быть другим персонажем, text 1..4096, language 1..16.";
         }
         if (!_agents.HasAttachmentWith(target, AgentCapabilities.AgentText))
         {
@@ -2134,7 +2136,7 @@ public sealed class McpTools
             additionalProperties = false,
             properties = new
             {
-                npcId = new { type = "integer", description = "id колонистки" },
+                npcId = new { type = "integer", description = "id персонажа" },
                 targetNpcId = new { type = "integer", description = "с кем говорить" },
                 topic = new
                 {

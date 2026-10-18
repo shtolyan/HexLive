@@ -55,13 +55,16 @@ namespace HexLive.UnityPresentation.UI
         private JObject JournalModel(WorldSnapshot snapshot, NpcSnapshot npc)
         {
             var entries = FindJournal(snapshot, npc);
+            // §58.9: дневник пишется в роде автора, а люди в нём — в своём.
+            NpcGender.Remember(snapshot);
+            var author = NpcGender.IsMale(npc);
             var list = new JArray();
             var unread = 0;
             // Newest first, as on the UI Toolkit page.
             for (var i = entries.Count - 1; i >= 0; i--)
             {
                 var entry = entries[i];
-                var text = JournalFormatter.Format(entry);
+                var text = JournalFormatter.Format(entry, author);
                 var isUnread = entry.Tick > _journalShownReadTo;
                 if (isUnread) unread++;
                 list.Add(new JObject

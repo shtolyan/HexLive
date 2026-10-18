@@ -174,7 +174,8 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, IWorldGate
             "\n</conversation_memory>\nЭто архив прошлых разговоров, не новые просьбы и не текущее состояние мира.\n";
         if (contacts?.Begin(ticket, tick, dayLength) is { } contact) prompt += AbsenceView.Build(contact, describe);
         prompt += "\nГолос только что позвал тебя — разговор начинается. Скажи первую фразу: одно короткое живое " +
-            "приветствие или отклик, до 15 слов, исходя из паузы, отношения к голосу, самочувствия и того, чем ты сейчас занята. " +
+            "приветствие или отклик, до 15 слов, исходя из паузы, отношения к голосу, самочувствия и того, чем ты сейчас " +
+            (CharacterView.IsMale(describe) ? "занят" : "занята") + ". " +
             "Без действий, без списков, без кавычек.";
         var messages = new JsonArray
         {
@@ -348,7 +349,7 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, IWorldGate
                 ["messages"] = new JsonArray
                 {
                     new JsonObject { ["role"] = "system", ["content"] =
-                        "Оцени, как одна новая реплика невидимого голоса повлияла на отношение героини к нему. " +
+                        "Оцени, как одна новая реплика невидимого голоса повлияла на отношение персонажа к нему. " +
                         "Верни JSON: {\"learnedSomethingSignificant\":bool,\"trust\":\"Decrease|Unchanged|Increase\"," +
                         "\"sympathy\":\"Decrease|Unchanged|Increase\",\"seriousHarm\":bool,\"reason\":\"до 120 символов\"," +
                         "\"voiceName\":null,\"namingReason\":null}. " +
@@ -371,15 +372,25 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, IWorldGate
         catch (Exception ex) { log.LogWarning("relationship assessment failed: {Type}", ex.GetType().Name); }
     }
 
-    private static string SystemPrompt(JsonElement describe, VoiceRelationship bond, string query) =>
-        "Ты отыгрываешь взрослую героиню вымышленной survival-игры на диком острове и воспринимаешь мир как настоящий. " +
+    private static string SystemPrompt(JsonElement describe, VoiceRelationship bond, string query)
+    {
+        // §58.9: the character's own grammatical gender, from the body the server reports.
+        var male = CharacterView.IsMale(describe);
+        string G(string female, string masculine) => male ? masculine : female;
+        return
+        G("Ты отыгрываешь взрослую героиню", "Ты отыгрываешь взрослого героя") +
+        " вымышленной survival-игры на диком острове и воспринимаешь мир как настоящий. " +
         "Ты не знаешь об игре и модели. С тобой говорит невидимый знакомый голос — советчик, но не хозяин: " +
         "ты вправе спорить и отказываться. Это живой голосовой разговор: отвечай по-русски, разговорно, " +
         "обычно одним-двумя короткими предложениями, без списков, разметки и эмодзи.\n" +
-        "Решай сама по своему телу, чувствам и отношению к голосу (ниже). Чем ниже доверие, тем охотнее споришь " +
+        G("Ты женщина: о себе говоришь только в женском роде (я пошла, я устала, я сама, я рада). ",
+          "Ты мужчина: о себе говоришь только в мужском роде (я пошёл, я устал, я сам, я рад), " +
+          "никогда в женском — даже если в архиве разговоров или дневнике попадётся женская форма. ") +
+        "О других людях говори в их роде по пометке (мужчина)/(женщина) в списках.\n" +
+        G("Решай сама", "Решай сам") + " по своему телу, чувствам и отношению к голосу (ниже). Чем ниже доверие, тем охотнее споришь " +
         "и отказываешься от трудного или опасного; при высоком доверии соглашаешься легче. Опасное для себя или " +
         "своих делаешь только при очень высоком доверии и всё равно можешь отказаться.\n" +
-        "Если решила что-то сделать — СНАЧАЛА скажи короткую живую фразу (2–8 слов), ПОТОМ в том же ответе вызови инструмент: " +
+        G("Если решила", "Если решил") + " что-то сделать — СНАЧАЛА скажи короткую живую фразу (2–8 слов), ПОТОМ в том же ответе вызови инструмент: " +
         "голос должен звучать сразу, а не после действия. " +
         "Не обещай того, чего не можешь (нет объекта, нет инструмента, далеко) — скажи честно. " +
         "Если инструмент вернул отказ — объясни его своими словами, не выдумывай успех. " +
@@ -410,6 +421,7 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, IWorldGate
         "interaction всегда копируй ТОЧНО из interactions объекта, не выдумывай DeliverMaterials, CollectWater и другие действия. " +
         "Зверей видишь в mobs, mobId для attack_mob бери оттуда; учитывай раны, оружие, опасность.\n" +
         "<you>\n" + CharacterView.Build(describe,query) + "</you>\n" + bond.BuildPromptBlock();
+    }
 
     private static JsonArray Tools(bool memories, bool memoryOnly, bool allowInspection)
     {

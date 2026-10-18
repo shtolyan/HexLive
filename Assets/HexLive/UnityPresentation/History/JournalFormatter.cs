@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Debug;
 using HexLive.UnityPresentation.Localization;
 
@@ -68,7 +69,8 @@ public static class JournalFormatter
         Loc.LanguageChanged += VariantCounts.Clear;
     }
 
-    public static JournalText Format(JournalEntrySnapshot entry)
+    /// <param name="authorMale">§58.9: автор дневника — мужчина, «я пошёл», а не «я пошла».</param>
+    public static JournalText Format(JournalEntrySnapshot entry, bool authorMale = false)
     {
         var time = GameHistoryFormatter.FormatTime(entry.Tick);
         if (entry.Type == "CompanionNarrative")
@@ -76,12 +78,14 @@ public static class JournalFormatter
             return new JournalText(time, entry.Extra ?? string.Empty, GameHistoryTone.Social);
         }
 
-        var body = entry.QuietHours > 0 ? Quiet(entry) : Event(entry);
+        var body = entry.QuietHours > 0 ? Quiet(entry, authorMale) : Event(entry, authorMale);
         return new JournalText(time, body, ToneOf(entry));
     }
 
-    private static string Event(JournalEntrySnapshot entry)
+    private static string Event(JournalEntrySnapshot entry, bool self)
     {
+        // §58.9: «s» — автор, «0»/«1» — те, кто стоят в {0}/{1}.
+        var other = NpcGender.IsMaleName(entry.SubjectNameId);
         var who = Loc.NpcName(entry.SubjectNameId);
         var what = ExtraText(entry.Extra);
         var key = BestKey(entry);
@@ -104,41 +108,41 @@ public static class JournalFormatter
             // «Джоли помогла мне».
             var receiving = entry.Perspective == 1 && !string.IsNullOrEmpty(who);
             return receiving
-                ? Safe(Loc.Get(fallback), who, Loc.Get("journal.me.dative"), what)
-                : Safe(Loc.Get(fallback), Loc.Get("journal.me"), who, what);
+                ? Safe(Loc.Get(fallback, new GenderSlots(self, other, self)), who, Loc.Get("journal.me.dative"), what)
+                : Safe(Loc.Get(fallback, new GenderSlots(self, self, other)), Loc.Get("journal.me"), who, what);
         }
 
-        return Safe(Loc.Get(key), who, what, string.Empty);
+        return Safe(Loc.Get(key, new GenderSlots(self, other)), who, what, string.Empty);
     }
 
-    private static string Quiet(JournalEntrySnapshot entry)
+    private static string Quiet(JournalEntrySnapshot entry, bool self)
     {
-        var chores = ChoreList(entry);
+        var chores = ChoreList(entry, self);
         var hours = entry.QuietHours;
 
         // «Три часа прошли тихо» вместо трёх одинаковых строк подряд — склейка
         // случилась в симуляции, здесь она только называется вслух.
         var head = hours > 1
-            ? Safe(Loc.Get(Pick("journal.quiet.span", entry.Variant)),
+            ? Safe(Loc.Get(Pick("journal.quiet.span", entry.Variant), self),
                 hours.ToString(), string.Empty, string.Empty)
-            : Loc.Get(Pick("journal.quiet", entry.Variant));
+            : Loc.Get(Pick("journal.quiet", entry.Variant), self);
 
         return chores.Length == 0
             ? head
-            : head + " " + Safe(Loc.Get(Pick("journal.quiet.chores", entry.Variant)),
+            : head + " " + Safe(Loc.Get(Pick("journal.quiet.chores", entry.Variant), self),
                 chores, string.Empty, string.Empty);
     }
 
-    private static string ChoreList(JournalEntrySnapshot entry)
+    private static string ChoreList(JournalEntrySnapshot entry, bool self)
     {
         var parts = new List<string>(3);
-        AddChore(parts, entry.Chore0);
-        AddChore(parts, entry.Chore1);
-        AddChore(parts, entry.Chore2);
+        AddChore(parts, entry.Chore0, self);
+        AddChore(parts, entry.Chore1, self);
+        AddChore(parts, entry.Chore2, self);
         return parts.Count == 0 ? string.Empty : string.Join(", ", parts);
     }
 
-    private static void AddChore(List<string> into, string type)
+    private static void AddChore(List<string> into, string type, bool self)
     {
         if (string.IsNullOrEmpty(type))
         {
@@ -150,7 +154,7 @@ public static class JournalFormatter
         var key = "journal.chore." + type;
         if (Loc.Has(key))
         {
-            into.Add(Loc.Get(key));
+            into.Add(Loc.Get(key, self));
         }
     }
 

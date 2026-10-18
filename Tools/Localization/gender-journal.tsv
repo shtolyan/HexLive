@@ -1,0 +1,127 @@
+# key	English	Русский
+# §58.9: дневник (§136) в роде автора и того, о ком запись.
+# Слот s — автор дневника («я»), 0 — человек в {0}. Неизвестный пол = женская форма.
+journal.ItemStolen.did	I stole {1} from someone else's camp.	Я [[s:украла|украл]] {1} с чужой земли.
+journal.subtitle	{0}'s own words	[[s:Её|Его]] словами
+journal.chore.TreeChopped	felled a tree	[[s:валила|валил]] дерево
+journal.chore.CrownChopped	cut down a crown	[[s:срубала|срубал]] крону
+journal.chore.LogSplit	split logs	[[s:колола|колол]] брёвна
+journal.chore.BoulderBroken	broke stone	[[s:била|бил]] камень
+journal.chore.CoconutProcessed	husked coconuts	[[s:чистила|чистил]] кокосы
+journal.chore.CoconutDrank	drank coconut water	[[s:пила|пил]] кокосовую воду
+journal.chore.CoconutEaten	ate coconut	[[s:ела|ел]] кокос
+journal.chore.MeatEaten	ate meat	[[s:ела|ел]] мясо
+journal.chore.MeatRoasted	roasted meat	[[s:жарила|жарил]] мясо
+journal.chore.MeatHungOnSpit	hung meat on the spit	[[s:вешала|вешал]] мясо на вертел
+journal.chore.BottleFilled	filled the bottle	[[s:наполняла|наполнял]] бутылку
+journal.chore.DrankBottle	drank from the bottle	[[s:пила|пил]] из бутылки
+journal.chore.FireLit	lit the fire	[[s:разжигала|разжигал]] костёр
+journal.chore.FireFueled	fed the fire	[[s:подкидывала|подкидывал]] в костёр
+journal.chore.BuildProgress	worked on the build	[[s:возилась|возился]] со стройкой
+journal.chore.RaftProgress	worked on the raft	[[s:возилась|возился]] с плотом
+journal.chore.BandageCrafted	rolled bandages	[[s:крутила|крутил]] бинты
+journal.chore.ClothesStowed	put clothes away	[[s:убирала|убирал]] одежду
+journal.chore.TalkRequested	tried to talk to someone	[[s:звала|звал]] кого-то поговорить
+journal.chore.InteractionBlocked	waited my turn	[[s:ждала|ждал]] своей очереди
+journal.Aided.got.v0	{0} helped me. I won't forget it.	{0} мне [[0:помогла|помог]]. Я этого не забуду.
+journal.Aided.got.v1	{0} came to me with {1}. Just came, without being asked twice.	{0} [[0:пришла|пришёл]] ко мне — {1}. Просто [[0:пришла, не заставила|пришёл, не заставил]] просить дважды.
+journal.Aided.got.tender.v0	{0} is wonderful. [[0:She|He]] helped me — {1} — and I could have cried.	{0} [[0:замечательная. Она мне помогла|замечательный. Он мне помог]] — {1}, — и я чуть не [[s:расплакалась|расплакался]].
+journal.Aided.got.tender.v1	I love {0}. Really love [[0:her|him]].	Я обожаю {0}. Правда обожаю.
+journal.Aided.got.hurt.v0	I was in a bad way, and {0} helped me — {1}. I love [[0:her|him]] for that.	Мне было совсем худо, и {0} мне [[0:помогла|помог]] — {1}. За это я [[0:её|его]] и люблю.
+journal.Aided.got.hurt.v1	{0} found me. I don't know what I would have done alone.	{0} меня [[0:нашла|нашёл]]. Не знаю, что бы я [[s:делала одна|делал один]].
+journal.Aided.got.dying.v0	{0} got to me in time. I was already saying goodbye to everything.	{0} [[0:успела|успел]]. Я уже со всем [[s:прощалась|прощался]].
+journal.Aided.got.hurt.beloved.v0	How wonderful {0} is. I adore [[0:her|him]] — especially for giving me water when I was so far gone.	[[0:Какая|Какой]] {0} [[0:классная. Я её|классный. Я его]] обожаю — особенно за то, что [[0:напоила|напоил]] меня, когда мне было так плохо.
+journal.Aided.got.hurt.beloved.v1	{0}. Always {0}. [[0:She|He]] sat with me and made it stop hurting so much.	{0}. Всегда {0}. [[0:Она посидела|Он посидел]] рядом, и стало не так больно.
+journal.Aided.got.tender.beloved.v0	{0} took care of me today. [[0:She|He]] is the best thing on this island.	{0} сегодня обо мне [[0:позаботилась. Она|позаботился. Он]] — лучшее, что есть на этом острове.
+journal.Aided.got.cold.v0	{0} helped me. Fine. I said thank you and we both pretended.	{0} мне [[0:помогла|помог]]. Ладно. Я [[s:сказала|сказал]] спасибо, и мы друг перед другом сделали вид.
+journal.Aided.got.hated.v0	Of all people, {0} was the one to help me. I hate that I needed it.	[[0:Помогла|Помог]] мне именно {0}. Ненавижу, что мне это было нужно.
+journal.Aided.did.v0	I helped {0} — {1}. [[0:She|He]] needed it.	Я [[s:помогла|помог]] {0} — {1}. [[0:Ей|Ему]] было нужно.
+journal.Aided.did.v1	{0} was in a bad way. I did what I could.	{0} было плохо. Я [[s:сделала что могла|сделал что мог]].
+journal.Aided.did.tender.beloved.v0	I looked after {0} today. I would do it again tomorrow.	Сегодня я [[s:возилась|возился]] с {0}. И завтра снова буду.
+journal.Aided.did.weary.v0	I helped {0}. I had nothing left myself, but I helped.	[[s:Помогла|Помог]] {0}. У [[s:самой|самого]] ничего не осталось, но [[s:помогла|помог]].
+journal.FoodShared.got.v0	{0} gave me food. I was starving.	{0} [[0:дала|дал]] мне поесть. Я [[s:умирала|умирал]] с голоду.
+journal.FoodShared.got.tender.v0	{0} shared [[0:her|his]] food with me. Nobody made [[0:her|him]].	{0} [[0:поделилась|поделился]] со мной едой. [[0:Её|Его]] никто не заставлял.
+journal.FoodShared.got.hurt.beloved.v0	{0} fed me when I had nothing. I will remember that for as long as I live.	{0} [[0:накормила|накормил]] меня, когда у меня не было ничего. Буду помнить, пока живу.
+journal.FoodShared.did.v0	I gave {0} some of mine. [[0:She|He]] looked worse than me.	[[s:Отдала|Отдал]] {0} часть своего. [[0:Она выглядела|Он выглядел]] хуже меня.
+journal.HelpCryDefended.got.v0	{0} stepped in front of me. In front of ME.	{0} [[0:встала|встал]] передо мной. Передо МНОЙ.
+journal.HelpCryDefended.got.tender.beloved.v0	{0} fought for me today. I have never had anyone do that.	Сегодня {0} за меня [[0:дралась|дрался]]. За меня никто никогда не дрался.
+journal.HelpCryDefended.did.v0	I got between {0} and the thing that wanted [[0:her|him]].	Я [[s:встала|встал]] между {0} и тем, что до [[0:неё|него]] добиралось.
+journal.HelpCryAnswered.got.v0	I screamed, and {0} came.	Я [[s:закричала|закричал]] — и {0} [[0:пришла|пришёл]].
+journal.HelpCryAnswered.did.v0	{0} was screaming. I ran.	{0} [[0:кричала|кричал]]. Я [[s:побежала|побежал]].
+journal.HelpCryIgnored.got.v0	I screamed. {0} heard me. {0} did not come.	Я [[s:кричала|кричал]]. {0} [[0:слышала|слышал]]. {0} не [[0:пришла|пришёл]].
+journal.HelpCryIgnored.got.bitter.v0	So that's how it is. I called for {0} and [[0:she|he]] looked away.	Вот, значит, как. Я [[s:звала|звал]] {0}, а [[0:она отвернулась|он отвернулся]].
+journal.HelpCry.got.v0	I screamed for help until my throat gave out.	Я [[s:звала|звал]] на помощь, пока не [[s:сорвала|сорвал]] голос.
+journal.HelpCry.got.dying.v0	I called and called. Nobody. Just the sound of my own voice.	Я [[s:звала и звала|звал и звал]]. Никого. Только мой собственный голос.
+journal.HelpMoan.got.dying.v0	I couldn't scream any more. I could only lie there and make a sound.	Кричать я уже не [[s:могла|мог]]. Только лежать и мычать.
+journal.Collapsed.got.v0	My legs went. I went down and I did not get up.	Ноги подкосились. Я [[s:упала и не встала|упал и не встал]].
+journal.Rescued.got.tender.v0	I opened my eyes and I was alive. I am still not used to it.	Я [[s:открыла|открыл]] глаза и [[s:была жива|был жив]]. До сих пор не привыкну.
+journal.Rescued.got.dying.v0	They pulled me back. I was already gone, and they pulled me back.	Меня вытащили. Я уже [[s:уходила|уходил]] — и меня вытащили.
+journal.LimbSevered.got.v0	I lost it. {1}. It's gone and it is not coming back.	Я её [[s:лишилась|лишился]]. {1}. Её нет, и она не вернётся.
+journal.LimbSevered.got.dying.v0	{1}. I looked at where it used to be and I stopped understanding anything.	{1}. Я [[s:посмотрела|посмотрел]] туда, где она была, и [[s:перестала|перестал]] что-либо понимать.
+journal.SharkBite.got.v0	Something took me from below. I didn't even see it.	Что-то взяло меня снизу. Я даже не [[s:увидела|увидел]].
+journal.DogFight.got.v0	I fought it off. My hands are still shaking.	Я [[s:отбилась|отбился]]. Руки до сих пор трясутся.
+journal.DogFight.did.v0	I fought it off. My hands are still shaking.	Я [[s:отбилась|отбился]]. Руки до сих пор трясутся.
+journal.FellAsleepExhausted.got.v0	I simply switched off. Mid-step.	Я просто [[s:выключилась|выключился]]. Прямо на ходу.
+journal.FellAsleepExhausted.got.weary.v0	There was nothing left in me. I went down where I stood.	Во мне уже ничего не осталось. [[s:Легла там, где стояла|Лёг там, где стоял]].
+journal.Fainted.got.v0	I blacked out. I don't know for how long.	Я [[s:отключилась|отключился]]. Не знаю, надолго ли.
+journal.WokeUp.got.v0	I woke up. Still here, then.	Я [[s:очнулась|очнулся]]. Значит, всё ещё здесь.
+journal.CryingBreakdown.got.v0	I lay down and cried and could not stop.	Я [[s:легла и плакала, и не могла|лёг и плакал, и не мог]] перестать.
+journal.CryingBreakdown.got.bitter.v0	I broke. Just lay there and howled like an animal.	Меня сорвало. Просто [[s:лежала и выла|лежал и выл]], как зверь.
+journal.Bandaged.did.v0	I dressed my wounds. Badly, but I dressed them.	[[s:Перевязала|Перевязал]] раны. Плохо, но [[s:перевязала|перевязал]].
+journal.Medicated.did.v0	I took a pill. Now I wait.	[[s:Приняла|Принял]] таблетку. Теперь жду.
+journal.Preyed.got.v0	{0} came at me. {0}. One of ours.	{0} [[0:напала|напал]] на меня. {0}. [[0:Своя|Свой]].
+journal.Preyed.got.hurt.v0	{0} looked at me like I was meat. And then [[0:she|he]] was on me.	{0} [[0:смотрела|смотрел]] на меня, как на мясо. А потом [[0:бросилась|бросился]].
+journal.Preyed.did.v0	I did it. I was so hungry that I stopped seeing a person in {0}.	Я это [[s:сделала|сделал]]. Мне было так голодно, что я [[s:перестала|перестал]] видеть в {0} человека.
+journal.Preyed.did.bitter.v0	I went for {0}. I am not writing down why. I know why.	Я [[s:бросилась|бросился]] на {0}. Не пишу зачем. Я знаю зачем.
+journal.PreyFoughtBack.got.v0	I fought {0} off. I didn't think I had it in me.	Я [[s:отбилась|отбился]] от {0}. Не [[s:думала|думал]], что смогу.
+journal.PreyFled.got.v0	I ran from {0}. I ran and I did not look back.	Я [[s:убежала|убежал]] от {0}. [[s:Бежала и не оглядывалась|Бежал и не оглядывался]].
+journal.StrippedHelpless.got.v0	I was lying there and {0} went through my things. I felt every hand.	Я [[s:лежала|лежал]], а {0} [[0:рылась|рылся]] в моих вещах. Я [[s:чувствовала|чувствовал]] каждое прикосновение.
+journal.StrippedHelpless.got.bitter.v0	{0} stripped me while I could not move. I will remember.	{0} [[0:обобрала|обобрал]] меня, пока я не [[s:могла|мог]] шевельнуться. Я запомню.
+journal.StrippedHelpless.did.v0	{0} was lying there and I took what [[0:she|he]] had. I am not proud.	{0} [[0:лежала|лежал]], и я [[s:забрала|забрал]], что у [[0:неё|него]] было. Гордиться нечем.
+journal.FoodStolen.got.v0	{0} took my food. Right out of my hands.	{0} [[0:забрала|забрал]] мою еду. Прямо из рук.
+journal.NightRaid.got.v0	They came in the dark. I heard them before I saw them.	Они пришли в темноте. Я [[s:услышала|услышал]] их раньше, чем [[s:увидела|увидел]].
+journal.ThreatSpotted.got.v0	I saw it before it saw me. That is the only reason I am writing this.	Я [[s:заметила|заметил]] его раньше, чем он меня. Только поэтому и пишу это.
+journal.Grieving.got.v0	{0} is dead. I keep turning round to look for [[0:her|him]].	{0} [[0:умерла|умер]]. Я всё оборачиваюсь [[0:её|его]] искать.
+journal.Grieving.got.hurt.beloved.v0	{0} is gone. I don't know how to be here without [[0:her|him]].	{0} больше нет. Я не знаю, как здесь быть без [[0:неё|него]].
+journal.Mourned.did.v0	I sat with {0} for a while. It was the only thing left to do.	[[s:Посидела|Посидел]] немного с {0}. Больше сделать было нечего.
+journal.TalkQuarreled.did.bitter.v0	I shouted at {0}. I meant every word of it and I hate that.	Я [[s:наорала|наорал]] на {0}. Каждое слово всерьёз — и мне за это противно.
+journal.TalkQuarreled.got.v0	{0} went at me over nothing. Or maybe not over nothing.	{0} [[0:накинулась|накинулся]] на меня из-за ерунды. А может, и не из-за ерунды.
+journal.TalkCompleted.did.tender.beloved.v0	I talked to {0} for a long time. Those hours are the reason I'm still sane.	Долго [[s:говорила|говорил]] с {0}. Только на таких часах я и держусь.
+journal.CampsMerged.got.v0	{0} offered to unite our camps. I agreed; now we share one home.	{0} [[0:предложила|предложил]] объединить наши лагеря. Я [[s:согласилась|согласился]] — теперь у нас один общий дом.
+journal.InteractionRejected.got.v0	{0} did not want to talk to me. Fine.	{0} не [[0:захотела|захотел]] со мной говорить. Ну и ладно.
+journal.InteractionRejected.got.bitter.v0	{0} brushed me off. I won't ask twice.	{0} от меня [[0:отмахнулась|отмахнулся]]. Второй раз я не попрошу.
+journal.WearPermissionRefused.got.v0	{0} wouldn't lend me [[0:her|his]] things. [[0:Hers is hers|His is his]], I suppose.	{0} не [[0:дала|дал]] мне свои вещи. Своё есть своё, наверное.
+journal.WearPermissionGranted.got.v0	{0} lent me [[0:her|his]] things. That's not a small thing here.	{0} [[0:одолжила|одолжил]] мне свои вещи. Здесь это немало.
+journal.AidWaitTimeout.got.v0	I waited for {0}. [[0:She|He]] never came.	Я [[s:ждала|ждал]] {0}. [[0:Она не пришла|Он не пришёл]].
+journal.TentCrafted.did.v0	I put up a shelter. There is shade now.	[[s:Поставила|Поставил]] навес. Теперь есть тень.
+journal.FurnitureBuilt.did.v0	Finished the build. It stands.	[[s:Достроила|Достроил]]. Стоит.
+journal.Butchered.did.v0	I butchered it. There is meat now. I try not to think about it.	[[s:Разделала|Разделал]]. Теперь есть мясо. Стараюсь об этом не думать.
+journal.Crafted.did.v0	Made myself {1}.	[[s:Смастерила|Смастерил]] себе {1}.
+journal.FriendGuard.got.v0	{0} put [[0:herself|himself]] between me and it. [[0:She|He]] didn't have to.	{0} [[0:встала|встал]] между мной и этим. [[0:Её|Его]] никто не просил.
+journal.FriendGuard.got.tender.beloved.v0	{0} guarded me today. I keep thinking about it.	Сегодня {0} меня [[0:прикрыла|прикрыл]]. Я всё об этом думаю.
+journal.FriendGuard.did.v0	I stood over {0} until it backed off.	Я [[s:стояла|стоял]] над {0}, пока оно не отступило.
+journal.WearPermissionRefused.did.v0	{0} asked for my things. I said no. They're mine.	{0} [[0:просила|просил]] мои вещи. Я [[s:отказала|отказал]]. Они мои.
+journal.WearPermissionRefused.did.bitter.v0	{0} wanted my things. No. I have little enough as it is.	{0} [[0:хотела|хотел]] мои вещи. Нет. У меня и так почти ничего нет.
+journal.WearPermissionGranted.did.v0	I lent {0} my things. [[0:She|He]] needed them more.	[[s:Отдала|Отдал]] {0} свои вещи поносить. [[0:Ей|Ему]] нужнее.
+journal.AidRequested.did.v0	I set off to help {0} — {1}.	[[s:Пошла|Пошёл]] к {0} — {1}.
+journal.AidStarted.did.v0	I got to {0} and started on it — {1}.	[[s:Дошла|Дошёл]] до {0} и [[s:взялась|взялся]] — {1}.
+journal.AidWaitTimeout.got.bitter.v0	I waited for {0} for so long. Nobody came at all.	Я так долго [[s:ждала|ждал]] {0}. Не пришёл вообще никто.
+journal.HelpCryAssistArrived.did.v0	I got there and threw myself into it.	[[s:Добежала и влезла|Добежал и влез]] в драку.
+journal.HelpCryAssistLost.did.v0	I ran, and by the time I got there it was already over.	[[s:Бежала, а когда добежала|Бежал, а когда добежал]] — всё уже кончилось.
+journal.MeatEaten.did.v0	I ate properly for once — {1}.	Наконец нормально [[s:поела|поел]] — {1}.
+journal.FireLit.did.v0	I got the fire going. It's warm.	[[s:Развела|Развёл]] костёр. Тепло.
+journal.TreeChopped.did.v0	Took a tree down. My arms are dead.	[[s:Свалила|Свалил]] дерево. Руки отваливаются.
+journal.Grieving.got.v1	{0} died today. The island got quieter.	Сегодня [[0:умерла|умер]] {0}. На острове стало тише.
+journal.WoundInflicted.got.dying.v1	There's so much blood. I never knew there was so much in me.	Крови так много. Я не [[s:знала|знал]], что во мне столько.
+journal.CaughtCheating.did.v0	I saw {0} with someone else with my own eyes. How could I ever trust that again?	Я своими глазами [[s:видела|видел]] {0} с другим человеком. Как после такого верить?
+journal.CaughtCheating.got.v0	{0} caught me with someone else.	{0} [[0:застала|застал]] меня с другим человеком.
+journal.DirectiveAsked.did.v0	I asked [[0:her|him]] to help with {0}.	[[s:Попросила её|Попросил его]] помочь: {0}.
+journal.DirectiveAccepted.got.v0	[[0:She|He]] said yes: {0}.	[[0:Она согласилась|Он согласился]]: {0}.
+journal.DirectiveAccepted.did.v0	I promised [[0:her|him]]: {0}. Let's see.	[[s:Пообещала|Пообещал]] [[0:ей|ему]]: {0}. Посмотрим.
+journal.DirectiveAccepted.did.v1	Said I would do it: {0}.	[[s:Сказала|Сказал]], что сделаю: {0}.
+journal.DirectiveRefused.got.v0	[[0:She|He]] refused: {0}. Fine.	[[0:Она отказала|Он отказал]]: {0}. Ну и ладно.
+journal.DirectiveRefused.got.v1	Asked [[0:her|him]] about {0} — no.	[[s:Просила её|Просил его]]: {0} — нет.
+journal.DirectiveRefused.did.v0	Told [[0:her|him]] no: {0}. Not today.	[[s:Сказала|Сказал]] [[0:ей|ему]] нет: {0}. Не сегодня.
+journal.DirectiveShout.v0	Shouted to everyone: {0}!	[[s:Крикнула|Крикнул]] всем: {0}!
+journal.DirectiveDone.did.v0	Kept my word: {0}.	[[s:Сдержала|Сдержал]] слово: {0}.
+journal.DirectiveDone.did.v1	Done what I promised: {0}.	[[s:Сделала, что обещала|Сделал, что обещал]]: {0}.

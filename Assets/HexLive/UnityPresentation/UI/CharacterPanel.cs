@@ -883,6 +883,9 @@ namespace HexLive.UnityPresentation.UI
             _refreshedActorId = npc.Id.Value;
             _refreshedIconRevision = Wearing.Garments.ItemIcons.Revision;
             _currentTooltipNpc = npc;
+            // §58.9: карточка говорит о выбранном в его роде — «Занят», «Ранен».
+            HexLive.UnityPresentation.History.NpcGender.Remember(snapshot);
+            Loc.SetSubject(HexLive.UnityPresentation.History.NpcGender.IsMale(npc));
 
             // §74: DisplayName is a name ID; the player sees the localized term.
             _nameLabel.text = string.IsNullOrEmpty(npc.DisplayName)

@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Globalization;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Runtime;
 using HexLive.UnityPresentation.Localization;
 
@@ -38,6 +39,13 @@ namespace HexLive.UnityPresentation.History
         {
             var actor = Npc(record.EntityId);
             var target = FirstNpcIn(record.Message, record.EntityId);
+            // §58.9: «{0} пошла» или «{0} пошёл» — по телу того, кто стоит в {0}.
+            // Слот s — тоже действующий: детали вроде «согласился: …» о нём.
+            var actorMale = NpcGender.IsMale(record.EntityId);
+            _gender = new GenderSlots(actorMale, actorMale,
+                NpcGender.IsMale(IdOf(TargetFromArrow(record.Message, target))),
+                NpcGender.IsMale(int.TryParse(Token(record.Message, "With=NPC"),
+                    NumberStyles.Integer, CultureInfo.InvariantCulture, out var withId) ? (int?)withId : null));
             var title = record.Type switch
             {
                 "AidStarted" => F("history.AidStarted", actor, target),
@@ -72,7 +80,7 @@ namespace HexLive.UnityPresentation.History
                 "InteractionBlocked" => F("history.InteractionBlocked", actor),
                 "InteractionRejected" => F("history.InteractionRejected", actor),
                 "FoodShared" => F("history.FoodShared", actor, target),
-                "FoodStolen" => Loc.Get("history.FoodStolen"),
+                "FoodStolen" => L("history.FoodStolen"),
                 "Grieving" => F("history.Grieving", actor),
                 "Mourned" => F("history.Mourned", actor),
                 "Looted" => F("history.Looted", actor),
@@ -84,8 +92,8 @@ namespace HexLive.UnityPresentation.History
                 "Drowned" => F("history.Drowned", actor),
                 "VitalPartDestroyed" => F("history.VitalPartDestroyed", actor),
                 "DogFight" => F("history.DogFight", actor),
-                "DogAggro" => Loc.Get("history.DogAggro"),
-                "DogKilled" => Loc.Get("history.DogKilled"),
+                "DogAggro" => L("history.DogAggro"),
+                "DogKilled" => L("history.DogKilled"),
                 "DogShot" => F("history.DogShot", actor),
                 "HelpCry" => F("history.HelpCry", actor),
                 "HelpMoan" => F("history.HelpMoan", actor), // §57.10
@@ -96,16 +104,16 @@ namespace HexLive.UnityPresentation.History
                 "HelpCryAssistLost" => F("history.HelpCryAssistLost", actor),
                 "HelpCryDefended" => F("history.HelpCryDefended", actor),
                 "FriendGuard" => F("history.FriendGuard", actor),
-                "NightRaid" => Loc.Get("history.NightRaid"),
+                "NightRaid" => L("history.NightRaid"),
                 // §135: системные события зверя — актёра у них нет.
-                "MobTookLimb" => Loc.Get("history.MobTookLimb"),
-                "MobAteLimb" => Loc.Get("history.MobAteLimb"),
-                "MobLeft" => Loc.Get("history.MobLeft"), // §46 v4: стая ушла
+                "MobTookLimb" => L("history.MobTookLimb"),
+                "MobAteLimb" => L("history.MobAteLimb"),
+                "MobLeft" => L("history.MobLeft"), // §46 v4: стая ушла
                 "Preyed" => F("history.Preyed", actor),
                 "PreyFoughtBack" => F("history.PreyFoughtBack", actor),
                 "PreyFled" => F("history.PreyFled", actor),
-                "PredatorKilled" => Loc.Get("history.PredatorKilled"),
-                "Murdered" => Loc.Get("history.Murdered"),
+                "PredatorKilled" => L("history.PredatorKilled"),
+                "Murdered" => L("history.Murdered"),
                 "LimbSevered" => F("history.LimbSevered", actor),
                 "Fainted" => F("history.Fainted", actor),
                 // The coma path emits these two — the old "Collapsed" title waited
@@ -126,9 +134,9 @@ namespace HexLive.UnityPresentation.History
                 "StatusDehydrated" => F("history.StatusDehydrated", actor),
                 "StatusOverheated" => F("history.StatusOverheated", actor),
                 "Sunburn" => F("history.Sunburn", actor),
-                "RainStarted" => Loc.Get("history.RainStarted"),
-                "RainStopped" => Loc.Get("history.RainStopped"),
-                "StormSurge" => Loc.Get("history.StormSurge"),
+                "RainStarted" => L("history.RainStarted"),
+                "RainStopped" => L("history.RainStopped"),
+                "StormSurge" => L("history.StormSurge"),
                 "TreeChopped" => F("history.TreeChopped", actor),
                 "BoulderBroken" => F("history.BoulderBroken", actor),
                 "LogSplit" => F("history.LogSplit", actor),
@@ -140,25 +148,25 @@ namespace HexLive.UnityPresentation.History
                 "DrankBottle" => F("history.DrankBottle", actor),
                 "FireLit" => F("history.FireLit", actor),
                 "FireFueled" => F("history.FireFueled", actor),
-                "FireOut" => Loc.Get("history.FireOut"),
+                "FireOut" => L("history.FireOut"),
                 // The fire emits MeatRoasted — the old "MeatCooked" title waited
                 // for a type nothing has ever sent, so cooking was invisible here.
-                "MeatRoasted" => Loc.Get("history.MeatRoasted"),
+                "MeatRoasted" => L("history.MeatRoasted"),
                 "MeatHungOnSpit" => F("history.MeatHungOnSpit", actor),
-                "MeatSpoiled" => Loc.Get("history.MeatSpoiled"),
+                "MeatSpoiled" => L("history.MeatSpoiled"),
                 // §54.17: the finish line of the meat chain.
                 "MeatEaten" => F("history.MeatEaten", actor),
                 "RaftProgress" => F("history.RaftProgress", actor),
-                "RaftLaunched" => Loc.Get("history.RaftLaunched"),
+                "RaftLaunched" => L("history.RaftLaunched"),
                 "BuildProgress" => F("history.BuildProgress", actor),
                 "FurnitureBuilt" => F("history.FurnitureBuilt", actor),
-                "HutCompleted" => Loc.Get("history.HutCompleted"),
+                "HutCompleted" => L("history.HutCompleted"),
                 "BedCrafted" => F("history.BedCrafted", actor),
                 "TentCrafted" => F("history.TentCrafted", actor),
                 "RackCrafted" => F("history.RackCrafted", actor),
                 "Butchered" => F("history.Butchered", actor),
                 "EmergencyUnload" => F("history.EmergencyUnload", actor),
-                "DireStraits" => Loc.Get("history.DireStraits"),
+                "DireStraits" => L("history.DireStraits"),
                 _ when record.Type.StartsWith("Crafted", StringComparison.Ordinal) =>
                     F("history.Crafted", actor),
                 // Dev-фолбэк для типа без термина: сырой тип события, локали
@@ -193,11 +201,11 @@ namespace HexLive.UnityPresentation.History
             {
                 "AidStarted" => F("history.detail.aid", AidKind(Token(record.Message, "Kind="))),
                 "AidRequested" => F("history.detail.aid", AidKind(Token(record.Message, "Kind="))),
-                "AidWaitTimeout" => Loc.Get("history.detail.AidWaitTimeout"),
+                "AidWaitTimeout" => L("history.detail.AidWaitTimeout"),
                 "Aided" => F("history.detail.Aided", AidKind(Token(record.Message, "Kind="))),
                 "TalkRequested" => F("history.detail.TalkRequested", Token(record.Message, "Affinity=")),
                 "TalkStarted" => F("history.detail.TalkStarted", TalkTopic(Token(record.Message, "Topic="))),
-                "TalkCompleted" => Loc.Get("history.detail.TalkCompleted"),
+                "TalkCompleted" => L("history.detail.TalkCompleted"),
                 // §167: указания — вид просьбы словами.
                 "DirectiveAsked" => F("history.detail.DirectiveAsked", DirectiveKind(Token(record.Message, "Kind="))),
                 "DirectiveAccepted" => F("history.detail.DirectiveAccepted", DirectiveKind(Token(record.Message, "Kind="))),
@@ -206,12 +214,12 @@ namespace HexLive.UnityPresentation.History
                 "DirectiveDone" => F("history.detail.DirectiveDone", DirectiveKind(Token(record.Message, "Kind="))),
                 "DirectiveExpired" => F("history.detail.DirectiveExpired", DirectiveKind(Token(record.Message, "Kind="))),
                 "GiftGiven" => GiftDetail(record.Message),
-                "CampsMerged" => Loc.Get("history.detail.CampsMerged"),
-                "TalkQuarreled" => Loc.Get("history.detail.TalkQuarreled"),
-                "TalkWaitTimeout" => Loc.Get("history.detail.TalkWaitTimeout"),
+                "CampsMerged" => L("history.detail.CampsMerged"),
+                "TalkQuarreled" => L("history.detail.TalkQuarreled"),
+                "TalkWaitTimeout" => L("history.detail.TalkWaitTimeout"),
                 "RelationshipChanged" => RelationshipDetail(record.Message),
                 "InteractionBlocked" => BusyObjectDetail(record.Message),
-                "InteractionRejected" => Loc.Get("history.detail.InteractionRejected"),
+                "InteractionRejected" => L("history.detail.InteractionRejected"),
                 "NpcDied" => DeathDetail(record.Message),
                 "FoodStolen" => NpcArrowDetail(record.Message),
                 "Murdered" => NpcArrowDetail(record.Message),
@@ -221,11 +229,11 @@ namespace HexLive.UnityPresentation.History
                 "HelpCryAnswered" => HelpCryDecisionDetail(record.Message),
                 "HelpCryIgnored" => HelpCryDecisionDetail(record.Message),
                 "HelpCryDefended" => CleanDetail(record.Message),
-                "GroupHuntPactFormed" => Loc.Get("history.detail.GroupHuntPactFormed"),
-                "GroupHuntDone" => Loc.Get("history.detail.GroupHuntDone"),
+                "GroupHuntPactFormed" => L("history.detail.GroupHuntPactFormed"),
+                "GroupHuntDone" => L("history.detail.GroupHuntDone"),
                 "GroupHuntFailed" => CleanDetail(record.Message),
                 "RaftProgress" => record.Message,
-                "DireStraits" => Loc.Get("history.detail.DireStraits"),
+                "DireStraits" => L("history.detail.DireStraits"),
                 _ => CleanDetail(record.Message)
             };
         }
@@ -244,7 +252,7 @@ namespace HexLive.UnityPresentation.History
             }
 
             var key = "history.detail.gift." + reaction;
-            return Loc.Has(key) ? Loc.Get(key) : CleanDetail(message);
+            return Loc.Has(key) ? L(key) : CleanDetail(message);
         }
 
         private static string RelationshipDetail(string message)
@@ -273,7 +281,7 @@ namespace HexLive.UnityPresentation.History
             var type = typeEnd > 0 ? cause.Substring(0, typeEnd) : cause;
             // Неизвестная причина рендерится сырым типом — как missing key в Loc.
             var key = "history.cause." + type;
-            var localized = Loc.Has(key) ? Loc.Get(key) : type;
+            var localized = Loc.Has(key) ? L(key) : type;
             return F("history.detail.cause", localized);
         }
 
@@ -343,7 +351,7 @@ namespace HexLive.UnityPresentation.History
         private static string Npc(int? id) =>
             id.HasValue
                 ? $"NPC #{id.Value.ToString(CultureInfo.InvariantCulture)}"
-                : Loc.Get("history.colony");
+                : L("history.colony");
 
         private static string FirstNpcIn(string message, int? fallback)
         {
@@ -405,19 +413,19 @@ namespace HexLive.UnityPresentation.History
         {
             // Неизвестный вид помощи остаётся сырым токеном (виден как баг).
             var key = "history.aid." + kind;
-            return Loc.Has(key) ? Loc.Get(key) : kind;
+            return Loc.Has(key) ? L(key) : kind;
         }
 
         private static string DirectiveKind(string kind)
         {
             var key = "directive." + kind;
-            return Loc.Has(key) ? Loc.Get(key) : kind;
+            return Loc.Has(key) ? L(key) : kind;
         }
 
         private static string TalkTopic(string topic)
         {
             var key = "history.topic." + topic;
-            return Loc.Has(key) ? Loc.Get(key) : topic;
+            return Loc.Has(key) ? L(key) : topic;
         }
 
         private static string NpcArrowDetail(string message)
@@ -477,8 +485,23 @@ namespace HexLive.UnityPresentation.History
             return message.Length <= 160 ? message : message.Substring(0, 157) + "...";
         }
 
+        // §58.9: о ком текущая запись. Ставится в начале Format; лента
+        // собирается только на главном потоке, поэтому поле, а не параметр
+        // через полсотни веток switch.
+        private static GenderSlots _gender;
+
+        private static string L(string key) => Loc.Get(key, _gender);
+
         /// <summary>Термин §58 с подстановками ({0}, {1}, …) — как end.subtitle.</summary>
         private static string F(string key, params object[] args) =>
-            string.Format(Loc.Get(key), args);
+            string.Format(L(key), args);
+
+        /// <summary>id из подписи «NPC #12», которую строят Npc/FirstNpcIn.</summary>
+        private static int? IdOf(string label)
+        {
+            var hash = label.IndexOf('#');
+            return hash >= 0 && int.TryParse(label.Substring(hash + 1), NumberStyles.Integer,
+                CultureInfo.InvariantCulture, out var id) ? id : (int?)null;
+        }
     }
 }

@@ -39,6 +39,7 @@ internal static class McpNpcObservations
                 ["npcId"] = id,
                 ["nameId"] = nameId,
                 ["names"] = LocalizedNames(nameId),
+                ["sex"] = SexOf(body),
                 ["faction"] = agent.Faction.ToString(),
                 ["sameCamp"] = agent.Faction == observer.Faction,
                 ["hostile"] = entry.Hostile,
@@ -61,6 +62,9 @@ internal static class McpNpcObservations
         }
         return rows;
     }
+
+    /// <summary>§58.9: «он» или «она» — по телу, как и одежда (§84).</summary>
+    internal static string SexOf(NPCState npc) => npc.Sex == GarmentSex.Male ? "male" : "female";
 
     // §144.12 / #419: externally observable limb loss, not a remote medical chart.
     // Call only after the target has passed the current-sight check above.

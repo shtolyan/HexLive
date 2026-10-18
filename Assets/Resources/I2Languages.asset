@@ -604,9 +604,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Nothing out of the ordinary about her.
-      - "\u041D\u0438\u0447\u0435\u0433\u043E \u043E\u0441\u043E\u0431\u0435\u043D\u043D\u043E\u0433\u043E
-        \u0437\u0430 \u043D\u0435\u0439 \u043D\u0435 \u0432\u043E\u0434\u0438\u0442\u0441\u044F."
+      - 'Nothing out of the ordinary about [[s:her|him]].'
+      - 'Ничего особенного за [[s:ней|ним]] не водится.'
       Flags: 0101
       Languages_Touch: []
     - Term: trait.abuser.title
@@ -621,13 +620,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "Picks on outsiders \u2014 takes their supplies, or just leans on them. Never
-        touches her own clan."
-      - "\u0414\u043E\u043A\u0430\u043F\u044B\u0432\u0430\u0435\u0442\u0441\u044F
-        \u0434\u043E \u0447\u0443\u0436\u0430\u043A\u043E\u0432: \u043E\u0442\u0431\u0438\u0440\u0430\u0435\u0442
-        \u043F\u0440\u0438\u043F\u0430\u0441\u044B \u0438\u043B\u0438 \u043F\u0440\u043E\u0441\u0442\u043E
-        \u0433\u043D\u043E\u0431\u0438\u0442. \u0421\u0432\u043E\u0438\u0445 \u043D\u0435
-        \u0442\u0440\u043E\u0433\u0430\u0435\u0442 \u043D\u0438\u043A\u043E\u0433\u0434\u0430."
+      - 'Picks on outsiders — takes their supplies, or just leans on them. Never touches [[s:her|his]] own clan.'
+      - 'Докапывается до чужаков: отбирает припасы или просто гнобит. Своих не трогает никогда.'
       Flags: 0101
       Languages_Touch: []
     - Term: trait.slob.title
@@ -661,31 +655,24 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Washes herself and her clothes sooner and more eagerly than anyone else.
-      - "\u041C\u043E\u0435\u0442\u0441\u044F \u0438 \u0441\u0442\u0438\u0440\u0430\u0435\u0442
-        \u0440\u0430\u043D\u044C\u0448\u0435 \u0438 \u043E\u0445\u043E\u0442\u043D\u0435\u0435
-        \u043E\u0441\u0442\u0430\u043B\u044C\u043D\u044B\u0445."
+      - 'Washes [[s:herself and her|himself and his]] clothes sooner and more eagerly than anyone else.'
+      - 'Моется и стирает раньше и охотнее остальных.'
       Flags: 0101
       Languages_Touch: []
     - Term: trait.lazy.title
       TermType: 0
       Description: 
       Languages:
-      - Idler
-      - "\u041B\u0435\u043D\u0442\u044F\u0439\u043A\u0430"
+      - 'Idler'
+      - '[[s:Лентяйка|Лентяй]]'
       Flags: 0101
       Languages_Touch: []
     - Term: trait.lazy.desc
       TermType: 0
       Description: 
       Languages:
-      - Free hands mean rest, not chores. Sits out spare time more often than she
-        works it.
-      - "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u044B\u0435 \u0440\u0443\u043A\u0438
-        \u2014 \u044D\u0442\u043E \u043E\u0442\u0434\u044B\u0445, \u0430 \u043D\u0435
-        \u0434\u0435\u043B\u0430. \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E\u0435
-        \u0432\u0440\u0435\u043C\u044F \u0447\u0430\u0449\u0435 \u043F\u0440\u043E\u0441\u0438\u0436\u0438\u0432\u0430\u0435\u0442,
-        \u0447\u0435\u043C \u043E\u0442\u0440\u0430\u0431\u0430\u0442\u044B\u0432\u0430\u0435\u0442."
+      - 'Free hands mean rest, not chores. Sits out spare time more often than [[s:she works|he works]] it.'
+      - 'Свободные руки — это отдых, а не дела. Свободное время чаще просиживает, чем отрабатывает.'
       Flags: 0101
       Languages_Touch: []
     - Term: trait.diligent.title
@@ -719,40 +706,32 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Turns in earlier than the rest. She sleeps until fully rested either way,
-        so she also sleeps longer.
-      - "\u041B\u043E\u0436\u0438\u0442\u0441\u044F \u0440\u0430\u043D\u044C\u0448\u0435
-        \u043E\u0441\u0442\u0430\u043B\u044C\u043D\u044B\u0445. \u0421\u043F\u0438\u0442
-        \u0432\u0441\u0451 \u0440\u0430\u0432\u043D\u043E \u0434\u043E \u043F\u043E\u043B\u043D\u043E\u0433\u043E
-        \u043E\u0442\u0434\u044B\u0445\u0430, \u043F\u043E\u044D\u0442\u043E\u043C\u0443
-        \u0438 \u0441\u043F\u0438\u0442 \u0434\u043E\u043B\u044C\u0448\u0435."
+      - 'Turns in earlier than the rest. [[s:She sleeps|He sleeps]] until fully rested either way, so [[s:she|he]] also sleeps longer.'
+      - 'Ложится раньше остальных. Спит всё равно до полного отдыха, поэтому и спит дольше.'
       Flags: 0101
       Languages_Touch: []
     - Term: trait.coward.title
       TermType: 0
       Description: 
       Languages:
-      - Coward
-      - "\u0422\u0440\u0443\u0441\u0438\u0445\u0430"
+      - 'Coward'
+      - '[[s:Трусиха|Трус]]'
       Flags: 0101
       Languages_Touch: []
     - Term: trait.coward.desc
       TermType: 0
       Description: 
       Languages:
-      - Gives danger a wider berth and runs for longer. Never strikes first.
-      - "\u041E\u0431\u0445\u043E\u0434\u0438\u0442 \u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u044C
-        \u0448\u0438\u0440\u0435 \u0438 \u0431\u0435\u0436\u0438\u0442 \u0434\u043E\u043B\u044C\u0448\u0435.
-        \u041F\u0435\u0440\u0432\u043E\u0439 \u043D\u0435 \u0431\u044C\u0451\u0442
-        \u043D\u0438\u043A\u043E\u0433\u0434\u0430."
+      - 'Gives danger a wider berth and runs for longer. Never strikes first.'
+      - 'Обходит опасность шире и бежит дольше. [[s:Первой|Первым]] не бьёт никогда.'
       Flags: 0101
       Languages_Touch: []
     - Term: trait.brave.title
       TermType: 0
       Description: 
       Languages:
-      - Brave
-      - "\u0425\u0440\u0430\u0431\u0440\u0430\u044F"
+      - 'Brave'
+      - '[[s:Храбрая|Храбрый]]'
       Flags: 0101
       Languages_Touch: []
     - Term: trait.brave.desc
@@ -916,228 +895,176 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Strong
-      - "\u0421\u0438\u043B\u044C\u043D\u0430\u044F"
+      - 'Strong'
+      - '[[s:Сильная|Сильный]]'
       Flags: 0101
       Languages_Touch: []
     - Term: perk.strength.low
       TermType: 0
       Description: 
       Languages:
-      - Frail
-      - "\u0421\u043B\u0430\u0431\u0430\u044F"
+      - 'Frail'
+      - '[[s:Слабая|Слабый]]'
       Flags: 0101
       Languages_Touch: []
     - Term: perk.agility.high
       TermType: 0
       Description: 
       Languages:
-      - Quick
-      - "\u0411\u044B\u0441\u0442\u0440\u0430\u044F"
+      - 'Quick'
+      - '[[s:Быстрая|Быстрый]]'
       Flags: 0101
       Languages_Touch: []
     - Term: perk.agility.low
       TermType: 0
       Description: 
       Languages:
-      - Slow
-      - "\u041C\u0435\u0434\u043B\u0438\u0442\u0435\u043B\u044C\u043D\u0430\u044F"
+      - 'Slow'
+      - '[[s:Медлительная|Медлительный]]'
       Flags: 0101
       Languages_Touch: []
     - Term: perk.endurance.high
       TermType: 0
       Description: 
       Languages:
-      - Tireless
-      - "\u0414\u0432\u0443\u0436\u0438\u043B\u044C\u043D\u0430\u044F"
+      - 'Tireless'
+      - '[[s:Двужильная|Двужильный]]'
       Flags: 0101
       Languages_Touch: []
     - Term: perk.endurance.low
       TermType: 0
       Description: 
       Languages:
-      - Short-winded
-      - "\u041E\u0434\u044B\u0448\u043B\u0438\u0432\u0430\u044F"
+      - 'Short-winded'
+      - '[[s:Одышливая|Одышливый]]'
       Flags: 0101
       Languages_Touch: []
     - Term: perk.toughness.high
       TermType: 0
       Description: 
       Languages:
-      - Hardy
-      - "\u0421\u0442\u043E\u0439\u043A\u0430\u044F"
+      - 'Hardy'
+      - '[[s:Стойкая|Стойкий]]'
       Flags: 0101
       Languages_Touch: []
     - Term: perk.toughness.low
       TermType: 0
       Description: 
       Languages:
-      - Brittle
-      - "\u0425\u0440\u0443\u043F\u043A\u0430\u044F"
+      - 'Brittle'
+      - '[[s:Хрупкая|Хрупкий]]'
       Flags: 0101
       Languages_Touch: []
     - Term: perk.hardiness.high
       TermType: 0
       Description: 
       Languages:
-      - Undemanding
-      - "\u041D\u0435\u043F\u0440\u0438\u0445\u043E\u0442\u043B\u0438\u0432\u0430\u044F"
+      - 'Undemanding'
+      - '[[s:Неприхотливая|Неприхотливый]]'
       Flags: 0101
       Languages_Touch: []
     - Term: perk.hardiness.low
       TermType: 0
       Description: 
       Languages:
-      - Needy
-      - "\u041F\u0440\u043E\u0436\u043E\u0440\u043B\u0438\u0432\u0430\u044F"
+      - 'Needy'
+      - '[[s:Прожорливая|Прожорливый]]'
       Flags: 0101
       Languages_Touch: []
     - Term: perk.wits.high
       TermType: 0
       Description: 
       Languages:
-      - Sharp
-      - "\u0421\u043C\u044B\u0448\u043B\u0451\u043D\u0430\u044F"
+      - 'Sharp'
+      - '[[s:Смышлёная|Смышлёный]]'
       Flags: 0101
       Languages_Touch: []
     - Term: perk.wits.low
       TermType: 0
       Description: 
       Languages:
-      - Simple
-      - "\u041F\u0440\u043E\u0441\u0442\u043E\u0434\u0443\u0448\u043D\u0430\u044F"
+      - 'Simple'
+      - '[[s:Простодушная|Простодушный]]'
       Flags: 0101
       Languages_Touch: []
     - Term: perk.perception.high
       TermType: 0
       Description: 
       Languages:
-      - Keen-eyed
-      - "\u0417\u043E\u0440\u043A\u0430\u044F"
+      - 'Keen-eyed'
+      - '[[s:Зоркая|Зоркий]]'
       Flags: 0101
       Languages_Touch: []
     - Term: perk.perception.low
       TermType: 0
       Description: 
       Languages:
-      - Absent
-      - "\u041D\u0435\u043D\u0430\u0431\u043B\u044E\u0434\u0430\u0442\u0435\u043B\u044C\u043D\u0430\u044F"
+      - 'Absent'
+      - '[[s:Ненаблюдательная|Ненаблюдательный]]'
       Flags: 0101
       Languages_Touch: []
     - Term: attr.strength.desc
       TermType: 0
       Description: 
       Languages:
-      - "How hard she hits in a fight, how much she can carry, and how fast she gets
-        through heavy work \u2014 felling, mining, building."
-      - "\u041D\u0430\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u0442\u044F\u0436\u0435\u043B\u043E
-        \u043E\u043D\u0430 \u0431\u044C\u0451\u0442, \u0441\u043A\u043E\u043B\u044C\u043A\u043E
-        \u0443\u043D\u043E\u0441\u0438\u0442 \u0432 \u0440\u0443\u043A\u0430\u0445
-        \u0438 \u043A\u0430\u043A \u0431\u044B\u0441\u0442\u0440\u043E \u0441\u043F\u0440\u0430\u0432\u043B\u044F\u0435\u0442\u0441\u044F
-        \u0441 \u0442\u044F\u0436\u0451\u043B\u043E\u0439 \u0440\u0430\u0431\u043E\u0442\u043E\u0439
-        \u2014 \u0440\u0443\u0431\u043A\u043E\u0439, \u0434\u0440\u043E\u0431\u043B\u0435\u043D\u0438\u0435\u043C,
-        \u0441\u0442\u0440\u043E\u0439\u043A\u043E\u0439."
+      - 'How hard [[s:she hits|he hits]] in a fight, how much [[s:she|he]] can carry, and how fast [[s:she gets|he gets]] through heavy work — felling, mining, building.'
+      - 'Насколько тяжело [[s:она|он]] бьёт, сколько уносит в руках и как быстро справляется с тяжёлой работой — рубкой, дроблением, стройкой.'
       Flags: 0101
       Languages_Touch: []
     - Term: attr.agility.desc
       TermType: 0
       Description: 
       Languages:
-      - How fast she walks and turns, and how quickly she recovers between blows
-        in a fight.
-      - "\u041A\u0430\u043A \u0431\u044B\u0441\u0442\u0440\u043E \u043E\u043D\u0430
-        \u0445\u043E\u0434\u0438\u0442 \u0438 \u0440\u0430\u0437\u0432\u043E\u0440\u0430\u0447\u0438\u0432\u0430\u0435\u0442\u0441\u044F
-        \u0438 \u043A\u0430\u043A \u0441\u043A\u043E\u0440\u043E \u0437\u0430\u043D\u043E\u0441\u0438\u0442
-        \u0440\u0443\u043A\u0443 \u0434\u043B\u044F \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0435\u0433\u043E
-        \u0443\u0434\u0430\u0440\u0430."
+      - 'How fast [[s:she walks|he walks]] and turns, and how quickly [[s:she recovers|he recovers]] between blows in a fight.'
+      - 'Как быстро [[s:она|он]] ходит и разворачивается и как скоро заносит руку для следующего удара.'
       Flags: 0101
       Languages_Touch: []
     - Term: attr.endurance.desc
       TermType: 0
       Description: 
       Languages:
-      - Her stamina reserve and how slowly she spends it working, how long she can
-        hold a run, and how long she can stay on her feet before sleep drags her
-        down.
-      - "\u0417\u0430\u043F\u0430\u0441 \u0441\u0438\u043B \u0438 \u043A\u0430\u043A
-        \u043C\u0435\u0434\u043B\u0435\u043D\u043D\u043E \u043E\u043D \u0442\u0440\u0430\u0442\u0438\u0442\u0441\u044F
-        \u043D\u0430 \u0440\u0430\u0431\u043E\u0442\u0435, \u043D\u0430\u0434\u043E\u043B\u0433\u043E
-        \u043B\u0438 \u0435\u0451 \u0445\u0432\u0430\u0442\u0430\u0435\u0442 \u043D\u0430
-        \u0431\u0435\u0433\u0443 \u0438 \u0441\u043A\u043E\u043B\u044C\u043A\u043E
-        \u043E\u043D\u0430 \u043C\u043E\u0436\u0435\u0442 \u043D\u0435 \u0441\u043F\u0430\u0442\u044C,
-        \u043F\u043E\u043A\u0430 \u0443\u0441\u0442\u0430\u043B\u043E\u0441\u0442\u044C
-        \u043D\u0435 \u0441\u0432\u0430\u043B\u0438\u0442."
+      - '[[s:Her|His]] stamina reserve and how slowly [[s:she spends|he spends]] it working, how long [[s:she|he]] can hold a run, and how long [[s:she|he]] can stay on [[s:her|his]] feet before sleep drags [[s:her|him]] down.'
+      - 'Запас сил и как медленно он тратится на работе, надолго ли [[s:её|его]] хватает на бегу и сколько [[s:она|он]] может не спать, пока усталость не свалит.'
       Flags: 0101
       Languages_Touch: []
     - Term: attr.toughness.desc
       TermType: 0
       Description: 
       Languages:
-      - "How much of a blow actually reaches the flesh, how slowly she bleeds, and
-        how fast wounds close. She has no larger health bar than anyone else \u2014
-        she simply takes less."
-      - "\u0421\u043A\u043E\u043B\u044C\u043A\u043E \u043E\u0442 \u0443\u0434\u0430\u0440\u0430
-        \u0434\u043E\u0445\u043E\u0434\u0438\u0442 \u0434\u043E \u0442\u0435\u043B\u0430,
-        \u043A\u0430\u043A \u043C\u0435\u0434\u043B\u0435\u043D\u043D\u043E \u043E\u043D\u0430
-        \u0438\u0441\u0442\u0435\u043A\u0430\u0435\u0442 \u043A\u0440\u043E\u0432\u044C\u044E
-        \u0438 \u043A\u0430\u043A \u0431\u044B\u0441\u0442\u0440\u043E \u0437\u0430\u0442\u044F\u0433\u0438\u0432\u0430\u044E\u0442\u0441\u044F
-        \u0440\u0430\u043D\u044B. \u0417\u0434\u043E\u0440\u043E\u0432\u044C\u044F
-        \u0443 \u043D\u0435\u0451 \u043D\u0435 \u0431\u043E\u043B\u044C\u0448\u0435,
-        \u0447\u0435\u043C \u0443 \u0434\u0440\u0443\u0433\u0438\u0445, \u2014 \u0434\u043E
-        \u043D\u0435\u0451 \u043F\u0440\u043E\u0441\u0442\u043E \u043C\u0435\u043D\u044C\u0448\u0435
-        \u0434\u043E\u0445\u043E\u0434\u0438\u0442."
+      - 'How much of a blow actually reaches the flesh, how slowly [[s:she bleeds|he bleeds]], and how fast wounds close. [[s:She has|He has]] no larger health bar than anyone else — [[s:she|he]] simply takes less.'
+      - 'Сколько от удара доходит до тела, как медленно [[s:она|он]] истекает кровью и как быстро затягиваются раны. Здоровья у [[s:неё|него]] не больше, чем у других, — до [[s:неё|него]] просто меньше доходит.'
       Flags: 0101
       Languages_Touch: []
     - Term: attr.hardiness.desc
       TermType: 0
       Description: 
       Languages:
-      - How long she goes without food and water, and how lightly heat and cold press
-        on her.
-      - "\u0421\u043A\u043E\u043B\u044C\u043A\u043E \u043E\u043D\u0430 \u043C\u043E\u0436\u0435\u0442
-        \u043D\u0435 \u0435\u0441\u0442\u044C \u0438 \u043D\u0435 \u043F\u0438\u0442\u044C
-        \u0438 \u043D\u0430\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u043B\u0435\u0433\u043A\u043E
-        \u043F\u0435\u0440\u0435\u043D\u043E\u0441\u0438\u0442 \u0436\u0430\u0440\u0443
-        \u0438 \u0445\u043E\u043B\u043E\u0434."
+      - 'How long [[s:she goes|he goes]] without food and water, and how lightly heat and cold press on [[s:her|him]].'
+      - 'Сколько [[s:она|он]] может не есть и не пить и насколько легко переносит жару и холод.'
       Flags: 0101
       Languages_Touch: []
     - Term: attr.wits.desc
       TermType: 0
       Description: 
       Languages:
-      - How quickly she picks up a trade, and how fast her hands work at crafting
-        and doctoring.
-      - "\u041A\u0430\u043A \u0431\u044B\u0441\u0442\u0440\u043E \u043E\u043D\u0430
-        \u043E\u0441\u0432\u0430\u0438\u0432\u0430\u0435\u0442 \u0440\u0435\u043C\u0451\u0441\u043B\u0430
-        \u0438 \u043D\u0430\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u0441\u043F\u043E\u0440\u043E
-        \u0440\u0430\u0431\u043E\u0442\u0430\u044E\u0442 \u0440\u0443\u043A\u0438
-        \u0432 \u043A\u0440\u0430\u0444\u0442\u0435 \u0438 \u0432\u0440\u0430\u0447\u0435\u0432\u0430\u043D\u0438\u0438."
+      - 'How quickly [[s:she picks|he picks]] up a trade, and how fast [[s:her|his]] hands work at crafting and doctoring.'
+      - 'Как быстро [[s:она|он]] осваивает ремёсла и насколько споро работают руки в крафте и врачевании.'
       Flags: 0101
       Languages_Touch: []
     - Term: attr.perception.desc
       TermType: 0
       Description: 
       Languages:
-      - 'How far she notices people around her. The number is the radius in hexes:
-        an eight sees eight hexes out.'
-      - "\u041D\u0430\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u0434\u0430\u043B\u0435\u043A\u043E
-        \u043E\u043D\u0430 \u0437\u0430\u043C\u0435\u0447\u0430\u0435\u0442 \u043B\u044E\u0434\u0435\u0439
-        \u0432\u043E\u043A\u0440\u0443\u0433. \u0427\u0438\u0441\u043B\u043E \u2014
-        \u044D\u0442\u043E \u0440\u0430\u0434\u0438\u0443\u0441 \u0432 \u0433\u0435\u043A\u0441\u0430\u0445:
-        \u0432\u043E\u0441\u044C\u043C\u0451\u0440\u043A\u0430 \u0432\u0438\u0434\u0438\u0442
-        \u043D\u0430 \u0432\u043E\u0441\u0435\u043C\u044C \u0433\u0435\u043A\u0441\u043E\u0432."
+      - 'How far [[s:she notices|he notices]] people around [[s:her|him]]. The number is the radius in hexes: an eight sees eight hexes out.'
+      - 'Насколько далеко [[s:она|он]] замечает людей вокруг. Число — это радиус в гексах: восьмёрка видит на восемь гексов.'
       Flags: 0101
       Languages_Touch: []
     - Term: skill.combat.desc
       TermType: 0
       Description: 
       Languages:
-      - Grows with every blow she lands. A practised fighter hits harder with the
-        same weapon.
-      - "\u0420\u0430\u0441\u0442\u0451\u0442 \u0441 \u043A\u0430\u0436\u0434\u043E\u0433\u043E
-        \u043F\u043E\u043F\u0430\u0434\u0430\u043D\u0438\u044F. \u0423\u043C\u0435\u043B\u0430\u044F
-        \u0431\u044C\u0451\u0442 \u0442\u0435\u043C \u0436\u0435 \u043E\u0440\u0443\u0436\u0438\u0435\u043C
-        \u0431\u043E\u043B\u044C\u043D\u0435\u0435."
+      - 'Grows with every blow [[s:she lands|he lands]]. A practised fighter hits harder with the same weapon.'
+      - 'Растёт с каждого попадания. [[s:Умелая|Умелый]] бьёт тем же оружием больнее.'
       Flags: 0101
       Languages_Touch: []
     - Term: skill.harvesting.desc
@@ -1157,41 +1084,33 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Grows from making things. A practised crafter finishes the same item sooner.
-      - "\u0420\u0430\u0441\u0442\u0451\u0442 \u043E\u0442 \u0438\u0437\u0433\u043E\u0442\u043E\u0432\u043B\u0435\u043D\u0438\u044F
-        \u0432\u0435\u0449\u0435\u0439. \u0423\u043C\u0435\u043B\u0430\u044F \u0434\u0435\u043B\u0430\u0435\u0442
-        \u0442\u0443 \u0436\u0435 \u0432\u0435\u0449\u044C \u0431\u044B\u0441\u0442\u0440\u0435\u0435."
+      - 'Grows from making things. A practised crafter finishes the same item sooner.'
+      - 'Растёт от изготовления вещей. [[s:Умелая|Умелый]] делает ту же вещь быстрее.'
       Flags: 0101
       Languages_Touch: []
     - Term: skill.building.desc
       TermType: 0
       Description: 
       Languages:
-      - Grows from raising build-sites. A practised builder drives the same piece
-        home faster.
-      - "\u0420\u0430\u0441\u0442\u0451\u0442 \u043E\u0442 \u0441\u0442\u0440\u043E\u0439\u043A\u0438.
-        \u0423\u043C\u0435\u043B\u0430\u044F \u0441\u0442\u0430\u0432\u0438\u0442
-        \u0442\u0443 \u0436\u0435 \u0434\u0435\u0442\u0430\u043B\u044C \u0431\u044B\u0441\u0442\u0440\u0435\u0435."
+      - 'Grows from raising build-sites. A practised builder drives the same piece home faster.'
+      - 'Растёт от стройки. [[s:Умелая|Умелый]] ставит ту же деталь быстрее.'
       Flags: 0101
       Languages_Touch: []
     - Term: skill.cooking.desc
       TermType: 0
       Description: 
       Languages:
-      - Grows from cooking over the fire. A practised cook gets the meal ready sooner.
-      - "\u0420\u0430\u0441\u0442\u0451\u0442 \u043E\u0442 \u0433\u043E\u0442\u043E\u0432\u043A\u0438
-        \u043D\u0430 \u043E\u0433\u043D\u0435. \u0423\u043C\u0435\u043B\u0430\u044F
-        \u0434\u043E\u0432\u043E\u0434\u0438\u0442 \u0435\u0434\u0443 \u0434\u043E
-        \u0433\u043E\u0442\u043E\u0432\u043D\u043E\u0441\u0442\u0438 \u0431\u044B\u0441\u0442\u0440\u0435\u0435."
+      - 'Grows from cooking over the fire. A practised cook gets the meal ready sooner.'
+      - 'Растёт от готовки на огне. [[s:Умелая|Умелый]] доводит еду до готовности быстрее.'
       Flags: 0101
       Languages_Touch: []
     - Term: skill.medicine.desc
       TermType: 0
       Description: 
       Languages:
-      - 'Grows from dressing wounds — her own and other people''s. A practised healer gets more out of the same bandage.'
-      - 'Растёт от перевязок — своих и чужих. Умелая выжимает из того же бинта больше.'
-      Flags: 010100
+      - 'Grows from dressing wounds — [[s:her|his]] own and other people''s. A practised healer gets more out of the same bandage.'
+      - 'Растёт от перевязок — своих и чужих. [[s:Умелая|Умелый]] выжимает из того же бинта больше.'
+      Flags: 0101
       Languages_Touch: []
     - Term: skill.survival.desc
       TermType: 0
@@ -1210,12 +1129,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Grows from talking and comforting. A good listener calms a housemate further.
-      - "\u0420\u0430\u0441\u0442\u0451\u0442 \u043E\u0442 \u0440\u0430\u0437\u0433\u043E\u0432\u043E\u0440\u043E\u0432
-        \u0438 \u0443\u0442\u0435\u0448\u0435\u043D\u0438\u044F. \u0425\u043E\u0440\u043E\u0448\u0430\u044F
-        \u0441\u043B\u0443\u0448\u0430\u0442\u0435\u043B\u044C\u043D\u0438\u0446\u0430
-        \u0443\u0441\u043F\u043E\u043A\u0430\u0438\u0432\u0430\u0435\u0442 \u0441\u043E\u0441\u0435\u0434\u043A\u0443
-        \u0441\u0438\u043B\u044C\u043D\u0435\u0435."
+      - 'Grows from talking and comforting. A good listener calms a housemate further.'
+      - 'Растёт от разговоров и утешения. [[s:Хорошая слушательница|Хороший слушатель]] успокаивает соседей сильнее.'
       Flags: 0101
       Languages_Touch: []
     - Term: skill.athletics.desc
@@ -1257,8 +1172,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - islander
-      - "\u043E\u0441\u0442\u0440\u043E\u0432\u0438\u0442\u044F\u043D\u043A\u0430"
+      - 'islander'
+      - '[[s:островитянка|островитянин]]'
       Flags: 0101
       Languages_Touch: []
     - Term: panel.live
@@ -1401,30 +1316,24 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "An open wound is draining her blood \u2014 dress it before she runs dry."
-      - "\u041E\u0442\u043A\u0440\u044B\u0442\u0430\u044F \u0440\u0430\u043D\u0430
-        \u0442\u0435\u0440\u044F\u0435\u0442 \u043A\u0440\u043E\u0432\u044C \u2014
-        \u043F\u0435\u0440\u0435\u0432\u044F\u0436\u0438\u0442\u0435, \u043F\u043E\u043A\u0430
-        \u043E\u043D\u0430 \u043D\u0435 \u0438\u0441\u0442\u0435\u043A\u043B\u0430."
+      - 'An open wound is draining [[s:her|his]] blood — dress it before [[s:she runs|he runs]] dry.'
+      - 'Открытая рана теряет кровь — перевяжите, пока [[s:она не истекла|он не истёк]].'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.injured.title
       TermType: 0
       Description: 
       Languages:
-      - Injured
-      - "\u0420\u0430\u043D\u0435\u043D\u0430"
+      - 'Injured'
+      - '[[s:Ранена|Ранен]]'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.injured.desc
       TermType: 0
       Description: 
       Languages:
-      - Wounds slow her healing and lock part of her HP until they close.
-      - "\u0420\u0430\u043D\u044B \u0437\u0430\u043C\u0435\u0434\u043B\u044F\u044E\u0442
-        \u0437\u0430\u0436\u0438\u0432\u043B\u0435\u043D\u0438\u0435 \u0438 \u0443\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u044E\u0442
-        \u0447\u0430\u0441\u0442\u044C \u0437\u0434\u043E\u0440\u043E\u0432\u044C\u044F,
-        \u043F\u043E\u043A\u0430 \u043D\u0435 \u0437\u0430\u043A\u0440\u043E\u044E\u0442\u0441\u044F."
+      - 'Wounds slow [[s:her|his]] healing and lock part of [[s:her|his]] HP until they close.'
+      - 'Раны замедляют заживление и удерживают часть здоровья, пока не закроются.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.hobbled.title
@@ -1439,10 +1348,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "Hurt legs \u2014 she moves slower than usual."
-      - "\u041F\u043E\u0432\u0440\u0435\u0436\u0434\u0435\u043D\u044B \u043D\u043E\u0433\u0438
-        \u2014 \u0434\u0432\u0438\u0433\u0430\u0435\u0442\u0441\u044F \u043C\u0435\u0434\u043B\u0435\u043D\u043D\u0435\u0435
-        \u043E\u0431\u044B\u0447\u043D\u043E\u0433\u043E."
+      - 'Hurt legs — [[s:she moves|he moves]] slower than usual.'
+      - 'Повреждены ноги — двигается медленнее обычного.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.bandaged.title
@@ -1492,14 +1399,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - 'Fresh pain keeps her alert: she cannot sleep, keeps a sliver of energy,
-        and runs faster for a short while.'
-      - "\u0421\u0432\u0435\u0436\u0430\u044F \u0431\u043E\u043B\u044C \u0434\u0435\u0440\u0436\u0438\u0442
-        \u0432 \u0442\u043E\u043D\u0443\u0441\u0435: \u043D\u0435\u043B\u044C\u0437\u044F
-        \u0443\u0441\u043D\u0443\u0442\u044C, \u043E\u0441\u0442\u0430\u0435\u0442\u0441\u044F
-        \u043D\u0435\u043C\u043D\u043E\u0433\u043E \u044D\u043D\u0435\u0440\u0433\u0438\u0438,
-        \u0438 \u0431\u0435\u0433 \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E
-        \u0431\u044B\u0441\u0442\u0440\u0435\u0435."
+      - 'Fresh pain keeps [[s:her|him]] alert: [[s:she|he]] cannot sleep, keeps a sliver of energy, and runs faster for a short while.'
+      - 'Свежая боль держит в тонусе: нельзя уснуть, остается немного энергии, и бег временно быстрее.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.strongsun.title
@@ -1533,19 +1434,16 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "Too long in the sun on bare skin \u2014 it burns her and saps comfort."
-      - "\u0414\u043E\u043B\u0433\u043E \u043D\u0430 \u0441\u043E\u043B\u043D\u0446\u0435
-        \u0441 \u0433\u043E\u043B\u043E\u0439 \u043A\u043E\u0436\u0435\u0439 \u2014
-        \u043E\u0431\u0436\u0438\u0433\u0430\u0435\u0442 \u0438 \u0441\u043D\u0438\u0436\u0430\u0435\u0442
-        \u043A\u043E\u043C\u0444\u043E\u0440\u0442."
+      - 'Too long in the sun on bare skin — it burns [[s:her|him]] and saps comfort.'
+      - 'Долго на солнце с голой кожей — обжигает и снижает комфорт.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.sunburnt.title
       TermType: 0
       Description: 
       Languages:
-      - Sunburnt
-      - "\u041E\u0431\u0433\u043E\u0440\u0435\u043B\u0430"
+      - 'Sunburnt'
+      - '[[s:Обгорела|Обгорел]]'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.sunburnt.desc
@@ -1598,11 +1496,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "Far too hot \u2014 the heat is draining her health. She needs shade or water."
-      - "\u0421\u043B\u0438\u0448\u043A\u043E\u043C \u0436\u0430\u0440\u043A\u043E
-        \u2014 \u0436\u0430\u0440\u0430 \u043E\u0442\u043D\u0438\u043C\u0430\u0435\u0442
-        \u0437\u0434\u043E\u0440\u043E\u0432\u044C\u0435. \u041D\u0443\u0436\u043D\u0430
-        \u0442\u0435\u043D\u044C \u0438\u043B\u0438 \u0432\u043E\u0434\u0430."
+      - 'Far too hot — the heat is draining [[s:her|his]] health. [[s:She needs|He needs]] shade or water.'
+      - 'Слишком жарко — жара отнимает здоровье. Нужна тень или вода.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.cold.title
@@ -1637,31 +1532,24 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "Far too cold \u2014 she's losing health. She needs warmth or clothes."
-      - "\u0421\u043B\u0438\u0448\u043A\u043E\u043C \u0445\u043E\u043B\u043E\u0434\u043D\u043E
-        \u2014 \u0442\u0435\u0440\u044F\u0435\u0442 \u0437\u0434\u043E\u0440\u043E\u0432\u044C\u0435.
-        \u041D\u0443\u0436\u043D\u043E \u0442\u0435\u043F\u043B\u043E \u0438\u043B\u0438
-        \u043E\u0434\u0435\u0436\u0434\u0430."
+      - 'Far too cold — [[s:she''s|he''s]] losing health. [[s:She needs|He needs]] warmth or clothes.'
+      - 'Слишком холодно — теряет здоровье. Нужно тепло или одежда.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.soaked.title
       TermType: 0
       Description: 
       Languages:
-      - Soaked
-      - "\u041F\u0440\u043E\u043C\u043E\u043A\u043B\u0430"
+      - 'Soaked'
+      - '[[s:Промокла|Промок]]'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.soaked.desc
       TermType: 0
       Description: 
       Languages:
-      - "Soaked to the skin \u2014 chilly and miserable; wet clothes give no warmth
-        and slow her down."
-      - "\u041F\u0440\u043E\u043C\u043E\u043A\u043B\u0430 \u0434\u043E \u043D\u0438\u0442\u043A\u0438
-        \u2014 \u0437\u044F\u0431\u043A\u043E \u0438 \u043D\u0435\u0443\u044E\u0442\u043D\u043E;
-        \u043C\u043E\u043A\u0440\u0430\u044F \u043E\u0434\u0435\u0436\u0434\u0430
-        \u043D\u0435 \u0433\u0440\u0435\u0435\u0442 \u0438 \u0437\u0430\u043C\u0435\u0434\u043B\u044F\u0435\u0442."
+      - 'Soaked to the skin — chilly and miserable; wet clothes give no warmth and slow [[s:her|him]] down.'
+      - '[[s:Промокла|Промок]] до нитки — зябко и неуютно; мокрая одежда не греет и замедляет.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.starving.title
@@ -1676,10 +1564,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "Hunger past the edge \u2014 her health is draining. She needs to eat now."
-      - "\u0413\u043E\u043B\u043E\u0434 \u0437\u0430 \u0433\u0440\u0430\u043D\u044C\u044E
-        \u2014 \u0437\u0434\u043E\u0440\u043E\u0432\u044C\u0435 \u0443\u0431\u044B\u0432\u0430\u0435\u0442.
-        \u0421\u0440\u043E\u0447\u043D\u043E \u043D\u0443\u0436\u043D\u043E \u043F\u043E\u0435\u0441\u0442\u044C."
+      - 'Hunger past the edge — [[s:her|his]] health is draining. [[s:She needs|He needs]] to eat now.'
+      - 'Голод за гранью — здоровье убывает. Срочно нужно поесть.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.dehydrated.title
@@ -1694,10 +1580,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "Thirst past the edge \u2014 her health is draining. She needs to drink."
-      - "\u0416\u0430\u0436\u0434\u0430 \u0437\u0430 \u0433\u0440\u0430\u043D\u044C\u044E
-        \u2014 \u0437\u0434\u043E\u0440\u043E\u0432\u044C\u0435 \u0443\u0431\u044B\u0432\u0430\u0435\u0442.
-        \u041D\u0443\u0436\u043D\u043E \u043F\u0438\u0442\u044C."
+      - 'Thirst past the edge — [[s:her|his]] health is draining. [[s:She needs|He needs]] to drink.'
+      - 'Жажда за гранью — здоровье убывает. Нужно пить.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.sick.title
@@ -1712,12 +1596,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "Poisoned by raw water \u2014 nauseous and losing health. Boil water before
-        drinking."
-      - "\u041E\u0442\u0440\u0430\u0432\u0438\u043B\u0430\u0441\u044C \u0441\u044B\u0440\u043E\u0439
-        \u0432\u043E\u0434\u043E\u0439 \u2014 \u0442\u043E\u0448\u043D\u0438\u0442,
-        \u0437\u0434\u043E\u0440\u043E\u0432\u044C\u0435 \u0443\u0431\u044B\u0432\u0430\u0435\u0442.
-        \u0412\u043E\u0434\u0443 \u043D\u0443\u0436\u043D\u043E \u043A\u0438\u043F\u044F\u0442\u0438\u0442\u044C."
+      - 'Poisoned by raw water — nauseous and losing health. Boil water before drinking.'
+      - '[[s:Отравилась|Отравился]] сырой водой — тошнит, здоровье убывает. Воду нужно кипятить.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.exhausted.title
@@ -1732,10 +1612,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "Stamina spent to the floor \u2014 winded and desperate to sit down."
-      - "\u0412\u044B\u043D\u043E\u0441\u043B\u0438\u0432\u043E\u0441\u0442\u044C
-        \u043D\u0430 \u043D\u0443\u043B\u0435 \u2014 \u0437\u0430\u043F\u044B\u0445\u0430\u043B\u0430\u0441\u044C,
-        \u0445\u043E\u0447\u0435\u0442 \u043F\u0440\u0438\u0441\u0435\u0441\u0442\u044C."
+      - 'Stamina spent to the floor — winded and desperate to sit down.'
+      - 'Выносливость на нуле — [[s:запыхалась|запыхался]], хочет присесть.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.fainted.title
@@ -1750,23 +1628,16 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "Knocked out cold \u2014 she lies unable to act until she comes to."
-      - "\u041F\u043E\u0442\u0435\u0440\u044F\u043B\u0430 \u0441\u043E\u0437\u043D\u0430\u043D\u0438\u0435
-        \u2014 \u043B\u0435\u0436\u0438\u0442 \u0438 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442
-        \u0434\u0435\u0439\u0441\u0442\u0432\u043E\u0432\u0430\u0442\u044C, \u043F\u043E\u043A\u0430
-        \u043D\u0435 \u043E\u0447\u043D\u0451\u0442\u0441\u044F."
+      - 'Knocked out cold — [[s:she lies|he lies]] unable to act until [[s:she comes|he comes]] to.'
+      - '[[s:Потеряла|Потерял]] сознание — лежит и не может действовать, пока не очнётся.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.fainted.reason.energy
       TermType: 0
       Description: 
       Languages:
-      - 'Cause: total energy exhaustion. She will wake after recovering enough energy.'
-      - "\u041F\u0440\u0438\u0447\u0438\u043D\u0430: \u043F\u043E\u043B\u043D\u043E\u0435
-        \u0438\u0441\u0442\u043E\u0449\u0435\u043D\u0438\u0435 \u044D\u043D\u0435\u0440\u0433\u0438\u0438.
-        \u041E\u0447\u043D\u0451\u0442\u0441\u044F, \u043A\u043E\u0433\u0434\u0430
-        \u0434\u043E\u0441\u0442\u0430\u0442\u043E\u0447\u043D\u043E \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442
-        \u0441\u0438\u043B\u044B."
+      - 'Cause: total energy exhaustion. [[s:She|He]] will wake after recovering enough energy.'
+      - 'Причина: полное истощение энергии. Очнётся, когда достаточно восстановит силы.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.fainted.reason.bloodloss
@@ -1826,13 +1697,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - 'Cause: critical blood loss. She remains in a coma until her blood level
-        recovers.'
-      - "\u041F\u0440\u0438\u0447\u0438\u043D\u0430: \u043A\u0440\u0438\u0442\u0438\u0447\u0435\u0441\u043A\u0430\u044F
-        \u043F\u043E\u0442\u0435\u0440\u044F \u043A\u0440\u043E\u0432\u0438. \u041A\u043E\u043C\u0430
-        \u043F\u0440\u043E\u0434\u043B\u0438\u0442\u0441\u044F, \u043F\u043E\u043A\u0430
-        \u0443\u0440\u043E\u0432\u0435\u043D\u044C \u043A\u0440\u043E\u0432\u0438
-        \u043D\u0435 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u0441\u044F."
+      - 'Cause: critical blood loss. [[s:She remains|He remains]] in a coma until [[s:her|his]] blood level recovers.'
+      - 'Причина: критическая потеря крови. Кома продлится, пока уровень крови не восстановится.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.wellfed.title
@@ -1847,28 +1713,24 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "Freshly full \u2014 content and at her best."
-      - "\u0422\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u0435\u043B\u0430 \u2014
-        \u0434\u043E\u0432\u043E\u043B\u044C\u043D\u0430 \u0438 \u043F\u043E\u043B\u043D\u0430
-        \u0441\u0438\u043B."
+      - 'Freshly full — content and at [[s:her|his]] best.'
+      - 'Только [[s:поела — довольна и полна|поел — доволен и полон]] сил.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.rested.title
       TermType: 0
       Description: 
       Languages:
-      - Rested
-      - "\u041E\u0442\u0434\u043E\u0445\u043D\u0443\u043B\u0430"
+      - 'Rested'
+      - '[[s:Отдохнула|Отдохнул]]'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.rested.desc
       TermType: 0
       Description: 
       Languages:
-      - "Energy and stamina both high \u2014 ready for anything."
-      - "\u042D\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u0432\u044B\u043D\u043E\u0441\u043B\u0438\u0432\u043E\u0441\u0442\u044C
-        \u0432\u044B\u0441\u043E\u043A\u0438 \u2014 \u0433\u043E\u0442\u043E\u0432\u0430
-        \u043A\u043E \u0432\u0441\u0435\u043C\u0443."
+      - 'Energy and stamina both high — ready for anything.'
+      - 'Энергия и выносливость высоки — [[s:готова|готов]] ко всему.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.snug.title
@@ -1902,12 +1764,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "Stress is climbing toward the breaking point \u2014 enough can knock her
-        out."
-      - "\u0421\u0442\u0440\u0435\u0441\u0441 \u0440\u0430\u0441\u0442\u0451\u0442
-        \u043A \u043F\u0440\u0435\u0434\u0435\u043B\u0443 \u2014 \u043D\u0430 \u0433\u0440\u0430\u043D\u0438
-        \u043C\u043E\u0436\u0435\u0442 \u0441\u0432\u0430\u043B\u0438\u0442\u044C
-        \u0441 \u043D\u043E\u0433."
+      - 'Stress is climbing toward the breaking point — enough can knock [[s:her|him]] out.'
+      - 'Стресс растёт к пределу — на грани может свалить с ног.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.grieving.title
@@ -1922,9 +1780,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Mourning a fallen housemate.
-      - "\u041E\u043F\u043B\u0430\u043A\u0438\u0432\u0430\u0435\u0442 \u043F\u043E\u0433\u0438\u0431\u0448\u0443\u044E
-        \u043F\u043E\u0434\u0440\u0443\u0433\u0443."
+      - 'Mourning a fallen housemate.'
+      - 'Оплакивает погибшего товарища.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.lonely.title
@@ -1939,9 +1796,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "Starved of company \u2014 she needs someone to talk to."
-      - "\u041D\u0435 \u0445\u0432\u0430\u0442\u0430\u0435\u0442 \u043E\u0431\u0449\u0435\u043D\u0438\u044F
-        \u2014 \u043D\u0443\u0436\u0435\u043D \u043A\u0442\u043E-\u0442\u043E \u0440\u044F\u0434\u043E\u043C."
+      - 'Starved of company — [[s:she needs|he needs]] someone to talk to.'
+      - 'Не хватает общения — нужен кто-то рядом.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.miserable.title
@@ -1965,8 +1821,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Content
-      - "\u0414\u043E\u0432\u043E\u043B\u044C\u043D\u0430"
+      - 'Content'
+      - '[[s:Довольна|Доволен]]'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.content.desc
@@ -1997,8 +1853,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Busy
-      - "\u0417\u0430\u043D\u044F\u0442\u0430"
+      - 'Busy'
+      - '[[s:Занята|Занят]]'
       Flags: 0101
       Languages_Touch: []
     - Term: state.sleeping
@@ -2037,8 +1893,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Dead
-      - "\u041C\u0435\u0440\u0442\u0432\u0430"
+      - 'Dead'
+      - '[[s:Мертва|Мёртв]]'
       Flags: 0101
       Languages_Touch: []
     - Term: state.playdead
@@ -2083,23 +1939,16 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "On the brink \u2014 she has minutes left unless someone helps her."
-      - "\u041D\u0430 \u0433\u0440\u0430\u043D\u0438 \u2014 \u0431\u0435\u0437 \u0447\u0443\u0436\u043E\u0439
-        \u043F\u043E\u043C\u043E\u0449\u0438 \u0435\u0439 \u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C
-        \u043D\u0435\u0434\u043E\u043B\u0433\u043E."
+      - 'On the brink — [[s:she has|he has]] minutes left unless someone helps [[s:her|him]].'
+      - 'На грани — без чужой помощи [[s:ей|ему]] осталось недолго.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.dying.reason.bloodloss
       TermType: 0
       Description: 
       Languages:
-      - 'Cause: fatal blood loss. Bandaging can still save her before the reserve
-        runs out.'
-      - "\u041F\u0440\u0438\u0447\u0438\u043D\u0430: \u0441\u043C\u0435\u0440\u0442\u0435\u043B\u044C\u043D\u0430\u044F
-        \u043F\u043E\u0442\u0435\u0440\u044F \u043A\u0440\u043E\u0432\u0438. \u041F\u0435\u0440\u0435\u0432\u044F\u0437\u043A\u0430
-        \u0435\u0449\u0451 \u043C\u043E\u0436\u0435\u0442 \u0441\u043F\u0430\u0441\u0442\u0438
-        \u0435\u0451, \u043F\u043E\u043A\u0430 \u043D\u0435 \u0438\u0441\u0441\u044F\u043A
-        \u0437\u0430\u043F\u0430\u0441 \u0432\u0440\u0435\u043C\u0435\u043D\u0438."
+      - 'Cause: fatal blood loss. Bandaging can still save [[s:her|him]] before the reserve runs out.'
+      - 'Причина: смертельная потеря крови. Перевязка ещё может спасти [[s:её|его]], пока не иссяк запас времени.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.dying.reason.vitalcrushed
@@ -2117,41 +1966,32 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - 'Cause: fatal starvation. Feeding her can still stop the dying process.'
-      - "\u041F\u0440\u0438\u0447\u0438\u043D\u0430: \u0441\u043C\u0435\u0440\u0442\u0435\u043B\u044C\u043D\u044B\u0439
-        \u0433\u043E\u043B\u043E\u0434. \u041A\u043E\u0440\u043C\u043B\u0435\u043D\u0438\u0435
-        \u0435\u0449\u0451 \u043C\u043E\u0436\u0435\u0442 \u043E\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C
-        \u0443\u043C\u0438\u0440\u0430\u043D\u0438\u0435."
+      - 'Cause: fatal starvation. Feeding [[s:her|him]] can still stop the dying process.'
+      - 'Причина: смертельный голод. Кормление ещё может остановить умирание.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.dying.reason.dehydration
       TermType: 0
       Description: 
       Languages:
-      - 'Cause: fatal dehydration. Giving her water can still stop the dying process.'
-      - "\u041F\u0440\u0438\u0447\u0438\u043D\u0430: \u0441\u043C\u0435\u0440\u0442\u0435\u043B\u044C\u043D\u043E\u0435
-        \u043E\u0431\u0435\u0437\u0432\u043E\u0436\u0438\u0432\u0430\u043D\u0438\u0435.
-        \u0412\u043E\u0434\u0430 \u0435\u0449\u0451 \u043C\u043E\u0436\u0435\u0442
-        \u043E\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u0443\u043C\u0438\u0440\u0430\u043D\u0438\u0435."
+      - 'Cause: fatal dehydration. Giving [[s:her|him]] water can still stop the dying process.'
+      - 'Причина: смертельное обезвоживание. Вода ещё может остановить умирание.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.convalescent.title
       TermType: 0
       Description: 
       Languages:
-      - Barely alive
-      - "\u0415\u0434\u0432\u0430 \u0436\u0438\u0432\u0430\u044F"
+      - 'Barely alive'
+      - '[[s:Едва живая|Едва живой]]'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.convalescent.desc
       TermType: 0
       Description: 
       Languages:
-      - "Pulled back from the brink \u2014 slow on her feet and out of breath at
-        once."
-      - "\u0412\u044B\u0442\u0430\u0449\u0438\u043B\u0438 \u0441 \u0442\u043E\u0433\u043E
-        \u0441\u0432\u0435\u0442\u0430 \u2014 \u0435\u043B\u0435 \u0445\u043E\u0434\u0438\u0442
-        \u0438 \u043C\u0433\u043D\u043E\u0432\u0435\u043D\u043D\u043E \u0432\u044B\u0434\u044B\u0445\u0430\u0435\u0442\u0441\u044F."
+      - 'Pulled back from the brink — slow on [[s:her|his]] feet and out of breath at once.'
+      - 'Вытащили с того света — еле ходит и мгновенно выдыхается.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.crying.title
@@ -2166,10 +2006,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "Broke down under the strain \u2014 lying on the ground, crying it out."
-      - "\u0421\u043B\u043E\u043C\u0430\u043B\u0430\u0441\u044C \u043E\u0442 \u043D\u0430\u043F\u0440\u044F\u0436\u0435\u043D\u0438\u044F
-        \u2014 \u043B\u0435\u0436\u0438\u0442 \u0438 \u0432\u044B\u043F\u043B\u0430\u043A\u0438\u0432\u0430\u0435\u0442
-        \u0441\u0432\u043E\u0451."
+      - 'Broke down under the strain — lying on the ground, crying it out.'
+      - '[[s:Сломалась|Сломался]] от напряжения — лежит и выплакивает своё.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.crying.reason.breakdown
@@ -2187,8 +2025,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Filthy
-      - "\u0413\u0440\u044F\u0437\u043D\u0430\u044F"
+      - 'Filthy'
+      - '[[s:Грязная|Грязный]]'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.filthy.desc
@@ -2309,10 +2147,10 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: effect.nearbycompany.desc
       TermType: 0
-      Description:
+      Description: 
       Languages:
-      - "A nearby companion is easing her loneliness."
-      - "\u041F\u0440\u0438\u0441\u0443\u0442\u0441\u0442\u0432\u0438\u0435 \u0442\u043E\u0432\u0430\u0440\u0438\u0449\u0430 \u0440\u044F\u0434\u043E\u043C \u0441\u043C\u044F\u0433\u0447\u0430\u0435\u0442 \u043E\u0434\u0438\u043D\u043E\u0447\u0435\u0441\u0442\u0432\u043E."
+      - 'A nearby companion is easing [[s:her|his]] loneliness.'
+      - 'Присутствие товарища рядом смягчает одиночество.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.witnessingsuffering.title
@@ -2325,10 +2163,10 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: effect.witnessingsuffering.desc
       TermType: 0
-      Description:
+      Description: 
       Languages:
-      - "Seeing someone suffer nearby is draining her care reserve."
-      - "\u0427\u0443\u0436\u0438\u0435 \u0441\u0442\u0440\u0430\u0434\u0430\u043D\u0438\u044F \u0440\u044F\u0434\u043E\u043C \u0438\u0441\u0442\u043E\u0449\u0430\u044E\u0442 \u0435\u0451 \u0437\u0430\u043F\u0430\u0441 \u0437\u0430\u0431\u043E\u0442\u044B."
+      - 'Seeing someone suffer nearby is draining [[s:her|his]] care reserve.'
+      - 'Чужие страдания рядом истощают [[s:её|его]] запас заботы.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.everyonesafe.title
@@ -2341,10 +2179,10 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: effect.everyonesafe.desc
       TermType: 0
-      Description:
+      Description: 
       Languages:
-      - "With nobody nearby in distress, her care reserve is recovering."
-      - "\u041A\u043E\u0433\u0434\u0430 \u0440\u044F\u0434\u043E\u043C \u043D\u0438\u043A\u0442\u043E \u043D\u0435 \u0441\u0442\u0440\u0430\u0434\u0430\u0435\u0442, \u0435\u0451 \u0437\u0430\u043F\u0430\u0441 \u0437\u0430\u0431\u043E\u0442\u044B \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0435\u0442\u0441\u044F."
+      - 'With nobody nearby in distress, [[s:her|his]] care reserve is recovering.'
+      - 'Когда рядом никто не страдает, [[s:её|его]] запас заботы восстанавливается.'
       Flags: 0101
       Languages_Touch: []
     - Term: effect.working.title
@@ -3313,9 +3151,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Dreams of her own bed
-      - "\u041C\u0435\u0447\u0442\u0430\u0435\u0442 \u043E \u0441\u0432\u043E\u0435\u0439
-        \u043A\u0440\u043E\u0432\u0430\u0442\u0438"
+      - 'Dreams of [[s:her|his]] own bed'
+      - 'Мечтает о своей кровати'
       Flags: 0101
       Languages_Touch: []
     - Term: goal.Eat
@@ -3484,8 +3321,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Burying the fallen
-      - "\u0425\u043E\u0440\u043E\u043D\u0438\u0442 \u043F\u043E\u0433\u0438\u0431\u0448\u0443\u044E"
+      - 'Burying the fallen'
+      - 'Хоронит погибших'
       Flags: 0101
       Languages_Touch: []
     - Term: goal.LootCorpse
@@ -3778,8 +3615,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Helping someone
-      - "\u041F\u043E\u043C\u043E\u0433\u0430\u0435\u0442 \u043F\u043E\u0434\u0440\u0443\u0433\u0435"
+      - 'Helping someone'
+      - 'Помогает другому'
       Flags: 0101
       Languages_Touch: []
     - Term: goal.Rescue
@@ -3930,9 +3767,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Dressing her wounds
-      - "\u041F\u0435\u0440\u0435\u0432\u044F\u0437\u044B\u0432\u0430\u0435\u0442
-        \u0440\u0430\u043D\u044B"
+      - 'Dressing [[s:her|his]] wounds'
+      - 'Перевязывает раны'
       Flags: 0101
       Languages_Touch: []
     - Term: loading.world
@@ -3971,8 +3807,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Meeting the girls...
-      - "\u0417\u043D\u0430\u043A\u043E\u043C\u0438\u043C\u0441\u044F \u0441 \u0434\u0435\u0432\u043E\u0447\u043A\u0430\u043C\u0438..."
+      - 'Meeting the islanders...'
+      - 'Знакомимся с островитянами...'
       Flags: 0101
       Languages_Touch: []
     - Term: loading.done
@@ -4168,9 +4004,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - 'Who gives the orders: the colonist herself or you'
-      - "\u041A\u0442\u043E \u043E\u0442\u0434\u0430\u0451\u0442 \u043F\u0440\u0438\u043A\u0430\u0437\u044B:
-        \u043E\u043D\u0430 \u0441\u0430\u043C\u0430 \u0438\u043B\u0438 \u0432\u044B"
+      - 'Who gives the orders: the colonist [[s:herself|himself]] or you'
+      - 'Кто отдаёт приказы: [[s:она сама|он сам]] или вы'
       Flags: 0101
       Languages_Touch: []
     - Term: menu.attack
@@ -4255,10 +4090,10 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: gift.drag_hint
       TermType: 0
-      Description:
+      Description: 
       Languages:
-      - "Drag an item to the right side \u2014 she will take it as a gift"
-      - "\u041F\u0435\u0440\u0435\u0442\u0430\u0449\u0438\u0442\u0435 \u0432\u0435\u0449\u044C \u043D\u0430 \u043F\u0440\u0430\u0432\u0443\u044E \u0441\u0442\u043E\u0440\u043E\u043D\u0443 \u2014 \u043E\u043D\u0430 \u043F\u0440\u0438\u043C\u0435\u0442 \u0435\u0451 \u043A\u0430\u043A \u043F\u043E\u0434\u0430\u0440\u043E\u043A"
+      - 'Drag an item to the right side — [[s:she|he]] will take it as a gift'
+      - 'Перетащите вещь на правую сторону — [[s:она примет её|он примет её]] как подарок'
       Flags: 0101
       Languages_Touch: []
     - Term: gift.take_forbidden
@@ -4659,10 +4494,10 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: toast.order_rejected.SleepHungry
       TermType: 0
-      Description:
+      Description: 
       Languages:
-      - "Too hungry to sleep"
-      - "\u0421\u043B\u0438\u0448\u043A\u043E\u043C \u0433\u043E\u043B\u043E\u0434\u043D\u0430, \u0447\u0442\u043E\u0431\u044B \u0441\u043F\u0430\u0442\u044C"
+      - 'Too hungry to sleep'
+      - 'Слишком [[s:голодна|голоден]], чтобы спать'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.SleepThirsty
@@ -4713,9 +4548,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Couldn't find a way there
-      - "\u041D\u0435 \u0441\u043C\u043E\u0433\u043B\u0430 \u043D\u0430\u0439\u0442\u0438
-        \u043F\u0443\u0442\u044C"
+      - 'Couldn''t find a way there'
+      - 'Не [[s:смогла|смог]] найти путь'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_interrupted.ExecutionFailure
@@ -4746,36 +4580,34 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: toast.order_interrupted.SleepDanger
       TermType: 0
-      Description:
+      Description: 
       Languages:
-      - "Woke up: danger is nearby"
-      - "\u041F\u0440\u043E\u0441\u043D\u0443\u043B\u0430\u0441\u044C: \u0440\u044F\u0434\u043E\u043C \u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u044C"
+      - 'Woke up: danger is nearby'
+      - '[[s:Проснулась|Проснулся]]: рядом опасность'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_interrupted.SleepHunger
       TermType: 0
-      Description:
+      Description: 
       Languages:
-      - "Woke up from hunger"
-      - "\u041F\u0440\u043E\u0441\u043D\u0443\u043B\u0430\u0441\u044C \u043E\u0442 \u0433\u043E\u043B\u043E\u0434\u0430"
+      - 'Woke up from hunger'
+      - '[[s:Проснулась|Проснулся]] от голода'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_interrupted.SleepThirst
       TermType: 0
-      Description:
+      Description: 
       Languages:
-      - "Woke up from thirst"
-      - "\u041F\u0440\u043E\u0441\u043D\u0443\u043B\u0430\u0441\u044C \u043E\u0442 \u0436\u0430\u0436\u0434\u044B"
+      - 'Woke up from thirst'
+      - '[[s:Проснулась|Проснулся]] от жажды'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.manual_expired
       TermType: 0
       Description: 
       Languages:
-      - "No orders for a while \u2014 back under AI"
-      - "\u0414\u043E\u043B\u0433\u043E \u0431\u0435\u0437 \u043F\u0440\u0438\u043A\u0430\u0437\u043E\u0432
-        \u2014 \u0432\u0435\u0440\u043D\u0443\u043B\u0430\u0441\u044C \u043F\u043E\u0434
-        \u0418\u0418"
+      - 'No orders for a while — back under AI'
+      - 'Долго без приказов — [[s:вернулась|вернулся]] под ИИ'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.Unreachable
@@ -4790,8 +4622,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Too exhausted to work — resting
-      - "\u0412\u044B\u0434\u043E\u0445\u043B\u0430\u0441\u044C \u2014 \u0441\u044F\u0434\u0443 \u043E\u0442\u0434\u043E\u0445\u043D\u0443\u0442\u044C"
+      - 'Too exhausted to work — resting'
+      - '[[s:Выдохлась|Выдохся]] — сяду отдохнуть'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.MissingTool
@@ -4855,33 +4687,32 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "She can't do that with it"
-      - "\u0421 \u044D\u0442\u0438\u043C \u0442\u0430\u043A \u043D\u0435\u043B\u044C\u0437\u044F"
+      - '[[s:She|He]] can''t do that with it'
+      - 'С этим так нельзя'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.Incapacitated
       TermType: 0
       Description: 
       Languages:
-      - "She can't right now"
-      - "\u0421\u0435\u0439\u0447\u0430\u0441 \u043E\u043D\u0430 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442"
+      - '[[s:She|He]] can''t right now'
+      - 'Сейчас [[s:она|он]] не может'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.NotManual
       TermType: 0
       Description: 
       Languages:
-      - She is under AI control
-      - "\u0415\u044E \u0443\u043F\u0440\u0430\u0432\u043B\u044F\u0435\u0442 \u0418\u0418"
+      - '[[s:She is|He is]] under AI control'
+      - '[[s:Ею|Им]] управляет ИИ'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.NoSuchNpc
       TermType: 0
       Description: 
       Languages:
-      - No such colonist
-      - "\u0422\u0430\u043A\u043E\u0439 \u043A\u043E\u043B\u043E\u043D\u0438\u0441\u0442\u043A\u0438
-        \u043D\u0435\u0442"
+      - 'No such character'
+      - 'Такого персонажа нет'
       Flags: 0101
       Languages_Touch: []
     - Term: inv.worn
@@ -5514,8 +5345,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - soaked
-      - "\u043F\u0440\u043E\u043C\u043E\u043A\u043B\u0430"
+      - 'soaked'
+      - '[[s:промокла|промок]]'
       Flags: 0101
       Languages_Touch: []
     - Term: inv.definition_id
@@ -16694,11 +16525,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Straps, buckles and room. Carries more than her hands ever could.
-      - "\u041B\u044F\u043C\u043A\u0438, \u043F\u0440\u044F\u0436\u043A\u0438 \u0438
-        \u043C\u0435\u0441\u0442\u043E. \u041D\u0435\u0441\u0451\u0442 \u0431\u043E\u043B\u044C\u0448\u0435,
-        \u0447\u0435\u043C \u043A\u043E\u0433\u0434\u0430-\u043B\u0438\u0431\u043E
-        \u0443\u043D\u0435\u0441\u0443\u0442 \u0440\u0443\u043A\u0438."
+      - 'Straps, buckles and room. Carries more than hands ever could.'
+      - 'Лямки, пряжки и место. Несёт больше, чем когда-либо унесут руки.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.gear_backpack_riot_grey.name'
@@ -16713,11 +16541,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Straps, buckles and room. Carries more than her hands ever could.
-      - "\u041B\u044F\u043C\u043A\u0438, \u043F\u0440\u044F\u0436\u043A\u0438 \u0438
-        \u043C\u0435\u0441\u0442\u043E. \u041D\u0435\u0441\u0451\u0442 \u0431\u043E\u043B\u044C\u0448\u0435,
-        \u0447\u0435\u043C \u043A\u043E\u0433\u0434\u0430-\u043B\u0438\u0431\u043E
-        \u0443\u043D\u0435\u0441\u0443\u0442 \u0440\u0443\u043A\u0438."
+      - 'Straps, buckles and room. Carries more than hands ever could.'
+      - 'Лямки, пряжки и место. Несёт больше, чем когда-либо унесут руки.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.gear_backpack_riot_leather.name'
@@ -16732,11 +16557,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Straps, buckles and room. Carries more than her hands ever could.
-      - "\u041B\u044F\u043C\u043A\u0438, \u043F\u0440\u044F\u0436\u043A\u0438 \u0438
-        \u043C\u0435\u0441\u0442\u043E. \u041D\u0435\u0441\u0451\u0442 \u0431\u043E\u043B\u044C\u0448\u0435,
-        \u0447\u0435\u043C \u043A\u043E\u0433\u0434\u0430-\u043B\u0438\u0431\u043E
-        \u0443\u043D\u0435\u0441\u0443\u0442 \u0440\u0443\u043A\u0438."
+      - 'Straps, buckles and room. Carries more than hands ever could.'
+      - 'Лямки, пряжки и место. Несёт больше, чем когда-либо унесут руки.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.clothing_blouse_waist_riot_denim.name'
@@ -17140,11 +16962,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Straps, buckles and room. Carries more than her hands ever could.
-      - "\u041B\u044F\u043C\u043A\u0438, \u043F\u0440\u044F\u0436\u043A\u0438 \u0438
-        \u043C\u0435\u0441\u0442\u043E. \u041D\u0435\u0441\u0451\u0442 \u0431\u043E\u043B\u044C\u0448\u0435,
-        \u0447\u0435\u043C \u043A\u043E\u0433\u0434\u0430-\u043B\u0438\u0431\u043E
-        \u0443\u043D\u0435\u0441\u0443\u0442 \u0440\u0443\u043A\u0438."
+      - 'Straps, buckles and room. Carries more than hands ever could.'
+      - 'Лямки, пряжки и место. Несёт больше, чем когда-либо унесут руки.'
       Flags: 0101
       Languages_Touch: []
     - Term: item.clothing_blouse_waist_riot.name
@@ -19198,11 +19017,9 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "click a swatch \u2014 the worn garment is repainted"
-      - "\u043A\u043B\u0438\u043A \u043F\u043E \u0440\u0430\u0441\u0446\u0432\u0435\u0442\u043A\u0435
-        \u2014 \u0432\u0435\u0449\u044C \u043D\u0430 \u0434\u0435\u0432\u0443\u0448\u043A\u0435
-        \u043F\u0435\u0440\u0435\u043A\u0440\u0430\u0448\u0438\u0432\u0430\u0435\u0442\u0441\u044F"
-      Flags: 0000
+      - 'click a swatch — the worn garment is repainted'
+      - 'клик по расцветке — вещь на персонаже перекрашивается'
+      Flags: 0101
       Languages_Touch: []
     - Term: wardrobe.cycle_off
       TermType: 0
@@ -19248,9 +19065,9 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Girl
-      - "\u0414\u0435\u0432\u0443\u0448\u043A\u0430"
-      Flags: 0000
+      - 'Character'
+      - 'Персонаж'
+      Flags: 0101
       Languages_Touch: []
     - Term: wardrobe.hair
       TermType: 0
@@ -19281,10 +19098,9 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Fit on this girl
-      - "\u041F\u043E\u0441\u0430\u0434\u043A\u0430 \u043D\u0430 \u044D\u0442\u043E\u0439
-        \u0434\u0435\u0432\u0443\u0448\u043A\u0435"
-      Flags: 0000
+      - 'Fit on this character'
+      - 'Посадка на этом персонаже'
+      Flags: 0101
       Languages_Touch: []
     - Term: wardrobe.hair_scale
       TermType: 0
@@ -19744,8 +19560,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} went to help {1}.'
-      - "{0} \u043F\u043E\u0448\u043B\u0430 \u043F\u043E\u043C\u043E\u0433\u0430\u0442\u044C
-        {1}."
+      - '{0} [[0:пошла|пошёл]] помогать {1}.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.AidRequested
@@ -19753,8 +19568,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} noticed {1} needs help.'
-      - "{0} \u0437\u0430\u043C\u0435\u0442\u0438\u043B\u0430, \u0447\u0442\u043E
-        {1} \u043D\u0443\u0436\u043D\u0430 \u043F\u043E\u043C\u043E\u0449\u044C."
+      - '{0} [[0:заметила|заметил]], что {1} нужна помощь.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.AidWaitTimeout
@@ -19762,8 +19576,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} stopped waiting for help.'
-      - "{0} \u043F\u0435\u0440\u0435\u0441\u0442\u0430\u043B\u0430 \u0436\u0434\u0430\u0442\u044C
-        \u043F\u043E\u043C\u043E\u0449\u0438."
+      - '{0} [[0:перестала|перестал]] ждать помощи.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.Aided
@@ -19771,7 +19584,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} helped {1}.'
-      - "{0} \u043F\u043E\u043C\u043E\u0433\u043B\u0430 {1}."
+      - '{0} [[0:помогла|помог]] {1}.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.TalkRequested
@@ -19779,7 +19592,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} invited {1} to talk.'
-      - "{0} \u043F\u043E\u0437\u0432\u0430\u043B\u0430 {1} \u043F\u043E\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u044C."
+      - '{0} [[0:позвала|позвал]] {1} поговорить.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.TalkStarted
@@ -19787,32 +19600,31 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} started a conversation with {1}.'
-      - "{0} \u043D\u0430\u0447\u0430\u043B\u0430 \u0440\u0430\u0437\u0433\u043E\u0432\u043E\u0440
-        \u0441 {1}."
+      - '{0} [[0:начала|начал]] разговор с {1}.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.ItemStolen
       TermType: 0
       Description: 
       Languages:
-      - "{0} stole {1}."
-      - "{0} \u0443\u043A\u0440\u0430\u043B\u0430 {1}."
+      - '{0} stole {1}.'
+      - '{0} [[0:украла|украл]] {1}.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.ItemStolen.did
       TermType: 0
       Description: 
       Languages:
-      - "I stole {1} from someone else's camp."
-      - "\u042F \u0443\u043A\u0440\u0430\u043B\u0430 {1} \u0441 \u0447\u0443\u0436\u043E\u0439 \u0437\u0435\u043C\u043B\u0438."
+      - 'I stole {1} from someone else''s camp.'
+      - 'Я [[s:украла|украл]] {1} с чужой земли.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.GiftGiven
       TermType: 0
-      Description:
+      Description: 
       Languages:
-      - "{0} gave {1} a gift."
-      - "{0} \u0441\u0434\u0435\u043B\u0430\u043B\u0430 \u043F\u043E\u0434\u0430\u0440\u043E\u043A {1}."
+      - '{0} gave {1} a gift.'
+      - '{0} [[0:сделала|сделал]] подарок {1}.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.detail.gift.Loved
@@ -19825,26 +19637,26 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: history.detail.gift.Liked
       TermType: 0
-      Description:
+      Description: 
       Languages:
-      - "She was glad to get it."
-      - "\u0415\u0439 \u0431\u044B\u043B\u043E \u043F\u0440\u0438\u044F\u0442\u043D\u043E."
+      - '[[1:She|He]] was glad to get it.'
+      - '[[1:Ей|Ему]] было приятно.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.detail.gift.Neutral
       TermType: 0
-      Description:
+      Description: 
       Languages:
-      - "She took it without much feeling."
-      - "\u041F\u0440\u0438\u043D\u044F\u043B\u0430 \u0431\u0435\u0437 \u043E\u0441\u043E\u0431\u044B\u0445 \u0447\u0443\u0432\u0441\u0442\u0432."
+      - '[[1:She|He]] took it without much feeling.'
+      - '[[1:Приняла|Принял]] без особых чувств.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.detail.gift.Disliked
       TermType: 0
-      Description:
+      Description: 
       Languages:
-      - "She did not understand the point of it."
-      - "\u041D\u0435 \u043F\u043E\u043D\u044F\u043B\u0430, \u0437\u0430\u0447\u0435\u043C \u0435\u0439 \u044D\u0442\u043E."
+      - '[[1:She|He]] did not understand the point of it.'
+      - '[[1:Не поняла, зачем ей|Не понял, зачем ему]] это.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.TalkCompleted
@@ -19852,8 +19664,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} had a good talk with {1}.'
-      - "{0} \u0445\u043E\u0440\u043E\u0448\u043E \u043F\u043E\u0433\u043E\u0432\u043E\u0440\u0438\u043B\u0430
-        \u0441 {1}."
+      - '{0} хорошо [[0:поговорила|поговорил]] с {1}.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.RomanceCompleted
@@ -19874,18 +19685,18 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: history.CaughtCheating
       TermType: 0
-      Description:
+      Description: 
       Languages:
       - '{0} caught {1} with {2}.'
-      - '{0} застала {1} с {2}.'
+      - '{0} [[0:застала|застал]] {1} с {2}.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.CampsMerged
       TermType: 0
-      Description:
+      Description: 
       Languages:
       - '{0} united two camps.'
-      - "{0} \u043E\u0431\u044A\u0435\u0434\u0438\u043D\u0438\u043B\u0430 \u0434\u0432\u0430 \u043B\u0430\u0433\u0435\u0440\u044F."
+      - '{0} [[0:объединила|объединил]] два лагеря.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.TalkQuarreled
@@ -19893,8 +19704,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} quarreled with {1}.'
-      - "{0} \u043F\u043E\u0441\u0441\u043E\u0440\u0438\u043B\u0430\u0441\u044C \u0441
-        {1}."
+      - '{0} [[0:поссорилась|поссорился]] с {1}.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.TalkWaitTimeout
@@ -19902,8 +19712,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} stopped waiting for the conversation.'
-      - "{0} \u043F\u0435\u0440\u0435\u0441\u0442\u0430\u043B\u0430 \u0436\u0434\u0430\u0442\u044C
-        \u0440\u0430\u0437\u0433\u043E\u0432\u043E\u0440\u0430."
+      - '{0} [[0:перестала|перестал]] ждать разговора.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.GroupHuntPactFormed
@@ -19911,9 +19720,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} agreed to go after the stranger together.'
-      - "{0} \u0441\u0433\u043E\u0432\u043E\u0440\u0438\u043B\u0430\u0441\u044C \u0438\u0434\u0442\u0438
-        \u043D\u0430 \u0447\u0443\u0436\u0430\u043A\u0430 \u0432\u043C\u0435\u0441\u0442\u0435
-        \u0441 \u043E\u0441\u0442\u0430\u043B\u044C\u043D\u044B\u043C\u0438."
+      - '{0} [[0:сговорилась|сговорился]] идти на чужака вместе с остальными.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.GroupHuntEngaged
@@ -19921,8 +19728,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} laid into the stranger.'
-      - "{0} \u043D\u0430\u0431\u0440\u043E\u0441\u0438\u043B\u0430\u0441\u044C \u043D\u0430
-        \u0447\u0443\u0436\u0430\u043A\u0430."
+      - '{0} [[0:набросилась|набросился]] на чужака.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.GroupHuntTargetFled
@@ -19938,8 +19744,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} got even with the stranger.'
-      - "{0} \u043F\u043E\u043A\u0432\u0438\u0442\u0430\u043B\u0430\u0441\u044C \u0441
-        \u0447\u0443\u0436\u0430\u043A\u043E\u043C."
+      - '{0} [[0:поквиталась|поквитался]] с чужаком.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.GroupHuntFailed
@@ -19947,8 +19752,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} did not get to the stranger.'
-      - "{0} \u043D\u0435 \u0434\u043E\u0431\u0440\u0430\u043B\u0430\u0441\u044C
-        \u0434\u043E \u0447\u0443\u0436\u0430\u043A\u0430."
+      - '{0} не [[0:добралась|добрался]] до чужака.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.InteractionBlocked
@@ -19956,8 +19760,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} could not use a busy object.'
-      - "{0} \u043D\u0435 \u0441\u043C\u043E\u0433\u043B\u0430 \u0432\u043E\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C\u0441\u044F
-        \u0437\u0430\u043D\u044F\u0442\u044B\u043C \u043E\u0431\u044A\u0435\u043A\u0442\u043E\u043C."
+      - '{0} не [[0:смогла|смог]] воспользоваться занятым объектом.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.InteractionRejected
@@ -19973,8 +19776,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} received food from {1}.'
-      - "{0} \u043F\u043E\u043B\u0443\u0447\u0438\u043B\u0430 \u0435\u0434\u0443
-        \u043E\u0442 {1}."
+      - '{0} [[0:получила|получил]] еду от {1}.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.FoodStolen
@@ -19999,8 +19801,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} paid respects to the dead.'
-      - "{0} \u043F\u043E\u0447\u0442\u0438\u043B\u0430 \u043F\u0430\u043C\u044F\u0442\u044C
-        \u043F\u043E\u0433\u0438\u0431\u0448\u0435\u0439."
+      - '{0} [[0:почтила|почтил]] память погибших.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.Looted
@@ -20008,8 +19809,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} took something from a body.'
-      - "{0} \u0437\u0430\u0431\u0440\u0430\u043B\u0430 \u0432\u0435\u0449\u044C
-        \u0441 \u0442\u0435\u043B\u0430."
+      - '{0} [[0:забрала|забрал]] вещь с тела.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.StrippedHelpless
@@ -20017,8 +19817,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} stripped a helpless enemy.'
-      - "{0} \u043E\u0431\u0447\u0438\u0441\u0442\u0438\u043B\u0430 \u0431\u0435\u0441\u043F\u043E\u043C\u043E\u0449\u043D\u043E\u0433\u043E
-        \u0432\u0440\u0430\u0433\u0430."
+      - '{0} [[0:обчистила|обчистил]] беспомощного врага.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.NpcDied
@@ -20026,7 +19825,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} died.'
-      - "{0} \u043F\u043E\u0433\u0438\u0431\u043B\u0430."
+      - '{0} [[0:погибла|погиб]].'
       Flags: 0101
       Languages_Touch: []
     - Term: history.BledOut
@@ -20034,7 +19833,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} bled out.'
-      - "{0} \u0438\u0441\u0442\u0435\u043A\u043B\u0430 \u043A\u0440\u043E\u0432\u044C\u044E."
+      - '{0} [[0:истекла|истёк]] кровью.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.StarvedToDeath
@@ -20042,8 +19841,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} died from hunger or thirst.'
-      - "{0} \u0443\u043C\u0435\u0440\u043B\u0430 \u043E\u0442 \u0433\u043E\u043B\u043E\u0434\u0430
-        \u0438\u043B\u0438 \u0436\u0430\u0436\u0434\u044B."
+      - '{0} [[0:умерла|умер]] от голода или жажды.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.Drowned
@@ -20051,7 +19849,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} drowned.'
-      - "{0} \u0443\u0442\u043E\u043D\u0443\u043B\u0430."
+      - '{0} [[0:утонула|утонул]].'
       Flags: 0101
       Languages_Touch: []
     - Term: history.VitalPartDestroyed
@@ -20059,8 +19857,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} suffered a fatal wound.'
-      - "{0} \u043F\u043E\u043B\u0443\u0447\u0438\u043B\u0430 \u0441\u043C\u0435\u0440\u0442\u0435\u043B\u044C\u043D\u0443\u044E
-        \u0440\u0430\u043D\u0443."
+      - '{0} [[0:получила|получил]] смертельную рану.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.DogFight
@@ -20093,8 +19890,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} fired at a dog.'
-      - "{0} \u0432\u044B\u0441\u0442\u0440\u0435\u043B\u0438\u043B\u0430 \u0432
-        \u0441\u043E\u0431\u0430\u043A\u0443."
+      - '{0} [[0:выстрелила|выстрелил]] в собаку.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.HelpCry
@@ -20102,7 +19898,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} called for help.'
-      - "{0} \u043F\u043E\u0437\u0432\u0430\u043B\u0430 \u043D\u0430 \u043F\u043E\u043C\u043E\u0449\u044C."
+      - '{0} [[0:позвала|позвал]] на помощь.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.HelpMoan
@@ -20119,8 +19915,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} answered a call for help.'
-      - "{0} \u043E\u0442\u043A\u043B\u0438\u043A\u043D\u0443\u043B\u0430\u0441\u044C
-        \u043D\u0430 \u043A\u043B\u0438\u0447 \u043E \u043F\u043E\u043C\u043E\u0449\u0438."
+      - '{0} [[0:откликнулась|откликнулся]] на клич о помощи.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.HelpCryIgnored
@@ -20128,8 +19923,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} did not answer the call for help.'
-      - "{0} \u043D\u0435 \u043E\u0442\u043A\u043B\u0438\u043A\u043D\u0443\u043B\u0430\u0441\u044C
-        \u043D\u0430 \u043A\u043B\u0438\u0447 \u043E \u043F\u043E\u043C\u043E\u0449\u0438."
+      - '{0} не [[0:откликнулась|откликнулся]] на клич о помощи.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.HelpCryAssistStarted
@@ -20137,8 +19931,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} ran to defend a housemate.'
-      - "{0} \u043F\u043E\u0431\u0435\u0436\u0430\u043B\u0430 \u0437\u0430\u0449\u0438\u0449\u0430\u0442\u044C
-        \u0441\u043E\u0441\u0435\u0434\u043A\u0443."
+      - '{0} [[0:побежала|побежал]] защищать своих.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.HelpCryAssistArrived
@@ -20146,7 +19939,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} joined the fight.'
-      - "{0} \u0432\u0441\u0442\u0443\u043F\u0438\u043B\u0430 \u0432 \u0431\u043E\u0439."
+      - '{0} [[0:вступила|вступил]] в бой.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.HelpCryAssistLost
@@ -20154,7 +19947,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} lost the attacker.'
-      - "{0} \u043F\u043E\u0442\u0435\u0440\u044F\u043B\u0430 \u043D\u0430\u043F\u0430\u0434\u0430\u044E\u0449\u0435\u0433\u043E."
+      - '{0} [[0:потеряла|потерял]] нападающего.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.HelpCryDefended
@@ -20162,7 +19955,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} struck the attacker.'
-      - "{0} \u0443\u0434\u0430\u0440\u0438\u043B\u0430 \u043D\u0430\u043F\u0430\u0434\u0430\u044E\u0449\u0435\u0433\u043E."
+      - '{0} [[0:ударила|ударил]] нападающего.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.FriendGuard
@@ -20170,8 +19963,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} rushed to defend a friend.'
-      - "{0} \u0431\u0440\u043E\u0441\u0438\u043B\u0430\u0441\u044C \u0437\u0430\u0449\u0438\u0449\u0430\u0442\u044C
-        \u043F\u043E\u0434\u0440\u0443\u0433\u0443."
+      - '{0} [[0:бросилась|бросился]] защищать друга.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.NightRaid
@@ -20188,7 +19980,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} attacked a housemate.'
-      - "{0} \u043D\u0430\u043F\u0430\u043B\u0430 \u043D\u0430 \u0441\u043E\u0441\u0435\u0434\u043A\u0443."
+      - '{0} [[0:напала|напал]] на своих.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.PreyFoughtBack
@@ -20196,7 +19988,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} fought back.'
-      - "{0} \u0434\u0430\u043B\u0430 \u043E\u0442\u043F\u043E\u0440."
+      - '{0} [[0:дала|дал]] отпор.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.PreyFled
@@ -20204,7 +19996,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} fled from an attacker.'
-      - "{0} \u0441\u0431\u0435\u0436\u0430\u043B\u0430 \u043E\u0442 \u043D\u0430\u043F\u0430\u0434\u0430\u0432\u0448\u0435\u0439."
+      - '{0} [[0:сбежала|сбежал]] от нападавшего.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.PredatorKilled
@@ -20220,9 +20012,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - A housemate was killed for meat.
-      - "\u0421\u043E\u0441\u0435\u0434\u043A\u0443 \u0443\u0431\u0438\u043B\u0438
-        \u0440\u0430\u0434\u0438 \u043C\u044F\u0441\u0430."
+      - 'A housemate was killed for meat.'
+      - 'Кого-то из своих убили ради мяса.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.SharkBite
@@ -20230,7 +20021,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} was bitten by a shark.'
-      - "{0} \u0443\u043A\u0443\u0441\u0438\u043B\u0430 \u0430\u043A\u0443\u043B\u0430."
+      - '{0} укусила акула.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.LimbSevered
@@ -20238,7 +20029,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} lost a limb.'
-      - "{0} \u043F\u043E\u0442\u0435\u0440\u044F\u043B\u0430 \u043A\u043E\u043D\u0435\u0447\u043D\u043E\u0441\u0442\u044C."
+      - '{0} [[0:потеряла|потерял]] конечность.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.MobTookLimb
@@ -20272,7 +20063,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} fainted.'
-      - "{0} \u043F\u043E\u0442\u0435\u0440\u044F\u043B\u0430 \u0441\u043E\u0437\u043D\u0430\u043D\u0438\u0435."
+      - '{0} [[0:потеряла|потерял]] сознание.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.FellAsleepExhausted
@@ -20280,8 +20071,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} collapsed from exhaustion.'
-      - "{0} \u0441\u0432\u0430\u043B\u0438\u043B\u0430\u0441\u044C \u0431\u0435\u0437
-        \u0441\u0438\u043B."
+      - '{0} [[0:свалилась|свалился]] без сил.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.FaintedBloodLoss
@@ -20289,8 +20079,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} passed out from blood loss.'
-      - "{0} \u043E\u0442\u043A\u043B\u044E\u0447\u0438\u043B\u0430\u0441\u044C \u043E\u0442
-        \u043F\u043E\u0442\u0435\u0440\u0438 \u043A\u0440\u043E\u0432\u0438."
+      - '{0} [[0:отключилась|отключился]] от потери крови.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.WokeUp
@@ -20298,7 +20087,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} came to.'
-      - "{0} \u043F\u0440\u0438\u0448\u043B\u0430 \u0432 \u0441\u0435\u0431\u044F."
+      - '{0} [[0:пришла|пришёл]] в себя.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.Collapsed
@@ -20323,7 +20112,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} was wounded.'
-      - "{0} \u043F\u043E\u043B\u0443\u0447\u0438\u043B\u0430 \u0440\u0430\u043D\u0443."
+      - '{0} [[0:получила|получил]] рану.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.GotSick
@@ -20331,8 +20120,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} got sick from raw water.'
-      - "{0} \u0437\u0430\u0431\u043E\u043B\u0435\u043B\u0430 \u043E\u0442 \u0441\u044B\u0440\u043E\u0439
-        \u0432\u043E\u0434\u044B."
+      - '{0} [[0:заболела|заболел]] от сырой воды.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.ThreatSpotted
@@ -20340,7 +20128,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} spotted a predator.'
-      - "{0} \u0437\u0430\u043C\u0435\u0442\u0438\u043B\u0430 \u0445\u0438\u0449\u043D\u0438\u043A\u0430."
+      - '{0} [[0:заметила|заметил]] хищника.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.Bandaged
@@ -20348,7 +20136,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} dressed the wounds.'
-      - "{0} \u043F\u0435\u0440\u0435\u0432\u044F\u0437\u0430\u043B\u0430 \u0440\u0430\u043D\u044B."
+      - '{0} [[0:перевязала|перевязал]] раны.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.Medicated
@@ -20356,7 +20144,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} used medicine.'
-      - "{0} \u043F\u0440\u0438\u043D\u044F\u043B\u0430 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u043E."
+      - '{0} [[0:приняла|принял]] лекарство.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.StatusStarving
@@ -20388,7 +20176,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} was burned by the sun.'
-      - "{0} \u043E\u0431\u0433\u043E\u0440\u0435\u043B\u0430 \u043D\u0430 \u0441\u043E\u043B\u043D\u0446\u0435."
+      - '{0} [[0:обгорела|обгорел]] на солнце.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.RainStarted
@@ -20421,7 +20209,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} felled a tree.'
-      - "{0} \u0441\u0440\u0443\u0431\u0438\u043B\u0430 \u0434\u0435\u0440\u0435\u0432\u043E."
+      - '{0} [[0:срубила|срубил]] дерево.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.BoulderBroken
@@ -20429,7 +20217,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} broke a boulder.'
-      - "{0} \u0440\u0430\u0437\u0431\u0438\u043B\u0430 \u0432\u0430\u043B\u0443\u043D."
+      - '{0} [[0:разбила|разбил]] валун.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.LogSplit
@@ -20437,8 +20225,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} split a log into sticks.'
-      - "{0} \u0440\u0430\u0441\u043A\u043E\u043B\u043E\u043B\u0430 \u0431\u0440\u0435\u0432\u043D\u043E
-        \u043D\u0430 \u043F\u0430\u043B\u043A\u0438."
+      - '{0} [[0:расколола|расколол]] бревно на палки.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.CrownChopped
@@ -20446,8 +20233,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} cut palm leaves.'
-      - "{0} \u043D\u0430\u0440\u0443\u0431\u0438\u043B\u0430 \u043F\u0430\u043B\u044C\u043C\u043E\u0432\u044B\u0445
-        \u043B\u0438\u0441\u0442\u044C\u0435\u0432."
+      - '{0} [[0:нарубила|нарубил]] пальмовых листьев.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.CoconutProcessed
@@ -20455,7 +20241,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} opened a coconut.'
-      - "{0} \u0432\u0441\u043A\u0440\u044B\u043B\u0430 \u043A\u043E\u043A\u043E\u0441."
+      - '{0} [[0:вскрыла|вскрыл]] кокос.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.CoconutDrank
@@ -20463,8 +20249,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} drank coconut water.'
-      - "{0} \u0432\u044B\u043F\u0438\u043B\u0430 \u043A\u043E\u043A\u043E\u0441\u043E\u0432\u0443\u044E
-        \u0432\u043E\u0434\u0443."
+      - '{0} [[0:выпила|выпил]] кокосовую воду.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.CoconutEaten
@@ -20472,7 +20257,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} ate coconut.'
-      - "{0} \u0441\u044A\u0435\u043B\u0430 \u043A\u043E\u043A\u043E\u0441."
+      - '{0} [[0:съела|съел]] кокос.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.BottleFilled
@@ -20480,7 +20265,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} filled a bottle.'
-      - "{0} \u043D\u0430\u043F\u043E\u043B\u043D\u0438\u043B\u0430 \u0431\u0443\u0442\u044B\u043B\u043A\u0443."
+      - '{0} [[0:наполнила|наполнил]] бутылку.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.DrankBottle
@@ -20488,7 +20273,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} drank from a bottle.'
-      - "{0} \u043F\u043E\u043F\u0438\u043B\u0430 \u0438\u0437 \u0431\u0443\u0442\u044B\u043B\u043A\u0438."
+      - '{0} [[0:попила|попил]] из бутылки.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.FireLit
@@ -20496,7 +20281,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} lit the fire.'
-      - "{0} \u0440\u0430\u0437\u043E\u0436\u0433\u043B\u0430 \u043A\u043E\u0441\u0442\u0435\u0440."
+      - '{0} [[0:разожгла|разжёг]] костер.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.FireFueled
@@ -20504,8 +20289,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} fed the fire.'
-      - "{0} \u043F\u043E\u0434\u0431\u0440\u043E\u0441\u0438\u043B\u0430 \u0442\u043E\u043F\u043B\u0438\u0432\u0430
-        \u0432 \u043A\u043E\u0441\u0442\u0435\u0440."
+      - '{0} [[0:подбросила|подбросил]] топлива в костер.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.FireOut
@@ -20530,8 +20314,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} hung meat over the fire.'
-      - "{0} \u043F\u043E\u0432\u0435\u0441\u0438\u043B\u0430 \u043C\u044F\u0441\u043E
-        \u043D\u0430\u0434 \u043A\u043E\u0441\u0442\u0440\u043E\u043C."
+      - '{0} [[0:повесила|повесил]] мясо над костром.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.MeatSpoiled
@@ -20547,8 +20330,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} ate roasted meat.'
-      - "{0} \u0441\u044A\u0435\u043B\u0430 \u0436\u0430\u0440\u0435\u043D\u043E\u0435
-        \u043C\u044F\u0441\u043E."
+      - '{0} [[0:съела|съел]] жареное мясо.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.RaftProgress
@@ -20572,8 +20354,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} built part of the shelter.'
-      - "{0} \u043F\u043E\u0441\u0442\u0440\u043E\u0438\u043B\u0430 \u0447\u0430\u0441\u0442\u044C
-        \u0443\u043A\u0440\u044B\u0442\u0438\u044F."
+      - '{0} [[0:построила|построил]] часть укрытия.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.FurnitureBuilt
@@ -20581,7 +20362,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} finished furniture.'
-      - "{0} \u0437\u0430\u043A\u043E\u043D\u0447\u0438\u043B\u0430 \u043C\u0435\u0431\u0435\u043B\u044C."
+      - '{0} [[0:закончила|закончил]] мебель.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.HutCompleted
@@ -20597,7 +20378,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} made a bed.'
-      - "{0} \u0441\u0434\u0435\u043B\u0430\u043B\u0430 \u043F\u043E\u0441\u0442\u0435\u043B\u044C."
+      - '{0} [[0:сделала|сделал]] постель.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.TentCrafted
@@ -20605,8 +20386,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} made a sun shelter.'
-      - "{0} \u0441\u0434\u0435\u043B\u0430\u043B\u0430 \u043D\u0430\u0432\u0435\u0441
-        \u043E\u0442 \u0441\u043E\u043B\u043D\u0446\u0430."
+      - '{0} [[0:сделала|сделал]] навес от солнца.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.RackCrafted
@@ -20614,7 +20394,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} made a drying rack.'
-      - "{0} \u0441\u0434\u0435\u043B\u0430\u043B\u0430 \u0441\u0443\u0448\u0438\u043B\u043A\u0443."
+      - '{0} [[0:сделала|сделал]] сушилку.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.Butchered
@@ -20622,7 +20402,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} butchered a body.'
-      - "{0} \u0440\u0430\u0437\u0434\u0435\u043B\u0430\u043B\u0430 \u0442\u0443\u0448\u0443."
+      - '{0} [[0:разделала|разделал]] тушу.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.EmergencyUnload
@@ -20630,9 +20410,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} dropped supplies to make room for food.'
-      - "{0} \u0441\u0431\u0440\u043E\u0441\u0438\u043B\u0430 \u043F\u0440\u0438\u043F\u0430\u0441\u044B,
-        \u0447\u0442\u043E\u0431\u044B \u043E\u0441\u0432\u043E\u0431\u043E\u0434\u0438\u0442\u044C
-        \u043C\u0435\u0441\u0442\u043E \u0434\u043B\u044F \u0435\u0434\u044B."
+      - '{0} [[0:сбросила|сбросил]] припасы, чтобы освободить место для еды.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.DireStraits
@@ -20649,7 +20427,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} crafted something useful.'
-      - "{0} \u0447\u0442\u043E-\u0442\u043E \u0441\u043C\u0430\u0441\u0442\u0435\u0440\u0438\u043B\u0430."
+      - '{0} что-то [[0:смастерила|смастерил]].'
       Flags: 0101
       Languages_Touch: []
     - Term: history.rel.warmed
@@ -20657,8 +20435,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} warmed toward {1}.'
-      - "{0} \u0441\u0442\u0430\u043B\u0430 \u0442\u0435\u043F\u043B\u0435\u0435
-        \u043A {1}."
+      - '{0} [[0:стала|стал]] теплее к {1}.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.rel.colder
@@ -20666,8 +20443,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} grew colder toward {1}.'
-      - "{0} \u0441\u0442\u0430\u043B\u0430 \u0445\u0443\u0436\u0435 \u043E\u0442\u043D\u043E\u0441\u0438\u0442\u044C\u0441\u044F
-        \u043A {1}."
+      - '{0} [[0:стала|стал]] хуже относиться к {1}.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.rel.changed
@@ -20690,9 +20466,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - The promised helper did not arrive in time.
-      - "\u041F\u043E\u043C\u043E\u0449\u043D\u0438\u0446\u0430 \u043D\u0435 \u0443\u0441\u043F\u0435\u043B\u0430
-        \u043F\u0440\u0438\u0439\u0442\u0438 \u0432\u043E\u0432\u0440\u0435\u043C\u044F."
+      - 'The promised helper did not arrive in time.'
+      - 'Помощь не успела прийти вовремя.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.detail.Aided
@@ -20734,10 +20509,10 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: history.detail.CampsMerged
       TermType: 0
-      Description:
+      Description: 
       Languages:
-      - The residents chose one main camp. Their people, supplies and shelters are now shared.
-      - "\u0416\u0438\u0442\u0435\u043B\u044C\u043D\u0438\u0446\u044B \u0432\u044B\u0431\u0440\u0430\u043B\u0438 \u043E\u0434\u0438\u043D \u043E\u0441\u043D\u043E\u0432\u043D\u043E\u0439 \u043B\u0430\u0433\u0435\u0440\u044C. \u0422\u0435\u043F\u0435\u0440\u044C \u043B\u044E\u0434\u0438, \u043F\u0440\u0438\u043F\u0430\u0441\u044B \u0438 \u043F\u043E\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u0443 \u043D\u0438\u0445 \u043E\u0431\u0449\u0438\u0435."
+      - 'The residents chose one main camp. Their people, supplies and shelters are now shared.'
+      - 'Жители выбрали один основной лагерь. Теперь люди, припасы и постройки у них общие.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.detail.TalkQuarreled
@@ -20753,10 +20528,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - The invited NPC did not arrive in time.
-      - "\u0421\u043E\u0431\u0435\u0441\u0435\u0434\u043D\u0438\u0446\u0430 \u043D\u0435
-        \u0443\u0441\u043F\u0435\u043B\u0430 \u043F\u043E\u0434\u043E\u0439\u0442\u0438
-        \u0432\u043E\u0432\u0440\u0435\u043C\u044F."
+      - 'The invited NPC did not arrive in time.'
+      - 'Собеседник не успел подойти вовремя.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.detail.InteractionRejected
@@ -20843,7 +20616,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - 'Attacker: NPC #{0}.'
-      - "\u041D\u0430\u043F\u0430\u0434\u0430\u044E\u0449\u0430\u044F: NPC #{0}."
+      - 'Кто напал: NPC #{0}.'
       Flags: 0101
       Languages_Touch: []
     - Term: history.detail.helpcry.decision
@@ -20915,8 +20688,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - housemate attack
-      - "\u043D\u0430\u043F\u0430\u0434\u0435\u043D\u0438\u0435 \u0441\u043E\u0441\u0435\u0434\u043A\u0438"
+      - 'housemate attack'
+      - 'нападение своих'
       Flags: 0101
       Languages_Touch: []
     - Term: history.cause.PreyFoughtBack
@@ -21779,10 +21552,10 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: panel.pace.tooltip
       TermType: 0
-      Description:
+      Description: 
       Languages:
-      - "Default pace of your orders: walk or run"
-      - "\u0422\u0435\u043C\u043F \u0435\u0451 \u043F\u0440\u0438\u043A\u0430\u0437\u043E\u0432 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E: \u0448\u0430\u0433\u043E\u043C \u0438\u043B\u0438 \u0431\u0435\u0433\u043E\u043C"
+      - 'Default pace of your orders: walk or run'
+      - 'Темп [[s:её|его]] приказов по умолчанию: шагом или бегом'
       Flags: 0101
       Languages_Touch: []
     - Term: group.selected
@@ -22080,7 +21853,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0}''s own words'
-      - "\u0415\u0451 \u0441\u043B\u043E\u0432\u0430\u043C\u0438"
+      - '[[s:Её|Его]] словами'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.empty
@@ -22218,163 +21991,160 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - felled a tree
-      - "\u0432\u0430\u043B\u0438\u043B\u0430 \u0434\u0435\u0440\u0435\u0432\u043E"
+      - 'felled a tree'
+      - '[[s:валила|валил]] дерево'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.chore.CrownChopped
       TermType: 0
       Description: 
       Languages:
-      - cut down a crown
-      - "\u0441\u0440\u0443\u0431\u0430\u043B\u0430 \u043A\u0440\u043E\u043D\u0443"
+      - 'cut down a crown'
+      - '[[s:срубала|срубал]] крону'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.chore.LogSplit
       TermType: 0
       Description: 
       Languages:
-      - split logs
-      - "\u043A\u043E\u043B\u043E\u043B\u0430 \u0431\u0440\u0451\u0432\u043D\u0430"
+      - 'split logs'
+      - '[[s:колола|колол]] брёвна'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.chore.BoulderBroken
       TermType: 0
       Description: 
       Languages:
-      - broke stone
-      - "\u0431\u0438\u043B\u0430 \u043A\u0430\u043C\u0435\u043D\u044C"
+      - 'broke stone'
+      - '[[s:била|бил]] камень'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.chore.CoconutProcessed
       TermType: 0
       Description: 
       Languages:
-      - husked coconuts
-      - "\u0447\u0438\u0441\u0442\u0438\u043B\u0430 \u043A\u043E\u043A\u043E\u0441\u044B"
+      - 'husked coconuts'
+      - '[[s:чистила|чистил]] кокосы'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.chore.CoconutDrank
       TermType: 0
       Description: 
       Languages:
-      - drank coconut water
-      - "\u043F\u0438\u043B\u0430 \u043A\u043E\u043A\u043E\u0441\u043E\u0432\u0443\u044E
-        \u0432\u043E\u0434\u0443"
+      - 'drank coconut water'
+      - '[[s:пила|пил]] кокосовую воду'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.chore.CoconutEaten
       TermType: 0
       Description: 
       Languages:
-      - ate coconut
-      - "\u0435\u043B\u0430 \u043A\u043E\u043A\u043E\u0441"
+      - 'ate coconut'
+      - '[[s:ела|ел]] кокос'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.chore.MeatEaten
       TermType: 0
       Description: 
       Languages:
-      - ate meat
-      - "\u0435\u043B\u0430 \u043C\u044F\u0441\u043E"
+      - 'ate meat'
+      - '[[s:ела|ел]] мясо'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.chore.MeatRoasted
       TermType: 0
       Description: 
       Languages:
-      - roasted meat
-      - "\u0436\u0430\u0440\u0438\u043B\u0430 \u043C\u044F\u0441\u043E"
+      - 'roasted meat'
+      - '[[s:жарила|жарил]] мясо'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.chore.MeatHungOnSpit
       TermType: 0
       Description: 
       Languages:
-      - hung meat on the spit
-      - "\u0432\u0435\u0448\u0430\u043B\u0430 \u043C\u044F\u0441\u043E \u043D\u0430
-        \u0432\u0435\u0440\u0442\u0435\u043B"
+      - 'hung meat on the spit'
+      - '[[s:вешала|вешал]] мясо на вертел'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.chore.BottleFilled
       TermType: 0
       Description: 
       Languages:
-      - filled the bottle
-      - "\u043D\u0430\u043F\u043E\u043B\u043D\u044F\u043B\u0430 \u0431\u0443\u0442\u044B\u043B\u043A\u0443"
+      - 'filled the bottle'
+      - '[[s:наполняла|наполнял]] бутылку'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.chore.DrankBottle
       TermType: 0
       Description: 
       Languages:
-      - drank from the bottle
-      - "\u043F\u0438\u043B\u0430 \u0438\u0437 \u0431\u0443\u0442\u044B\u043B\u043A\u0438"
+      - 'drank from the bottle'
+      - '[[s:пила|пил]] из бутылки'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.chore.FireLit
       TermType: 0
       Description: 
       Languages:
-      - lit the fire
-      - "\u0440\u0430\u0437\u0436\u0438\u0433\u0430\u043B\u0430 \u043A\u043E\u0441\u0442\u0451\u0440"
+      - 'lit the fire'
+      - '[[s:разжигала|разжигал]] костёр'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.chore.FireFueled
       TermType: 0
       Description: 
       Languages:
-      - fed the fire
-      - "\u043F\u043E\u0434\u043A\u0438\u0434\u044B\u0432\u0430\u043B\u0430 \u0432
-        \u043A\u043E\u0441\u0442\u0451\u0440"
+      - 'fed the fire'
+      - '[[s:подкидывала|подкидывал]] в костёр'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.chore.BuildProgress
       TermType: 0
       Description: 
       Languages:
-      - worked on the build
-      - "\u0432\u043E\u0437\u0438\u043B\u0430\u0441\u044C \u0441\u043E \u0441\u0442\u0440\u043E\u0439\u043A\u043E\u0439"
+      - 'worked on the build'
+      - '[[s:возилась|возился]] со стройкой'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.chore.RaftProgress
       TermType: 0
       Description: 
       Languages:
-      - worked on the raft
-      - "\u0432\u043E\u0437\u0438\u043B\u0430\u0441\u044C \u0441 \u043F\u043B\u043E\u0442\u043E\u043C"
+      - 'worked on the raft'
+      - '[[s:возилась|возился]] с плотом'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.chore.BandageCrafted
       TermType: 0
       Description: 
       Languages:
-      - rolled bandages
-      - "\u043A\u0440\u0443\u0442\u0438\u043B\u0430 \u0431\u0438\u043D\u0442\u044B"
+      - 'rolled bandages'
+      - '[[s:крутила|крутил]] бинты'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.chore.ClothesStowed
       TermType: 0
       Description: 
       Languages:
-      - put clothes away
-      - "\u0443\u0431\u0438\u0440\u0430\u043B\u0430 \u043E\u0434\u0435\u0436\u0434\u0443"
+      - 'put clothes away'
+      - '[[s:убирала|убирал]] одежду'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.chore.TalkRequested
       TermType: 0
       Description: 
       Languages:
-      - tried to talk to someone
-      - "\u0437\u0432\u0430\u043B\u0430 \u043A\u043E\u0433\u043E-\u0442\u043E \u043F\u043E\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u044C"
+      - 'tried to talk to someone'
+      - '[[s:звала|звал]] кого-то поговорить'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.chore.InteractionBlocked
       TermType: 0
       Description: 
       Languages:
-      - waited my turn
-      - "\u0436\u0434\u0430\u043B\u0430 \u0441\u0432\u043E\u0435\u0439 \u043E\u0447\u0435\u0440\u0435\u0434\u0438"
+      - 'waited my turn'
+      - '[[s:ждала|ждал]] своей очереди'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Aided.got.v0
@@ -22382,8 +22152,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} helped me. I won''t forget it.'
-      - "{0} \u043C\u043D\u0435 \u043F\u043E\u043C\u043E\u0433\u043B\u0430. \u042F
-        \u044D\u0442\u043E\u0433\u043E \u043D\u0435 \u0437\u0430\u0431\u0443\u0434\u0443."
+      - '{0} мне [[0:помогла|помог]]. Я этого не забуду.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Aided.got.v1
@@ -22391,39 +22160,31 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} came to me with {1}. Just came, without being asked twice.'
-      - "{0} \u043F\u0440\u0438\u0448\u043B\u0430 \u043A\u043E \u043C\u043D\u0435
-        \u2014 {1}. \u041F\u0440\u043E\u0441\u0442\u043E \u043F\u0440\u0438\u0448\u043B\u0430,
-        \u043D\u0435 \u0437\u0430\u0441\u0442\u0430\u0432\u0438\u043B\u0430 \u043F\u0440\u043E\u0441\u0438\u0442\u044C
-        \u0434\u0432\u0430\u0436\u0434\u044B."
+      - '{0} [[0:пришла|пришёл]] ко мне — {1}. Просто [[0:пришла, не заставила|пришёл, не заставил]] просить дважды.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Aided.got.tender.v0
       TermType: 0
       Description: 
       Languages:
-      - "{0} is wonderful. She helped me \u2014 {1} \u2014 and I could have cried."
-      - "{0} \u0437\u0430\u043C\u0435\u0447\u0430\u0442\u0435\u043B\u044C\u043D\u0430\u044F.
-        \u041E\u043D\u0430 \u043C\u043D\u0435 \u043F\u043E\u043C\u043E\u0433\u043B\u0430
-        \u2014 {1}, \u2014 \u0438 \u044F \u0447\u0443\u0442\u044C \u043D\u0435 \u0440\u0430\u0441\u043F\u043B\u0430\u043A\u0430\u043B\u0430\u0441\u044C."
+      - '{0} is wonderful. [[0:She|He]] helped me — {1} — and I could have cried.'
+      - '{0} [[0:замечательная. Она мне помогла|замечательный. Он мне помог]] — {1}, — и я чуть не [[s:расплакалась|расплакался]].'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Aided.got.tender.v1
       TermType: 0
       Description: 
       Languages:
-      - I love {0}. Really love her.
-      - "\u042F \u043E\u0431\u043E\u0436\u0430\u044E {0}. \u041F\u0440\u0430\u0432\u0434\u0430
-        \u043E\u0431\u043E\u0436\u0430\u044E."
+      - 'I love {0}. Really love [[0:her|him]].'
+      - 'Я обожаю {0}. Правда обожаю.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Aided.got.hurt.v0
       TermType: 0
       Description: 
       Languages:
-      - "I was in a bad way, and {0} helped me \u2014 {1}. I love her for that."
-      - "\u041C\u043D\u0435 \u0431\u044B\u043B\u043E \u0441\u043E\u0432\u0441\u0435\u043C
-        \u0445\u0443\u0434\u043E, \u0438 {0} \u043C\u043D\u0435 \u043F\u043E\u043C\u043E\u0433\u043B\u0430
-        \u2014 {1}. \u0417\u0430 \u044D\u0442\u043E \u044F \u0435\u0451 \u0438 \u043B\u044E\u0431\u043B\u044E."
+      - 'I was in a bad way, and {0} helped me — {1}. I love [[0:her|him]] for that.'
+      - 'Мне было совсем худо, и {0} мне [[0:помогла|помог]] — {1}. За это я [[0:её|его]] и люблю.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Aided.got.hurt.v1
@@ -22431,9 +22192,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} found me. I don''t know what I would have done alone.'
-      - "{0} \u043C\u0435\u043D\u044F \u043D\u0430\u0448\u043B\u0430. \u041D\u0435
-        \u0437\u043D\u0430\u044E, \u0447\u0442\u043E \u0431\u044B \u044F \u0434\u0435\u043B\u0430\u043B\u0430
-        \u043E\u0434\u043D\u0430."
+      - '{0} меня [[0:нашла|нашёл]]. Не знаю, что бы я [[s:делала одна|делал один]].'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Aided.got.dying.v0
@@ -22441,42 +22200,31 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} got to me in time. I was already saying goodbye to everything.'
-      - "{0} \u0443\u0441\u043F\u0435\u043B\u0430. \u042F \u0443\u0436\u0435 \u0441\u043E
-        \u0432\u0441\u0435\u043C \u043F\u0440\u043E\u0449\u0430\u043B\u0430\u0441\u044C."
+      - '{0} [[0:успела|успел]]. Я уже со всем [[s:прощалась|прощался]].'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Aided.got.hurt.beloved.v0
       TermType: 0
       Description: 
       Languages:
-      - "How wonderful {0} is. I adore her \u2014 especially for giving me water
-        when I was so far gone."
-      - "\u041A\u0430\u043A\u0430\u044F {0} \u043A\u043B\u0430\u0441\u0441\u043D\u0430\u044F.
-        \u042F \u0435\u0451 \u043E\u0431\u043E\u0436\u0430\u044E \u2014 \u043E\u0441\u043E\u0431\u0435\u043D\u043D\u043E
-        \u0437\u0430 \u0442\u043E, \u0447\u0442\u043E \u043D\u0430\u043F\u043E\u0438\u043B\u0430
-        \u043C\u0435\u043D\u044F, \u043A\u043E\u0433\u0434\u0430 \u043C\u043D\u0435
-        \u0431\u044B\u043B\u043E \u0442\u0430\u043A \u043F\u043B\u043E\u0445\u043E."
+      - 'How wonderful {0} is. I adore [[0:her|him]] — especially for giving me water when I was so far gone.'
+      - '[[0:Какая|Какой]] {0} [[0:классная. Я её|классный. Я его]] обожаю — особенно за то, что [[0:напоила|напоил]] меня, когда мне было так плохо.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Aided.got.hurt.beloved.v1
       TermType: 0
       Description: 
       Languages:
-      - '{0}. Always {0}. She sat with me and made it stop hurting so much.'
-      - "{0}. \u0412\u0441\u0435\u0433\u0434\u0430 {0}. \u041E\u043D\u0430 \u043F\u043E\u0441\u0438\u0434\u0435\u043B\u0430
-        \u0440\u044F\u0434\u043E\u043C, \u0438 \u0441\u0442\u0430\u043B\u043E \u043D\u0435
-        \u0442\u0430\u043A \u0431\u043E\u043B\u044C\u043D\u043E."
+      - '{0}. Always {0}. [[0:She|He]] sat with me and made it stop hurting so much.'
+      - '{0}. Всегда {0}. [[0:Она посидела|Он посидел]] рядом, и стало не так больно.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Aided.got.tender.beloved.v0
       TermType: 0
       Description: 
       Languages:
-      - '{0} took care of me today. She is the best thing on this island.'
-      - "{0} \u0441\u0435\u0433\u043E\u0434\u043D\u044F \u043E\u0431\u043E \u043C\u043D\u0435
-        \u043F\u043E\u0437\u0430\u0431\u043E\u0442\u0438\u043B\u0430\u0441\u044C.
-        \u041E\u043D\u0430 \u2014 \u043B\u0443\u0447\u0448\u0435\u0435, \u0447\u0442\u043E
-        \u0435\u0441\u0442\u044C \u043D\u0430 \u044D\u0442\u043E\u043C \u043E\u0441\u0442\u0440\u043E\u0432\u0435."
+      - '{0} took care of me today. [[0:She|He]] is the best thing on this island.'
+      - '{0} сегодня обо мне [[0:позаботилась. Она|позаботился. Он]] — лучшее, что есть на этом острове.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Aided.got.cold.v0
@@ -22484,28 +22232,23 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} helped me. Fine. I said thank you and we both pretended.'
-      - "{0} \u043C\u043D\u0435 \u043F\u043E\u043C\u043E\u0433\u043B\u0430. \u041B\u0430\u0434\u043D\u043E.
-        \u042F \u0441\u043A\u0430\u0437\u0430\u043B\u0430 \u0441\u043F\u0430\u0441\u0438\u0431\u043E,
-        \u0438 \u043E\u0431\u0435 \u0441\u0434\u0435\u043B\u0430\u043B\u0438 \u0432\u0438\u0434."
+      - '{0} мне [[0:помогла|помог]]. Ладно. Я [[s:сказала|сказал]] спасибо, и мы друг перед другом сделали вид.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Aided.got.hated.v0
       TermType: 0
       Description: 
       Languages:
-      - Of all people, {0} was the one to help me. I hate that I needed it.
-      - "\u041F\u043E\u043C\u043E\u0433\u043B\u0430 \u043C\u043D\u0435 \u0438\u043C\u0435\u043D\u043D\u043E
-        {0}. \u041D\u0435\u043D\u0430\u0432\u0438\u0436\u0443, \u0447\u0442\u043E
-        \u043C\u043D\u0435 \u044D\u0442\u043E \u0431\u044B\u043B\u043E \u043D\u0443\u0436\u043D\u043E."
+      - 'Of all people, {0} was the one to help me. I hate that I needed it.'
+      - '[[0:Помогла|Помог]] мне именно {0}. Ненавижу, что мне это было нужно.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Aided.did.v0
       TermType: 0
       Description: 
       Languages:
-      - "I helped {0} \u2014 {1}. She needed it."
-      - "\u042F \u043F\u043E\u043C\u043E\u0433\u043B\u0430 {0} \u2014 {1}. \u0415\u0439
-        \u0431\u044B\u043B\u043E \u043D\u0443\u0436\u043D\u043E."
+      - 'I helped {0} — {1}. [[0:She|He]] needed it.'
+      - 'Я [[s:помогла|помог]] {0} — {1}. [[0:Ей|Ему]] было нужно.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Aided.did.v1
@@ -22513,28 +22256,23 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} was in a bad way. I did what I could.'
-      - "{0} \u0431\u044B\u043B\u043E \u043F\u043B\u043E\u0445\u043E. \u042F \u0441\u0434\u0435\u043B\u0430\u043B\u0430
-        \u0447\u0442\u043E \u043C\u043E\u0433\u043B\u0430."
+      - '{0} было плохо. Я [[s:сделала что могла|сделал что мог]].'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Aided.did.tender.beloved.v0
       TermType: 0
       Description: 
       Languages:
-      - I looked after {0} today. I would do it again tomorrow.
-      - "\u0421\u0435\u0433\u043E\u0434\u043D\u044F \u044F \u0432\u043E\u0437\u0438\u043B\u0430\u0441\u044C
-        \u0441 {0}. \u0418 \u0437\u0430\u0432\u0442\u0440\u0430 \u0441\u043D\u043E\u0432\u0430
-        \u0431\u0443\u0434\u0443."
+      - 'I looked after {0} today. I would do it again tomorrow.'
+      - 'Сегодня я [[s:возилась|возился]] с {0}. И завтра снова буду.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Aided.did.weary.v0
       TermType: 0
       Description: 
       Languages:
-      - I helped {0}. I had nothing left myself, but I helped.
-      - "\u041F\u043E\u043C\u043E\u0433\u043B\u0430 {0}. \u0423 \u0441\u0430\u043C\u043E\u0439
-        \u043D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C,
-        \u043D\u043E \u043F\u043E\u043C\u043E\u0433\u043B\u0430."
+      - 'I helped {0}. I had nothing left myself, but I helped.'
+      - '[[s:Помогла|Помог]] {0}. У [[s:самой|самого]] ничего не осталось, но [[s:помогла|помог]].'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.FoodShared.got.v0
@@ -22542,18 +22280,15 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} gave me food. I was starving.'
-      - "{0} \u0434\u0430\u043B\u0430 \u043C\u043D\u0435 \u043F\u043E\u0435\u0441\u0442\u044C.
-        \u042F \u0443\u043C\u0438\u0440\u0430\u043B\u0430 \u0441 \u0433\u043E\u043B\u043E\u0434\u0443."
+      - '{0} [[0:дала|дал]] мне поесть. Я [[s:умирала|умирал]] с голоду.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.FoodShared.got.tender.v0
       TermType: 0
       Description: 
       Languages:
-      - '{0} shared her food with me. Nobody made her.'
-      - "{0} \u043F\u043E\u0434\u0435\u043B\u0438\u043B\u0430\u0441\u044C \u0441\u043E
-        \u043C\u043D\u043E\u0439 \u0435\u0434\u043E\u0439. \u0415\u0451 \u043D\u0438\u043A\u0442\u043E
-        \u043D\u0435 \u0437\u0430\u0441\u0442\u0430\u0432\u043B\u044F\u043B."
+      - '{0} shared [[0:her|his]] food with me. Nobody made [[0:her|him]].'
+      - '{0} [[0:поделилась|поделился]] со мной едой. [[0:Её|Его]] никто не заставлял.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.FoodShared.got.hurt.beloved.v0
@@ -22561,20 +22296,15 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} fed me when I had nothing. I will remember that for as long as I live.'
-      - "{0} \u043D\u0430\u043A\u043E\u0440\u043C\u0438\u043B\u0430 \u043C\u0435\u043D\u044F,
-        \u043A\u043E\u0433\u0434\u0430 \u0443 \u043C\u0435\u043D\u044F \u043D\u0435
-        \u0431\u044B\u043B\u043E \u043D\u0438\u0447\u0435\u0433\u043E. \u0411\u0443\u0434\u0443
-        \u043F\u043E\u043C\u043D\u0438\u0442\u044C, \u043F\u043E\u043A\u0430 \u0436\u0438\u0432\u0443."
+      - '{0} [[0:накормила|накормил]] меня, когда у меня не было ничего. Буду помнить, пока живу.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.FoodShared.did.v0
       TermType: 0
       Description: 
       Languages:
-      - I gave {0} some of mine. She looked worse than me.
-      - "\u041E\u0442\u0434\u0430\u043B\u0430 {0} \u0447\u0430\u0441\u0442\u044C
-        \u0441\u0432\u043E\u0435\u0433\u043E. \u041E\u043D\u0430 \u0432\u044B\u0433\u043B\u044F\u0434\u0435\u043B\u0430
-        \u0445\u0443\u0436\u0435 \u043C\u0435\u043D\u044F."
+      - 'I gave {0} some of mine. [[0:She|He]] looked worse than me.'
+      - '[[s:Отдала|Отдал]] {0} часть своего. [[0:Она выглядела|Он выглядел]] хуже меня.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.HelpCryDefended.got.v0
@@ -22582,8 +22312,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} stepped in front of me. In front of ME.'
-      - "{0} \u0432\u0441\u0442\u0430\u043B\u0430 \u043F\u0435\u0440\u0435\u0434\u043E
-        \u043C\u043D\u043E\u0439. \u041F\u0435\u0440\u0435\u0434\u043E \u041C\u041D\u041E\u0419."
+      - '{0} [[0:встала|встал]] передо мной. Передо МНОЙ.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.HelpCryDefended.got.tender.beloved.v0
@@ -22591,29 +22320,23 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} fought for me today. I have never had anyone do that.'
-      - "\u0421\u0435\u0433\u043E\u0434\u043D\u044F {0} \u0437\u0430 \u043C\u0435\u043D\u044F
-        \u0434\u0440\u0430\u043B\u0430\u0441\u044C. \u0417\u0430 \u043C\u0435\u043D\u044F
-        \u043D\u0438\u043A\u0442\u043E \u043D\u0438\u043A\u043E\u0433\u0434\u0430
-        \u043D\u0435 \u0434\u0440\u0430\u043B\u0441\u044F."
+      - 'Сегодня {0} за меня [[0:дралась|дрался]]. За меня никто никогда не дрался.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.HelpCryDefended.did.v0
       TermType: 0
       Description: 
       Languages:
-      - I got between {0} and the thing that wanted her.
-      - "\u042F \u0432\u0441\u0442\u0430\u043B\u0430 \u043C\u0435\u0436\u0434\u0443
-        {0} \u0438 \u0442\u0435\u043C, \u0447\u0442\u043E \u0434\u043E \u043D\u0435\u0451
-        \u0434\u043E\u0431\u0438\u0440\u0430\u043B\u043E\u0441\u044C."
+      - 'I got between {0} and the thing that wanted [[0:her|him]].'
+      - 'Я [[s:встала|встал]] между {0} и тем, что до [[0:неё|него]] добиралось.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.HelpCryAnswered.got.v0
       TermType: 0
       Description: 
       Languages:
-      - I screamed, and {0} came.
-      - "\u042F \u0437\u0430\u043A\u0440\u0438\u0447\u0430\u043B\u0430 \u2014 \u0438
-        {0} \u043F\u0440\u0438\u0448\u043B\u0430."
+      - 'I screamed, and {0} came.'
+      - 'Я [[s:закричала|закричал]] — и {0} [[0:пришла|пришёл]].'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.HelpCryAnswered.did.v0
@@ -22621,65 +22344,55 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} was screaming. I ran.'
-      - "{0} \u043A\u0440\u0438\u0447\u0430\u043B\u0430. \u042F \u043F\u043E\u0431\u0435\u0436\u0430\u043B\u0430."
+      - '{0} [[0:кричала|кричал]]. Я [[s:побежала|побежал]].'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.HelpCryIgnored.got.v0
       TermType: 0
       Description: 
       Languages:
-      - I screamed. {0} heard me. {0} did not come.
-      - "\u042F \u043A\u0440\u0438\u0447\u0430\u043B\u0430. {0} \u0441\u043B\u044B\u0448\u0430\u043B\u0430.
-        {0} \u043D\u0435 \u043F\u0440\u0438\u0448\u043B\u0430."
+      - 'I screamed. {0} heard me. {0} did not come.'
+      - 'Я [[s:кричала|кричал]]. {0} [[0:слышала|слышал]]. {0} не [[0:пришла|пришёл]].'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.HelpCryIgnored.got.bitter.v0
       TermType: 0
       Description: 
       Languages:
-      - So that's how it is. I called for {0} and she looked away.
-      - "\u0412\u043E\u0442, \u0437\u043D\u0430\u0447\u0438\u0442, \u043A\u0430\u043A.
-        \u042F \u0437\u0432\u0430\u043B\u0430 {0}, \u0430 \u043E\u043D\u0430 \u043E\u0442\u0432\u0435\u0440\u043D\u0443\u043B\u0430\u0441\u044C."
+      - 'So that''s how it is. I called for {0} and [[0:she|he]] looked away.'
+      - 'Вот, значит, как. Я [[s:звала|звал]] {0}, а [[0:она отвернулась|он отвернулся]].'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.HelpCry.got.v0
       TermType: 0
       Description: 
       Languages:
-      - I screamed for help until my throat gave out.
-      - "\u042F \u0437\u0432\u0430\u043B\u0430 \u043D\u0430 \u043F\u043E\u043C\u043E\u0449\u044C,
-        \u043F\u043E\u043A\u0430 \u043D\u0435 \u0441\u043E\u0440\u0432\u0430\u043B\u0430
-        \u0433\u043E\u043B\u043E\u0441."
+      - 'I screamed for help until my throat gave out.'
+      - 'Я [[s:звала|звал]] на помощь, пока не [[s:сорвала|сорвал]] голос.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.HelpCry.got.dying.v0
       TermType: 0
       Description: 
       Languages:
-      - I called and called. Nobody. Just the sound of my own voice.
-      - "\u042F \u0437\u0432\u0430\u043B\u0430 \u0438 \u0437\u0432\u0430\u043B\u0430.
-        \u041D\u0438\u043A\u043E\u0433\u043E. \u0422\u043E\u043B\u044C\u043A\u043E
-        \u043C\u043E\u0439 \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u044B\u0439
-        \u0433\u043E\u043B\u043E\u0441."
+      - 'I called and called. Nobody. Just the sound of my own voice.'
+      - 'Я [[s:звала и звала|звал и звал]]. Никого. Только мой собственный голос.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.HelpMoan.got.dying.v0
       TermType: 0
       Description: 
       Languages:
-      - I couldn't scream any more. I could only lie there and make a sound.
-      - "\u041A\u0440\u0438\u0447\u0430\u0442\u044C \u044F \u0443\u0436\u0435 \u043D\u0435
-        \u043C\u043E\u0433\u043B\u0430. \u0422\u043E\u043B\u044C\u043A\u043E \u043B\u0435\u0436\u0430\u0442\u044C
-        \u0438 \u043C\u044B\u0447\u0430\u0442\u044C."
+      - 'I couldn''t scream any more. I could only lie there and make a sound.'
+      - 'Кричать я уже не [[s:могла|мог]]. Только лежать и мычать.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Collapsed.got.v0
       TermType: 0
       Description: 
       Languages:
-      - My legs went. I went down and I did not get up.
-      - "\u041D\u043E\u0433\u0438 \u043F\u043E\u0434\u043A\u043E\u0441\u0438\u043B\u0438\u0441\u044C.
-        \u042F \u0443\u043F\u0430\u043B\u0430 \u0438 \u043D\u0435 \u0432\u0441\u0442\u0430\u043B\u0430."
+      - 'My legs went. I went down and I did not get up.'
+      - 'Ноги подкосились. Я [[s:упала и не встала|упал и не встал]].'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Collapsed.got.dying.v0
@@ -22726,20 +22439,16 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - I opened my eyes and I was alive. I am still not used to it.
-      - "\u042F \u043E\u0442\u043A\u0440\u044B\u043B\u0430 \u0433\u043B\u0430\u0437\u0430
-        \u0438 \u0431\u044B\u043B\u0430 \u0436\u0438\u0432\u0430. \u0414\u043E \u0441\u0438\u0445
-        \u043F\u043E\u0440 \u043D\u0435 \u043F\u0440\u0438\u0432\u044B\u043A\u043D\u0443."
+      - 'I opened my eyes and I was alive. I am still not used to it.'
+      - 'Я [[s:открыла|открыл]] глаза и [[s:была жива|был жив]]. До сих пор не привыкну.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Rescued.got.dying.v0
       TermType: 0
       Description: 
       Languages:
-      - They pulled me back. I was already gone, and they pulled me back.
-      - "\u041C\u0435\u043D\u044F \u0432\u044B\u0442\u0430\u0449\u0438\u043B\u0438.
-        \u042F \u0443\u0436\u0435 \u0443\u0445\u043E\u0434\u0438\u043B\u0430 \u2014
-        \u0438 \u043C\u0435\u043D\u044F \u0432\u044B\u0442\u0430\u0449\u0438\u043B\u0438."
+      - 'They pulled me back. I was already gone, and they pulled me back.'
+      - 'Меня вытащили. Я уже [[s:уходила|уходил]] — и меня вытащили.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.WoundInflicted.got.v0
@@ -22773,9 +22482,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - I lost it. {1}. It's gone and it is not coming back.
-      - "\u042F \u0435\u0451 \u043B\u0438\u0448\u0438\u043B\u0430\u0441\u044C. {1}.
-        \u0415\u0451 \u043D\u0435\u0442, \u0438 \u043E\u043D\u0430 \u043D\u0435 \u0432\u0435\u0440\u043D\u0451\u0442\u0441\u044F."
+      - 'I lost it. {1}. It''s gone and it is not coming back.'
+      - 'Я её [[s:лишилась|лишился]]. {1}. Её нет, и она не вернётся.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.LimbSevered.got.dying.v0
@@ -22783,10 +22491,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{1}. I looked at where it used to be and I stopped understanding anything.'
-      - "{1}. \u042F \u043F\u043E\u0441\u043C\u043E\u0442\u0440\u0435\u043B\u0430
-        \u0442\u0443\u0434\u0430, \u0433\u0434\u0435 \u043E\u043D\u0430 \u0431\u044B\u043B\u0430,
-        \u0438 \u043F\u0435\u0440\u0435\u0441\u0442\u0430\u043B\u0430 \u0447\u0442\u043E-\u043B\u0438\u0431\u043E
-        \u043F\u043E\u043D\u0438\u043C\u0430\u0442\u044C."
+      - '{1}. Я [[s:посмотрела|посмотрел]] туда, где она была, и [[s:перестала|перестал]] что-либо понимать.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.MobTookLimb.got.v0
@@ -22803,47 +22508,40 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Something took me from below. I didn't even see it.
-      - "\u0427\u0442\u043E-\u0442\u043E \u0432\u0437\u044F\u043B\u043E \u043C\u0435\u043D\u044F
-        \u0441\u043D\u0438\u0437\u0443. \u042F \u0434\u0430\u0436\u0435 \u043D\u0435
-        \u0443\u0432\u0438\u0434\u0435\u043B\u0430."
+      - 'Something took me from below. I didn''t even see it.'
+      - 'Что-то взяло меня снизу. Я даже не [[s:увидела|увидел]].'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.DogFight.got.v0
       TermType: 0
       Description: 
       Languages:
-      - I fought it off. My hands are still shaking.
-      - "\u042F \u043E\u0442\u0431\u0438\u043B\u0430\u0441\u044C. \u0420\u0443\u043A\u0438
-        \u0434\u043E \u0441\u0438\u0445 \u043F\u043E\u0440 \u0442\u0440\u044F\u0441\u0443\u0442\u0441\u044F."
+      - 'I fought it off. My hands are still shaking.'
+      - 'Я [[s:отбилась|отбился]]. Руки до сих пор трясутся.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.DogFight.did.v0
       TermType: 0
       Description: 
       Languages:
-      - I fought it off. My hands are still shaking.
-      - "\u042F \u043E\u0442\u0431\u0438\u043B\u0430\u0441\u044C. \u0420\u0443\u043A\u0438
-        \u0434\u043E \u0441\u0438\u0445 \u043F\u043E\u0440 \u0442\u0440\u044F\u0441\u0443\u0442\u0441\u044F."
+      - 'I fought it off. My hands are still shaking.'
+      - 'Я [[s:отбилась|отбился]]. Руки до сих пор трясутся.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.FellAsleepExhausted.got.v0
       TermType: 0
       Description: 
       Languages:
-      - I simply switched off. Mid-step.
-      - "\u042F \u043F\u0440\u043E\u0441\u0442\u043E \u0432\u044B\u043A\u043B\u044E\u0447\u0438\u043B\u0430\u0441\u044C.
-        \u041F\u0440\u044F\u043C\u043E \u043D\u0430 \u0445\u043E\u0434\u0443."
+      - 'I simply switched off. Mid-step.'
+      - 'Я просто [[s:выключилась|выключился]]. Прямо на ходу.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.FellAsleepExhausted.got.weary.v0
       TermType: 0
       Description: 
       Languages:
-      - There was nothing left in me. I went down where I stood.
-      - "\u0412\u043E \u043C\u043D\u0435 \u0443\u0436\u0435 \u043D\u0438\u0447\u0435\u0433\u043E
-        \u043D\u0435 \u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C. \u041B\u0435\u0433\u043B\u0430
-        \u0442\u0430\u043C, \u0433\u0434\u0435 \u0441\u0442\u043E\u044F\u043B\u0430."
+      - 'There was nothing left in me. I went down where I stood.'
+      - 'Во мне уже ничего не осталось. [[s:Легла там, где стояла|Лёг там, где стоял]].'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.FaintedBloodLoss.got.v0
@@ -22859,38 +22557,32 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - I blacked out. I don't know for how long.
-      - "\u042F \u043E\u0442\u043A\u043B\u044E\u0447\u0438\u043B\u0430\u0441\u044C.
-        \u041D\u0435 \u0437\u043D\u0430\u044E, \u043D\u0430\u0434\u043E\u043B\u0433\u043E
-        \u043B\u0438."
+      - 'I blacked out. I don''t know for how long.'
+      - 'Я [[s:отключилась|отключился]]. Не знаю, надолго ли.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.WokeUp.got.v0
       TermType: 0
       Description: 
       Languages:
-      - I woke up. Still here, then.
-      - "\u042F \u043E\u0447\u043D\u0443\u043B\u0430\u0441\u044C. \u0417\u043D\u0430\u0447\u0438\u0442,
-        \u0432\u0441\u0451 \u0435\u0449\u0451 \u0437\u0434\u0435\u0441\u044C."
+      - 'I woke up. Still here, then.'
+      - 'Я [[s:очнулась|очнулся]]. Значит, всё ещё здесь.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.CryingBreakdown.got.v0
       TermType: 0
       Description: 
       Languages:
-      - I lay down and cried and could not stop.
-      - "\u042F \u043B\u0435\u0433\u043B\u0430 \u0438 \u043F\u043B\u0430\u043A\u0430\u043B\u0430,
-        \u0438 \u043D\u0435 \u043C\u043E\u0433\u043B\u0430 \u043F\u0435\u0440\u0435\u0441\u0442\u0430\u0442\u044C."
+      - 'I lay down and cried and could not stop.'
+      - 'Я [[s:легла и плакала, и не могла|лёг и плакал, и не мог]] перестать.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.CryingBreakdown.got.bitter.v0
       TermType: 0
       Description: 
       Languages:
-      - I broke. Just lay there and howled like an animal.
-      - "\u041C\u0435\u043D\u044F \u0441\u043E\u0440\u0432\u0430\u043B\u043E. \u041F\u0440\u043E\u0441\u0442\u043E
-        \u043B\u0435\u0436\u0430\u043B\u0430 \u0438 \u0432\u044B\u043B\u0430, \u043A\u0430\u043A
-        \u0437\u0432\u0435\u0440\u044C."
+      - 'I broke. Just lay there and howled like an animal.'
+      - 'Меня сорвало. Просто [[s:лежала и выла|лежал и выл]], как зверь.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.StatusStarving.got.v0
@@ -22944,18 +22636,16 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - I dressed my wounds. Badly, but I dressed them.
-      - "\u041F\u0435\u0440\u0435\u0432\u044F\u0437\u0430\u043B\u0430 \u0440\u0430\u043D\u044B.
-        \u041F\u043B\u043E\u0445\u043E, \u043D\u043E \u043F\u0435\u0440\u0435\u0432\u044F\u0437\u0430\u043B\u0430."
+      - 'I dressed my wounds. Badly, but I dressed them.'
+      - '[[s:Перевязала|Перевязал]] раны. Плохо, но [[s:перевязала|перевязал]].'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Medicated.did.v0
       TermType: 0
       Description: 
       Languages:
-      - I took a pill. Now I wait.
-      - "\u041F\u0440\u0438\u043D\u044F\u043B\u0430 \u0442\u0430\u0431\u043B\u0435\u0442\u043A\u0443.
-        \u0422\u0435\u043F\u0435\u0440\u044C \u0436\u0434\u0443."
+      - 'I took a pill. Now I wait.'
+      - '[[s:Приняла|Принял]] таблетку. Теперь жду.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Preyed.got.v0
@@ -22963,67 +22653,55 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} came at me. {0}. One of ours.'
-      - "{0} \u043D\u0430\u043F\u0430\u043B\u0430 \u043D\u0430 \u043C\u0435\u043D\u044F.
-        {0}. \u0421\u0432\u043E\u044F."
+      - '{0} [[0:напала|напал]] на меня. {0}. [[0:Своя|Свой]].'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Preyed.got.hurt.v0
       TermType: 0
       Description: 
       Languages:
-      - '{0} looked at me like I was meat. And then she was on me.'
-      - "{0} \u0441\u043C\u043E\u0442\u0440\u0435\u043B\u0430 \u043D\u0430 \u043C\u0435\u043D\u044F,
-        \u043A\u0430\u043A \u043D\u0430 \u043C\u044F\u0441\u043E. \u0410 \u043F\u043E\u0442\u043E\u043C
-        \u0431\u0440\u043E\u0441\u0438\u043B\u0430\u0441\u044C."
+      - '{0} looked at me like I was meat. And then [[0:she|he]] was on me.'
+      - '{0} [[0:смотрела|смотрел]] на меня, как на мясо. А потом [[0:бросилась|бросился]].'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Preyed.did.v0
       TermType: 0
       Description: 
       Languages:
-      - I did it. I was so hungry that I stopped seeing a person in {0}.
-      - "\u042F \u044D\u0442\u043E \u0441\u0434\u0435\u043B\u0430\u043B\u0430. \u041C\u043D\u0435
-        \u0431\u044B\u043B\u043E \u0442\u0430\u043A \u0433\u043E\u043B\u043E\u0434\u043D\u043E,
-        \u0447\u0442\u043E \u044F \u043F\u0435\u0440\u0435\u0441\u0442\u0430\u043B\u0430
-        \u0432\u0438\u0434\u0435\u0442\u044C \u0432 {0} \u0447\u0435\u043B\u043E\u0432\u0435\u043A\u0430."
+      - 'I did it. I was so hungry that I stopped seeing a person in {0}.'
+      - 'Я это [[s:сделала|сделал]]. Мне было так голодно, что я [[s:перестала|перестал]] видеть в {0} человека.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Preyed.did.bitter.v0
       TermType: 0
       Description: 
       Languages:
-      - I went for {0}. I am not writing down why. I know why.
-      - "\u042F \u0431\u0440\u043E\u0441\u0438\u043B\u0430\u0441\u044C \u043D\u0430
-        {0}. \u041D\u0435 \u043F\u0438\u0448\u0443 \u0437\u0430\u0447\u0435\u043C.
-        \u042F \u0437\u043D\u0430\u044E \u0437\u0430\u0447\u0435\u043C."
+      - 'I went for {0}. I am not writing down why. I know why.'
+      - 'Я [[s:бросилась|бросился]] на {0}. Не пишу зачем. Я знаю зачем.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.PreyFoughtBack.got.v0
       TermType: 0
       Description: 
       Languages:
-      - I fought {0} off. I didn't think I had it in me.
-      - "\u042F \u043E\u0442\u0431\u0438\u043B\u0430\u0441\u044C \u043E\u0442 {0}.
-        \u041D\u0435 \u0434\u0443\u043C\u0430\u043B\u0430, \u0447\u0442\u043E \u0441\u043C\u043E\u0433\u0443."
+      - 'I fought {0} off. I didn''t think I had it in me.'
+      - 'Я [[s:отбилась|отбился]] от {0}. Не [[s:думала|думал]], что смогу.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.PreyFled.got.v0
       TermType: 0
       Description: 
       Languages:
-      - I ran from {0}. I ran and I did not look back.
-      - "\u042F \u0443\u0431\u0435\u0436\u0430\u043B\u0430 \u043E\u0442 {0}. \u0411\u0435\u0436\u0430\u043B\u0430
-        \u0438 \u043D\u0435 \u043E\u0433\u043B\u044F\u0434\u044B\u0432\u0430\u043B\u0430\u0441\u044C."
+      - 'I ran from {0}. I ran and I did not look back.'
+      - 'Я [[s:убежала|убежал]] от {0}. [[s:Бежала и не оглядывалась|Бежал и не оглядывался]].'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.StrippedHelpless.got.v0
       TermType: 0
       Description: 
       Languages:
-      - I was lying there and {0} went through my things. I felt every hand.
-      - "\u042F \u043B\u0435\u0436\u0430\u043B\u0430, \u0430 {0} \u0440\u044B\u043B\u0430\u0441\u044C
-        \u0432 \u043C\u043E\u0438\u0445 \u0432\u0435\u0449\u0430\u0445. \u042F \u0447\u0443\u0432\u0441\u0442\u0432\u043E\u0432\u0430\u043B\u0430
-        \u043A\u0430\u0436\u0434\u043E\u0435 \u043F\u0440\u0438\u043A\u043E\u0441\u043D\u043E\u0432\u0435\u043D\u0438\u0435."
+      - 'I was lying there and {0} went through my things. I felt every hand.'
+      - 'Я [[s:лежала|лежал]], а {0} [[0:рылась|рылся]] в моих вещах. Я [[s:чувствовала|чувствовал]] каждое прикосновение.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.StrippedHelpless.got.bitter.v0
@@ -23031,20 +22709,15 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} stripped me while I could not move. I will remember.'
-      - "{0} \u043E\u0431\u043E\u0431\u0440\u0430\u043B\u0430 \u043C\u0435\u043D\u044F,
-        \u043F\u043E\u043A\u0430 \u044F \u043D\u0435 \u043C\u043E\u0433\u043B\u0430
-        \u0448\u0435\u0432\u0435\u043B\u044C\u043D\u0443\u0442\u044C\u0441\u044F.
-        \u042F \u0437\u0430\u043F\u043E\u043C\u043D\u044E."
+      - '{0} [[0:обобрала|обобрал]] меня, пока я не [[s:могла|мог]] шевельнуться. Я запомню.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.StrippedHelpless.did.v0
       TermType: 0
       Description: 
       Languages:
-      - '{0} was lying there and I took what she had. I am not proud.'
-      - "{0} \u043B\u0435\u0436\u0430\u043B\u0430, \u0438 \u044F \u0437\u0430\u0431\u0440\u0430\u043B\u0430,
-        \u0447\u0442\u043E \u0443 \u043D\u0435\u0451 \u0431\u044B\u043B\u043E. \u0413\u043E\u0440\u0434\u0438\u0442\u044C\u0441\u044F
-        \u043D\u0435\u0447\u0435\u043C."
+      - '{0} was lying there and I took what [[0:she|he]] had. I am not proud.'
+      - '{0} [[0:лежала|лежал]], и я [[s:забрала|забрал]], что у [[0:неё|него]] было. Гордиться нечем.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.FoodStolen.got.v0
@@ -23052,8 +22725,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} took my food. Right out of my hands.'
-      - "{0} \u0437\u0430\u0431\u0440\u0430\u043B\u0430 \u043C\u043E\u044E \u0435\u0434\u0443.
-        \u041F\u0440\u044F\u043C\u043E \u0438\u0437 \u0440\u0443\u043A."
+      - '{0} [[0:забрала|забрал]] мою еду. Прямо из рук.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.GroupHuntTargetFled.got.v0
@@ -23079,50 +22751,40 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - They came in the dark. I heard them before I saw them.
-      - "\u041E\u043D\u0438 \u043F\u0440\u0438\u0448\u043B\u0438 \u0432 \u0442\u0435\u043C\u043D\u043E\u0442\u0435.
-        \u042F \u0443\u0441\u043B\u044B\u0448\u0430\u043B\u0430 \u0438\u0445 \u0440\u0430\u043D\u044C\u0448\u0435,
-        \u0447\u0435\u043C \u0443\u0432\u0438\u0434\u0435\u043B\u0430."
+      - 'They came in the dark. I heard them before I saw them.'
+      - 'Они пришли в темноте. Я [[s:услышала|услышал]] их раньше, чем [[s:увидела|увидел]].'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.ThreatSpotted.got.v0
       TermType: 0
       Description: 
       Languages:
-      - I saw it before it saw me. That is the only reason I am writing this.
-      - "\u042F \u0437\u0430\u043C\u0435\u0442\u0438\u043B\u0430 \u0435\u0433\u043E
-        \u0440\u0430\u043D\u044C\u0448\u0435, \u0447\u0435\u043C \u043E\u043D \u043C\u0435\u043D\u044F.
-        \u0422\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u044D\u0442\u043E\u043C\u0443
-        \u0438 \u043F\u0438\u0448\u0443 \u044D\u0442\u043E."
+      - 'I saw it before it saw me. That is the only reason I am writing this.'
+      - 'Я [[s:заметила|заметил]] его раньше, чем он меня. Только поэтому и пишу это.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Grieving.got.v0
       TermType: 0
       Description: 
       Languages:
-      - '{0} is dead. I keep turning round to look for her.'
-      - "{0} \u0443\u043C\u0435\u0440\u043B\u0430. \u042F \u0432\u0441\u0451 \u043E\u0431\u043E\u0440\u0430\u0447\u0438\u0432\u0430\u044E\u0441\u044C
-        \u0435\u0451 \u0438\u0441\u043A\u0430\u0442\u044C."
+      - '{0} is dead. I keep turning round to look for [[0:her|him]].'
+      - '{0} [[0:умерла|умер]]. Я всё оборачиваюсь [[0:её|его]] искать.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Grieving.got.hurt.beloved.v0
       TermType: 0
       Description: 
       Languages:
-      - '{0} is gone. I don''t know how to be here without her.'
-      - "{0} \u0431\u043E\u043B\u044C\u0448\u0435 \u043D\u0435\u0442. \u042F \u043D\u0435
-        \u0437\u043D\u0430\u044E, \u043A\u0430\u043A \u0437\u0434\u0435\u0441\u044C
-        \u0431\u044B\u0442\u044C \u0431\u0435\u0437 \u043D\u0435\u0451."
+      - '{0} is gone. I don''t know how to be here without [[0:her|him]].'
+      - '{0} больше нет. Я не знаю, как здесь быть без [[0:неё|него]].'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Mourned.did.v0
       TermType: 0
       Description: 
       Languages:
-      - I sat with {0} for a while. It was the only thing left to do.
-      - "\u041F\u043E\u0441\u0438\u0434\u0435\u043B\u0430 \u043D\u0435\u043C\u043D\u043E\u0433\u043E
-        \u0441 {0}. \u0411\u043E\u043B\u044C\u0448\u0435 \u0441\u0434\u0435\u043B\u0430\u0442\u044C
-        \u0431\u044B\u043B\u043E \u043D\u0435\u0447\u0435\u0433\u043E."
+      - 'I sat with {0} for a while. It was the only thing left to do.'
+      - '[[s:Посидела|Посидел]] немного с {0}. Больше сделать было нечего.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.TalkQuarreled.did.v0
@@ -23139,10 +22801,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - I shouted at {0}. I meant every word of it and I hate that.
-      - "\u042F \u043D\u0430\u043E\u0440\u0430\u043B\u0430 \u043D\u0430 {0}. \u041A\u0430\u0436\u0434\u043E\u0435
-        \u0441\u043B\u043E\u0432\u043E \u0432\u0441\u0435\u0440\u044C\u0451\u0437
-        \u2014 \u0438 \u043C\u043D\u0435 \u0437\u0430 \u044D\u0442\u043E \u043F\u0440\u043E\u0442\u0438\u0432\u043D\u043E."
+      - 'I shouted at {0}. I meant every word of it and I hate that.'
+      - 'Я [[s:наорала|наорал]] на {0}. Каждое слово всерьёз — и мне за это противно.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.TalkQuarreled.got.v0
@@ -23150,10 +22810,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} went at me over nothing. Or maybe not over nothing.'
-      - "{0} \u043D\u0430\u043A\u0438\u043D\u0443\u043B\u0430\u0441\u044C \u043D\u0430
-        \u043C\u0435\u043D\u044F \u0438\u0437-\u0437\u0430 \u0435\u0440\u0443\u043D\u0434\u044B.
-        \u0410 \u043C\u043E\u0436\u0435\u0442, \u0438 \u043D\u0435 \u0438\u0437-\u0437\u0430
-        \u0435\u0440\u0443\u043D\u0434\u044B."
+      - '{0} [[0:накинулась|накинулся]] на меня из-за ерунды. А может, и не из-за ерунды.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.TalkCompleted.did.v0
@@ -23170,10 +22827,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - I talked to {0} for a long time. Those hours are the reason I'm still sane.
-      - "\u0414\u043E\u043B\u0433\u043E \u0433\u043E\u0432\u043E\u0440\u0438\u043B\u0430
-        \u0441 {0}. \u0422\u043E\u043B\u044C\u043A\u043E \u043D\u0430 \u0442\u0430\u043A\u0438\u0445
-        \u0447\u0430\u0441\u0430\u0445 \u044F \u0438 \u0434\u0435\u0440\u0436\u0443\u0441\u044C."
+      - 'I talked to {0} for a long time. Those hours are the reason I''m still sane.'
+      - 'Долго [[s:говорила|говорил]] с {0}. Только на таких часах я и держусь.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.CampsMerged.did.v0
@@ -23186,10 +22841,10 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: journal.CampsMerged.got.v0
       TermType: 0
-      Description:
+      Description: 
       Languages:
       - '{0} offered to unite our camps. I agreed; now we share one home.'
-      - "{0} \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0438\u043B\u0430 \u043E\u0431\u044A\u0435\u0434\u0438\u043D\u0438\u0442\u044C \u043D\u0430\u0448\u0438 \u043B\u0430\u0433\u0435\u0440\u044F. \u042F \u0441\u043E\u0433\u043B\u0430\u0441\u0438\u043B\u0430\u0441\u044C \u2014 \u0442\u0435\u043F\u0435\u0440\u044C \u0443 \u043D\u0430\u0441 \u043E\u0434\u0438\u043D \u043E\u0431\u0449\u0438\u0439 \u0434\u043E\u043C."
+      - '{0} [[0:предложила|предложил]] объединить наши лагеря. Я [[s:согласилась|согласился]] — теперь у нас один общий дом.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.InteractionRejected.got.v0
@@ -23197,9 +22852,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} did not want to talk to me. Fine.'
-      - "{0} \u043D\u0435 \u0437\u0430\u0445\u043E\u0442\u0435\u043B\u0430 \u0441\u043E
-        \u043C\u043D\u043E\u0439 \u0433\u043E\u0432\u043E\u0440\u0438\u0442\u044C.
-        \u041D\u0443 \u0438 \u043B\u0430\u0434\u043D\u043E."
+      - '{0} не [[0:захотела|захотел]] со мной говорить. Ну и ладно.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.InteractionRejected.got.bitter.v0
@@ -23207,38 +22860,31 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} brushed me off. I won''t ask twice.'
-      - "{0} \u043E\u0442 \u043C\u0435\u043D\u044F \u043E\u0442\u043C\u0430\u0445\u043D\u0443\u043B\u0430\u0441\u044C.
-        \u0412\u0442\u043E\u0440\u043E\u0439 \u0440\u0430\u0437 \u044F \u043D\u0435
-        \u043F\u043E\u043F\u0440\u043E\u0448\u0443."
+      - '{0} от меня [[0:отмахнулась|отмахнулся]]. Второй раз я не попрошу.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.WearPermissionRefused.got.v0
       TermType: 0
       Description: 
       Languages:
-      - '{0} wouldn''t lend me her things. Hers is hers, I suppose.'
-      - "{0} \u043D\u0435 \u0434\u0430\u043B\u0430 \u043C\u043D\u0435 \u0441\u0432\u043E\u0438
-        \u0432\u0435\u0449\u0438. \u0421\u0432\u043E\u0451 \u0435\u0441\u0442\u044C
-        \u0441\u0432\u043E\u0451, \u043D\u0430\u0432\u0435\u0440\u043D\u043E\u0435."
+      - '{0} wouldn''t lend me [[0:her|his]] things. [[0:Hers is hers|His is his]], I suppose.'
+      - '{0} не [[0:дала|дал]] мне свои вещи. Своё есть своё, наверное.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.WearPermissionGranted.got.v0
       TermType: 0
       Description: 
       Languages:
-      - '{0} lent me her things. That''s not a small thing here.'
-      - "{0} \u043E\u0434\u043E\u043B\u0436\u0438\u043B\u0430 \u043C\u043D\u0435
-        \u0441\u0432\u043E\u0438 \u0432\u0435\u0449\u0438. \u0417\u0434\u0435\u0441\u044C
-        \u044D\u0442\u043E \u043D\u0435\u043C\u0430\u043B\u043E."
+      - '{0} lent me [[0:her|his]] things. That''s not a small thing here.'
+      - '{0} [[0:одолжила|одолжил]] мне свои вещи. Здесь это немало.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.AidWaitTimeout.got.v0
       TermType: 0
       Description: 
       Languages:
-      - I waited for {0}. She never came.
-      - "\u042F \u0436\u0434\u0430\u043B\u0430 {0}. \u041E\u043D\u0430 \u043D\u0435
-        \u043F\u0440\u0438\u0448\u043B\u0430."
+      - 'I waited for {0}. [[0:She|He]] never came.'
+      - 'Я [[s:ждала|ждал]] {0}. [[0:Она не пришла|Он не пришёл]].'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.BedCrafted.did.v0
@@ -23255,9 +22901,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - I put up a shelter. There is shade now.
-      - "\u041F\u043E\u0441\u0442\u0430\u0432\u0438\u043B\u0430 \u043D\u0430\u0432\u0435\u0441.
-        \u0422\u0435\u043F\u0435\u0440\u044C \u0435\u0441\u0442\u044C \u0442\u0435\u043D\u044C."
+      - 'I put up a shelter. There is shade now.'
+      - '[[s:Поставила|Поставил]] навес. Теперь есть тень.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.HutCompleted.did.v0
@@ -23273,8 +22918,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Finished the build. It stands.
-      - "\u0414\u043E\u0441\u0442\u0440\u043E\u0438\u043B\u0430. \u0421\u0442\u043E\u0438\u0442."
+      - 'Finished the build. It stands.'
+      - '[[s:Достроила|Достроил]]. Стоит.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.RackCrafted.did.v0
@@ -23298,19 +22943,16 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - I butchered it. There is meat now. I try not to think about it.
-      - "\u0420\u0430\u0437\u0434\u0435\u043B\u0430\u043B\u0430. \u0422\u0435\u043F\u0435\u0440\u044C
-        \u0435\u0441\u0442\u044C \u043C\u044F\u0441\u043E. \u0421\u0442\u0430\u0440\u0430\u044E\u0441\u044C
-        \u043E\u0431 \u044D\u0442\u043E\u043C \u043D\u0435 \u0434\u0443\u043C\u0430\u0442\u044C."
+      - 'I butchered it. There is meat now. I try not to think about it.'
+      - '[[s:Разделала|Разделал]]. Теперь есть мясо. Стараюсь об этом не думать.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Crafted.did.v0
       TermType: 0
       Description: 
       Languages:
-      - Made myself {1}.
-      - "\u0421\u043C\u0430\u0441\u0442\u0435\u0440\u0438\u043B\u0430 \u0441\u0435\u0431\u0435
-        {1}."
+      - 'Made myself {1}.'
+      - '[[s:Смастерила|Смастерил]] себе {1}.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.DireStraits.got.v0
@@ -23354,10 +22996,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - '{0} put herself between me and it. She didn''t have to.'
-      - "{0} \u0432\u0441\u0442\u0430\u043B\u0430 \u043C\u0435\u0436\u0434\u0443
-        \u043C\u043D\u043E\u0439 \u0438 \u044D\u0442\u0438\u043C. \u0415\u0451 \u043D\u0438\u043A\u0442\u043E
-        \u043D\u0435 \u043F\u0440\u043E\u0441\u0438\u043B."
+      - '{0} put [[0:herself|himself]] between me and it. [[0:She|He]] didn''t have to.'
+      - '{0} [[0:встала|встал]] между мной и этим. [[0:Её|Его]] никто не просил.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.FriendGuard.got.tender.beloved.v0
@@ -23365,18 +23005,15 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} guarded me today. I keep thinking about it.'
-      - "\u0421\u0435\u0433\u043E\u0434\u043D\u044F {0} \u043C\u0435\u043D\u044F
-        \u043F\u0440\u0438\u043A\u0440\u044B\u043B\u0430. \u042F \u0432\u0441\u0451
-        \u043E\u0431 \u044D\u0442\u043E\u043C \u0434\u0443\u043C\u0430\u044E."
+      - 'Сегодня {0} меня [[0:прикрыла|прикрыл]]. Я всё об этом думаю.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.FriendGuard.did.v0
       TermType: 0
       Description: 
       Languages:
-      - I stood over {0} until it backed off.
-      - "\u042F \u0441\u0442\u043E\u044F\u043B\u0430 \u043D\u0430\u0434 {0}, \u043F\u043E\u043A\u0430
-        \u043E\u043D\u043E \u043D\u0435 \u043E\u0442\u0441\u0442\u0443\u043F\u0438\u043B\u043E."
+      - 'I stood over {0} until it backed off.'
+      - 'Я [[s:стояла|стоял]] над {0}, пока оно не отступило.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.WearPermissionRefused.did.v0
@@ -23384,9 +23021,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} asked for my things. I said no. They''re mine.'
-      - "{0} \u043F\u0440\u043E\u0441\u0438\u043B\u0430 \u043C\u043E\u0438 \u0432\u0435\u0449\u0438.
-        \u042F \u043E\u0442\u043A\u0430\u0437\u0430\u043B\u0430. \u041E\u043D\u0438
-        \u043C\u043E\u0438."
+      - '{0} [[0:просила|просил]] мои вещи. Я [[s:отказала|отказал]]. Они мои.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.WearPermissionRefused.did.bitter.v0
@@ -23394,91 +23029,79 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} wanted my things. No. I have little enough as it is.'
-      - "{0} \u0445\u043E\u0442\u0435\u043B\u0430 \u043C\u043E\u0438 \u0432\u0435\u0449\u0438.
-        \u041D\u0435\u0442. \u0423 \u043C\u0435\u043D\u044F \u0438 \u0442\u0430\u043A
-        \u043F\u043E\u0447\u0442\u0438 \u043D\u0438\u0447\u0435\u0433\u043E \u043D\u0435\u0442."
+      - '{0} [[0:хотела|хотел]] мои вещи. Нет. У меня и так почти ничего нет.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.WearPermissionGranted.did.v0
       TermType: 0
       Description: 
       Languages:
-      - I lent {0} my things. She needed them more.
-      - "\u041E\u0442\u0434\u0430\u043B\u0430 {0} \u0441\u0432\u043E\u0438 \u0432\u0435\u0449\u0438
-        \u043F\u043E\u043D\u043E\u0441\u0438\u0442\u044C. \u0415\u0439 \u043D\u0443\u0436\u043D\u0435\u0435."
+      - 'I lent {0} my things. [[0:She|He]] needed them more.'
+      - '[[s:Отдала|Отдал]] {0} свои вещи поносить. [[0:Ей|Ему]] нужнее.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.AidRequested.did.v0
       TermType: 0
       Description: 
       Languages:
-      - "I set off to help {0} \u2014 {1}."
-      - "\u041F\u043E\u0448\u043B\u0430 \u043A {0} \u2014 {1}."
+      - 'I set off to help {0} — {1}.'
+      - '[[s:Пошла|Пошёл]] к {0} — {1}.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.AidStarted.did.v0
       TermType: 0
       Description: 
       Languages:
-      - "I got to {0} and started on it \u2014 {1}."
-      - "\u0414\u043E\u0448\u043B\u0430 \u0434\u043E {0} \u0438 \u0432\u0437\u044F\u043B\u0430\u0441\u044C
-        \u2014 {1}."
+      - 'I got to {0} and started on it — {1}.'
+      - '[[s:Дошла|Дошёл]] до {0} и [[s:взялась|взялся]] — {1}.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.AidWaitTimeout.got.bitter.v0
       TermType: 0
       Description: 
       Languages:
-      - I waited for {0} for so long. Nobody came at all.
-      - "\u042F \u0442\u0430\u043A \u0434\u043E\u043B\u0433\u043E \u0436\u0434\u0430\u043B\u0430
-        {0}. \u041D\u0435 \u043F\u0440\u0438\u0448\u0451\u043B \u0432\u043E\u043E\u0431\u0449\u0435
-        \u043D\u0438\u043A\u0442\u043E."
+      - 'I waited for {0} for so long. Nobody came at all.'
+      - 'Я так долго [[s:ждала|ждал]] {0}. Не пришёл вообще никто.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.HelpCryAssistArrived.did.v0
       TermType: 0
       Description: 
       Languages:
-      - I got there and threw myself into it.
-      - "\u0414\u043E\u0431\u0435\u0436\u0430\u043B\u0430 \u0438 \u0432\u043B\u0435\u0437\u043B\u0430
-        \u0432 \u0434\u0440\u0430\u043A\u0443."
+      - 'I got there and threw myself into it.'
+      - '[[s:Добежала и влезла|Добежал и влез]] в драку.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.HelpCryAssistLost.did.v0
       TermType: 0
       Description: 
       Languages:
-      - I ran, and by the time I got there it was already over.
-      - "\u0411\u0435\u0436\u0430\u043B\u0430, \u0430 \u043A\u043E\u0433\u0434\u0430
-        \u0434\u043E\u0431\u0435\u0436\u0430\u043B\u0430 \u2014 \u0432\u0441\u0451
-        \u0443\u0436\u0435 \u043A\u043E\u043D\u0447\u0438\u043B\u043E\u0441\u044C."
+      - 'I ran, and by the time I got there it was already over.'
+      - '[[s:Бежала, а когда добежала|Бежал, а когда добежал]] — всё уже кончилось.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.MeatEaten.did.v0
       TermType: 0
       Description: 
       Languages:
-      - "I ate properly for once \u2014 {1}."
-      - "\u041D\u0430\u043A\u043E\u043D\u0435\u0446 \u043D\u043E\u0440\u043C\u0430\u043B\u044C\u043D\u043E
-        \u043F\u043E\u0435\u043B\u0430 \u2014 {1}."
+      - 'I ate properly for once — {1}.'
+      - 'Наконец нормально [[s:поела|поел]] — {1}.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.FireLit.did.v0
       TermType: 0
       Description: 
       Languages:
-      - I got the fire going. It's warm.
-      - "\u0420\u0430\u0437\u0432\u0435\u043B\u0430 \u043A\u043E\u0441\u0442\u0451\u0440.
-        \u0422\u0435\u043F\u043B\u043E."
+      - 'I got the fire going. It''s warm.'
+      - '[[s:Развела|Развёл]] костёр. Тепло.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.TreeChopped.did.v0
       TermType: 0
       Description: 
       Languages:
-      - Took a tree down. My arms are dead.
-      - "\u0421\u0432\u0430\u043B\u0438\u043B\u0430 \u0434\u0435\u0440\u0435\u0432\u043E.
-        \u0420\u0443\u043A\u0438 \u043E\u0442\u0432\u0430\u043B\u0438\u0432\u0430\u044E\u0442\u0441\u044F."
+      - 'Took a tree down. My arms are dead.'
+      - '[[s:Свалила|Свалил]] дерево. Руки отваливаются.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.MeatSpoiled.got.bitter.v0
@@ -23495,9 +23118,7 @@ MonoBehaviour:
       Description: 
       Languages:
       - '{0} died today. The island got quieter.'
-      - "\u0421\u0435\u0433\u043E\u0434\u043D\u044F \u0443\u043C\u0435\u0440\u043B\u0430
-        {0}. \u041D\u0430 \u043E\u0441\u0442\u0440\u043E\u0432\u0435 \u0441\u0442\u0430\u043B\u043E
-        \u0442\u0438\u0448\u0435."
+      - 'Сегодня [[0:умерла|умер]] {0}. На острове стало тише.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.Collapsed.got.dying.v3
@@ -23514,10 +23135,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - There's so much blood. I never knew there was so much in me.
-      - "\u041A\u0440\u043E\u0432\u0438 \u0442\u0430\u043A \u043C\u043D\u043E\u0433\u043E.
-        \u042F \u043D\u0435 \u0437\u043D\u0430\u043B\u0430, \u0447\u0442\u043E \u0432\u043E
-        \u043C\u043D\u0435 \u0441\u0442\u043E\u043B\u044C\u043A\u043E."
+      - 'There''s so much blood. I never knew there was so much in me.'
+      - 'Крови так много. Я не [[s:знала|знал]], что во мне столько.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.RomanceCompleted.did.v0
@@ -23546,18 +23165,18 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: journal.CaughtCheating.did.v0
       TermType: 0
-      Description:
+      Description: 
       Languages:
       - 'I saw {0} with someone else with my own eyes. How could I ever trust that again?'
-      - 'Я своими глазами видела {0} с другим человеком. Как после такого верить?'
+      - 'Я своими глазами [[s:видела|видел]] {0} с другим человеком. Как после такого верить?'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.CaughtCheating.got.v0
       TermType: 0
-      Description:
+      Description: 
       Languages:
       - '{0} caught me with someone else.'
-      - '{0} застала меня с другим человеком.'
+      - '{0} [[0:застала|застал]] меня с другим человеком.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.me.dative
@@ -23676,18 +23295,16 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Switch this colonist to manual control
-      - "\u041F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0438\u0442\u0435 \u043A\u043E\u043B\u043E\u043D\u0438\u0441\u0442\u043A\u0443
-        \u043D\u0430 \u0440\u0443\u0447\u043D\u043E\u0435 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435"
+      - 'Switch this character to manual control'
+      - 'Переключите персонажа на ручное управление'
       Flags: 0101
       Languages_Touch: []
     - Term: craft.block.Incapacitated
       TermType: 0
       Description: 
       Languages:
-      - She cannot work right now
-      - "\u0421\u0435\u0439\u0447\u0430\u0441 \u043E\u043D\u0430 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442
-        \u0440\u0430\u0431\u043E\u0442\u0430\u0442\u044C"
+      - '[[s:She|He]] cannot work right now'
+      - 'Сейчас [[s:она|он]] не может работать'
       Flags: 0101
       Languages_Touch: []
     - Term: craft.block.MissingHands
@@ -23757,9 +23374,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - She cannot craft without working hands
-      - "\u0411\u0435\u0437 \u0440\u0430\u0431\u043E\u0447\u0438\u0445 \u0440\u0443\u043A
-        \u043E\u043D\u0430 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442 \u043A\u0440\u0430\u0444\u0442\u0438\u0442\u044C"
+      - '[[s:She|He]] cannot craft without working hands'
+      - 'Без рабочих рук [[s:она|он]] не может крафтить'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.NoStation
@@ -24584,61 +24200,56 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - She died
-      - "\u041E\u043D\u0430 \u043F\u043E\u0433\u0438\u0431\u043B\u0430"
+      - '[[s:She|He]] died'
+      - '[[s:Она погибла|Он погиб]]'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_interrupted.BodyComa
       TermType: 0
       Description: 
       Languages:
-      - Fell into a coma
-      - "\u0412\u043F\u0430\u043B\u0430 \u0432 \u043A\u043E\u043C\u0443"
+      - 'Fell into a coma'
+      - '[[s:Впала|Впал]] в кому'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_interrupted.Faint
       TermType: 0
       Description: 
       Languages:
-      - "Fainted \u2014 order dropped"
-      - "\u041F\u043E\u0442\u0435\u0440\u044F\u043B\u0430 \u0441\u043E\u0437\u043D\u0430\u043D\u0438\u0435
-        \u2014 \u043F\u0440\u0438\u043A\u0430\u0437 \u043F\u0440\u0435\u0440\u0432\u0430\u043D"
+      - 'Fainted — order dropped'
+      - '[[s:Потеряла|Потерял]] сознание — приказ прерван'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_interrupted.Crying
       TermType: 0
       Description: 
       Languages:
-      - "Broke down crying \u2014 order dropped"
-      - "\u0420\u0430\u0437\u0440\u044B\u0434\u0430\u043B\u0430\u0441\u044C \u2014
-        \u043F\u0440\u0438\u043A\u0430\u0437 \u043F\u0440\u0435\u0440\u0432\u0430\u043D"
+      - 'Broke down crying — order dropped'
+      - '[[s:Разрыдалась|Разрыдался]] — приказ прерван'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_interrupted.Dying
       TermType: 0
       Description: 
       Languages:
-      - She is dying
-      - "\u041E\u043D\u0430 \u0443\u043C\u0438\u0440\u0430\u0435\u0442"
+      - '[[s:She is|He is]] dying'
+      - '[[s:Она умирает|Он умирает]]'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_interrupted.PlayDead
       TermType: 0
       Description: 
       Languages:
-      - "Playing dead \u2014 order dropped"
-      - "\u041F\u0440\u0438\u0442\u0432\u043E\u0440\u0438\u043B\u0430\u0441\u044C
-        \u043C\u0451\u0440\u0442\u0432\u043E\u0439 \u2014 \u043F\u0440\u0438\u043A\u0430\u0437
-        \u043F\u0440\u0435\u0440\u0432\u0430\u043D"
+      - 'Playing dead — order dropped'
+      - '[[s:Притворилась мёртвой|Притворился мёртвым]] — приказ прерван'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_interrupted.LimbLost
       TermType: 0
       Description: 
       Languages:
-      - "Lost a limb \u2014 order dropped"
-      - "\u041F\u043E\u0442\u0435\u0440\u044F\u043B\u0430 \u043A\u043E\u043D\u0435\u0447\u043D\u043E\u0441\u0442\u044C
-        \u2014 \u043F\u0440\u0438\u043A\u0430\u0437 \u043F\u0440\u0435\u0440\u0432\u0430\u043D"
+      - 'Lost a limb — order dropped'
+      - '[[s:Потеряла|Потерял]] конечность — приказ прерван'
       Flags: 0101
       Languages_Touch: []
     - Term: menu.talk_to
@@ -24757,8 +24368,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - She can't target herself
-      - "\u0421\u0430\u043C\u0430 \u0441\u0435\u0431\u0435 \u043D\u0435 \u0446\u0435\u043B\u044C"
+      - '[[s:She|He]] can''t target [[s:herself|himself]]'
+      - '[[s:Сама|Сам]] себе не цель'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.TargetUnavailable
@@ -24803,10 +24414,10 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: toast.order_rejected.NotNeighbourCamp
       TermType: 0
-      Description:
+      Description: 
       Languages:
-      - This is not a neighbouring women's camp
-      - "\u042D\u0442\u043E \u043D\u0435 \u0441\u043E\u0441\u0435\u0434\u043D\u0438\u0439 \u0436\u0435\u043D\u0441\u043A\u0438\u0439 \u043B\u0430\u0433\u0435\u0440\u044C"
+      - 'This is not a neighbouring camp'
+      - 'Это не соседний лагерь'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.CampMissing
@@ -24925,9 +24536,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - No one is attacking her
-      - "\u041D\u0430 \u043D\u0435\u0451 \u043D\u0438\u043A\u0442\u043E \u043D\u0435
-        \u043D\u0430\u043F\u0430\u0434\u0430\u0435\u0442"
+      - 'No one is attacking [[s:her|him]]'
+      - 'На [[s:неё|него]] никто не нападает'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.Cooldown
@@ -25085,10 +24695,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "Only a housemate \u2014 outsiders are attacked instead"
-      - "\u0422\u043E\u043B\u044C\u043A\u043E \u0441\u0432\u043E\u044F \u2014 \u0447\u0443\u0436\u0430\u043A\u0430
-        \u0431\u044C\u044E\u0442 \u043F\u0440\u0438\u043A\u0430\u0437\u043E\u043C
-        \u0430\u0442\u0430\u043A\u0438"
+      - 'Only a housemate — outsiders are attacked instead'
+      - 'Только для своих — чужака бьют приказом атаки'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.NotHostile
@@ -25104,9 +24712,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Another player or agent controls her
-      - "\u0415\u044E \u0443\u043F\u0440\u0430\u0432\u043B\u044F\u0435\u0442 \u0434\u0440\u0443\u0433\u043E\u0439
-        \u0438\u0433\u0440\u043E\u043A \u0438\u043B\u0438 \u0430\u0433\u0435\u043D\u0442"
+      - 'Another player or agent controls [[s:her|him]]'
+      - '[[s:Ею|Им]] управляет другой игрок или агент'
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.NotAssigned
@@ -25220,14 +24827,9 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Stake the approved house plan; the colonists haul materials and raise it
-        themselves.
-      - "\u0420\u0430\u0437\u043C\u0435\u0442\u044C\u0442\u0435 \u0443\u0442\u0432\u0435\u0440\u0436\u0434\u0451\u043D\u043D\u044B\u0439
-        \u043F\u043B\u0430\u043D \u0434\u043E\u043C\u0430 \u2014 \u0434\u0435\u0432\u0443\u0448\u043A\u0438
-        \u043F\u0440\u0438\u043D\u0435\u0441\u0443\u0442 \u043C\u0430\u0442\u0435\u0440\u0438\u0430\u043B\u044B
-        \u0438 \u043F\u043E\u0441\u0442\u0440\u043E\u044F\u0442 \u0435\u0433\u043E
-        \u0441\u0430\u043C\u0438."
-      Flags: 0000
+      - 'Stake the approved house plan; the colonists haul materials and raise it themselves.'
+      - 'Разметьте утверждённый план дома — жители принесут материалы и построят его сами.'
+      Flags: 0101
       Languages_Touch: []
     - Term: blueprint.category.house
       TermType: 0
@@ -25259,10 +24861,9 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "Site staked \u2014 the colonists will build it"
-      - "\u041F\u043B\u043E\u0449\u0430\u0434\u043A\u0430 \u0440\u0430\u0437\u043C\u0435\u0447\u0435\u043D\u0430
-        \u2014 \u0434\u0435\u0432\u0443\u0448\u043A\u0438 \u043F\u043E\u0441\u0442\u0440\u043E\u044F\u0442"
-      Flags: 0000
+      - 'Site staked — the colonists will build it'
+      - 'Площадка размечена — жители построят'
+      Flags: 0101
       Languages_Touch: []
     - Term: blueprint.catalog.project.name
       TermType: 0
@@ -25276,14 +24877,9 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - 'Draw your own house on the spot: floors, walls, windows, doors and roof.
-        The colonists will build it.'
-      - "\u041D\u0430\u0447\u0435\u0440\u0442\u0438\u0442\u0435 \u0434\u043E\u043C
-        \u0441\u0430\u043C\u0438 \u043F\u0440\u044F\u043C\u043E \u043D\u0430 \u043C\u0435\u0441\u0442\u0435:
-        \u043F\u043E\u043B, \u0441\u0442\u0435\u043D\u044B, \u043E\u043A\u043D\u0430,
-        \u0434\u0432\u0435\u0440\u0438 \u0438 \u043A\u0440\u044B\u0448\u0430. \u0421\u0442\u0440\u043E\u0438\u0442\u044C
-        \u0431\u0443\u0434\u0443\u0442 \u0434\u0435\u0432\u0443\u0448\u043A\u0438."
-      Flags: 0000
+      - 'Draw your own house on the spot: floors, walls, windows, doors and roof. The colonists will build it.'
+      - 'Начертите дом сами прямо на месте: пол, стены, окна, двери и крыша. Строить будут жители.'
+      Flags: 0101
       Languages_Touch: []
     - Term: blueprint.catalog.free.name
       TermType: 0
@@ -25433,12 +25029,12 @@ MonoBehaviour:
       - 'Классический остров: одна колония, готовый дом и враждебные чужаки.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'menu.newgame.mode.bigisland.description'
+    - Term: menu.newgame.mode.bigisland.description
       TermType: 0
-      Description:
+      Description: 
       Languages:
-      - 'Three mutually hostile camps with two women each, dense forests and no outsiders.'
-      - 'Три враждебных друг другу лагеря по две девушки, густые леса и никаких чужаков.'
+      - 'Three mutually hostile camps of two people each, dense forests and no outsiders.'
+      - 'Три враждебных друг другу лагеря по два жителя, густые леса и никаких чужаков.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'menu.newgame.mode.hugeisland'
@@ -27944,28 +27540,28 @@ MonoBehaviour:
       - 'Власть'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'history.DirectiveAsked'
+    - Term: history.DirectiveAsked
       TermType: 0
       Description: 
       Languages:
       - 'asked for help'
-      - 'попросила'
+      - '[[s:попросила|попросил]]'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'history.DirectiveAccepted'
+    - Term: history.DirectiveAccepted
       TermType: 0
       Description: 
       Languages:
       - 'agreed'
-      - 'согласилась'
+      - '[[s:согласилась|согласился]]'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'history.DirectiveRefused'
+    - Term: history.DirectiveRefused
       TermType: 0
       Description: 
       Languages:
       - 'refused'
-      - 'отказала'
+      - '[[s:отказала|отказал]]'
       Flags: 0101
       Languages_Touch: []
     - Term: 'history.DirectivePending'
@@ -27976,28 +27572,28 @@ MonoBehaviour:
       - 'думает'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'history.DirectiveShout'
+    - Term: history.DirectiveShout
       TermType: 0
       Description: 
       Languages:
       - 'shouted'
-      - 'крикнула'
+      - '[[s:крикнула|крикнул]]'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'history.DirectiveDone'
+    - Term: history.DirectiveDone
       TermType: 0
       Description: 
       Languages:
-      - 'kept her word'
-      - 'сделала, как обещала'
+      - 'kept [[s:her|his]] word'
+      - '[[s:сделала, как обещала|сделал, как обещал]]'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'history.DirectiveExpired'
+    - Term: history.DirectiveExpired
       TermType: 0
       Description: 
       Languages:
-      - 'forgot her promise'
-      - 'забыла обещание'
+      - 'forgot [[s:her|his]] promise'
+      - '[[s:забыла|забыл]] обещание'
       Flags: 0101
       Languages_Touch: []
     - Term: 'history.detail.DirectiveAsked'
@@ -28008,20 +27604,20 @@ MonoBehaviour:
       - 'просьба: {0}'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'history.detail.DirectiveAccepted'
+    - Term: history.detail.DirectiveAccepted
       TermType: 0
       Description: 
       Languages:
       - 'agreed: {0}'
-      - 'согласилась: {0}'
+      - '[[s:согласилась|согласился]]: {0}'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'history.detail.DirectiveRefused'
+    - Term: history.detail.DirectiveRefused
       TermType: 0
       Description: 
       Languages:
       - 'refused: {0}'
-      - 'отказала: {0}'
+      - '[[s:отказала|отказал]]: {0}'
       Flags: 0101
       Languages_Touch: []
     - Term: 'history.detail.DirectiveShout'
@@ -28048,12 +27644,12 @@ MonoBehaviour:
       - 'забыто: {0}'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'journal.DirectiveAsked.did.v0'
+    - Term: journal.DirectiveAsked.did.v0
       TermType: 0
       Description: 
       Languages:
-      - 'I asked her to help with {0}.'
-      - 'Попросила её помочь: {0}.'
+      - 'I asked [[0:her|him]] to help with {0}.'
+      - '[[s:Попросила её|Попросил его]] помочь: {0}.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'journal.DirectiveAsked.did.v1'
@@ -28064,76 +27660,76 @@ MonoBehaviour:
       - 'Пришлось просить о помощи: {0}.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'journal.DirectiveAccepted.got.v0'
+    - Term: journal.DirectiveAccepted.got.v0
       TermType: 0
       Description: 
       Languages:
-      - 'She said yes: {0}.'
-      - 'Она согласилась: {0}.'
+      - '[[0:She|He]] said yes: {0}.'
+      - '[[0:Она согласилась|Он согласился]]: {0}.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'journal.DirectiveAccepted.did.v0'
+    - Term: journal.DirectiveAccepted.did.v0
       TermType: 0
       Description: 
       Languages:
-      - 'I promised her: {0}. Let''s see.'
-      - 'Пообещала ей: {0}. Посмотрим.'
+      - 'I promised [[0:her|him]]: {0}. Let''s see.'
+      - '[[s:Пообещала|Пообещал]] [[0:ей|ему]]: {0}. Посмотрим.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'journal.DirectiveAccepted.did.v1'
+    - Term: journal.DirectiveAccepted.did.v1
       TermType: 0
       Description: 
       Languages:
       - 'Said I would do it: {0}.'
-      - 'Сказала, что сделаю: {0}.'
+      - '[[s:Сказала|Сказал]], что сделаю: {0}.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'journal.DirectiveRefused.got.v0'
+    - Term: journal.DirectiveRefused.got.v0
       TermType: 0
       Description: 
       Languages:
-      - 'She refused: {0}. Fine.'
-      - 'Она отказала: {0}. Ну и ладно.'
+      - '[[0:She|He]] refused: {0}. Fine.'
+      - '[[0:Она отказала|Он отказал]]: {0}. Ну и ладно.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'journal.DirectiveRefused.got.v1'
+    - Term: journal.DirectiveRefused.got.v1
       TermType: 0
       Description: 
       Languages:
-      - 'Asked her about {0} — no.'
-      - 'Просила её: {0} — нет.'
+      - 'Asked [[0:her|him]] about {0} — no.'
+      - '[[s:Просила её|Просил его]]: {0} — нет.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'journal.DirectiveRefused.did.v0'
+    - Term: journal.DirectiveRefused.did.v0
       TermType: 0
       Description: 
       Languages:
-      - 'Told her no: {0}. Not today.'
-      - 'Сказала ей нет: {0}. Не сегодня.'
+      - 'Told [[0:her|him]] no: {0}. Not today.'
+      - '[[s:Сказала|Сказал]] [[0:ей|ему]] нет: {0}. Не сегодня.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'journal.DirectiveShout.v0'
+    - Term: journal.DirectiveShout.v0
       TermType: 0
       Description: 
       Languages:
       - 'Shouted to everyone: {0}!'
-      - 'Крикнула всем: {0}!'
+      - '[[s:Крикнула|Крикнул]] всем: {0}!'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'journal.DirectiveDone.did.v0'
+    - Term: journal.DirectiveDone.did.v0
       TermType: 0
       Description: 
       Languages:
       - 'Kept my word: {0}.'
-      - 'Сдержала слово: {0}.'
+      - '[[s:Сдержала|Сдержал]] слово: {0}.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'journal.DirectiveDone.did.v1'
+    - Term: journal.DirectiveDone.did.v1
       TermType: 0
       Description: 
       Languages:
       - 'Done what I promised: {0}.'
-      - 'Сделала, что обещала: {0}.'
+      - '[[s:Сделала, что обещала|Сделал, что обещал]]: {0}.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'journal.DirectiveExpired.v0'
@@ -30696,12 +30292,12 @@ MonoBehaviour:
       - 'Остров'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'loading.step.people'
+    - Term: loading.step.people
       TermType: 0
       Description: 
       Languages:
       - 'Colonists'
-      - 'Колонистки'
+      - 'Жители'
       Flags: 0101
       Languages_Touch: []
     - Term: 'menu.servers.retry'
@@ -30960,12 +30556,12 @@ MonoBehaviour:
       - 'Сейчас работает: {0}'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'craft.project.last_worker'
+    - Term: craft.project.last_worker
       TermType: 0
       Description: 
       Languages:
       - 'Last worked on by: {0}'
-      - 'Последний раз работала: {0}'
+      - 'Последний раз [[0:работала|работал]]: {0}'
       Flags: 0101
       Languages_Touch: []
     - Term: 'craft.project.unknown_worker'
@@ -31240,12 +30836,12 @@ MonoBehaviour:
       - 'Только в мире, который идёт на этом компьютере'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'rel.affinity.desc'
+    - Term: rel.affinity.desc
       TermType: 0
       Description: 
       Languages:
-      - 'How warmly she feels about her, from hatred to love.'
-      - 'Насколько тепло она к ней относится — от вражды до любви.'
+      - 'How warmly [[s:she feels|he feels]] about this person, from hatred to love.'
+      - 'Насколько тепло [[s:она|он]] относится к этому человеку — от вражды до любви.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'rel.familiarity.desc'
@@ -31256,12 +30852,12 @@ MonoBehaviour:
       - 'Насколько хорошо они знают друг друга; растёт от разговоров и общих дел.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'rel.trust.desc'
+    - Term: rel.trust.desc
       TermType: 0
       Description: 
       Languages:
-      - 'How far she would rely on her.'
-      - 'Насколько она готова на неё положиться.'
+      - 'How far [[s:she|he]] would rely on this person.'
+      - 'Насколько [[s:она готова|он готов]] на этого человека положиться.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'panel.copy_id'
@@ -31592,12 +31188,12 @@ MonoBehaviour:
       - 'Событий пока нет'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'simdebug.trace_none_npc'
+    - Term: simdebug.trace_none_npc
       TermType: 0
       Description: 
       Languages:
-      - 'Nothing from this one yet'
-      - 'От неё пока ничего'
+      - 'Nothing from [[s:her|him]] yet'
+      - 'От [[s:неё|него]] пока ничего'
       Flags: 0101
       Languages_Touch: []
     - Term: 'toast.order_rejected.NoMutualConsent'
@@ -31608,7 +31204,7 @@ MonoBehaviour:
       - 'Партнёр пока не готов к романтическому сближению.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'toast.build_finished.Built'
+    - Term: toast.build_finished.Built
       TermType: 0
       Description: 
       Languages:
@@ -31648,7 +31244,7 @@ MonoBehaviour:
       - 'Следующую деталь пока не поставить'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'toast.build_finished.NoProgress'
+    - Term: toast.build_finished.NoProgress
       TermType: 0
       Description: 
       Languages:

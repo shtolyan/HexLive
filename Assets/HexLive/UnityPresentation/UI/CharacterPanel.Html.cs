@@ -45,9 +45,6 @@ namespace HexLive.UnityPresentation.UI
             if (!_html)
             {
                 _html = true;
-                _stage.style.visibility = Visibility.Hidden;
-                _roster.style.visibility = Visibility.Hidden;
-                if (_expandTab != null) _expandTab.style.visibility = Visibility.Hidden;
                 HtmlUi.Handle(HtmlRoster, OnHtmlCommand);
                 HtmlUi.Handle(HtmlCharacter, OnHtmlCommand);
                 HtmlUi.Handle(HtmlInventory, OnHtmlInventoryCommand);
@@ -55,6 +52,7 @@ namespace HexLive.UnityPresentation.UI
                 HtmlUi.Handle(HtmlJournal, OnHtmlJournalCommand);
             }
 
+            HideUitkUnderHtml();
             var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
             if (snapshot == null || LoadingScreen.IsActive)
             {
@@ -85,6 +83,34 @@ namespace HexLive.UnityPresentation.UI
                 if (hole) _portraitStage.ShowOnScreen(_portraitViewport.Value);
                 else _portraitStage.ShowInTexture();
             }
+        }
+
+        // §168.11: the page draws all of this. visibility:Hidden kept the UI
+        // Toolkit card in layout and in the panel's repaint (~4–7 ms a frame
+        // in the browser with the other documents); display:None takes it out.
+        // Selection and RuntimeWindow.Show switch these back to Flex, so the
+        // gate runs every frame. The elements stay in the tree — their text
+        // and state still feed the HTML models — and the windows stay
+        // registered as open (Esc, BlocksWorldInput): only display changes.
+        private void HideUitkUnderHtml()
+        {
+            Gone(_stage);
+            Gone(_roster);
+            Gone(_expandTab);
+            Gone(_inventoryWindow);
+            Gone(_inventoryModal?.Backdrop);
+            Gone(_healthWindow);
+            Gone(_healthModal?.Backdrop);
+            Gone(_journalWindow);
+            Gone(_journalModal?.Backdrop);
+        }
+
+        private static void Gone(VisualElement element)
+        {
+            if (element == null) return;
+            var display = element.style.display;
+            if (display.keyword == StyleKeyword.Undefined && display.value == DisplayStyle.None) return;
+            element.style.display = DisplayStyle.None;
         }
 
         private static void Push(string screen, JObject model, ref string last)

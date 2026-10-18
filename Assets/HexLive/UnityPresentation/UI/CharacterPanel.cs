@@ -801,6 +801,16 @@ namespace HexLive.UnityPresentation.UI
         {
             var expanded = _shown && !_collapsed;
             var target = expanded ? 1f : 0f;
+            if (_html)
+            {
+                // §168.11: the page draws the card and measures what it
+                // covers; sliding the hidden UI Toolkit stage every frame only
+                // re-dirtied its panel.
+                _anim = target;
+                NpcSelection.BottomUiCoverage = expanded ? _htmlCoverage : 0f;
+                return;
+            }
+
             if (_slideDuration > 0.001f)
             {
                 _anim = Mathf.MoveTowards(_anim, target, Time.unscaledDeltaTime / _slideDuration);
@@ -6597,6 +6607,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void AnimateRoster()
         {
+            if (_html) return; // §168.11: the roster is the page's (roster.js)
             var wave = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * Mathf.PI * 4f);
             foreach (var binding in _rosterBindings)
             {

@@ -31,7 +31,10 @@ export function AdminVoice({ model, send }) {
   const idle = approved && !model.busy;
   return html`
     <${ModalWindow} id="admin-voice" title=${t('admin.voice.title')} size="medium" onClose=${() => send('close')}>
-      <div class="hx-admin">
+      <div class="hx-admin" onKeyDown=${(e) => {
+        // A focused field keeps the keys from Unity, so Escape is answered here.
+        if (e.key === 'Escape') { e.preventDefault(); send('close'); }
+      }}>
         <p class=${`hx-admin__status is-${model.access}`}>
           ${t(`admin.voice.access.${model.access}`)}
           ${approved && model.expires && html`<span>${model.expires}</span>`}

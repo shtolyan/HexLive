@@ -7,6 +7,7 @@ using HexLive.UnityPresentation.Audio;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Platform;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
@@ -15,13 +16,13 @@ using UnityEngine.UIElements;
 
 namespace HexLive.UnityPresentation.UI
 {
-public sealed class AdminVoicePanel : MonoBehaviour
+public sealed partial class AdminVoicePanel : MonoBehaviour
 {
     public static bool IsOpen { get; private set; }
     private static int _closedFrame = -1;
     public static bool BlocksGameInput => IsOpen || _closedFrame == Time.frameCount;
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetStatics() { IsOpen = false; _closedFrame = -1; }
+    private static void ResetStatics() { IsOpen = false; _closedFrame = -1; _instance = null; }
     private SimulationRunnerBehaviour _source;
     private GameObject _ui;
     private PanelSettings _settings;
@@ -77,6 +78,7 @@ public sealed class AdminVoicePanel : MonoBehaviour
         _sendRaw = new Button(SendTyped) { text = L("send_typed") }; _debug.Add(_sendRaw);
         _debug.Add(new Label(L("typed_help")));
         _captureOverlay = new PlayerVoiceCaptureOverlay(doc.rootVisualElement, FinishCapture, CancelCapture, () => L("title"));
+        _instance = this; HtmlUi.Handle(HtmlScreen, OnHtmlCommand);
     }
     public void OpenDebug()
     {
@@ -112,7 +114,7 @@ public sealed class AdminVoicePanel : MonoBehaviour
     {
         if (_root == null || _source == null) return;
         var available = _source.AdminServer.Length > 0 && !LoadingScreen.IsActive;
-        _root.EnableInClassList("admin-hidden", !available);
+        _root.EnableInClassList("admin-hidden", !available || HtmlUi.Active); // §174.7: the HUD mic and the page window
         if (!available || (IsOpen && Keyboard.current?.escapeKey.wasPressedThisFrame == true)) SetOpen(false);
         if (_server != _source.AdminServer)
         {
@@ -133,6 +135,7 @@ public sealed class AdminVoicePanel : MonoBehaviour
         _request.EnableInClassList("admin-hidden", _approved || HexLive.UnityPresentation.Bootstrap.ClosedTestAccess.Enabled);
         _request.SetEnabled(_accessState != "pending" && _source.Link.State == LinkState.Live);
         _send.SetEnabled(_approved && !_busy && _message.Length == 0); _sendRaw.SetEnabled(_approved && !_busy && _message.Length == 0);
+        UpdateHtml(available);
     }
     private void Send(string kind, JObject data = null)
     { data ??= new JObject(); data["kind"] = kind; data["token"] = _token; _source.SendAdmin(data.ToString(Formatting.None)); }
@@ -198,11 +201,12 @@ public sealed class AdminVoicePanel : MonoBehaviour
         _message = Guid.NewGuid().ToString("N"); _busy = true; _deadline = Time.unscaledTime + 190;
         Send("text", new JObject { ["messageId"] = _message, ["text"] = text, ["context"] = JObject.FromObject(_context) });
     }
-    private void SendTyped()
+    private void SendTyped() => SendTypedJson(_raw.value);
+    private void SendTypedJson(string json)
     {
         try
         {
-            var command = JObject.Parse(_raw.value); command["operationId"] = Guid.NewGuid().ToString("N");
+            var command = JObject.Parse(json); command["operationId"] = Guid.NewGuid().ToString("N");
             _busy = true; _deadline = Time.unscaledTime + 30;
             Send("debug_command", new JObject { ["command"] = command, ["epoch"] = _epoch });
         }
@@ -216,7 +220,8 @@ public sealed class AdminVoicePanel : MonoBehaviour
             var wasApproved = _approved; var previousState = _accessState; _approved = accepted; _accessState = (string)p["state"] ?? "unrequested";
             _status.text = L("access." + _accessState);
             _debug.EnableInClassList("admin-hidden", !_approved);
-            if (_approved && p["expiresUtc"]?.Type == JTokenType.String) _status.text += "\n" + (string)p["expiresUtc"];
+            _expires = _approved && p["expiresUtc"]?.Type == JTokenType.String ? (string)p["expiresUtc"] : null;
+            if (_expires != null) _status.text += "\n" + _expires;
             if (kind == "request_access") _nextStatus = 0;
             if (kind == "access_status") { _epoch = (string)p["epoch"] ?? ""; _sttAvailable = (bool?)p["sttAvailable"] == true; _agentAvailable = (bool?)p["agentAvailable"] == true; }
             if (!wasApproved && _approved) { SetOpen(false); Notify(L("access.approved"), true); }
@@ -243,14 +248,15 @@ public sealed class AdminVoicePanel : MonoBehaviour
                 var done = results.Where(r => (bool?)r["accepted"] == true).Select(r => L("action." + (string)r["kind"]) + " #" + (int?)r["entityId"] + " " + (string)r["definitionId"]).ToArray();
                 if (done.Length > 0) text += "\n" + L("partial") + " " + string.Join(", ", done);
             }
-            if (_confirmation.Length > 0) text += "\n" + L("confirm_required") + "\n" + FormatConfirmation((string)p["confirmationText"]);
+            if (_confirmation.Length > 0) { _confirmationText = FormatConfirmation((string)p["confirmationText"]); text += "\n" + L("confirm_required") + "\n" + _confirmationText; }
             Notify(text, (bool?)p["success"] == true); return;
         }
         _busy = false;
         if (kind == "debug_command" && (string)p?["reason"] == "ConfirmationRequired")
         {
             _confirmation = (string)p["confirmationId"];
-            Notify(L("confirm_required") + "\n" + FormatConfirmation(new JObject { ["command"] = p["command"], ["target"] = p["target"] }.ToString()), false); return;
+            _confirmationText = FormatConfirmation(new JObject { ["command"] = p["command"], ["target"] = p["target"] }.ToString());
+            Notify(L("confirm_required") + "\n" + _confirmationText, false); return;
         }
         if (!accepted)
         {
@@ -274,6 +280,6 @@ public sealed class AdminVoicePanel : MonoBehaviour
     }
     private void OnEnable() { if (_lifetime?.IsCancellationRequested == true) { _lifetime.Dispose(); _lifetime = new CancellationTokenSource(); _busy = false; } }
     private void OnDisable() { SetOpen(false); CancelCapture(); _lifetime?.Cancel(); _wav = null; }
-    private void OnDestroy() { _capture?.Dispose(); _transcriber?.Dispose(); _lifetime?.Dispose(); if (_ui != null) Destroy(_ui); if (_settings != null) Destroy(_settings); }
+    private void OnDestroy() { HtmlUi.Unhandle(HtmlScreen, OnHtmlCommand); if (ReferenceEquals(_instance, this)) _instance = null; _capture?.Dispose(); _transcriber?.Dispose(); _lifetime?.Dispose(); if (_ui != null) Destroy(_ui); if (_settings != null) Destroy(_settings); }
 }
 }

@@ -32,7 +32,7 @@ namespace HexLive.UnityPresentation.UI
         private const string HtmlScreen = "hud";
         private bool _inHtml;
         private string _lastHudJson;
-        private (int, LinkState, int, bool, int, bool, bool, bool, bool?, int)? _lastHudKey;
+        private (int, LinkState, int, bool, int, bool, bool, bool, bool?, int, int)? _lastHudKey;
 
         // Weather widget (top-left): temperature, rain/clear, clock + phase.
         private VectorIcon _sunIcon;
@@ -374,7 +374,7 @@ namespace HexLive.UnityPresentation.UI
                 keyLink.PingMilliseconds >= 0 ? keyLink.PingMilliseconds / 10 : -1,
                 _runner.IsPaused, NearestPreset(_runner.SpeedMultiplier), keyLink.IsRemote,
                 BuildModePanel.CanOpen, BuildModePanel.IsOpen,
-                DebugControlsPanel.HtmlOpen, DebugControlsPanel.ReadyForTest);
+                DebugControlsPanel.HtmlOpen, DebugControlsPanel.ReadyForTest, AdminVoicePanel.HtmlMicState);
             if (_lastHudJson != null && _lastHudKey == key)
             {
                 return;
@@ -445,6 +445,8 @@ namespace HexLive.UnityPresentation.UI
                     ["ready"] = DebugControlsPanel.ReadyForTest, ["canReport"] = DebugControlsPanel.CanReportBugs,
                 },
                 ["debug"] = DebugControlsPanel.HtmlOpen is { } debugOpen ? new JObject { ["open"] = debugOpen } : null,
+                // §161: the admin microphone, only on a server that has the voice admin.
+                ["admin"] = AdminVoicePanel.HtmlMicState is var mic && mic >= 0 ? new JObject { ["recording"] = mic == 1 } : null,
             };
         }
 
@@ -466,6 +468,10 @@ namespace HexLive.UnityPresentation.UI
                     break;
                 case "bug":
                     DebugControlsPanel.OpenBugReport();
+                    break;
+                case "admin":
+                    AdminVoicePanel.HtmlMicrophone();
+                    _lastHudKey = null;
                     break;
                 case "debug":
                     DebugControlsPanel.ToggleHtml();

@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Platform;
+using Newtonsoft.Json.Linq;
 
 namespace HexLive.UnityPresentation.UI
 {
@@ -13,6 +15,8 @@ namespace HexLive.UnityPresentation.UI
         private static readonly Queue<Message> Npcs = new();
         private readonly Label _label;
         private float _until;
+        private const string HtmlScreen = "voiceSubtitle";
+        private bool _htmlShown;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void Reset() { Admin.Clear(); Npcs.Clear(); }
         public VoiceResponsePanel(VisualElement parent)
@@ -29,12 +33,28 @@ namespace HexLive.UnityPresentation.UI
         public void Tick()
         {
             if (Time.unscaledTime < _until) return;
-            if (Admin.Count == 0 && Npcs.Count == 0) { _label.AddToClassList("voice-response-hidden"); return; }
+            if (Admin.Count == 0 && Npcs.Count == 0)
+            {
+                _label.AddToClassList("voice-response-hidden");
+                if (_htmlShown) { HtmlUi.Hide(HtmlScreen); _htmlShown = false; }
+                return;
+            }
             var next = Admin.Count > 0 ? Admin.Dequeue() : Npcs.Dequeue();
+            _until = Time.unscaledTime + next.Seconds;
+            if (HtmlUi.Active)
+            {
+                // §174.7: the page draws the line; the label stays hidden.
+                HtmlUi.Show(HtmlScreen, new JObject
+                {
+                    ["text"] = next.Text,
+                    ["tone"] = next.Success == true ? "success" : next.Success == false ? "error" : null,
+                });
+                _htmlShown = true;
+                return;
+            }
             _label.text = next.Text; _label.RemoveFromClassList("voice-response-hidden");
             _label.EnableInClassList("voice-response-success", next.Success == true);
             _label.EnableInClassList("voice-response-error", next.Success == false);
-            _until = Time.unscaledTime + next.Seconds;
         }
     }
 }

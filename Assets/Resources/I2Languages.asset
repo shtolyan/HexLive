@@ -31450,6 +31450,70 @@ MonoBehaviour:
       - 'Выйти из полноэкранного режима'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'simdebug.fighting'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'fighting'
+      - 'в бою'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'simdebug.until'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'until {0}'
+      - 'до {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'simdebug.known'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} known objects'
+      - 'известных объектов: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'simdebug.trace_count'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Last {0} events of #{1} ({2})'
+      - 'Последние события #{1}: {0} ({2})'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'simdebug.trace_recorder'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'flight recorder'
+      - 'бортовой самописец'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'simdebug.trace_ring'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'colony ring'
+      - 'общее кольцо'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'simdebug.trace_none'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'No events yet'
+      - 'Событий пока нет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'simdebug.trace_none_npc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Nothing from this one yet'
+      - 'От неё пока ничего'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

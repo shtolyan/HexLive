@@ -523,6 +523,32 @@ function sendVoice() {
   }, 70);
 }
 
+// ---- the simulation debug overlay (SimulationDebugPanel, Tab) ----
+const SD = { open: false, tick: 48211, paused: false, speed: 1 };
+function sendSimDebug() {
+  if (!ready) return;
+  if (!SD.open || !isGame(state.dialog)) { post({ t: 'hide', screen: 'simDebug' }); return; }
+  const c = COLONY.find((x) => x.id === game.selected) || COLONY[0];
+  post({ t: 'show', screen: 'simDebug', model: {
+    ready: true, tick: SD.tick, paused: SD.paused, speed: SD.speed, remote: state.platform === 'web',
+    npc: { id: c.id, name: c.name, tile: [4, -2], goal: 'GetFood', interaction: 'PickUp', inventory: ['food.coconut', 'resource.stick'], capacity: 6,
+      worn: ['clothing.top_primal', 'clothing.skirt_primal'], body: 'LegL 0.82', starving: false, fighting: false,
+      needs: { health: c.health, hunger: 0.64, thirst: 0.31, energy: 0.72, comfort: 0.55, social: 0.40, thermal: 0.12 },
+      relations: ['Марта: friend 0.62 / trust 0.48', 'Яна: rival −0.21 / trust 0.10'] },
+    sim: { plan: 'Active 2/4 (MoveTo → PickUp → Eat)', goalLock: SD.tick + 40, cooldowns: ['Socialize', 'Wash'], known: 137, target: [5, -2],
+      movement: SD.paused ? 'Arrived' : 'Moving', execution: 'InProgress', path: [[4, -2], [5, -3], [5, -2]],
+      clock: '15:10', phase: 'Day', uv: 0.71, raining: false, temperature: 28.4, reserved: 6, occupied: 9 },
+    scores: [{ goal: 'GetFood', score: 0.812 }, { goal: 'Drink', score: 0.574 }, { goal: 'Sleep', score: 0.312 }, { goal: 'Socialize', score: 0.208 }, { goal: 'Idle', score: 0.05 }],
+    trace: { recorder: true, rows: [
+      [SD.tick - 31, 'GoalScored', 'GetFood=0.812 Drink=0.574 Sleep=0.312'],
+      [SD.tick - 30, 'GoalChanged', 'Idle -> GetFood Cause=[hunger 0.64]'],
+      [SD.tick - 30, 'PlanBuilt', 'MoveTo(5,-2) PickUp(food.coconut#418) Eat'],
+      [SD.tick - 12, 'PathFound', 'len=3 cost=4.5 budget=ok'],
+      [SD.tick - 2, 'InteractionStarted', 'PickUp target=#418'],
+    ] },
+  } });
+}
+
 // ---- the hex inspector (HexInspectorPanel): DEBUG → «Инспектор гекса» ----
 function sendInspector() {
   if (!ready) return;
@@ -945,7 +971,7 @@ function sendHud() {
 }
 
 function showDialog(id) {
-  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); bp.open = false; post({ t: 'hide', screen: 'blueprint' }); BUGS.quick = BUGS.manager = false; post({ t: 'hide', screen: 'bugReport' }); post({ t: 'hide', screen: 'bugManager' }); post({ t: 'hide', screen: 'history' }); END.open = false; post({ t: 'hide', screen: 'endSummary' }); PROJECT.open = false; post({ t: 'hide', screen: 'craftProject' }); post({ t: 'hide', screen: 'map' }); mapTerrainSent = false; DEBUG.open = false; post({ t: 'hide', screen: 'debug' }); post({ t: 'hide', screen: 'inspector' }); VOICE.open = VOICE.recording = false; VOICE.subtitle = null; sendVoice(); }
+  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); bp.open = false; post({ t: 'hide', screen: 'blueprint' }); BUGS.quick = BUGS.manager = false; post({ t: 'hide', screen: 'bugReport' }); post({ t: 'hide', screen: 'bugManager' }); post({ t: 'hide', screen: 'history' }); END.open = false; post({ t: 'hide', screen: 'endSummary' }); PROJECT.open = false; post({ t: 'hide', screen: 'craftProject' }); post({ t: 'hide', screen: 'map' }); mapTerrainSent = false; DEBUG.open = false; post({ t: 'hide', screen: 'debug' }); post({ t: 'hide', screen: 'inspector' }); SD.open = false; post({ t: 'hide', screen: 'simDebug' }); VOICE.open = VOICE.recording = false; VOICE.subtitle = null; sendVoice(); }
   if (shownDialog && !isGame(shownDialog) && ready) post({ t: 'hide', screen: isTitle(shownDialog) ? 'title' : isCreator(shownDialog) ? 'creator' : SCREEN_OF[shownDialog] || shownDialog });
   if (isGame(id)) {
     shownDialog = id;
@@ -962,6 +988,7 @@ function showDialog(id) {
     ctx.open = id === 'gameContext';
     DEBUG.open = id === 'gameDebug';
     DEBUG.on.hexInspector = id === 'gameInspector';
+    SD.open = id === 'gameSimDebug';
     VOICE.open = id === 'gameAdmin'; VOICE.recording = id === 'gameVoice'; VOICE.busy = false; VOICE.confirm = null; VOICE.access = id === 'gameAdmin' ? 'unrequested' : 'approved';
     VOICE.subtitle = id === 'gameVoice' ? { text: state.lang === 'ru' ? 'Рита: Слышу тебя. Скажи, что нужно, и я пойду.' : 'Rita: I hear you. Tell me what you need and I will go.', tone: null } : null;
     HISTORY.collapsed = id !== 'gameHistory'; HISTORY.shown = 10;
@@ -975,7 +1002,7 @@ function showDialog(id) {
     loot.open = ['gameLoot', 'gameGift', 'gameBasket'].includes(id);
     if (loot.open) { loot.mode = id === 'gameGift' ? 'gift' : 'exchange'; loot.other = id === 'gameBasket' ? 'container' : 'person'; lootReset(); }
     if (ctx.open) ctx.at = { x: 0.52, y: 0.42 };
-    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); if (build.open) sendBuild(); if (bp.open) sendBlueprint(); sendBugs(); sendHistory(); sendEnd(); sendProject(); sendMap(); sendDebug(); sendVoice(); }
+    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); if (build.open) sendBuild(); if (bp.open) sendBlueprint(); sendBugs(); sendHistory(); sendEnd(); sendProject(); sendMap(); sendDebug(); sendVoice(); sendSimDebug(); }
     return;
   }
   if (!isTitle(id)) clearInterval(title.timer);
@@ -1072,6 +1099,16 @@ function handle(message) {
       if (it && a.kind === 'drop') { it.count -= a.count || 1; if (it.count <= 0) inv.items = inv.items.filter((x) => x !== it); }
     }
     sendInventory();
+    return;
+  }
+  if (message.screen === 'simDebug') {
+    const a = message.args || {};
+    note(key, `${args} → SimulationDebugPanel`);
+    if (message.cmd === 'close') SD.open = false;
+    if (message.cmd === 'pause') SD.paused = !SD.paused;
+    if (message.cmd === 'step') SD.tick++;
+    if (message.cmd === 'speed') SD.speed = a.value;
+    sendSimDebug();
     return;
   }
   if (message.screen === 'adminVoice') {
@@ -1629,6 +1666,8 @@ for (const button of document.querySelectorAll('[data-dialog]')) {
 $('reopen').addEventListener('click', () => showDialog('gameMenu'));
 $('clear-log').addEventListener('click', () => { log.textContent = ''; });
 document.addEventListener('keydown', (e) => {
+  // SimulationDebugPanel: Tab shows and hides the overlay in any world scene.
+  if (e.key === 'Tab' && isGame(state.dialog) && !e.target.closest?.('input, textarea')) { e.preventDefault(); SD.open = !SD.open; sendSimDebug(); return; }
   if (e.key !== 'Escape') return;
   // GameMenu.cs: Escape opens the menu and closes it; other dialogs ignore it.
   if (isFull(shownDialog)) return; // GameMenu: Escape never opens over the loading screen

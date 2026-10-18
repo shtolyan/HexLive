@@ -119,11 +119,32 @@ function itemDetail(it) {
     desc: strings[state.lang]?.[`item.${it.def.replace('.', '_')}.desc`] || '', stats, actions };
 }
 
+// §121 / §171: why an order failed, and the call's state (CharacterPanel toasts, ServerVoice).
+const TOAST = { key: null, timer: 0, cycle: 0, i: 0 };
+const TOAST_KEYS = ['toast.order_rejected.MissingTool', 'toast.order_interrupted.SleepHunger', 'toast.order_rejected.Unreachable', 'toast.manual_expired'];
+function showToast(key) {
+  // ManualOrderFeedback.IsFresh: 2.5 s, then gone.
+  TOAST.key = key; sendGame(); sendInventory();
+  clearTimeout(TOAST.timer);
+  TOAST.timer = setTimeout(() => { TOAST.key = null; sendGame(); sendInventory(); }, 2500);
+}
+const CALL = { state: null, reason: null, timer: 0 };
+function callTo(state, reason = null) { CALL.state = state; CALL.reason = reason; sendGame(); }
+function startCall() {
+  clearInterval(CALL.timer);
+  callTo('ringing');
+  CALL.timer = setTimeout(() => {
+    callTo('listening');
+    CALL.timer = setInterval(() => callTo(CALL.state === 'listening' ? 'speaking' : 'listening'), 2500);
+  }, 1800);
+}
+function hangUp() { clearInterval(CALL.timer); clearTimeout(CALL.timer); game.control = 'ai'; callTo(null); }
+
 function inventoryModel() {
   const c = COLONY.find((x) => x.id === game.selected) || COLONY[0];
   return {
     name: c.name, readonly: false, outfitLocked: inv.locked, capacity: { used: inv.items.filter((i) => !i.worn).length, cap: 20 },
-    slots: 20, dollLayer: inv.layer,
+    slots: 20, dollLayer: inv.layer, toast: TOAST.key,
     items: inv.items.map((it) => ({ ...it, icon: `icon:${it.def}`, name: itemName(it.def), detail: itemDetail(it) })),
     craft: {
       blocked: game.control === 'manual' ? null : 'craft.block.NotManual',
@@ -716,7 +737,8 @@ function rosterModel() {
 
 function npcModel(c) {
   return {
-    id: c.id, name: c.name, control: game.control, controlLocked: null, canCall: true, call: null,
+    id: c.id, name: c.name, control: game.control, controlLocked: null, canCall: true,
+    call: CALL.state ? { state: CALL.state, reason: CALL.reason } : null, toast: TOAST.key,
     pace: game.pace, canStop: game.control === 'manual', health: c.health, healthColor: healthColor(c.health),
     status: c.status, statusTone: c.tone, uv: 'mid', shade: false, badge: c.fighting ? 'fighting' : null,
     journalUnread: 2, goal: c.goal, dream: 'OwnBed', directive: { kind: 'Firewood', from: null },
@@ -992,6 +1014,12 @@ function showDialog(id) {
     DEBUG.open = id === 'gameDebug';
     DEBUG.on.hexInspector = id === 'gameInspector';
     SD.open = id === 'gameSimDebug';
+    clearInterval(TOAST.cycle); TOAST.key = null; clearInterval(CALL.timer); clearTimeout(CALL.timer); CALL.state = null;
+    if (id === 'gameCall') { game.control = 'ai'; CALL.state = 'failed'; CALL.reason = 'agent.call.credit'; }
+    if (id === 'gameToast') {
+      TOAST.i = 0; setTimeout(() => showToast(TOAST_KEYS[0]), 300);
+      TOAST.cycle = setInterval(() => showToast(TOAST_KEYS[++TOAST.i % TOAST_KEYS.length]), 4000);
+    }
     VOICE.open = id === 'gameAdmin'; VOICE.recording = id === 'gameVoice'; VOICE.busy = false; VOICE.confirm = null; VOICE.access = id === 'gameAdmin' ? 'unrequested' : 'approved';
     VOICE.subtitle = id === 'gameVoice' ? { text: state.lang === 'ru' ? 'Рита: Слышу тебя. Скажи, что нужно, и я пойду.' : 'Rita: I hear you. Tell me what you need and I will go.', tone: null } : null;
     HISTORY.collapsed = id !== 'gameHistory'; HISTORY.shown = 10;
@@ -1327,7 +1355,12 @@ function handle(message) {
       if (state.dialog !== 'gameCharacter') { showDialog('gameCharacter'); return; }
     }
     if (message.cmd === 'selectClan') { game.group = COLONY.map((c) => c.id); showDialog('gameGroup'); return; }
-    if (message.cmd === 'control') game.control = a.mode;
+    if (message.cmd === 'control') {
+      // ServerVoice: the phone rings and connects; pressing it during a call hangs up.
+      if (a.mode === 'call') { if (CALL.state && CALL.state !== 'failed') { hangUp(); return; } game.control = 'call'; startCall(); return; }
+      if (CALL.state && CALL.state !== 'failed') hangUp();
+      game.control = a.mode;
+    }
     if (message.cmd === 'pace') game.pace = a.value;
     if (message.cmd === 'open' && a.window === 'inventory') { inv.open = true; sendInventory(); return; }
     if (message.cmd === 'open' && a.window === 'health') { side.health = true; side.journal = false; sendSide(); return; }

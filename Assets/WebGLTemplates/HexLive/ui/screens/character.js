@@ -6,7 +6,9 @@
 // The live portrait (PortraitStage) is a transparent hole like the creator's
 // preview: Unity renders that camera into portraitRect. Model: {
 //   mode: 'none' | 'single' | 'group', collapsed,
-//   npc: { id, name, control: 'ai'|'manual'|'call', controlLocked (I2 key | null), canCall, call (null|'ringing'|…),
+//   npc: { id, name, control: 'ai'|'manual'|'call', controlLocked (I2 key | null), canCall,
+//          call: null | { state: 'ringing'|'listening'|'speaking'|'failed', reason (I2 key, when failed) },
+//          toast: null | I2 key,              // §121: why her last order was refused or cut short (2.5 s)
 //          pace: 'walk'|'run', canStop, health 0–1, healthColor, status, statusTone, uv, shade, badge,
 //          journalUnread, goal, dream, directive: { kind, from } | null,
 //          effects: [{ slug, emoji, buff, intensity }],
@@ -27,6 +29,10 @@ import { icons, needIcons } from '../icons.js';
 import { tip } from '../tooltip.js';
 
 const MODE_ICON = { ai: icons.ai, manual: icons.hand, call: icons.phone };
+// §171 the call's state under the switch (CharacterPanel.ServerVoice RenderServerVoiceButton).
+const CALL_TEXT = { ringing: 'agent.call.ringing', listening: 'agent.call.listening', speaking: 'agent.call.speaking' };
+const callTitle = (call) => (!call ? t('agent.call.button')
+  : call.state === 'failed' ? `${t(call.reason)}\n${t('agent.call.button')}` : t('agent.call.hangup'));
 
 const good = (v) => (v >= 0.6 ? 'var(--hx-leaf)' : v >= 0.3 ? 'var(--hx-gold)' : 'rgb(232 104 92)');
 
@@ -127,6 +133,7 @@ function Identity({ npc, send }) {
     return () => observer.disconnect();
   }, []);
   const modes = ['ai', 'manual', ...(npc.canCall ? ['call'] : [])];
+  const call = npc.call;
   return html`
     <section class="hx-id" aria-label=${npc.name}>
       <div class="hx-id__portrait" ref=${hole}></div>
@@ -134,10 +141,13 @@ function Identity({ npc, send }) {
         <div class="hx-toggle" role="group" aria-label=${t('panel.control.tooltip')} title=${npc.controlLocked ? t(npc.controlLocked) : t('panel.control.tooltip')}>
           ${modes.map((mode) => html`
             <button type="button" key=${mode} aria-pressed=${npc.control === mode} disabled=${!!npc.controlLocked}
-              title=${mode === 'call' ? t('agent.call.button') : t(`panel.control.${mode}`)}
+              class=${mode === 'call' && call ? `hx-call is-${call.state}` : undefined}
+              title=${mode === 'call' ? callTitle(call) : t(`panel.control.${mode}`)}
               onClick=${() => send('control', { mode })}>${MODE_ICON[mode]()}${mode !== 'call' && html`<span>${t(`panel.control.${mode}`)}</span>`}</button>`)}
         </div>
+        ${call && html`<span class="hx-call-state" data-state=${call.state} role="status">${t(CALL_TEXT[call.state] || call.reason)}</span>`}
         <${NameCopy} npc=${npc} />
+        ${npc.toast && html`<p class="hx-order-toast" role="status" key=${npc.toast}>${t(npc.toast)}</p>`}
       </div>
       ${npc.badge && html`<span class="hx-id__badge">${t(`badge.${npc.badge}`)}</span>`}
       <div class="hx-id__side">

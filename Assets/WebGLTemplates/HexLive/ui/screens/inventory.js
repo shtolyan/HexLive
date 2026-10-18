@@ -7,7 +7,7 @@
 // shadow, so nothing dims the doll.
 //
 // Model: {
-//   name, readonly, outfitLocked, capacity: { used, cap },
+//   name, readonly, outfitLocked, capacity: { used, cap }, toast: null | I2 key (§121, as on the card),
 //   items: [{ uid, def, icon, name, count, inUse, favorite, worn, overflow, layer?,
 //             detail: { category, desc, stats: [[label, value]], actions: ['wear'|'stow'|'drop'|'fill'|'plant'], note } }],
 //   slots,                                  // total cells, empty ones included
@@ -150,6 +150,7 @@ export function Inventory({ model, send }) {
         <header class="hx-inv__head">
           <h2 class="hx-title" id="inv-title">${t('panel.inventory')} · ${model.name}</h2>
           <span class="hx-inv__cap">${model.capacity.used}/${model.capacity.cap} ${t('inv.slots')}</span>
+          ${model.toast && html`<span class="hx-order-toast hx-order-toast--inline" role="status" key=${model.toast}>${t(model.toast)}</span>`}
           <label class="hx-switch" title=${t('inv.outfit_lock.tooltip')}>
             <input type="checkbox" checked=${model.outfitLocked} disabled=${model.readonly}
               onChange=${(e) => send('outfitLock', { value: e.currentTarget.checked })} />

@@ -224,7 +224,10 @@ SHA256 `.asmdef` `19f0b8d844420f9933893d96181a484fc51c005f4649092fe50fc524c36d7a
 ```
 Страница с HTML-окнами (§174) — шаблон `Assets/WebGLTemplates/HexLive`;
 скрипт ставит его сам. В консоли браузера после загрузки должна быть строка
-`[HtmlUi] page interface v1 active`.
+`[HtmlUi] page interface v2 active` для текущего протокола интерфейса.
+Версию в проверке брать из `HtmlUi.Protocol` в исходном commit сборки
+(`Assets/HexLive/UnityPresentation/Platform/HtmlUi.cs`), а не фиксировать
+старое `v1` в браузерном тесте.
 При перекодировании нужны все строки. В каноническом MSI reuse-пути
 `WriteWebMusic()` не вызывается, поэтому строки `web music` в логе нет.
 Вместо неё до переноса аудио проверяются `audio-reuse-required.json`

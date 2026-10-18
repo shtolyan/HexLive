@@ -757,6 +757,62 @@ to Flashback and no bug was marked fixed by this release.
 Local operational receipts: `Build/MSIRelease/20261017-production-refresh/`.
 Public receipt: https://play.62-146-235-120.sslip.io/release-receipt.json .
 
+## MSI — Singapore client/content refresh, 2026-10-18 10:05Z
+
+Tolya explicitly requested latest master, a release WebGL Player, needed
+AssetBundles and Singapore publication. This release changes client/content
+only: no server binary, world rules, accounts, assignments or New York changes;
+no service restart. Rollback Player and monotonic content candidates retained.
+
+- Pulled master/LFS `703ab028cb28eda475cd9f799c96aa22116bb04e`.
+  The full WorldProp gate exposed non-planar/missing cut faces on four human
+  leg FBXs. Focused fix `0fcfe3359a70d4e898c8e44945ce6e5165223dc3`
+  caps each intersecting cut plane separately; pushed with eight LFS payloads
+  and appended to existing Flashback #485, retaining ready_for_test.
+- Gates/checks passed: strict WebGL compile 0 errors/0 RS0030, 121 simulation
+  tests, 19 cut/presentation Unity tests, 20 graphics tests, 17 tooling tests,
+  2 construction checks (14 models/299 units), all 13 generator branches,
+  full WorldProp and serialized People gates. Unity CLI only, 6000.4.6f1;
+  Editor restored to StandaloneWindows64, closed, ownership freed.
+- Canonical full content build: 258/258 bundles, 259 package objects at
+  703ab028c. Four legs rebuilt at 0fcfe3359; 21 other published owners have
+  byte-identical dependency closures between those commits, recorded per owner.
+  Reviewed subset: 25 owners/25 blobs, 25,477,783 bytes; registry 973 -> 994
+  (four identical candidates were no-ops). Includes actors/skin maps, roofs,
+  drying rack, workbench, yucca and human parts; config/simdata and world rules
+  excluded. Wardrobe candidate unchanged against production, not republished.
+- Release Player source `0fcfe3359a70d4e898c8e44945ce6e5165223dc3`, protocol26,
+  canonical HexLiveWebGLPlayerBuild.Build, RuntimeSpeed, FMOD4096x4, splash off,
+  HTML interface v2/DPR1, no development flag, succeeded with 0 errors.
+  Player archive SHA256:
+  `c57bb7d75b6831c4d37d97e7e5b4a325ce74e0a10dd770b74c6d5e42168c7bbc`.
+  Content subset archive SHA256:
+  `6e90a3c1ed5169cad22df6e38799e09c165707dd77dc6fc6c2da1930393c9b5c`.
+- Audio reused only from exact published Mac source
+  `b5cf880c8d0fedc133df16e5287013336022b433`: 7984 source proofs and all
+  5668 FSB/vis hashes passed; both source-exact Studio banks included.
+- Actual remote activation finished `2026-10-18T10:05:30.897053+00:00`:
+  Player mac-20261018-b5cf880c8 -> msi-20261018-0fcfe3359. Server remains
+  `/opt/hexlive/releases/bbc522c8aabd3c4c8d61402ce605fff1ed6aea32`, PID1442387.
+  World a309de74171d470385412bfab01ffdab, seed629209070, topology59DDDCBB,
+  3/3 live colonists retained. World metadata and simdata unchanged at activation.
+- Public HTTPS hashed all 50 Player files, both Studio banks, 25 content blobs
+  and audio samples; Brotli/WASM headers passed. Isolated clean Chrome155
+  rendered staging and public menu with HTML v2 and AUDIOWORKLET48000/4096x4,
+  zero JS errors/page errors/NRE. Anonymous handshake verified protocol26,
+  same world, 82 paired garments, 96 recipes, no control/orders. Server postcheck
+  found no new NRE, unhandled exception, OOM or protocol mismatch.
+
+Limits: no authenticated gameplay orders, account/character creation, paid
+phone/ElevenLabs calls, listening acceptance, in-world FPS measurement or full
+live construction/save-load/wardrobe rotation test. Ignored 2D trigger callbacks
+and three unsupported hidden-shader diagnostics also occur in old B5 baseline;
+no new engine diagnostic compared with that baseline. Browser menu checks do
+not establish perceived audio quality or complete gameplay acceptance.
+
+Local report/logs: `Build/MSIRelease/20261018-master-release/DEPLOYMENT_REPORT.json`.
+Public receipt: https://play.62-146-235-120.sslip.io/release-receipt.json .
+
 ## Claude (сессия сайта) — Сингапур: сайт /login/ и новый WebGL-плеер (2026-10-17 ~21:50Z)
 Команда Толи: «выкладывай» на вопрос «выкладывать сайт и новую сборку на Сингапур?».
 - **Плеер (client):** пакет `webgl-player-b5cf880c8.tar.gz`, SHA-256 `d470ddbc8de70e2e7367432fb29b7b8a45d2097bfbf2619e0b7f6c3065fa10a6`, исходник `b5cf880c8d0fedc133df16e5287013336022b433`, протокол 26 (= сервер). Собрал агент оптимизации WebGL: macOS, Unity 6000.4.6f1, `HexLiveWebGLPlayerBuild.Build` release + `webgl_audio_fsb.py`; лог: RuntimeSpeed, FMOD 4×2048, splash off, ui/ 26 файлов, dpr cap. `current`: `msi-20261017-de1f382e5` → `mac-20261018-b5cf880c8` (прежний оставлен). На сервере сверены 5706/5706 файлов квитанции; снаружи по HTTPS — 16/16 (Build/*, оба FMODBanks/*.bank, index.html, 5 FSB). Контент не перевыпускали: правки 478–480 (крыши, сушилка, верстак) плеер в рантайме не читает, будут старые модели.

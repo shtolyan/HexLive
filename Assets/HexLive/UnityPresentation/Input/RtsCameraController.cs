@@ -332,6 +332,15 @@ namespace HexLive.UnityPresentation.Input
                 return;
             }
 
+            // Activating the same selected subject toggles its attachment.
+            // A third click must leave the current view exactly where it is.
+            if (_mode == Mode.Orbit)
+            {
+                _pendingFrameSelection = false;
+                ExitOrbit();
+                return;
+            }
+
             // Follow: повторный клик по уже выбранному персонажу —
             // камера фокусируется и следует.
             // Bug #146: скрытую туманом чужачку слежение не берёт — иначе
@@ -343,10 +352,7 @@ namespace HexLive.UnityPresentation.Input
                 return;
             }
 
-            if (_mode != Mode.Orbit)
-            {
-                EnterOrbitSelection();
-            }
+            EnterOrbitSelection();
 
             _pendingFrameSelection = true;
         }
@@ -371,7 +377,6 @@ namespace HexLive.UnityPresentation.Input
                 _worldRenderer = FindAnyObjectByType<HexWorldRenderer>();
             }
 
-            if (UI.AdminVoicePanel.BlocksGameInput) return;
             var keyboard = Keyboard.current;
             if (!UI.AdminVoicePanel.BlocksGameInput && !UI.GameMenu.IsOpen && keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
             {
@@ -406,7 +411,7 @@ namespace HexLive.UnityPresentation.Input
                 }
             }
 
-            var allowWorldInput = !(UI.RuntimeWindow.BlocksWorldInput || UI.CraftProjectDetailsPanel.BlocksWorldInput || UI.CharacterPanel.BlocksWorldPointer);
+            var allowWorldInput = !(PointerBlockedForWorld() || Platform.HtmlUi.TextInputFocused);
             if (!allowWorldInput)
             {
                 _leftPressActive = false; _rightPressActive = false;
@@ -482,7 +487,7 @@ namespace HexLive.UnityPresentation.Input
                 FrameSelection(snapshot);
             }
 
-            if (allowWorldInput && !UI.GameMenu.IsOpen && !UI.AdminVoicePanel.BlocksGameInput && !UI.EndSummaryPanel.IsOpen)
+            if (allowWorldInput)
             {
                 HandleFreePan();
                 HandleZoom();
@@ -1262,8 +1267,9 @@ namespace HexLive.UnityPresentation.Input
         private void SetFreePivotAt(Vector3 point)
         {
             var ground = SnapToGround(new Vector3(point.x, 0f, point.z));
-            _freePivotHeight = Mathf.Clamp(
-                point.y - ground.y, 0f, SimulationUnityMapper.HexRadius);
+            // Inherit the actual rig anchor, including on uneven terrain.
+            // Clamping this offset would move the view when follow detaches.
+            _freePivotHeight = point.y - ground.y;
             _freePivot = ground + Vector3.up * _freePivotHeight;
         }
 
@@ -1412,7 +1418,11 @@ namespace HexLive.UnityPresentation.Input
             // updated here: FitDistance floors explicit Frame requests with it,
             // and mutating it would turn the last free-camera height into a
             // creeping zoom minimum.
+            _currentDistance = _smoothedDistance;
             _requestedDistance = _currentDistance;
+            _currentYaw = _smoothedYaw;
+            _currentPitch = _smoothedPitch;
+            _distanceVelocity = _yawVelocity = _pitchVelocity = 0f;
             var pivot = _hasSmoothedPivot ? _smoothedPivot
                 : _hasSmoothedTarget ? _smoothedTarget : transform.position;
             SetFreePivotAt(pivot);

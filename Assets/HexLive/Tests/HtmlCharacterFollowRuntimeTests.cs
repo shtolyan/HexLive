@@ -20,6 +20,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.TestTools;
+using VisualElement = UnityEngine.UIElements.VisualElement;
 using Object = UnityEngine.Object;
 
 namespace HexLive.Tests
@@ -57,6 +58,14 @@ namespace HexLive.Tests
             panel.SetRunner(runner);
             var selection = NpcSelection.SelectedIds.ToArray();
             var oldBits = Bits.GetValue(null);
+            var voiceOpen = typeof(AdminVoicePanel).GetField("<IsOpen>k__BackingField", BindingFlags.Static | BindingFlags.NonPublic);
+            var voiceClosed = typeof(AdminVoicePanel).GetField("_closedFrame", BindingFlags.Static | BindingFlags.NonPublic);
+            var menuOpen = typeof(GameMenu).GetField("<IsOpen>k__BackingField", BindingFlags.Static | BindingFlags.NonPublic);
+            var summaryOpen = typeof(EndSummaryPanel).GetField("<IsOpen>k__BackingField", BindingFlags.Static | BindingFlags.NonPublic);
+            var savedFlags = new[] { voiceOpen.GetValue(null), voiceClosed.GetValue(null), menuOpen.GetValue(null), summaryOpen.GetValue(null) };
+            var oldPointerOverUi = NpcSelection.PointerOverUi;
+            var windowRoot = new VisualElement(); var windowBody = new VisualElement(); windowRoot.Add(windowBody);
+            var window = new RuntimeWindow(windowRoot, windowBody, () => { }, "follow-regression");
             var background = InputSystem.settings.backgroundBehavior;
             var updateMode = InputSystem.settings.updateMode;
             var keyboard = InputSystem.AddDevice<Keyboard>();
@@ -100,6 +109,62 @@ namespace HexLive.Tests
                 Assert.That(Vector3.Distance((Vector3)Get(camera, "_smoothedTarget"), previousTarget), Is.GreaterThan(2f),
                     "Follow must track a moving NPC while the pointer remains over HTML.");
 
+                // Keep real pan/scroll/press input pending: every UI owner must
+                // block those commands without freezing or detaching the rig.
+                foreach (var state in new[] { "hover", "held", "text", "window", "voice", "voice-close", "menu", "summary", "uitk-pointer" })
+                {
+                    Bits.SetValue(null, state == "hover" ? 1 : state == "held" ? 2 : state == "text" ? 4 : 0);
+                    window.Show(state == "window");
+                    voiceOpen.SetValue(null, state == "voice");
+                    voiceClosed.SetValue(null, state == "voice-close" ? Time.frameCount : -1);
+                    menuOpen.SetValue(null, state == "menu"); summaryOpen.SetValue(null, state == "summary");
+                    NpcSelection.PointerOverUi = state == "uitk-pointer";
+                    InputSystem.QueueStateEvent(mouse, new MouseState { scroll = new Vector2(0, 1) }.WithButton(MouseButton.Left));
+                    InputSystem.Update();
+                    var targetBefore = (Vector3)Get(camera, "_smoothedTarget");
+                    var cameraBefore = camera.transform.position;
+                    var distanceBefore = (float)Get(camera, "_requestedDistance");
+                    people[0].Position += new Float2(.5f, 0f); engine.Step();
+                    Call(camera, "LateUpdateCore");
+                    Assert.That(Get(camera, "_mode").ToString(), Is.EqualTo("Orbit"), state + " must not detach follow");
+                    Assert.That(Vector3.Distance((Vector3)Get(camera, "_smoothedTarget"), targetBefore), Is.GreaterThan(.4f), state + " must not freeze follow");
+                    Assert.That(Vector3.Distance(camera.transform.position, cameraBefore), Is.GreaterThan(.00001f), state + " must keep moving the actual camera");
+                    Assert.That((float)Get(camera, "_requestedDistance"), Is.EqualTo(distanceBefore), state + " must block wheel zoom");
+                    Assert.That(NpcSelection.PrimaryId, Is.EqualTo(people[0].Id.Value), state + " must block world clicks");
+                    Assert.That((bool)Get(camera, "_leftPressActive"), Is.False, state + " must cancel world press tracking");
+                    InputSystem.QueueStateEvent(mouse, new MouseState()); InputSystem.Update();
+                    window.Show(false); _ = RuntimeWindow.BlocksWorldInput;
+                    yield return null;
+                }
+                voiceOpen.SetValue(null, false); voiceClosed.SetValue(null, -1);
+                menuOpen.SetValue(null, false); summaryOpen.SetValue(null, false); NpcSelection.PointerOverUi = false;
+
+                Bits.SetValue(null, 1);
+                var attachedPosition = camera.transform.position;
+                Call(panel, "OnHtmlCommand", "select", new JObject { ["id"] = people[0].Id.Value });
+                Assert.That(Get(camera, "_mode").ToString(), Is.EqualTo("Free"), "Third click detaches follow.");
+                Assert.That(Get(camera, "_pendingFrameSelection"), Is.False, "Detach must cancel queued framing.");
+                Assert.That(camera.transform.position, Is.EqualTo(attachedPosition), "Detach must not jump the camera.");
+                Assert.That(NpcSelection.PrimaryId, Is.EqualTo(people[0].Id.Value), "Detach retains selection.");
+                var trace = new JArray();
+                for (var i = 0; i < 3; i++)
+                {
+                    people[0].Position += new Float2(.5f, 0f); engine.Step();
+                    Call(camera, "LateUpdateCore");
+                    trace.Add(new JObject {
+                        ["step"] = i, ["movement"] = Vector3.Distance(camera.transform.position, attachedPosition),
+                        ["pivotHeightOffset"] = (float)Get(camera, "_freePivotHeight"),
+                        ["distance"] = (float)Get(camera, "_smoothedDistance"),
+                        ["bottomCoverage"] = NpcSelection.BottomUiCoverage, ["rightCoverage"] = NpcSelection.RightUiCoverage });
+                    Directory.CreateDirectory("Build/Diagnostics/20261019-camera488-confirm");
+                    File.WriteAllText("Build/Diagnostics/20261019-camera488-confirm/detach-trace.json", trace.ToString());
+                    Assert.That(Vector3.Distance(camera.transform.position, attachedPosition), Is.LessThan(.0002f), "Detached camera must not follow the next step or keep gliding.");
+                    yield return null;
+                }
+                Call(panel, "OnHtmlCommand", "select", new JObject { ["id"] = people[0].Id.Value });
+                Call(camera, "LateUpdateCore");
+                Assert.That(Get(camera, "_mode").ToString(), Is.EqualTo("Orbit"), "Fourth click attaches again over HTML.");
+
                 var followedPivot = (Vector3)Get(camera, "_smoothedPivot");
                 Call(panel, "OnHtmlCommand", "select", new JObject { ["id"] = people[1].Id.Value });
                 Assert.That(Get(camera, "_mode").ToString(), Is.EqualTo("Free"), "Selecting a different character detaches follow.");
@@ -110,15 +175,22 @@ namespace HexLive.Tests
                 Assert.That(Get(camera, "_mode").ToString(), Is.EqualTo("Orbit"));
                 Assert.That((bool)Get(camera, "_pendingFrameSelection"), Is.False);
 
-                InputSystem.QueueStateEvent(mouse, new MouseState());
+                InputSystem.QueueStateEvent(mouse, new MouseState { position = new Vector2(Screen.width * .5f, Screen.height * .75f) });
                 InputSystem.Update();
                 Bits.SetValue(null, 0);
+                NpcSelection.PointerOverUi = false;
+                Assert.That((bool)typeof(RtsCameraController).GetMethod("PointerBlockedForWorld", BindingFlags.Static | BindingFlags.NonPublic)
+                    .Invoke(null, null), Is.False, "The outside-UI fixture must release every pointer owner before testing W.");
                 Call(camera, "LateUpdateCore");
                 Assert.That(Get(camera, "_mode").ToString(), Is.EqualTo("Free"), "W outside HTML must still detach follow.");
             }
             finally
             {
                 Call(camera, "OnDisable");
+                window.Show(false);
+                voiceOpen.SetValue(null, savedFlags[0]); voiceClosed.SetValue(null, savedFlags[1]);
+                menuOpen.SetValue(null, savedFlags[2]); summaryOpen.SetValue(null, savedFlags[3]);
+                NpcSelection.PointerOverUi = oldPointerOverUi;
                 Bits.SetValue(null, oldBits);
                 InputSystem.settings.backgroundBehavior = background;
                 InputSystem.settings.updateMode = updateMode;

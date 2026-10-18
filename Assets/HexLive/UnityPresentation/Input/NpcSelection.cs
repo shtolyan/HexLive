@@ -6,7 +6,7 @@ namespace HexLive.UnityPresentation.Input
     /// <summary>
     /// §123: shared ordered NPC selection. Selection and camera attachment are
     /// deliberately separate. A user click on a changed subject only selects;
-    /// an exact repeat of the same singleton/set requests follow. Programmatic
+    /// an exact repeat of the same singleton/set toggles follow. Programmatic
     /// selection never moves the camera unless it explicitly requests a frame.
     /// </summary>
     public static class NpcSelection
@@ -58,7 +58,7 @@ namespace HexLive.UnityPresentation.Input
 
         /// <summary>
         /// User activation of one portrait/actor. A changed singleton only
-        /// selects it; activating that exact singleton again focuses/follows.
+        /// selects it; activating that exact singleton again toggles follow.
         /// </summary>
         public static void Activate(int npcId)
         {

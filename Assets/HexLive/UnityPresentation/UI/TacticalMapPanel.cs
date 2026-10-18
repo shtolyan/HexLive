@@ -7,6 +7,7 @@ using HexLive.Simulation.Debug;
 using HexLive.Simulation.Spatial;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Input;
+using HexLive.UnityPresentation.Platform;
 using HexLive.UnityPresentation.Rendering;
 using HexLive.UnityPresentation.Spatial;
 using UnityEngine;
@@ -20,7 +21,7 @@ namespace HexLive.UnityPresentation.UI
     /// Distant camera zoom continues to render and pick the real world.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
-    public sealed class TacticalMapPanel : MonoBehaviour
+    public sealed partial class TacticalMapPanel : MonoBehaviour
     {
         private const string PanelResource = "HexLive/UI/TacticalMapPanel";
         private const string StyleResource = "HexLive/UI/TacticalMapPanel";
@@ -92,6 +93,12 @@ namespace HexLive.UnityPresentation.UI
             PointerOverMap = false;
         }
 
+        private void OnDestroy()
+        {
+            HtmlUi.Unhandle(HtmlScreen, OnHtmlCommand);
+            HideHtml();
+        }
+
         // §168.11: обёртка профилировщика (?perf=1); вне него — одна проверка флага.
         private void Update()
         {
@@ -105,6 +112,7 @@ namespace HexLive.UnityPresentation.UI
             ResolveDependencies();
             RefreshMapFrame();
             RefreshPointerState();
+            UpdateHtmlVisibility();
         }
 
         private void BuildUi()
@@ -159,6 +167,7 @@ namespace HexLive.UnityPresentation.UI
             _miniExpandTab.RegisterCallback<PointerEnterEvent>(_ => PointerOverMap = true);
             _miniExpandTab.RegisterCallback<PointerLeaveEvent>(_ => PointerOverMap = false);
             ApplyMiniCollapsed();
+            HtmlUi.Handle(HtmlScreen, OnHtmlCommand);
         }
 
         private void ResolveDependencies()
@@ -240,7 +249,7 @@ namespace HexLive.UnityPresentation.UI
                 RefreshPeople(snapshot, runner);
                 RefreshMobs(snapshot);
                 RefreshCameraFootprint();
-                _miniMap.SetFrame(_frame);
+                PublishFrame(full: false);
                 return;
             }
 
@@ -266,7 +275,7 @@ namespace HexLive.UnityPresentation.UI
             RefreshPeople(snapshot, runner);
             RefreshMobs(snapshot);
             RefreshCameraFootprint();
-            _miniMap.SetFrame(_frame);
+            PublishFrame(full: true);
         }
 
         private void RefreshRememberedMarkers(
@@ -626,10 +635,18 @@ namespace HexLive.UnityPresentation.UI
         {
             _miniCard?.EnableInClassList("map-hidden", _miniCollapsed);
             _miniExpandTab?.EnableInClassList("map-hidden", !_miniCollapsed);
+            HideToolkitMapUnderHtml();
         }
 
         private void RefreshPointerState()
         {
+            if (HtmlUi.Active)
+            {
+                // The HTML map is a page surface: HtmlUi keeps the world off it.
+                PointerOverMap = false;
+                return;
+            }
+
             var mouse = Mouse.current;
             if (mouse == null || _root == null)
             {

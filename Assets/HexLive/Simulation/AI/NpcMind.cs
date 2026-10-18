@@ -575,6 +575,23 @@ public sealed class NPCMind
     /// </summary>
     public int GatherAllRemaining { get; set; }
 
+    // §121.12: живая стройсессия ручного «Строить». Площадка, её гекс и
+    // продукт (костёр поднимается в НОВЫЙ объект с открытым счётом — сессия
+    // переезжает на него по гексу и продукту) и отпечаток прогресса площадки
+    // перед последним приказом «строить» — доигранный цикл, не сдвинувший
+    // его, закрывает сессию. В сейв НЕ пишется, как GatherAll* выше.
+    public HexLive.Simulation.Common.ObjectId? BuildAllSiteId { get; set; }
+
+    public HexLive.Simulation.Common.TileCoord? BuildAllTile { get; set; }
+
+    public string BuildAllProduct { get; set; } = string.Empty;
+
+    public int BuildAllProgress { get; set; }
+
+    // Сессия уступила проход авто-нужде §121.6: следующий доигранный план —
+    // еда/питьё, а не шаг стройки, и судить по нему шаг нельзя.
+    public bool BuildAllYielded { get; set; }
+
     // §40.6: garments doffed at the shore for a bathe. After washing her body
     // she walks back to RedressShore and puts these EXACT ground pieces back
     // on — the same clothes she took off. Holds the dropped pile's object ids

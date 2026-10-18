@@ -466,6 +466,12 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
             {
                 Input.ManualOrderFeedback.ReportInterrupted(interruptedNpc, e.Message);
             }
+            // §121.12: стройсессия «Строить» кончилась — достроила или встала
+            // по причине; без подписи остановка читается как поломка.
+            else if (e.Type == "ManualBuildFinished" && e.EntityId is { } builderNpc)
+            {
+                Input.ManualOrderFeedback.ReportBuildFinished(builderNpc, e.Message);
+            }
 
             if (!logAllTrace && !(logImportant && isGameHistoryEvent))
             {

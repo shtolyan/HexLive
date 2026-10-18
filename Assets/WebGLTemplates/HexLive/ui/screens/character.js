@@ -12,7 +12,9 @@
 //          effects: [{ slug, emoji, buff, intensity }],
 //          needs: [{ id, value 0–1 (1 = good), thermal? −1…1, deficit? }],
 //          nature: [{ id, value 0–10 }], skills: [{ id, value 0–10 }], traits: [key],
-//          relations: [{ id, name, face, tag, affinity −1…1, familiarity 0–1, trust 0–1 }] },
+//          relations: [{ id, name, face, tag, affinity −1…1, familiarity 0–1, trust 0–1,
+//                        voice?, impact?: { known, affinity, familiarity, trust (deltas −1…1), reason } }] },
+//          // voice: her bond with the player's own voice (§171, the «call»), first in the row
 //   group: { count, manual, total, blocked, fighting, mode, faces: [{ id, name, face }], feedback },
 // }
 // Commands: control { mode }, pace { value }, stop, open { window: 'inventory'|'journal'|'health' },
@@ -231,6 +233,20 @@ function Needs({ npc }) {
 
 const TAG_TONE = { friend: 'good', close: 'good', acquaint: '', neutral: '', tense: 'warn', hostile: 'bad' };
 
+// What her last talk with your voice changed: one chip under each ring, the
+// reason in the tooltip (CharacterPanel's agent-relation feedback, §171).
+const delta = (v, known, percent) => (known ? `${v >= 0 ? '+' : '−'}${Math.abs(Math.round(v * 100))}${percent ? '%' : ''}` : '—');
+function VoiceImpact({ impact }) {
+  const rows = [['affinity', impact.affinity], ['familiarity', impact.familiarity], ['trust', impact.trust]];
+  const details = () => ({
+    icon: '🎙️', title: t('rel.last_voice_impact'),
+    desc: `${rows.map(([id, v]) => `${t(`rel.${id}`)}: ${delta(v, impact.known, true)}`).join('\n')}${impact.reason ? `\n\n${impact.reason}` : ''}`,
+  });
+  return html`<div class="hx-rel__impact" tabindex="0" ...${tip(details)} aria-label=${t('rel.last_voice_impact')}>
+    ${rows.map(([id, v]) => html`<b key=${id} data-sign=${!impact.known || Math.round(v * 100) === 0 ? 'zero' : v > 0 ? 'up' : 'down'}>${delta(v, impact.known)}</b>`)}
+  </div>`;
+}
+
 function Relations({ npc }) {
   const list = npc.relations || [];
   const [focus, setFocus] = useState(list[0]?.id);
@@ -242,7 +258,7 @@ function Relations({ npc }) {
         <div class="hx-rel__faces" role="tablist">
           ${list.map((x) => html`
             <button type="button" role="tab" key=${x.id} aria-selected=${x.id === r.id} title=${x.name} onClick=${() => setFocus(x.id)}>
-              <${Face} face=${x.face} name=${x.name} size="2.25rem" /><span>${x.name}</span>
+              ${x.voice ? html`<span class="hx-rel__voice" aria-hidden="true">🎙️</span>` : html`<${Face} face=${x.face} name=${x.name} size="2.25rem" />`}<span>${x.name}</span>
             </button>`)}
         </div>
         <div class="hx-rel__focus">
@@ -255,6 +271,7 @@ function Relations({ npc }) {
                 <span class="hx-rel__value"><i aria-hidden="true">${glyph}</i><b>${Math.round(v * 100)}</b></span><//>
                 <figcaption>${t(`rel.${id}`)}</figcaption></figure>`)}
           </div>
+          ${r.impact && html`<${VoiceImpact} impact=${r.impact} />`}
         </div>`}
     </section>`;
 }

@@ -736,7 +736,13 @@ function npcModel(c) {
     traits: ['trait.neat', 'trait.brave'],
     relations: COLONY.filter((x) => x.id !== c.id).slice(0, 5).map((x, i) => ({ id: x.id, name: x.name, face: `face:${x.id}`,
       tag: ['friend', 'close', 'acquaint', 'tense', 'neutral'][i], affinity: [0.7, 0.85, 0.2, -0.4, 0][i],
-      familiarity: [0.8, 0.95, 0.4, 0.6, 0.2][i], trust: [0.6, 0.9, 0.3, 0.15, 0.25][i] })),
+      familiarity: [0.8, 0.95, 0.4, 0.6, 0.2][i], trust: [0.6, 0.9, 0.3, 0.15, 0.25][i] }))
+      // §171 her bond with the player's voice: CharacterPanel puts it first (the freshest talk).
+      .reduce((all, rel) => [...all, rel], state.platform === 'desktop' ? [] : [{ id: -159, voice: true, name: state.lang === 'ru' ? 'Ты' : 'You',
+        tag: 'friend', affinity: 0.46, familiarity: 0.38, trust: 0.52,
+        impact: { known: true, affinity: 0.04, familiarity: 0.02, trust: -0.01,
+          reason: state.lang === 'ru' ? 'Похвала её костру и просьба принести воды — приятно, но доверие чуть упало: обещанной рыбы так и не было.'
+            : 'You praised her fire and asked for water — nice, but trust dipped a little: the promised fish never came.' } }]),
   };
 }
 

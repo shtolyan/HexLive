@@ -21,6 +21,7 @@ import { EndSummary } from './endSummary.js';
 import { CraftProject } from './craftProject.js';
 import { MapScreen } from './map.js';
 import { Debug } from './debug.js';
+import { Inspector } from './inspector.js';
 
 export const SCREENS = {
   title: Title,
@@ -36,6 +37,7 @@ export const SCREENS = {
   build: Build,
   map: MapScreen,
   debug: Debug,
+  inspector: Inspector,
   history: History,
   endSummary: EndSummary,
   craftProject: CraftProject,

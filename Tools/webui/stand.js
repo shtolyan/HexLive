@@ -487,6 +487,28 @@ function sendDebug() {
     post({ t: 'show', screen: 'debug', model: { target: state.dialog === 'gameNone' ? null : who?.name ?? null, mutable: state.platform === 'desktop', on: DEBUG.on, shade: SHADES[DEBUG.shade],
       ready: BUGS.reports.filter((r) => r.status === 'ready_for_test' && !r.archived).length, canReport: true, canManage: true, console: state.platform === 'desktop' } });
   } else post({ t: 'hide', screen: 'debug' });
+  sendInspector();
+}
+
+// ---- the hex inspector (HexInspectorPanel): DEBUG → «Инспектор гекса» ----
+function sendInspector() {
+  if (!ready) return;
+  if (!DEBUG.on.hexInspector || !isGame(state.dialog)) { post({ t: 'hide', screen: 'inspector' }); return; }
+  const ru = state.lang === 'ru';
+  post({ t: 'show', screen: 'inspector', model: {
+    q: 4, r: -2, empty: false,
+    objects: [
+      { emoji: '🔥', name: ru ? 'Костёр (стройка)' : 'Campfire (build site)', category: tr('inspect.object'),
+        desc: ru ? 'Каменное кольцо под костёр. Девушки носят сюда брёвна и камни; когда всё доставлено, место становится костром.' : 'A stone ring for a fire. The girls carry logs and stones here; once all is delivered it becomes a campfire.',
+        stats: [['id', '#418 / campfire.site', 'dim'], ['build_site', 'campfire / 3/5', 'warn'], ['logs', '1/2', 'warn'], ['stones', '2/3', 'warn'], ['owner', '#12', 'dim'], ['tags', 'build_site, fire', 'dim']] },
+      { icon: 'icon:resource.log', name: itemName('resource.log'), category: tr('inspect.object'),
+        desc: tr('inspect.no_desc'),
+        stats: [['id', '#431 / resource.log', 'dim'], ['resource', '1', null], ['variant', 'palm', 'dim']] },
+    ],
+    people: [{ name: 'Рита', id: 12 }, { name: 'Яна', id: 9 }],
+    hex: [['walkable', true, 'good'], ['blocked', false, 'good'], ['indoor', false, 'dim'], ['water', false, 'dim'], ['elevation', '2', null], ['coord', '4,-2', 'dim']],
+    junctions: ['5121 / blocked:0 occupied:1 reserved:0', '5122 / blocked:1 occupied:0 reserved:0', '5130 / blocked:0 occupied:0 reserved:1 / climb'],
+  } });
 }
 
 // ---- the HUD map (TacticalMapPanel): a generated island ----
@@ -879,7 +901,7 @@ function sendHud() {
 }
 
 function showDialog(id) {
-  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); bp.open = false; post({ t: 'hide', screen: 'blueprint' }); BUGS.quick = BUGS.manager = false; post({ t: 'hide', screen: 'bugReport' }); post({ t: 'hide', screen: 'bugManager' }); post({ t: 'hide', screen: 'history' }); END.open = false; post({ t: 'hide', screen: 'endSummary' }); PROJECT.open = false; post({ t: 'hide', screen: 'craftProject' }); post({ t: 'hide', screen: 'map' }); mapTerrainSent = false; DEBUG.open = false; post({ t: 'hide', screen: 'debug' }); }
+  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); bp.open = false; post({ t: 'hide', screen: 'blueprint' }); BUGS.quick = BUGS.manager = false; post({ t: 'hide', screen: 'bugReport' }); post({ t: 'hide', screen: 'bugManager' }); post({ t: 'hide', screen: 'history' }); END.open = false; post({ t: 'hide', screen: 'endSummary' }); PROJECT.open = false; post({ t: 'hide', screen: 'craftProject' }); post({ t: 'hide', screen: 'map' }); mapTerrainSent = false; DEBUG.open = false; post({ t: 'hide', screen: 'debug' }); post({ t: 'hide', screen: 'inspector' }); }
   if (shownDialog && !isGame(shownDialog) && ready) post({ t: 'hide', screen: isTitle(shownDialog) ? 'title' : isCreator(shownDialog) ? 'creator' : SCREEN_OF[shownDialog] || shownDialog });
   if (isGame(id)) {
     shownDialog = id;
@@ -895,6 +917,7 @@ function showDialog(id) {
     if (side.health) game.selected = 13; // the most hurt one shows every kind of row
     ctx.open = id === 'gameContext';
     DEBUG.open = id === 'gameDebug';
+    DEBUG.on.hexInspector = id === 'gameInspector';
     HISTORY.collapsed = id !== 'gameHistory'; HISTORY.shown = 10;
     END.open = id === 'gameEnd';
     PROJECT.open = id === 'gameProject2'; PROJECT.done = 7;
@@ -997,6 +1020,11 @@ function handle(message) {
       if (it && a.kind === 'drop') { it.count -= a.count || 1; if (it.count <= 0) inv.items = inv.items.filter((x) => x !== it); }
     }
     sendInventory();
+    return;
+  }
+  if (message.screen === 'inspector') {
+    note(key, `${args} → HexInspectorPanel: закрыть`);
+    DEBUG.on.hexInspector = false; sendDebug();
     return;
   }
   if (message.screen === 'debug') {

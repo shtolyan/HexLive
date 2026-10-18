@@ -31194,6 +31194,238 @@ MonoBehaviour:
       - 'Id скопирован'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'inspect.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Map point'
+      - 'Точка карты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.no_hex'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'No hex data in the current snapshot.'
+      - 'В текущем снимке мира нет данных об этом гексе.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.game'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'On the hex'
+      - 'На гексе'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.no_objects'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'No items or objects on this point.'
+      - 'Здесь нет ни предметов, ни объектов.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.people'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Characters'
+      - 'Персонажи'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.hex'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hex data'
+      - 'Данные гекса'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.junctions'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Debug: junctions ({0})'
+      - 'Отладка: узлы ({0})'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.yes'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'yes'
+      - 'да'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.no'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'no'
+      - 'нет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.object'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Object'
+      - 'Объект'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.no_desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Data comes from the object model.'
+      - 'Данные взяты из модели объекта.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.row.walkable'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Walkable'
+      - 'Проходим'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.row.blocked'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Blocked'
+      - 'Заблокирован'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.row.indoor'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Indoors'
+      - 'Под крышей'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.row.water'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Water'
+      - 'Вода'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.row.elevation'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Elevation'
+      - 'Высота'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.row.coord'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Coordinates'
+      - 'Координаты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.row.id'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'ID'
+      - 'ID'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.row.build_site'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Build site'
+      - 'Стройка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.row.logs'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Logs'
+      - 'Брёвна'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.row.stones'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stones'
+      - 'Камни'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.row.leaves'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leaves'
+      - 'Листья'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.row.sticks'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sticks'
+      - 'Палки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.row.rope'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Rope'
+      - 'Верёвка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.row.boards'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Boards'
+      - 'Доски'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.row.resource'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Resource left'
+      - 'Запас ресурса'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.row.owner'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Owner'
+      - 'Владелица'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.row.variant'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Variant'
+      - 'Вариант'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inspect.row.tags'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tags'
+      - 'Теги'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

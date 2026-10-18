@@ -4,13 +4,14 @@ using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.History;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Platform;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace HexLive.UnityPresentation.UI
 {
     [RequireComponent(typeof(UIDocument))]
-    public sealed class GameHistoryPanel : MonoBehaviour
+    public sealed partial class GameHistoryPanel : MonoBehaviour
     {
         [SerializeField] private SimulationRunnerBehaviour? _runner;
 
@@ -64,11 +65,13 @@ namespace HexLive.UnityPresentation.UI
 
             Loc.LanguageChanged += OnLanguageChanged;
             Build();
+            HtmlUi.Handle(HtmlScreen, OnHtmlCommand);
         }
 
         private void OnDestroy()
         {
             Loc.LanguageChanged -= OnLanguageChanged;
+            HtmlUi.Unhandle(HtmlScreen, OnHtmlCommand);
         }
 
         private void Update()
@@ -78,6 +81,7 @@ namespace HexLive.UnityPresentation.UI
                 _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
             }
 
+            UpdateHtmlShell();
             if (_collapsed || Time.unscaledTime < _nextRefreshTime)
             {
                 return;
@@ -224,15 +228,19 @@ namespace HexLive.UnityPresentation.UI
 
         private void ApplyCollapsed()
         {
+            // §174.7: on the web the page draws both the pill and the drawer.
+            var html = HtmlUi.Active;
             if (_box != null)
             {
-                _box.style.display = _collapsed ? DisplayStyle.None : DisplayStyle.Flex;
+                _box.style.display = _collapsed || html ? DisplayStyle.None : DisplayStyle.Flex;
             }
 
             if (_expandTab != null)
             {
-                _expandTab.style.display = _collapsed ? DisplayStyle.Flex : DisplayStyle.None;
+                _expandTab.style.display = _collapsed && !html ? DisplayStyle.Flex : DisplayStyle.None;
             }
+
+            _htmlDirty = true;
         }
 
         private void Refresh(bool force)
@@ -264,6 +272,11 @@ namespace HexLive.UnityPresentation.UI
 
             _scratch.Clear();
             _scratch.AddRange(GameHistoryLog.ReadTail(seed, _visibleCount));
+            if (HtmlUi.Active)
+            {
+                PushHtmlEntries();
+                return;
+            }
             _entries.Clear();
             _emptyLabel.style.display = _scratch.Count == 0 ? DisplayStyle.Flex : DisplayStyle.None;
 

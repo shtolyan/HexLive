@@ -163,7 +163,7 @@ function Identity({ npc, send }) {
           </div>
           <button type="button" class="hx-vitals__hp" title=${t('panel.health')} onClick=${() => send('open', { window: 'health' })}>
             <${Ring} value=${npc.health} color=${npc.healthColor} size="4rem" stroke="0.375rem" label=${t('panel.health')}>
-              <b class="hx-hp">${Math.round(npc.health * 100)}<span aria-hidden="true">❤️</span></b>
+              <span class="hx-rel__value hx-hp"><i aria-hidden="true">❤️</i><b>${Math.round(npc.health * 100)}</b></span>
             <//>
           </button>
         </div>

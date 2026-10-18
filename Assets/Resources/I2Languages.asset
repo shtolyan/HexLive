@@ -31146,6 +31146,14 @@ MonoBehaviour:
       - 'Менеджер ошибок'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'debug.localOnly'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Only in a world running on this computer'
+      - 'Только в мире, который идёт на этом компьютере'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

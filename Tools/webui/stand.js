@@ -483,7 +483,8 @@ function sendDebug() {
   if (!ready) return;
   if (DEBUG.open && isGame(state.dialog)) {
     const who = COLONY.find((c) => c.id === game.selected);
-    post({ t: 'show', screen: 'debug', model: { target: state.dialog === 'gameNone' ? null : who?.name ?? null, on: DEBUG.on, shade: SHADES[DEBUG.shade],
+    // C#: body edits only where the world runs in this process — a desktop world, not the web client's server.
+    post({ t: 'show', screen: 'debug', model: { target: state.dialog === 'gameNone' ? null : who?.name ?? null, mutable: state.platform === 'desktop', on: DEBUG.on, shade: SHADES[DEBUG.shade],
       ready: BUGS.reports.filter((r) => r.status === 'ready_for_test' && !r.archived).length, canReport: true, canManage: true, console: state.platform === 'desktop' } });
   } else post({ t: 'hide', screen: 'debug' });
 }

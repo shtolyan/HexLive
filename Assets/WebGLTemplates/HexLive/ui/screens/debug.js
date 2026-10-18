@@ -5,6 +5,7 @@
 //
 // Model: {
 //   target: npc name | null,              // null: the tools act on everyone
+//   mutable,                              // body edits need the world in this process
 //   on: { clothesHidden, fog, fogSelected, culling, trace, hexInspector },
 //   shade: text,                          // memory shade style, cycled
 //   ready: count of reports ready to test, canReport, canManage, console,
@@ -21,6 +22,9 @@ const GROUPS = [
   ['tools', [['adminVoice'], ['console']]],
 ];
 
+// Edits of the colonists' bodies: only where the world lives in this process.
+const BODY = new Set(['health', 'look']);
+
 export function Debug({ model, send }) {
   const on = model.on || {};
   return html`
@@ -34,9 +38,11 @@ export function Debug({ model, send }) {
         ${GROUPS.map(([group, items]) => html`
           <div key=${group} class="hx-debug__group">
             <h3 class="hx-section__title">${t(`debug.group.${group}`)}</h3>
+            ${BODY.has(group) && !model.mutable && html`<p class="hx-muted hx-debug__note">${t('debug.localOnly')}</p>`}
             <div class="hx-debug__buttons">
               ${items.filter(([id]) => id !== 'console' || model.console).map(([id, tone, toggle]) => html`
                 <button type="button" key=${id} class=${`hx-debug__btn${tone ? ` is-${tone}` : ''}`}
+                  disabled=${BODY.has(group) && !model.mutable && id !== 'clothesHidden'}
                   aria-pressed=${toggle ? !!on[id] : undefined} onClick=${() => send('act', { id })}>
                   ${toggle && html`<i class="hx-debug__check" aria-hidden="true">${on[id] ? '✓' : ''}</i>`}
                   <span>${id === 'shade' ? t('debug.shade', { 0: model.shade }) : t(`debug.${id}`)}</span>

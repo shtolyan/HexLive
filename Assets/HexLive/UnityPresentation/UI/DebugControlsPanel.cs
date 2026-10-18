@@ -5,6 +5,7 @@ using HexLive.Simulation.Content;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Platform;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -17,7 +18,7 @@ namespace HexLive.UnityPresentation.UI
     /// directly (so it also breaks determinism; that's fine for inspection).
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
-    public sealed class DebugControlsPanel : MonoBehaviour
+    public sealed partial class DebugControlsPanel : MonoBehaviour
     {
         // Presentation-side debug overrides, read by HexWorldRenderer each tick.
         // HideClothing strips garment visuals (sim wardrobe untouched);
@@ -97,10 +98,13 @@ namespace HexLive.UnityPresentation.UI
             }
 
             Build();
+            _instance = this;
+            HtmlUi.Handle(HtmlScreen, OnHtmlCommand);
         }
 
         private void Update()
         {
+            UpdateHtml();
             if (ClosedTestAccess.Enabled)
             {
                 _reportBugButton?.SetEnabled(ClosedTestAccess.Can("bugs.create"));
@@ -294,14 +298,16 @@ namespace HexLive.UnityPresentation.UI
 
         private void ApplyCollapsed()
         {
+            // §174.7: on the web the HUD's DEBUG button and the page's drawer replace both.
+            var html = HtmlUi.Active;
             if (_box != null)
             {
-                _box.style.display = _collapsed ? DisplayStyle.None : DisplayStyle.Flex;
+                _box.style.display = _collapsed || html ? DisplayStyle.None : DisplayStyle.Flex;
             }
 
             if (_expandTab != null)
             {
-                _expandTab.style.display = _collapsed ? DisplayStyle.Flex : DisplayStyle.None;
+                _expandTab.style.display = _collapsed && !html ? DisplayStyle.Flex : DisplayStyle.None;
             }
         }
 

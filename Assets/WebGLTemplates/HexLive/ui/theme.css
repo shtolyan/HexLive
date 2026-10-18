@@ -1729,6 +1729,7 @@
 .hx-debug__head .hx-close { margin-left: auto; }
 .hx-debug__groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); gap: 0.75rem 1rem; }
 .hx-debug__group .hx-section__title { margin: 0 0 0.375rem; }
+.hx-debug__note { margin: 0 0 0.375rem; font-size: 0.6875rem; }
 .hx-debug__buttons { display: flex; flex-wrap: wrap; gap: 0.3125rem; }
 .hx-debug__btn {
   display: inline-flex;

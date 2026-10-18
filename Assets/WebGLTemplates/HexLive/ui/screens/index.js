@@ -17,6 +17,7 @@ import { Loot } from './loot.js';
 import { Build } from './build.js';
 import { BugReport, BugManager } from './bugs.js';
 import { History } from './history.js';
+import { EndSummary } from './endSummary.js';
 
 export const SCREENS = {
   title: Title,
@@ -31,6 +32,7 @@ export const SCREENS = {
   loot: Loot,
   build: Build,
   history: History,
+  endSummary: EndSummary,
   bugReport: BugReport,
   bugManager: BugManager,
   blueprint: Build, // the house constructor: the same tray with an editor header

@@ -476,6 +476,27 @@ function sendHistory() {
   else post({ t: 'hide', screen: 'history' });
 }
 
+// ---- the end of the game (EndSummaryPanel): the raft is done ----
+const END = { open: false };
+function endModel() {
+  const alive = COLONY.filter((c) => c.id !== 13 && c.id !== 14);
+  return {
+    survivors: alive.length, total: COLONY.length, fallen: 2, day: 23, time: '17:40', raft: { done: 6, target: 6 },
+    avgHealth: alive.reduce((n, c) => n + c.health, 0) / alive.length,
+    people: alive.map((c, i) => ({ id: c.id, name: c.name, face: `face:${c.id}`, health: c.health, blood: [0.9, 0.74, 0.88, 1][i % 4],
+      stamina: [0.6, 0.45, 0.8, 0.7][i % 4], wounds: [0, 2, 1, 0][i % 4] })),
+    dead: [
+      { id: 13, name: 'Яна', face: 'face:13', day: 17, tile: '4,−2', cause: tr('end.cause_dog') },
+      { id: 14, name: 'Джолли', face: 'face:14', day: 21, tile: '−1,3', cause: tr('end.cause_heat') },
+    ],
+  };
+}
+function sendEnd() {
+  if (!ready) return;
+  if (END.open && isGame(state.dialog)) post({ t: 'show', screen: 'endSummary', model: endModel() });
+  else post({ t: 'hide', screen: 'endSummary' });
+}
+
 // ---- the action menu (ContextMenuPanel): a right click on the world ----
 const ctx = { target: 'object', open: false, at: null, id: 0 };
 const E = (key, extra) => ({ label: tr(key).replace(/\s*▸$/, ''), enabled: true, hint: null, danger: false, ...(extra || {}) });
@@ -773,7 +794,7 @@ function sendHud() {
 }
 
 function showDialog(id) {
-  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); bp.open = false; post({ t: 'hide', screen: 'blueprint' }); BUGS.quick = BUGS.manager = false; post({ t: 'hide', screen: 'bugReport' }); post({ t: 'hide', screen: 'bugManager' }); post({ t: 'hide', screen: 'history' }); }
+  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); bp.open = false; post({ t: 'hide', screen: 'blueprint' }); BUGS.quick = BUGS.manager = false; post({ t: 'hide', screen: 'bugReport' }); post({ t: 'hide', screen: 'bugManager' }); post({ t: 'hide', screen: 'history' }); END.open = false; post({ t: 'hide', screen: 'endSummary' }); }
   if (shownDialog && !isGame(shownDialog) && ready) post({ t: 'hide', screen: isTitle(shownDialog) ? 'title' : isCreator(shownDialog) ? 'creator' : SCREEN_OF[shownDialog] || shownDialog });
   if (isGame(id)) {
     shownDialog = id;
@@ -789,6 +810,7 @@ function showDialog(id) {
     if (side.health) game.selected = 13; // the most hurt one shows every kind of row
     ctx.open = id === 'gameContext';
     HISTORY.collapsed = id !== 'gameHistory'; HISTORY.shown = 10;
+    END.open = id === 'gameEnd';
     BUGS.quick = id === 'gameBugQuick'; BUGS.manager = id === 'gameBugs'; if (BUGS.manager) { BUGS.tab = 'open'; BUGS.card = 485; }
     bp.open = id === 'gameProject' || id === 'gameFree';
     if (bp.open) { openBlueprint(id === 'gameFree' ? 'free' : 'project'); bp.undo = 3; bp.door = false; bp.active = 'architecture.wall.wood'; bp.category = 'walls'; }
@@ -797,7 +819,7 @@ function showDialog(id) {
     loot.open = ['gameLoot', 'gameGift', 'gameBasket'].includes(id);
     if (loot.open) { loot.mode = id === 'gameGift' ? 'gift' : 'exchange'; loot.other = id === 'gameBasket' ? 'container' : 'person'; lootReset(); }
     if (ctx.open) ctx.at = { x: 0.52, y: 0.42 };
-    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); if (build.open) sendBuild(); if (bp.open) sendBlueprint(); sendBugs(); sendHistory(); }
+    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); if (build.open) sendBuild(); if (bp.open) sendBlueprint(); sendBugs(); sendHistory(); sendEnd(); }
     return;
   }
   if (!isTitle(id)) clearInterval(title.timer);
@@ -886,6 +908,11 @@ function handle(message) {
       if (it && a.kind === 'drop') { it.count -= a.count || 1; if (it.count <= 0) inv.items = inv.items.filter((x) => x !== it); }
     }
     sendInventory();
+    return;
+  }
+  if (message.screen === 'endSummary') {
+    note(key, '→ закрыть итоги и осмотреть остров (до новой игры они не вернутся)');
+    END.open = false; sendEnd();
     return;
   }
   if (message.screen === 'history') {

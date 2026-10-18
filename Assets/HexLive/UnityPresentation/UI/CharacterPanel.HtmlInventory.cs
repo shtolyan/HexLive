@@ -304,6 +304,7 @@ namespace HexLive.UnityPresentation.UI
                 return new JObject { ["blocked"] = npc.IsManualControl ? "craft.block.Incapacitated" : "craft.block.NotManual" };
 
             var categories = new JArray();
+            var seenCategories = new HashSet<string>(StringComparer.Ordinal);
             var recipes = new JArray();
             var detail = new JObject();
             foreach (var option in _craftOptions)
@@ -312,7 +313,7 @@ namespace HexLive.UnityPresentation.UI
                 var def = ResolveDef(id);
                 var info = ResolveItemInfo(id, def);
                 var category = CraftCategories.For(id).ToString().ToLowerInvariant();
-                if (!categories.Contains(category)) categories.Add(category);
+                if (seenCategories.Add(category)) categories.Add(category);
                 var queued = _craftQueue.Remaining(_inventoryActorId, id);
                 recipes.Add(new JObject
                 {

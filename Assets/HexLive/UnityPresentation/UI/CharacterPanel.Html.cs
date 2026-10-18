@@ -136,7 +136,15 @@ namespace HexLive.UnityPresentation.UI
             if (_langButton != null) corner.Add(_langButton);
             if (_diagnosticsLabel != null) corner.Add(_diagnosticsLabel);
             if (_balanceLabel != null) corner.Add(_balanceLabel);
+            // §160 voice: the agent's subtitles and the recording card are
+            // still UI Toolkit on the web; they draw from here, not from the
+            // hidden card (the old subtitle label stays there, unticked).
+            _voiceResponses = new VoiceResponsePanel(corner);
         }
+
+        /// <summary>Where the voice overlays live: the corner document under
+        /// HTML (the card's own tree is display:None there), the card otherwise.</summary>
+        private VisualElement VoiceOverlayParent => _cornerInfo != null ? _cornerInfo.rootVisualElement : _root;
 
         private static void Gone(VisualElement element)
         {

@@ -275,7 +275,7 @@ namespace HexLive.UnityPresentation.UI
         private void RefreshCaptureOverlay()
         {
             if (_agentMicrophone?.IsRecording != true) { _agentCaptureOverlay?.Hide(); return; }
-            _agentCaptureOverlay ??= new PlayerVoiceCaptureOverlay(_root, FinishAgentCapture, () =>
+            _agentCaptureOverlay ??= new PlayerVoiceCaptureOverlay(VoiceOverlayParent, FinishAgentCapture, () =>
             {
                 _agentMicrophone?.Cancel();
                 _agentVoiceUiState = AgentVoiceUiState.Ready;

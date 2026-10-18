@@ -72,6 +72,8 @@ public sealed class GroundBloodStains : MonoBehaviour
     // top face is at the foot and everything above — her — is outside it.
     private const float ProjectorHover = 0.06f;
     private const float ProjectorDepth = 0.9f;
+    // §56.7 / #485: a full butchery pool spans 1.4 hex radii (R=1.5 wu).
+    internal const float ButcheryPoolDiameter = 2.1f;
 
     private sealed class Stain
     {
@@ -129,6 +131,16 @@ public sealed class GroundBloodStains : MonoBehaviour
         DripIfDue(TrackerFor(sourceId, 0f), footWorld, tick);
     }
 
+    public void OnButchery(Vector3 at, int tick)
+    {
+        var stain = Spawn(at, tick);
+        if (stain == null) return;
+        stain.FullScale = ButcheryPoolDiameter;
+        stain.SpreadFromScale = ButcheryPoolDiameter * .8f;
+        stain.CurrentScale = stain.SpreadFromScale;
+        stain.Projector.size = new Vector3(stain.CurrentScale, stain.CurrentScale, ProjectorDepth);
+    }
+
     private BleedTracker TrackerFor(int sourceId, float initialBlood)
     {
         if (_trackers.TryGetValue(sourceId, out var tracker))
@@ -183,6 +195,11 @@ public sealed class GroundBloodStains : MonoBehaviour
                 stain.CurrentScale = scale;
                 stain.Projector.size = new Vector3(scale, scale, ProjectorDepth);
             }
+            else if (stain.CurrentScale != stain.FullScale)
+            {
+                stain.CurrentScale = stain.FullScale;
+                stain.Projector.size = new Vector3(stain.FullScale, stain.FullScale, ProjectorDepth);
+            }
 
             // Dry out: linear alpha fade across the whole lifetime.
             var t01 = age / LifetimeTicks;
@@ -231,19 +248,21 @@ public sealed class GroundBloodStains : MonoBehaviour
             return false;
         }
 
-        best.FullScale = Mathf.Min(best.FullScale + PoolGrowth, MaxPoolScale);
+        // A later ordinary drip must not shrink a large butchery pool to the
+        // small drip cap. Ordinary pools retain the existing bounded growth.
+        best.FullScale = Mathf.Max(best.FullScale, Mathf.Min(best.FullScale + PoolGrowth, MaxPoolScale));
         best.SpreadFromScale = best.CurrentScale;
         best.SpreadStartTick = tick;
         best.BornTick = tick; // re-wet: Advance resets fade + fresh-red bucket
         return true;
     }
 
-    private void Spawn(Vector3 at, int tick)
+    private Stain Spawn(Vector3 at, int tick)
     {
         EnsureAssets();
         if (_variantCount == 0)
         {
-            return; // no textures shipped: silently no-op
+            return null; // no textures shipped: silently no-op
         }
 
         if (_stains.Count >= MaxStains)
@@ -284,7 +303,7 @@ public sealed class GroundBloodStains : MonoBehaviour
         // at/below the foot, never the legs/body/clothes rising above it.
         projector.renderingLayerMask = uint.MaxValue;
 
-        _stains.Add(new Stain
+        var result = new Stain
         {
             Root = go.transform,
             Projector = projector,
@@ -295,7 +314,9 @@ public sealed class GroundBloodStains : MonoBehaviour
             SpreadStartTick = tick,
             SpreadFromScale = DripScale,
             CurrentScale = DripScale,
-        });
+        };
+        _stains.Add(result);
+        return result;
     }
 
     private void EnsureAssets()

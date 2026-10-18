@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
+using ContentQueue = HexLive.UnityPresentation.Wearing.Garments.ContentQueue;
 
 namespace HexLive.UnityPresentation.Audio
 {
@@ -226,6 +227,9 @@ namespace HexLive.UnityPresentation.Audio
                 Paths.Remove(id);
                 LoadedDefs.Remove(id);
             }
+#if UNITY_WEBGL && !UNITY_EDITOR
+            WarmRequestedVoices();
+#endif
         }
 
         private static readonly Dictionary<string, FMOD.Sound[]> Sounds = new();
@@ -330,6 +334,14 @@ namespace HexLive.UnityPresentation.Audio
             _failed = false;
             _loading = false;
             _rng = new System.Random(9257);
+#if UNITY_WEBGL || UNITY_EDITOR
+            RequestedWarmVoices.Clear();
+            AttemptedWarmVoices.Clear();
+            _lastWarmOpenFrame = -1;
+#endif
+#if UNITY_WEBGL && !UNITY_EDITOR
+            FetchingVoiceGroups.Clear();
+#endif
 
             // §70: музыкальный стрим и его группа умирают вместе с системой FMOD.
             MusicPaths.Clear();
@@ -359,11 +371,48 @@ namespace HexLive.UnityPresentation.Audio
             // §168.6: сначала манифест, потом скачать все НЕ-голосовые звуки
             // (~14 МБ Ogg) и только тогда открыть группы — тем же OpenSounds.
             _loading = true;
+            // Install the SDK's browser gesture listener BEFORE the player
+            // clicks a server, rather than only after the downloads finish.
+            if (!EnsureWebAudioEngine())
+            {
+                _failed = true;
+                _loading = false;
+                return;
+            }
+            var finish = BeginAudioWarmup();
             WebAudioFiles.WhenReady(() =>
             {
+                if (WebAudioFiles.Failed)
+                {
+                    _failed = true;
+                    _loading = false;
+                    finish();
+                    return;
+                }
                 var files = AudioFiles("Sfx", true)
                     .Where(IsAudioFile).Where(path => !IsVoiceFile(path)).ToList();
-                WebAudioFiles.EnsureLocal(files, _ => OpenSounds(GroupFiles(files)));
+                WebAudioFiles.EnsureLocal(files, ok =>
+                {
+                    try
+                    {
+                        var available = files.Where(WebAudioFiles.IsLocal).ToList();
+                        if (!ok) Debug.LogWarning($"[FmodSfx] initial effects download incomplete: {available.Count}/{files.Count} files");
+                        if (available.Count == 0)
+                        {
+                            _failed = true;
+                            _loading = false;
+                            Debug.LogError("[FmodSfx] initial effects download failed; audio warmup incomplete");
+                            return;
+                        }
+                        // A single failed effect must not disable every sound.
+                        // Keep the explicit partial-download warning and play
+                        // available samples/Studio events, as on the lazy path.
+                        OpenSounds(GroupFiles(available));
+                        if (_ready) WarmRequestedVoices();
+                        if (_ready && ok) Debug.Log("[WebAudio] effects prepared");
+                    }
+                    finally { finish(); }
+                });
             });
 #else
             var root = Path.Combine(AudioRoot, "Sfx");
@@ -380,6 +429,102 @@ namespace HexLive.UnityPresentation.Audio
                 .Where(path => !IsVoiceFile(path))));
 #endif
         }
+
+        /// <summary>§168.6: only live scene voices, in the player's locale.</summary>
+        public static void PrewarmVoices(IEnumerable<string> voices)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            foreach (var voice in voices)
+            {
+                if (string.IsNullOrWhiteSpace(voice)) continue;
+                var normalized = voice.Trim();
+                if (!RequestedWarmVoices.Contains(normalized) && RequestedWarmVoices.Count < WebAudioWarmupPlan.MaxVoices)
+                    RequestedWarmVoices.Add(normalized.ToLowerInvariant());
+            }
+            Prewarm();
+            if (_ready) WarmRequestedVoices();
+#endif
+        }
+
+#if UNITY_WEBGL || UNITY_EDITOR
+        // Editor includes these helpers for native FMOD/cold-cache verification;
+        // desktop players never call the web prewarm path.
+        private static readonly HashSet<string> RequestedWarmVoices = new(System.StringComparer.OrdinalIgnoreCase);
+        private static readonly HashSet<string> AttemptedWarmVoices = new(System.StringComparer.Ordinal);
+        private static int _lastWarmOpenFrame = -1;
+
+        private static bool EnsureWebAudioEngine()
+        {
+            try { return FMODUnity.RuntimeManager.CoreSystem.hasHandle(); }
+            catch (System.Exception error)
+            {
+                Debug.LogError($"[WebAudio] engine initialization failed: {error.Message}");
+                return false;
+            }
+        }
+
+        private static System.Action BeginAudioWarmup()
+        {
+            ContentQueue.Begin(ContentQueue.Kind.Download);
+            var finished = false;
+            return () =>
+            {
+                if (finished) return;
+                finished = true;
+                ContentQueue.End(ContentQueue.Kind.Download);
+            };
+        }
+
+        private static void WarmRequestedVoices()
+        {
+            var bank = _loadedVoiceBank;
+            var relative = VoiceRoot(bank).Substring(AudioRoot.Length + 1).Replace(Path.DirectorySeparatorChar, '/');
+            foreach (var voice in RequestedWarmVoices)
+            {
+                if (!AttemptedWarmVoices.Add(relative + "/" + voice)) continue;
+                var files = WebAudioWarmupPlan.SelectFiles(AudioFiles(relative, true), voice);
+                if (files.Length == 0) continue;
+                var finish = BeginAudioWarmup();
+                WebAudioFiles.EnsureLocal(files, ok =>
+                {
+                    if (!ok)
+                    {
+                        Debug.LogWarning($"[WebAudio] initial voice download incomplete: {voice} ({bank})");
+                        finish();
+                        return;
+                    }
+                    Wearing.ContentCoroutines.Run(OpenWarmVoiceGroups(bank, files, finish));
+                });
+            }
+        }
+
+        private static System.Collections.IEnumerator OpenWarmVoiceGroups(
+            VoiceBank bank, string[] files, System.Action finish)
+        {
+            try
+            {
+                var failed = 0;
+                foreach (var group in GroupFiles(files.Where(IsAudioFile)))
+                {
+                    if (!_ready || bank != _loadedVoiceBank) yield break;
+                    if (!Sounds.ContainsKey(group.Key))
+                    {
+                        while (_lastWarmOpenFrame == Time.frameCount) yield return null;
+                        if (!_ready || bank != _loadedVoiceBank) yield break;
+                        _lastWarmOpenFrame = Time.frameCount;
+                        LoadedDefs[group.Key] = VoiceDef;
+                        if (!OpenGroup(FMODUnity.RuntimeManager.CoreSystem, group.Key, VoiceDef, group.Value.ToArray()))
+                            failed++;
+                    }
+                    // Keep prewarming cooperative: no giant decode/open frame.
+                    yield return null;
+                }
+                if (failed == 0) Debug.Log($"[WebAudio] opening voice vocabulary prepared ({bank}, {files.Length} files)");
+                else Debug.LogWarning($"[WebAudio] opening voice vocabulary has {failed} failed groups ({bank})");
+            }
+            finally { finish(); }
+        }
+#endif
 
         private static Dictionary<string, List<string>> GroupFiles(IEnumerable<string> files)
         {

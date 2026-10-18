@@ -121,7 +121,7 @@ for Unity access.
 every machine). The web Player is built only by
 `-executeMethod HexLiveWebGLPlayerBuild.Build` and then
 `python3 Tools/webgl_audio_fsb.py <build-dir>`. The FMOD web settings
-(DSP buffer 4×2048, WebAudioTuning) live in the gitignored
+(DSP buffer 4×4096, WebAudioTuning) live in the gitignored
 `Assets/Plugins/FMOD/` and are applied by that method on every build, so a
 Build Settings/menu build ships without them; `HexLiveWebGLBuildGuard` now
 fails such a build. Full audio encoding is macOS-only (build in

@@ -1,0 +1,22 @@
+[
+  {
+    "actor": "Marta",
+    "source": "Assets/ImportedActors/Daz3D/Martanaked/Martanaked.fbx",
+    "sourceSha256": "b39d120616ced6f0acd1c443c17b8d54147b2cd2991cdbaa4bdc62aaa4a19c20",
+    "file": "Marta_Eyelashes.fbx",
+    "sha256": "fb9199f76fc9a2e814904defb8653ee6fa36f02faefc026aed9459fc01a20246",
+    "vertices": 360,
+    "faces": 252,
+    "morphs": 16
+  },
+  {
+    "actor": "Kshishtof",
+    "source": "Assets/ImportedActors/Daz3D/Kshishtof/Kshishtof.fbx",
+    "sourceSha256": "fab45e39eae2170df19ddbd613c7b2c4b7efe26763ddfa4fca1b1e0f6e61f147",
+    "file": "Kshishtof_Eyelashes.fbx",
+    "sha256": "db752a07902e07e05612ee0de8291da99f3fb0a41dc35354df07a32aacd8cf36",
+    "vertices": 360,
+    "faces": 252,
+    "morphs": 16
+  }
+]

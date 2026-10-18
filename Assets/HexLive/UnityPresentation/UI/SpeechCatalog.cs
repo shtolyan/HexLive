@@ -371,6 +371,11 @@ public static class SpeechCatalog
         ["TalkRejected"] = new("Grumble", null, Rank.Talk),
         ["TalkRefused"] = new("Grumble", null, Rank.Talk),
         ["TalkQuarrel"] = new("Grumble", null, Rank.Talk),
+        ["RomanceRequest"] = new("Flirt", null, Rank.Talk),
+        ["RomanceIncoming"] = new("Flirt", null, Rank.Talk),
+        ["RomanceAccepted"] = new("Agree", null, Rank.Talk),
+        ["RomanceRejected"] = new("Fail", null, Rank.Talk),
+        ["RomanceRefused"] = new("Fail", null, Rank.Talk),
         ["Resentment"] = new("Grumble", null, Rank.Talk),
 
         // Увидела убийство: картинка смерти, а не соседняя строка таблицы.

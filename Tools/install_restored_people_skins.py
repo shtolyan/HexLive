@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 import shutil
 import uuid
+import argparse
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'Build/RestoredPeopleSkins'
@@ -77,4 +78,7 @@ def install():
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--staging', type=Path, default=SOURCE)
+    SOURCE = parser.parse_args().staging
     install()

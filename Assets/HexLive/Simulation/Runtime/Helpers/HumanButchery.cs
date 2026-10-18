@@ -119,14 +119,14 @@ internal static class HumanButchery
         foreach (var part in new[] { BodyPart.ArmL, BodyPart.ArmR, BodyPart.LegL, BodyPart.LegR })
         {
             if (!body.Body.IsSevered(part))
-                Drop(world, actor, new ItemInstance(part is BodyPart.ArmL or BodyPart.ArmR
-                    ? HumanMeatCatalog.ArmRaw : HumanMeatCatalog.LegRaw));
+                Drop(world, actor, new ItemInstance(HumanMeatCatalog.RawPart(part, body.Sex)));
             if (body.Body.Condition(part).Prosthetic is { } prosthetic)
                 Drop(world, actor, new ItemInstance(prosthetic.DefinitionId) {
                     Durability = prosthetic.MaxCondition <= 0 ? 0 : prosthetic.Condition / prosthetic.MaxCondition,
                     OwnerId = body.Id.Value });
         }
-        Drop(world, actor, new ItemInstance(HumanMeatCatalog.TorsoRaw));
+        Drop(world, actor, new ItemInstance(HumanMeatCatalog.RawPart(BodyPart.Torso, body.Sex)));
+        Drop(world, actor, new ItemInstance(HumanMeatCatalog.Head));
         actor.Needs.Comfort = System.Math.Max(0f, actor.Needs.Comfort - SimBalance.CannibalismComfortPenalty);
         Trace.Emit(world, actor.Id, "Butchered", $"NPC{body.Id.Value} -> body parts [cannibalism]");
     }

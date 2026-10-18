@@ -634,7 +634,9 @@ public void LegacyOverflowStowsFirst64ExactVictimsThenSpillsRemainderAfterGarmen
         Assert.That(result,Is.EqualTo(true),"A full ground must not retry the entire paid-yield completion");
         Assert.That(world.Entities.Corpses.ContainsKey(body.Id),Is.False);
         Assert.That(world.Entities.Objects.ContainsKey(corpse.Id),Is.False);
-        Assert.That(npc.Inventory.Items.Count(i=>HumanMeatCatalog.IsHumanPart(i.DefinitionId)),Is.EqualTo(5));
+        Assert.That(npc.Inventory.Items.Count(i=>HumanMeatCatalog.IsHumanPart(i.DefinitionId)),Is.EqualTo(6));
+        Assert.That(npc.Inventory.Items.Count(i=>i.DefinitionId==HumanMeatCatalog.Head),Is.EqualTo(1),
+            "The separate head must survive full-ground fallback exactly once");
         Assert.That(npc.Inventory.Items.Any(i=>ReferenceEquals(i,retained)),Is.True);
         Assert.That(npc.Inventory.Items.Any(i=>ReferenceEquals(i,first)),Is.False);
         var dropped=world.Entities.Objects.Values.Single(o=>o.DefinitionId=="clothing.jacket_biker");

@@ -17,6 +17,76 @@ MonoBehaviour:
     UserAgreesToHaveItInsideThePluginsFolder: 0
     GoogleLiveSyncIsUptoDate: 1
     mTerms:
+    - Term: item.food_human_arm_male_raw.name
+      TermType: 0
+      Languages: ["Raw male arm", "Сырая рука мужчины"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_human_arm_male_raw.desc
+      TermType: 0
+      Languages: ["Cook on a campfire spit before eating.", "Приготовьте на вертеле костра."]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_human_arm_male_cooked.name
+      TermType: 0
+      Languages: ["Cooked male arm", "Приготовленная рука мужчины"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_human_arm_male_cooked.desc
+      TermType: 0
+      Languages: ["Cooked human meat.", "Приготовленное человеческое мясо."]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_human_leg_male_raw.name
+      TermType: 0
+      Languages: ["Raw male leg", "Сырая нога мужчины"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_human_leg_male_raw.desc
+      TermType: 0
+      Languages: ["Cook on a campfire spit before eating.", "Приготовьте на вертеле костра."]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_human_leg_male_cooked.name
+      TermType: 0
+      Languages: ["Cooked male leg", "Приготовленная нога мужчины"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_human_leg_male_cooked.desc
+      TermType: 0
+      Languages: ["Cooked human meat.", "Приготовленное человеческое мясо."]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_human_torso_male_raw.name
+      TermType: 0
+      Languages: ["Raw male torso", "Сырой торс мужчины"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_human_torso_male_raw.desc
+      TermType: 0
+      Languages: ["Cook on a campfire spit before eating.", "Приготовьте на вертеле костра."]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_human_torso_male_cooked.name
+      TermType: 0
+      Languages: ["Cooked male torso", "Приготовленный торс мужчины"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_human_torso_male_cooked.desc
+      TermType: 0
+      Languages: ["Cooked human meat.", "Приготовленное человеческое мясо."]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.resource_human_head.name
+      TermType: 0
+      Languages: ["Human head", "Голова человека"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.resource_human_head.desc
+      TermType: 0
+      Languages: ["A separate bald head. Crafting material; not food.", "Отдельная голова без волос. Материал для крафта, не пища."]
+      Flags: 0101
+      Languages_Touch: []
     - Term: menu.butcher_person
       TermType: 0
       Languages: ["Butcher", "Разделать"]
@@ -69,7 +139,7 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: item.food_human_torso_raw.name
       TermType: 0
-      Languages: ["Raw human torso", "Сырое тело"]
+      Languages: ["Raw human torso", "Сырой торс"]
       Flags: 0101
       Languages_Touch: []
     - Term: item.food_human_torso_raw.desc
@@ -79,7 +149,7 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: item.food_human_torso_cooked.name
       TermType: 0
-      Languages: ["Cooked human torso", "Приготовленное тело"]
+      Languages: ["Cooked human torso", "Приготовленный торс"]
       Flags: 0101
       Languages_Touch: []
     - Term: item.food_human_torso_cooked.desc
@@ -31504,6 +31574,14 @@ MonoBehaviour:
       Languages:
       - 'Nothing from this one yet'
       - 'От неё пока ничего'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NoMutualConsent'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The other character is not ready for romance.'
+      - 'Партнёр пока не готов к романтическому сближению.'
       Flags: 0101
       Languages_Touch: []
     CaseInsensitiveTerms: 0

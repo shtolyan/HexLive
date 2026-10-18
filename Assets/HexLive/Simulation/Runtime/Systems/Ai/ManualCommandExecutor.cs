@@ -524,6 +524,11 @@ internal static class ManualCommandExecutor
             }
         }
 
+        // A passive listener has no active plan to abort, but a new player
+        // command must still cancel its invitation and shared heart topics.
+        if (!keepRestPose)
+            ExecutionSystem.ClearInterruptedRomanceInvitation(world, npc, InterruptionCause.PlayerCommand);
+
         if (interruptedSleep)
         {
             npc.Mind.WakeGraceUntilTick = System.Math.Max(
@@ -1169,11 +1174,14 @@ internal static class ManualCommandExecutor
 
         var allowed = command.Forced
             ? RomanceMath.CanForce(world, npc, partner)
-            : RomanceMath.CanConsent(world, npc, partner);
+            : RomanceMath.CanInvite(world, npc, partner) &&
+              (partner.Mind.PendingTalkFrom is null || partner.Mind.PendingTalkFrom == npc.Id) &&
+              (partner.Mind.PendingRomanceFrom is null || partner.Mind.PendingRomanceFrom == npc.Id) &&
+              partner.Mind.RomancePartnerNpcId is null;
         if (!allowed)
         {
             Reject(world, npc.Id, "Romance",
-                command.Forced ? "CannotForce" : "NoMutualConsent", admission);
+                command.Forced ? "CannotForce" : "TargetUnavailable", admission);
             return;
         }
 

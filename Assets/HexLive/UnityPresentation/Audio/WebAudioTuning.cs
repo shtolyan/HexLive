@@ -8,7 +8,7 @@ namespace HexLive.UnityPresentation.Audio
     /// has applied the platform settings and right before Studio::initialize, so
     /// it is the last word on the mixer format.
     /// <para>
-    /// Default: FMOD's own 48 kHz mix and the build's DSP buffer (2048×4). The
+    /// Default: FMOD's own 48 kHz mix and the player-verified DSP buffer (4096×4). The
     /// rate is NOT matched to the page: see the comment at setSoftwareFormat.
     /// </para>
     /// <para>
@@ -23,6 +23,12 @@ namespace HexLive.UnityPresentation.Audio
     [CreateAssetMenu(menuName = "HexLive/Web Audio Tuning")]
     public sealed class WebAudioTuning : FMODUnity.PlatformCallbackHandler
     {
+        // #483: PC Chrome player confirmed less/no crackle with fmodbuf=4096,4.
+        // Shared by the builder and the last pre-init callback; the ignored FMOD
+        // settings asset must never silently restore the older, shorter buffer.
+        public const int DefaultBufferLength = 4096;
+        public const int DefaultBufferCount = 4;
+
         public override void PreInitialize(FMOD.Studio.System system, Action<FMOD.RESULT, string> reportResult)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -52,16 +58,7 @@ namespace HexLive.UnityPresentation.Audio
                 reportResult(core.setSoftwareFormat(forced, speakers, rawSpeakers), "FMOD.System.setSoftwareFormat (url)");
             }
 
-            var buffer = Param(url, "fmodbuf");
-            if (!string.IsNullOrEmpty(buffer))
-            {
-                var parts = buffer.Split(',');
-                if (parts.Length == 2 && uint.TryParse(parts[0], out var length) && int.TryParse(parts[1], out var count) &&
-                    length >= 256 && count >= 2)
-                {
-                    reportResult(core.setDSPBufferSize(length, count), "FMOD.System.setDSPBufferSize (url)");
-                }
-            }
+            ConfigureDspBuffer(core, url, reportResult);
 
             if (int.TryParse(Param(url, "fmodch"), out var channels) && channels >= 8)
             {
@@ -75,6 +72,27 @@ namespace HexLive.UnityPresentation.Audio
             Debug.Log($"[FmodWeb] output {finalOutput}, mix {finalRate} Hz (page context {driverRate}), " +
                       $"buffer {finalLength}x{finalCount}, real channels {finalChannels}");
 #endif
+        }
+
+        // Kept outside the web-only call site so the exact pre-init FMOD API
+        // path can also be verified against the installed native SDK in tests.
+        internal static void ConfigureDspBuffer(FMOD.System core, string url,
+            Action<FMOD.RESULT, string> reportResult)
+        {
+            uint length = DefaultBufferLength;
+            var count = DefaultBufferCount;
+            var buffer = Param(url ?? string.Empty, "fmodbuf");
+            if (!string.IsNullOrEmpty(buffer))
+            {
+                var parts = buffer.Split(',');
+                if (parts.Length == 2 && uint.TryParse(parts[0], out var requestedLength) &&
+                    int.TryParse(parts[1], out var requestedCount) && requestedLength >= 256 && requestedCount >= 2)
+                {
+                    length = requestedLength;
+                    count = requestedCount;
+                }
+            }
+            reportResult(core.setDSPBufferSize(length, count), "FMOD.System.setDSPBufferSize (web policy)");
         }
 
         private static string Param(string url, string name)

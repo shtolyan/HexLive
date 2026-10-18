@@ -91,7 +91,10 @@ namespace HexLive.UnityPresentation.Environment
                 piece.name = "Spit " + id;
                 // Same physical size as the chunk on the ground / in the hand
                 // (the shared ObjectFit table; the campfire renders 1:1).
-                piece.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+                // Native FBX roots include their import-axis conversion. Slot
+                // yaw belongs on top of that basis, as on assembled furniture.
+                var authoredRotation = piece.transform.localRotation;
+                piece.transform.SetPositionAndRotation(Vector3.zero, authoredRotation);
                 piece.transform.localScale *= ObjectFit.FitScaleFactor(piece, id);
 
                 // Fixed slot, centre-out; a chunk beyond the slots (capacity
@@ -99,12 +102,12 @@ namespace HexLive.UnityPresentation.Environment
                 // each slot at its own yaw so the bones fan out along the row.
                 var slot = FillOrder[i % SlotAlongBar.Length];
                 var overflow = i >= SlotAlongBar.Length ? 0.06f : 0f;
-                var pose = Quaternion.Euler(0f, 90f + slot * 25f, 0f);
+                var pose = Quaternion.Euler(0f, 90f + slot * 25f, 0f) * authoredRotation;
                 piece.transform.rotation = pose;
                 // The prefab pivot is off-centre (shifted toward the bone), so
                 // centre the MESH on the skewer point: measure the rotated
                 // bounds at the origin and cancel the pivot offset.
-                var pivotShift = ObjectFit.WorldBounds(piece, out var b)
+                var pivotShift = TryBounds(piece.transform, Matrix4x4.identity, out var b)
                     ? b.center : Vector3.zero;
 
                 piece.transform.SetParent(_meatRoot, false);
@@ -116,7 +119,7 @@ namespace HexLive.UnityPresentation.Environment
         private Vector3 SpitSlot(int slot, float overflow)
         {
             var bar = FindLogicalPiece(transform, "stick_bar");
-            if (bar == null || !TryLocalBounds(bar, transform, out var bounds))
+            if (bar == null || !TryBounds(bar, transform.worldToLocalMatrix, out var bounds))
             {
                 // Legacy authored dimensions remain a safe last resort for an
                 // incomplete custom prefab; the build-safe fallback has a real
@@ -146,28 +149,42 @@ namespace HexLive.UnityPresentation.Environment
             return null;
         }
 
-        private static bool TryLocalBounds(Transform piece, Transform root, out Bounds bounds)
+        private static bool TryBounds(Transform piece, Matrix4x4 toSpace, out Bounds bounds)
         {
-            bounds = default;
+            var measured = new Bounds();
             var found = false;
+            void Include(Vector3 point)
+            {
+                if (!found) { measured = new Bounds(point, Vector3.zero); found = true; }
+                else measured.Encapsulate(point);
+            }
+
             foreach (var renderer in piece.GetComponentsInChildren<Renderer>(true))
             {
-                var world = renderer.bounds;
+                // Transform source geometry directly into the target space.
+                // Unrotating a world AABB inflates it and moves the skewer slots
+                // as the campfire turns. Asymmetric food also needs its actual
+                // rotated mesh centre, rather than the centre of that box.
+                var matrix = toSpace * renderer.transform.localToWorldMatrix;
+                var mesh = renderer.GetComponent<MeshFilter>()?.sharedMesh;
+                if (mesh != null && mesh.isReadable)
+                {
+                    foreach (var vertex in mesh.vertices) Include(matrix.MultiplyPoint3x4(vertex));
+                    continue;
+                }
+
+                // Non-readable/custom renderers still retain their local basis.
+                var local = renderer.localBounds;
                 for (var corner = 0; corner < 8; corner++)
                 {
-                    var worldPoint = world.center + Vector3.Scale(world.extents, new Vector3(
+                    var localPoint = local.center + Vector3.Scale(local.extents, new Vector3(
                         (corner & 1) == 0 ? -1f : 1f,
                         (corner & 2) == 0 ? -1f : 1f,
                         (corner & 4) == 0 ? -1f : 1f));
-                    var localPoint = root.InverseTransformPoint(worldPoint);
-                    if (!found)
-                    {
-                        bounds = new Bounds(localPoint, Vector3.zero);
-                        found = true;
-                    }
-                    else bounds.Encapsulate(localPoint);
+                    Include(matrix.MultiplyPoint3x4(localPoint));
                 }
             }
+            bounds = measured;
             return found;
         }
 

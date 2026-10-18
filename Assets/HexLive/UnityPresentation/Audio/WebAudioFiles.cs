@@ -19,9 +19,8 @@ namespace HexLive.UnityPresentation.Audio
     /// reader see an ordinary file path — the same code as on desktop, only the
     /// root differs.
     /// <para>
-    /// Nothing is fetched up front: ~200 MB of voices would never fit the tab.
-    /// Each group is fetched when it is first asked for; that first request
-    /// stays silent and the next one plays.
+    /// Common effects and a bounded opening vocabulary are warmed behind the
+    /// loading curtain. The rest of the voice corpus stays lazy.
     /// </para>
     /// </summary>
     public static class WebAudioFiles
@@ -44,8 +43,9 @@ namespace HexLive.UnityPresentation.Audio
         private static int _active;
         private static bool _manifestRequested;
 
-        /// <summary>True once the manifest is known (always false off the web).</summary>
+        /// <summary>Manifest request finished; inspect Failed for failure. False off the web.</summary>
         public static bool Ready { get; private set; }
+        public static bool Failed { get; private set; }
 
         /// <summary>Where fetched files live — MEMFS inside the tab.</summary>
         public static string LocalRoot => Path.Combine(Application.temporaryCachePath, "HexLiveAudio");
@@ -62,6 +62,7 @@ namespace HexLive.UnityPresentation.Audio
             _active = 0;
             _manifestRequested = false;
             Ready = false;
+            Failed = false;
         }
 
         /// <summary>Run <paramref name="action"/> once the manifest is loaded
@@ -108,16 +109,20 @@ namespace HexLive.UnityPresentation.Audio
         /// </summary>
         public static void EnsureLocal(IReadOnlyList<string> localPaths, Action<bool> done)
         {
-            var remaining = 0;
+            // Seed the full count BEFORE scheduling: missing entries (and the
+            // desktop test transport) complete inline. Incrementing in the
+            // enqueue loop reported premature/multiple completion (#484).
+            var missing = new HashSet<string>(localPaths, StringComparer.Ordinal);
+            missing.ExceptWith(Present);
+            var remaining = missing.Count;
             var allOk = true;
-            foreach (var path in localPaths)
+            if (remaining == 0)
             {
-                if (Present.Contains(path))
-                {
-                    continue;
-                }
-
-                remaining++;
+                done(true);
+                return;
+            }
+            foreach (var path in missing)
+            {
                 Enqueue(path, ok =>
                 {
                     allOk &= ok;
@@ -126,11 +131,6 @@ namespace HexLive.UnityPresentation.Audio
                         done(allOk);
                     }
                 });
-            }
-
-            if (remaining == 0)
-            {
-                done(allOk);
             }
         }
 
@@ -163,7 +163,8 @@ namespace HexLive.UnityPresentation.Audio
             {
                 foreach (var waiter in waiters)
                 {
-                    waiter(ok);
+                    try { waiter(ok); }
+                    catch (Exception error) { Debug.LogException(error); }
                 }
             }
         }
@@ -192,27 +193,35 @@ namespace HexLive.UnityPresentation.Audio
 
             _manifestRequested = true;
             var request = UnityWebRequest.Get(BaseUrl + ManifestName);
+            request.timeout = 30;
             request.SendWebRequest().completed += _ =>
             {
-                if (request.result == UnityWebRequest.Result.Success)
+                try
                 {
+                    if (request.result != UnityWebRequest.Result.Success)
+                        throw new IOException(request.error);
                     var manifest = JsonUtility.FromJson<Manifest>(request.downloadHandler.text);
                     Entries.AddRange(manifest?.files ?? Array.Empty<string>());
+                    if (Entries.Count == 0) throw new IOException("empty audio manifest");
                     EntrySet.UnionWith(Entries);
                     Debug.Log($"[WebAudio] manifest: {Entries.Count} files");
                 }
-                else
+                catch (Exception error)
                 {
-                    Debug.LogWarning($"[WebAudio] no audio manifest ({request.error}) — the build is silent");
+                    Failed = true;
+                    Entries.Clear();
+                    EntrySet.Clear();
+                    Debug.LogError($"[WebAudio] cannot prepare audio manifest: {error.Message}");
                 }
-                request.Dispose();
+                finally { request.Dispose(); }
 
                 Ready = true;
                 var waiters = ReadyWaiters.ToArray();
                 ReadyWaiters.Clear();
                 foreach (var waiter in waiters)
                 {
-                    waiter();
+                    try { waiter(); }
+                    catch (Exception error) { Debug.LogException(error); }
                 }
             };
         }
@@ -231,6 +240,7 @@ namespace HexLive.UnityPresentation.Audio
 
                 _active++;
                 var request = UnityWebRequest.Get(UrlOf(relative));
+                request.timeout = 30;
                 request.SendWebRequest().completed += _ =>
                 {
                     _active--;

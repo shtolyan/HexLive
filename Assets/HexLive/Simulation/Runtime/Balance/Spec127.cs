@@ -5,6 +5,7 @@ namespace HexLive.Simulation.Runtime
 public static class Spec127
 {
     public const bool RomanceEnabled = true;
+    public const int InvitationTalkTicks = 40;
 
     // 24 000 ticks/day => 1 000/hour => 1 334 ticks ≈ 80 game minutes.
     // The original 667/32 timeline was doubled as a whole, so both the

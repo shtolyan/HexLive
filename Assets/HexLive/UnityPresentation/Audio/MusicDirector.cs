@@ -63,6 +63,10 @@ namespace HexLive.UnityPresentation.Audio
 
         private void Awake()
         {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // Start effects in the menu, not after entering the island (#484).
+            FmodSfx.Prewarm();
+#endif
             FmodSfx.MusicTracksChanged += MusicTracksBecameAvailable;
             var tracks = FmodSfx.MusicTracks;
             if (tracks.Length > 0)

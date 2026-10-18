@@ -187,6 +187,7 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        RomanceMath.CatchCheaters(world, leader, partner, forced);
         ApplyRomanceStressTick(leader, partner, forced);
         if (world.Tick < leader.Execution.EndTick)
         {
@@ -310,6 +311,7 @@ public sealed partial class ExecutionSystem
             rel.Trust + Spec127.ConsentTrustGain, -1f, 1f);
         rel.Familiarity = MathUtil.Clamp01(
             rel.Familiarity + Spec127.ConsentFamiliarityGain);
+        rel.IsLover = true; // §127.13
     }
 
     private static void FinishRomancePair(WorldState world, NPCState leader,

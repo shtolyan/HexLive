@@ -239,6 +239,9 @@ public static class JournalCatalog
         // зеркало получает максимальный приоритет и называет виновника.
         r["RomanceForced"] = new JournalRule(
             0, JournalRole.FirstNpc, mirrorWeight: 100);
+        // §127.13: застала любовника с другой — помнит и она, и он.
+        r["CaughtCheating"] = new JournalRule(84, JournalRole.ArrowTarget,
+            mirrorWeight: 70);
         // §153: подарок помнят обе — дарительница как поступок, получательница
         // как то, что ей принесли. Вес чуть выше беседы: вещь из рук в руки
         // случается редко и значит больше.

@@ -376,6 +376,8 @@ public static class SpeechCatalog
         ["RomanceAccepted"] = new("Agree", null, Rank.Talk),
         ["RomanceRejected"] = new("Fail", null, Rank.Talk),
         ["RomanceRefused"] = new("Fail", null, Rank.Talk),
+        // §127.13: застала любовника с другой — над ней его лицо и ворчание.
+        ["CaughtCheating"] = new("Grumble", "angry_topic_grumble", Rank.Alarm),
         ["Resentment"] = new("Grumble", null, Rank.Talk),
 
         // Увидела убийство: картинка смерти, а не соседняя строка таблицы.

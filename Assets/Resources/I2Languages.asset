@@ -19872,6 +19872,14 @@ MonoBehaviour:
       - '{0} изнасиловал {1}.'
       Flags: 0101
       Languages_Touch: []
+    - Term: history.CaughtCheating
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} caught {1} with {2}.'
+      - '{0} застала {1} с {2}.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: history.CampsMerged
       TermType: 0
       Description:
@@ -23534,6 +23542,22 @@ MonoBehaviour:
       Languages:
       - '{0} raped me. I feel sick even remembering it.'
       - '{0} изнасиловал меня. Мне мерзко даже вспоминать об этом.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: journal.CaughtCheating.did.v0
+      TermType: 0
+      Description:
+      Languages:
+      - 'I saw {0} with someone else with my own eyes. How could I ever trust that again?'
+      - 'Я своими глазами видела {0} с другим человеком. Как после такого верить?'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: journal.CaughtCheating.got.v0
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} caught me with someone else.'
+      - '{0} застала меня с другим человеком.'
       Flags: 0101
       Languages_Touch: []
     - Term: journal.me.dative

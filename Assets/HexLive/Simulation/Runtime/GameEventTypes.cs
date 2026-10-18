@@ -197,6 +197,8 @@ public static class GameEventTypes
         "GiftGiven",
         "RomanceCompleted",
         "RomanceForced",
+        // §127.13: любовница застала его с другой — ревность как в The Sims.
+        "CaughtCheating",
         "TalkCompleted",
         // §146.12: два самостоятельных лагеря договорились жить вместе.
         "CampsMerged",

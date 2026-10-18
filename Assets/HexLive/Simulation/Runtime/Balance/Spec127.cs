@@ -33,6 +33,13 @@ public static class Spec127
     public const float ForcedPelvisDamageMin = 0.05f;
     public const float ForcedPelvisDamageMax = 0.08f;
 
+    // §127.13: caught a lover with someone else. The Sims 1 takes −50 of a
+    // ±100 bar; The Sims 2 says the bond "plummets into the negative" —
+    // hence both a loss and a ceiling below zero.
+    public const float JealousyAffinityLoss = 0.50f;
+    public const float JealousyAffinityCeiling = -0.10f;
+    public const float JealousyTrustLoss = 0.50f;
+
     // One full scene can move either extreme of the normalized stress scale
     // all the way to its authored outcome (§127.12).
     public const float StressChangePerTick = 1f / DurationTicks;

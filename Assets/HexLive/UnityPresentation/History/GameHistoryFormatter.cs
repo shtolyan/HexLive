@@ -49,6 +49,12 @@ namespace HexLive.UnityPresentation.History
                 "TalkStarted" => F("history.TalkStarted", actor, target),
                 "RomanceCompleted" => F("history.RomanceCompleted", actor, target),
                 "RomanceForced" => F("history.RomanceForced", actor, target),
+                // §127.13: «кто застал — кого — с кем».
+                "CaughtCheating" => F("history.CaughtCheating", actor,
+                    TargetFromArrow(record.Message, target),
+                    Npc(int.TryParse(Token(record.Message, "With=NPC"),
+                        NumberStyles.Integer, CultureInfo.InvariantCulture, out var with)
+                        ? (int?)with : null)),
                 "TalkCompleted" => F("history.TalkCompleted", actor, target),
                 // §153.3: подарок читается в ленте как поступок дарительницы —
                 // кому, видно по стрелке, а КАК приняли живёт в детали.
@@ -278,6 +284,7 @@ namespace HexLive.UnityPresentation.History
         private static GameHistoryTone Tone(string type)
         {
             if (type is "Aided" or "AidRequested" or "AidStarted" or "RomanceCompleted" or "TalkCompleted" or "CampsMerged" or "TalkRequested" or
+                "CaughtCheating" or // §127.13: это про людей
                 "GiftGiven" or // §153: вещь из рук в руки — это про людей
                 "TalkStarted" or "FoodShared" or "RelationshipChanged" or "Mourned" or
                 "Rescued" or // §105: её вытащили — это про людей, а не про урон

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
@@ -169,6 +170,73 @@ internal static class RomanceMath
                 }
 
                 if (!blocked) edgeChoices.Add((key, candidate));
+            }
+        }
+    }
+
+    /// <summary>
+    /// §127.13, as in The Sims: a lover who sees the scene sours on BOTH its
+    /// accomplices. Only who started or accepted it is complicit — a forced
+    /// scene's victim is not cheating. Fires once per scene by itself: the
+    /// lover marks it clears are what made the witness jealous.
+    /// </summary>
+    public static void CatchCheaters(WorldState world, NPCState leader,
+        NPCState partner, bool forced)
+    {
+        foreach (var witness in world.Entities.Npcs.Values)
+        {
+            if (witness.Id.Equals(leader.Id) || witness.Id.Equals(partner.Id) ||
+                witness.Health <= 0f || witness.IsUnconscious(world.Tick) ||
+                witness.Execution.CurrentInteraction == InteractionType.Sleep)
+            {
+                continue;
+            }
+
+            var lovesLeader = IsLoverOf(witness, leader);
+            var lovesPartner = !forced && IsLoverOf(witness, partner);
+            if (!lovesLeader && !lovesPartner) continue;
+            if (!Sees(witness, leader) && !Sees(witness, partner)) continue;
+
+            var betrayer = lovesLeader ? leader : partner;
+            var paramour = betrayer == leader ? partner : leader;
+            Sour(witness, leader, betrayed: lovesLeader);
+            if (!forced) Sour(witness, partner, betrayed: lovesPartner);
+            witness.Needs.Social = 0f;
+            witness.Social.MarkInteraction(betrayer.Id, world.Tick);
+            witness.Social.MarkInteraction(paramour.Id, world.Tick);
+            SocialCueSignals.Stamp(world, witness, "CaughtCheating", betrayer.Id);
+
+            var toBetrayer = witness.Social.GetOrCreate(betrayer.Id);
+            Trace.Emit(world, witness.Id, "CaughtCheating",
+                $"NPC{witness.Id.Value}->NPC{betrayer.Id.Value} " +
+                $"With=NPC{paramour.Id.Value} Aff={toBetrayer.Affinity:F2} " +
+                $"Trust={toBetrayer.Trust:F2} Forced={forced}");
+        }
+
+        static bool IsLoverOf(NPCState witness, NPCState other) =>
+            witness.Social.Relationships.TryGetValue(other.Id, out var rel) && rel.IsLover;
+
+        static bool Sees(NPCState witness, NPCState other)
+        {
+            foreach (var agent in witness.Perception.Agents)
+            {
+                if (agent.CanSee && agent.Id.Equals(other.Id)) return true;
+            }
+
+            return false;
+        }
+
+        static void Sour(NPCState witness, NPCState other, bool betrayed)
+        {
+            var rel = witness.Social.GetOrCreate(other.Id);
+            rel.IsLover = false;
+            rel.Affinity = MathUtil.Clamp(MathF.Min(
+                    rel.Affinity - Spec127.JealousyAffinityLoss,
+                    Spec127.JealousyAffinityCeiling), -1f, 1f);
+            if (betrayed)
+            {
+                rel.Trust = MathUtil.Clamp(
+                    rel.Trust - Spec127.JealousyTrustLoss, -1f, 1f);
             }
         }
     }

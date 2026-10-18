@@ -46,6 +46,12 @@ public sealed class RelationshipData
 
     /// <summary>§107.8 / Bug #218: latest direct social contact with this person.</summary>
     public int LastInteractionTick { get; set; }
+
+    /// <summary>
+    /// §127.13: Я считаю её своей любовницей — «влюблён» из The Sims. Ставит
+    /// только добровольный финал близости, снимает только моя ревность.
+    /// </summary>
+    public bool IsLover { get; set; }
 }
 
 // Spec 28.3: what perception carries about another agent.

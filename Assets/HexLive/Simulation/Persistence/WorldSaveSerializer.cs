@@ -182,7 +182,8 @@ public static class WorldSaveSerializer
     // v83 (§171.10): account character creation receipts and ownership recovery.
     // v84 (§54): fresh/dry leaf provenance on world objects and items.
     // v85 (§120): installed building units are durable and distinct from stock.
-    public const int BlobVersion = 85;
+    // v86 (§127.13): lover mark in every relationship record.
+    public const int BlobVersion = 86;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1999,6 +2000,7 @@ public static class WorldSaveSerializer
             w.Write(pair.Value.Affinity);
             w.Write(pair.Value.LastInteractionTick);
             if (version >= 78) w.Write(pair.Value.Authority);
+            if (version >= 86) w.Write(pair.Value.IsLover);
         }
 
         w.Write(npc.Inventory.Capacity);
@@ -2678,7 +2680,8 @@ public static class WorldSaveSerializer
                 Familiarity = r.ReadSingle(),
                 Affinity = r.ReadSingle(),
                 LastInteractionTick = version >= 59 ? r.ReadInt32() : 0,
-                Authority = version >= 78 ? MathUtil.Clamp01(r.ReadSingle()) : 0f
+                Authority = version >= 78 ? MathUtil.Clamp01(r.ReadSingle()) : 0f,
+                IsLover = version >= 86 && r.ReadBoolean()
             };
         }
 

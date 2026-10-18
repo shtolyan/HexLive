@@ -31584,6 +31584,78 @@ MonoBehaviour:
       - 'Партнёр пока не готов к романтическому сближению.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'toast.build_finished.Built'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Done building'
+      - '[[s:Достроила|Достроил]]'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.build_finished.NoMaterials'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Out of materials, none nearby'
+      - 'Материалы кончились, рядом нет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.build_finished.MissingTool'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Need a hammer to go on'
+      - 'Дальше нужен молоток'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.build_finished.PackFull'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pack is full — can''t carry more'
+      - 'Рюкзак полон — больше не унести'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.build_finished.Blocked'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Can''t place the next piece yet'
+      - 'Следующую деталь пока не поставить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.build_finished.NoProgress'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Building isn''t moving — stopped'
+      - 'Стройка не идёт — [[s:остановилась|остановился]]'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.build_finished.SiteGone'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The build site is gone'
+      - 'Стройки больше нет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NoMaterials'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'No materials in hand or nearby'
+      - 'Ни в руках, ни рядом нет материалов'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.PackFull'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pack is full'
+      - 'Рюкзак полон'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

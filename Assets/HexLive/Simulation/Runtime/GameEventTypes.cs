@@ -269,6 +269,8 @@ public static class GameEventTypes
         "ManualOrderInterrupted",
         "ManualControlExpired",
         "GroupOrderResult",
+        // §121.12: стройсессия «Строить» закончилась — достроила или почему встала.
+        "ManualBuildFinished",
     };
 
     public static bool IsManualOrderReply(string type) =>

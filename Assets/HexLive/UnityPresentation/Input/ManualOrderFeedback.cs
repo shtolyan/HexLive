@@ -76,6 +76,26 @@ public static class ManualOrderFeedback
         _stampedAt = Time.unscaledTime;
     }
 
+    /// <summary>§121.12: конец стройсессии — <c>Outcome=…</c> в ключ
+    /// <c>toast.build_finished.&lt;Outcome&gt;</c>; отказ очередного шага
+    /// (<c>Outcome=Refused Reason=…</c>) читается как обычный отказ приказа.</summary>
+    public static void ReportBuildFinished(int npcId, string message)
+    {
+        var outcome = ValueOf(message, "Outcome=");
+        if (outcome.Length == 0)
+        {
+            return;
+        }
+
+        if (outcome == "Refused")
+        {
+            Report(npcId, message);
+            return;
+        }
+
+        ReportTerm(npcId, "toast.build_finished." + outcome);
+    }
+
     /// <summary>§121.7: тост с готовым ключом локализации — для событий, у
     /// которых нет формы <c>Reason=…</c> (возврат под ИИ по таймауту).</summary>
     public static void ReportTerm(int npcId, string term)

@@ -9,7 +9,7 @@
 // Model: {
 //   name, readonly, outfitLocked, capacity: { used, cap }, toast: null | I2 key (§121, as on the card),
 //   items: [{ uid, def, icon, name, count, inUse, favorite, worn, overflow, layer?,
-//             detail: { category, desc, stats: [[label, value]], actions: ['wear'|'stow'|'drop'|'fill'|'plant'], note } }],
+//             detail: { category, desc, stats: [[label, value, color, fill|null]], actions: ['wear'|'stow'|'drop'|'fill'|'plant'], note } }],
 //   slots,                                  // total cells, empty ones included
 //   dollLayer: 'underwear'|'wear'|'outerwear'|'bags',
 //   craft: { blocked (key|null), categories: [id], recipes: [{ id, icon, name, category, working, queued }],
@@ -23,7 +23,7 @@
 import { html, useState, useRef } from '../html.js';
 import { t } from '../i18n.js';
 import { icons } from '../icons.js';
-import { Button, Hole, Pic, Quantity } from '../components.js';
+import { Button, Hole, Pic, Quantity, ItemStats } from '../components.js';
 
 function Slot({ item, selected, onSelect, onQuick, onDragItem }) {
   if (!item) return html`<li class="hx-slot hx-slot--empty" aria-hidden="true"></li>`;
@@ -51,7 +51,7 @@ function Detail({ item, model, send, onBack, onDrop }) {
         <div><h3>${item.name}${item.count > 1 ? ` ×${item.count}` : ''}</h3><span class="hx-muted">${d.category}</span></div>
       </header>
       ${d.desc && html`<p class="hx-text">${d.desc}</p>`}
-      ${d.stats?.length > 0 && html`<dl class="hx-kv">${d.stats.map(([k, v]) => html`<dt key=${k}>${t(k)}</dt><dd>${v}</dd>`)}</dl>`}
+      <${ItemStats} rows=${d.stats} />
       ${(model.readonly || model.outfitLocked) && html`<p class="hx-muted">${t(model.readonly ? 'inv.readonly' : 'inv.outfit_locked')}</p>`}
       <div class="hx-actions hx-actions--left">
         ${(model.readonly ? [] : d.actions || []).map((a) => {

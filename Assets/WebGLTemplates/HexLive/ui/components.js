@@ -5,6 +5,23 @@ import { t } from './i18n.js';
 import { icons } from './icons.js';
 import { asset } from './bridge.js';
 
+/** Shared item-card rows; C# supplies colours and meter values, including zero. */
+export function ItemStats({ rows = [] }) {
+  if (!rows?.length) return null;
+  return html`<dl class="hx-item-stats">${rows.map((row, index) => {
+    // Older stand fixtures and a cached page model may still contain text pairs.
+    const r = Array.isArray(row) ? { label: row[0], value: row[1], color: row[2], fill: row[3] } : row;
+    const fill = typeof r.fill === 'number' && Number.isFinite(r.fill) ? Math.max(0, Math.min(1, r.fill)) : null;
+    return html`<div class="hx-item-stat" key=${index}>
+      <dt>${t(r.label)}</dt><dd style=${{ color: r.color || undefined }}>${r.value}</dd>
+      ${fill !== null && html`<dd class="hx-item-stat__meter" role="meter" aria-label=${t(r.label)}
+        aria-valuemin="0" aria-valuemax="100" aria-valuenow=${Math.round(fill * 100)}>
+        <i style=${{ width: `${fill * 100}%`, backgroundColor: r.color || 'var(--hx-gold)' }}></i>
+      </dd>`}
+    </div>`;
+  })}</dl>`;
+}
+
 const chevronIcon = html`<svg class="hx-disclosure__chevron" viewBox="0 0 16 16" aria-hidden="true">
   <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
     stroke-linejoin="round" fill="none" />

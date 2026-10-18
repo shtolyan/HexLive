@@ -45,6 +45,7 @@ namespace HexLive.UnityPresentation.UI
             if (!_html)
             {
                 _html = true;
+                MoveCornerInfoOutOfCard();
                 HtmlUi.Handle(HtmlRoster, OnHtmlCommand);
                 HtmlUi.Handle(HtmlCharacter, OnHtmlCommand);
                 HtmlUi.Handle(HtmlInventory, OnHtmlInventoryCommand);
@@ -94,6 +95,11 @@ namespace HexLive.UnityPresentation.UI
         // registered as open (Esc, BlocksWorldInput): only display changes.
         private void HideUitkUnderHtml()
         {
+            // The whole document goes: its hidden subtree is rewritten every
+            // frame (Refresh feeds the HTML models from it) and kept the panel
+            // repainting. The three visible corner bits live in their own
+            // small document (MoveCornerInfoOutOfCard).
+            Gone(_root);
             Gone(_stage);
             Gone(_roster);
             Gone(_expandTab);
@@ -103,6 +109,33 @@ namespace HexLive.UnityPresentation.UI
             Gone(_healthModal?.Backdrop);
             Gone(_journalWindow);
             Gone(_journalModal?.Backdrop);
+        }
+
+        private UIDocument _cornerInfo;
+
+        // §168.11: the language button, the FPS/RAM line and the account
+        // balance are the only things of this card the web page still shows
+        // from UI Toolkit. They move into a tiny document of their own (its
+        // own panel, same scaling) so the card's panel can be switched off.
+        private void MoveCornerInfoOutOfCard()
+        {
+            if (_cornerInfo != null || _document == null || _document.panelSettings == null) return;
+            // A scene root on purpose: a UIDocument under another UIDocument's
+            // GameObject becomes a child document and is drawn inside that
+            // document's tree — the hidden card's — ignoring its own panel.
+            var holder = new GameObject("HexLive Corner Info");
+            holder.SetActive(false);
+            _cornerInfo = holder.AddComponent<UIDocument>();
+            var settings = Instantiate(_document.panelSettings);
+            settings.name = "CornerInfoSettings";
+            _cornerInfo.panelSettings = settings;
+            holder.SetActive(true);
+            var corner = _cornerInfo.rootVisualElement;
+            if (corner == null) return;
+            corner.pickingMode = PickingMode.Ignore;
+            if (_langButton != null) corner.Add(_langButton);
+            if (_diagnosticsLabel != null) corner.Add(_diagnosticsLabel);
+            if (_balanceLabel != null) corner.Add(_balanceLabel);
         }
 
         private static void Gone(VisualElement element)
@@ -139,6 +172,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void OnDestroy()
         {
+            if (_cornerInfo != null) Destroy(_cornerInfo.gameObject);
             if (!_html) return;
             HtmlUi.Unhandle(HtmlRoster, OnHtmlCommand);
             HtmlUi.Unhandle(HtmlCharacter, OnHtmlCommand);

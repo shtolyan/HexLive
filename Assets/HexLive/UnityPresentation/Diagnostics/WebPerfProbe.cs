@@ -24,7 +24,8 @@ namespace HexLive.UnityPresentation.Diagnostics
     /// a token are switched off (re-applied every 2 s for late spawns);</item>
     /// <item><c>?shadows=0</c> — URP shadow distance 0 (no shadow pass);</item>
     /// <item><c>?uitk=0</c> — every UI Toolkit document hidden, to price the
-    /// UI Toolkit repaint;</item>
+    /// UI Toolkit repaint; <c>?uitkhide=Tactical,Debug</c> — only the
+    /// documents whose GameObject name contains a token;</item>
     /// <item><c>?perfgui=0</c> — no on-screen WebPerf table (log only).</item>
     /// </list>
     /// </summary>
@@ -35,6 +36,7 @@ namespace HexLive.UnityPresentation.Diagnostics
         private static readonly Regex Digits = new(@"\d+", RegexOptions.Compiled);
 
         private string[] _hide = System.Array.Empty<string>();
+        private string[] _hideDocuments = System.Array.Empty<string>();
         private bool _census;
         private bool _hideUi;
         private float _nextApply;
@@ -47,6 +49,8 @@ namespace HexLive.UnityPresentation.Diagnostics
             ShowGui = Platform.WebPage.QueryFloat("perfgui") != 0f;
             _census = Platform.WebPage.QueryFloat("census") == 1f;
             _hideUi = Platform.WebPage.QueryFloat("uitk") == 0f;
+            _hideDocuments = QueryText("uitkhide")?.Split(',').Where(token => token.Length > 0).ToArray() ??
+                             System.Array.Empty<string>();
             _hide = QueryText("hide")?.Split(',').Where(token => token.Length > 0).ToArray() ??
                     System.Array.Empty<string>();
             _censusAt = Time.realtimeSinceStartup + CensusDelaySeconds;
@@ -57,13 +61,14 @@ namespace HexLive.UnityPresentation.Diagnostics
                 Debug.Log("[WebPerf] shadows off (?shadows=0)");
             }
 
-            Debug.Log($"[WebPerf] probe: census={_census} hide=[{string.Join(",", _hide)}] uitk={(_hideUi ? "hidden" : "on")} gui={ShowGui}");
+            Debug.Log($"[WebPerf] probe: census={_census} hide=[{string.Join(",", _hide)}] uitk={(_hideUi ? "hidden" : "on")} " +
+                      $"uitkhide=[{string.Join(",", _hideDocuments)}] gui={ShowGui}");
         }
 
         private void Update()
         {
             var now = Time.realtimeSinceStartup;
-            if ((_hide.Length > 0 || _hideUi) && now >= _nextApply)
+            if ((_hide.Length > 0 || _hideUi || _hideDocuments.Length > 0) && now >= _nextApply)
             {
                 _nextApply = now + ReapplySeconds;
                 Apply();
@@ -97,11 +102,13 @@ namespace HexLive.UnityPresentation.Diagnostics
                 }
             }
 
-            if (_hideUi)
+            if (_hideUi || _hideDocuments.Length > 0)
             {
                 foreach (var document in FindObjectsByType<UIDocument>(FindObjectsSortMode.None))
                 {
-                    if (document.rootVisualElement != null)
+                    if (document.rootVisualElement == null) continue;
+                    var name = document.gameObject.name;
+                    if (_hideUi || _hideDocuments.Any(token => name.Contains(token)))
                     {
                         document.rootVisualElement.style.display = DisplayStyle.None;
                     }

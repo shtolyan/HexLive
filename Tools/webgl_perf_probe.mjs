@@ -7,6 +7,7 @@
 //   node Tools/webgl_perf_probe.mjs --session <work>/session.json \
 //        [--port 5201] [--query "rscale=1&bloom=0"] [--seconds 60] [--warmup 20] \
 //        [--size 1600x900] [--out result.txt]
+//        [--actions "click:.hx-id__btn;wait:2000;shot:backpack;key:Escape"]
 //
 // A throwaway Chrome profile is created and deleted; the stand's emulator
 // session is written into that profile's localStorage only. The page is
@@ -111,6 +112,32 @@ try {
     if (clicked === 'hud') inWorld = true;
   }
   if (!inWorld) throw new Error('never reached the world (no HUD) within 180 s');
+
+  // A functional check before the measurement: click:<css> (first visible
+  // match), key:<Escape|...>, wait:<ms>, shot:<name> (<out>-<name>.jpg),
+  // dom:<css> (logs how many visible elements match).
+  for (const step of (args.actions ?? '').split(';').filter(Boolean)) {
+    const [verb, ...rest] = step.split(':');
+    const value = rest.join(':');
+    if (verb === 'wait') await sleep(Number(value));
+    else if (verb === 'click') {
+      const ok = await evaluate(`(() => { const e = [...document.querySelectorAll(${JSON.stringify(value)})]
+        .find(x => x.offsetParent); if (!e) return false; e.click(); return true; })()`);
+      notes.push(`[action] click ${value}: ${ok ? 'ok' : 'NOT FOUND'}`);
+    } else if (verb === 'key') {
+      for (const type of ['keyDown', 'keyUp'])
+        await send('Input.dispatchKeyEvent', { type, key: value, code: value, windowsVirtualKeyCode: value === 'Escape' ? 27 : 0 });
+      notes.push(`[action] key ${value}`);
+    } else if (verb === 'dom') {
+      const count = await evaluate(`[...document.querySelectorAll(${JSON.stringify(value)})].filter(x => x.offsetParent).length`);
+      notes.push(`[action] dom ${value}: ${count} visible`);
+    } else if (verb === 'shot' && args.out) {
+      const image = await send('Page.captureScreenshot', { format: 'jpeg', quality: 70 });
+      if (image.result?.data) writeFileSync(args.out.replace(/\.txt$/, '') + '-' + value + '.jpg',
+        Buffer.from(image.result.data, 'base64'));
+      notes.push(`[action] shot ${value}`);
+    }
+  }
 
   await sleep(warmup * 1000);
   measuring = true;

@@ -293,6 +293,8 @@ namespace HexLive.UnityPresentation.UI
         private static JObject HtmlModel() => new()
         {
             ["canQuit"] = WebPage.CanQuit,
+            // §174.7: the language switch lives here on the web, beside the sound.
+            ["lang"] = Loc.Current == HexLive.UnityPresentation.Localization.Language.Russian ? "ru" : "en",
             ["volumes"] = new JObject
             {
                 ["voices"] = VolumePercent(FmodSfx.VolumeCategory.Voices),
@@ -335,6 +337,14 @@ namespace HexLive.UnityPresentation.UI
                     if (category is { } known)
                     {
                         FmodSfx.SetUserVolume(known, Mathf.Clamp01(((float?)args["value"] ?? 100f) / 100f));
+                    }
+                    break;
+                case "lang":
+                    var code = (string)args["code"];
+                    if (code is "ru" or "en" && code != (Loc.Current == HexLive.UnityPresentation.Localization.Language.Russian ? "ru" : "en"))
+                    {
+                        Loc.Toggle();
+                        HtmlUi.Show(HtmlScreen, HtmlModel());
                     }
                     break;
                 default:

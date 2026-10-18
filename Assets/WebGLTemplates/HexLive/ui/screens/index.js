@@ -23,7 +23,6 @@ import { MapScreen } from './map.js';
 import { Debug } from './debug.js';
 import { Inspector } from './inspector.js';
 import { AdminVoice, VoiceCapture, VoiceSubtitle } from './voice.js';
-import { Corner } from './corner.js';
 
 export const SCREENS = {
   title: Title,
@@ -43,7 +42,6 @@ export const SCREENS = {
   adminVoice: AdminVoice,
   voiceCapture: VoiceCapture,
   voiceSubtitle: VoiceSubtitle,
-  corner: Corner,
   history: History,
   endSummary: EndSummary,
   craftProject: CraftProject,

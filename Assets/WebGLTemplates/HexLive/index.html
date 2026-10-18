@@ -130,7 +130,7 @@
       // pointer. Once per page: Esc stays the player's way out.
       function hexFullscreenOnFirstClick(event) {
         window.removeEventListener("click", hexFullscreenOnFirstClick, true);
-        if (event.target && event.target.closest && event.target.closest("#unity-footer")) return;
+        if (event.target && event.target.closest && event.target.closest("#unity-footer, [data-hx-fullscreen]")) return;
         if (!(document.fullscreenElement || document.webkitFullscreenElement)) hexToggleFullscreen();
       }
       window.addEventListener("click", hexFullscreenOnFirstClick, true);

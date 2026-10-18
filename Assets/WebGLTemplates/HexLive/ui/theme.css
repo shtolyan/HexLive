@@ -336,7 +336,7 @@
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: start;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 .hx-pill {
   display: flex;
@@ -743,10 +743,10 @@
 /* ---- roster (right) --------------------------------------------------- */
 .hx-roster {
   position: absolute;
-  top: calc(4.25rem + var(--hx-right-stack, 0px)); /* under the account strip (corner.js) */
+  top: 4.25rem;
   right: 0.75rem;
   width: 14.5rem;
-  max-height: calc(100% - 22rem - var(--hx-right-stack, 0px));
+  max-height: calc(100% - 22rem);
   overflow: auto;
   display: flex;
   flex-direction: column;
@@ -1911,26 +1911,19 @@
 .hx-subtitle[data-tone="error"] { border-color: rgb(170 65 63); color: rgb(255 154 150); }
 .hx-seg.is-recording { background: var(--hx-danger); color: var(--hx-text); animation: hx-pulse 0.9s ease-in-out infinite alternate; }
 
-/* §174.7 account strip: the top of the right column, above the roster (the HUD row is full) */
-.hx-corner {
-  position: absolute;
-  top: 4.25rem;
-  right: 0.75rem;
-  width: 14.5rem; /* the roster's column */
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  pointer-events: none;
-}
-.hx-corner__row { display: flex; align-items: center; gap: 0.375rem; }
-.hx-corner__stats { color: var(--hx-text-dim); font-size: 0.625rem; line-height: 1.3; text-align: right; font-variant-numeric: tabular-nums; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hx-corner__balance { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.0625rem; padding: 0.25rem 0.5rem; border: 1px solid var(--hx-stroke); border-radius: 0.5rem; background: rgb(19 24 28 / 0.9); color: var(--hx-text-dim); font-size: 0.625rem; line-height: 1.3; font-variant-numeric: tabular-nums; pointer-events: auto; cursor: help; }
-.hx-corner__balance b { color: var(--hx-text); font-size: 0.75rem; }
-.hx-corner__balance span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hx-corner__balance .is-warn { color: var(--hx-gold); }
-.hx-corner__balance.is-off { color: var(--hx-warm-red); cursor: default; }
-.hx-corner__lang { flex: none; display: flex; margin-left: auto; padding: 0.1875rem; border: 1px solid var(--hx-stroke-strong); border-radius: 0.5rem; background: var(--hx-panel); }
-.hx-corner__lang button { min-width: 2rem; height: 1.5rem; padding: 0 0.375rem; border: 0; border-radius: 0.3125rem; background: none; color: var(--hx-text-dim); font: inherit; font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.04em; cursor: pointer; }
-.hx-corner__lang button:hover { color: var(--hx-text); }
-.hx-corner__lang button[aria-pressed="true"] { background: var(--hx-gold); color: var(--hx-ink); cursor: default; }
 .hx-tip p { white-space: pre-line; }
+
+/* §174.7 the right end of the HUD row: the account's coins and full screen */
+.hx-hud-corner { grid-column: 3; justify-self: end; display: flex; align-items: start; gap: 0.5rem; }
+.hx-coins { gap: 0.25rem; height: calc(2.5rem + 2px); padding: 0 0.5rem; font-size: 0.9375rem; font-variant-numeric: tabular-nums; cursor: help; }
+.hx-coins b { font-weight: 700; }
+.hx-coins span { font-size: 1.0625rem; line-height: 1; }
+.hx-coins[data-off="true"] { color: var(--hx-text-dim); }
+.hx-fullscreen { justify-content: center; width: calc(2.5rem + 2px); height: calc(2.5rem + 2px); padding: 0; color: var(--hx-text); cursor: pointer; }
+.hx-fullscreen:hover { background: var(--hx-hover); }
+.hx-fullscreen .hx-icon { width: 1.125rem; height: 1.125rem; }
+
+/* the Escape menu's language row, above the sound sliders */
+.hx-lang-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; font-size: 0.875rem; font-weight: 600; }
+.hx-segmented { display: flex; gap: 0.25rem; padding: 0.1875rem; border-radius: 0.625rem; background: rgb(0 0 0 / 0.25); }
+.hx-segmented .hx-seg { padding: 0 0.75rem; }

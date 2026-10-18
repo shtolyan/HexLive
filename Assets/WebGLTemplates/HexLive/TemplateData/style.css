@@ -84,6 +84,8 @@ body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-se
 }
 #unity-footer:hover, #unity-footer:focus-within { opacity: 1; }
 #hex-stage:fullscreen #unity-footer, #hex-stage:-webkit-full-screen #unity-footer { display: none; }
+/* §174.7: in the world the HUD row carries the fullscreen button (ui/screens/hud.js). */
+.hx-hud-on #unity-footer { display: none; }
 .unity-mobile #unity-footer { display: none; }
 #unity-build-title:empty { display: none; }
 #unity-fullscreen-button {

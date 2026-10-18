@@ -15,6 +15,23 @@ namespace HexLive.UnityPresentation.UI
     public sealed partial class CharacterPanel
     {
         private Label? _balanceLabel;
+
+        // §174.7: the HUD's coin chip on the web (SimSpeedBar reads it):
+        // null — no account on this client; Version changes with every value.
+        internal static string? HtmlBalanceAmount { get; private set; }
+        internal static bool HtmlBalanceUnavailable { get; private set; }
+        internal static string? HtmlBalanceDetails { get; private set; }
+        internal static int HtmlBalanceVersion { get; private set; }
+
+        private static void SetHtmlBalance(string? amount, bool unavailable, string? details)
+        {
+            if (amount == HtmlBalanceAmount && unavailable == HtmlBalanceUnavailable && details == HtmlBalanceDetails) return;
+            HtmlBalanceAmount = amount; HtmlBalanceUnavailable = unavailable; HtmlBalanceDetails = details;
+            HtmlBalanceVersion++;
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetHtmlBalance() { HtmlBalanceAmount = null; HtmlBalanceUnavailable = false; HtmlBalanceDetails = null; HtmlBalanceVersion = 0; }
         private float _balanceNextPoll;
         private bool _balancePending;
         [Serializable] private sealed class BalanceView
@@ -48,6 +65,7 @@ namespace HexLive.UnityPresentation.UI
             if (!WebVoiceAgent.Supported || string.IsNullOrEmpty(bearer) || server == null)
             {
                 if (_balanceLabel != null) _balanceLabel.style.display = DisplayStyle.None;
+                SetHtmlBalance(null, false, null);
                 return;
             }
             if (_balancePending || Time.unscaledTime < _balanceNextPoll) return;
@@ -82,6 +100,7 @@ namespace HexLive.UnityPresentation.UI
             _balanceLabel.style.display = DisplayStyle.Flex;
             _balanceLabel.text = Loc.Get("account.balance.unavailable");
             _balanceLabel.tooltip = _balanceLabel.text;
+            SetHtmlBalance(null, true, _balanceLabel.text);
         }
 
         private void ApplyBalanceJson(string json)
@@ -106,6 +125,8 @@ namespace HexLive.UnityPresentation.UI
             _balanceLabel.style.display = DisplayStyle.Flex;
             _balanceLabel.tooltip = string.Format(Loc.Get("account.balance.details"),
                 Usd(value.openingUsd), Usd(value.spentUsd - value.estimatedUsd), Usd(value.estimatedUsd), value.pendingRequests);
+            // The chip is the bare number; the lines and the breakdown are its tooltip.
+            SetHtmlBalance(Usd(value.balanceUsd), false, lines + "\n\n" + _balanceLabel.tooltip);
             ApplyServerVoiceBalance((float)value.balanceUsd);
         }
     }

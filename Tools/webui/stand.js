@@ -72,7 +72,7 @@ const creator = {
     traits: [] },
 };
 const isCreator = (id) => !!id && id.startsWith('creator');
-const isGame = (id) => !!id && id.startsWith('game');
+const isGame = (id) => !!id && id.startsWith('game') && id !== 'gameMenu'; // the Escape menu is a dialog, not a world scene
 
 // ---- in play: roster + character card (CharacterPanel), sample colony ----
 const COLONY = [
@@ -887,7 +887,7 @@ function character(person, intro) {
 }
 
 const DIALOGS = {
-  gameMenu: () => ({ canQuit: state.platform === 'desktop', volumes: { ...state.volumes } }),
+  gameMenu: () => ({ canQuit: state.platform === 'desktop', lang: state.lang, volumes: { ...state.volumes } }),
   connectionLost: () => ({ detail: 'socket closed 1006 (no close frame) after 6 reconnect attempts · last frame tick 682913' }),
   protocolUpdate: () => ({ canQuit: state.platform === 'desktop', failed: state.updateFailed }),
   playerAssignment: () => ({ losses: [], characters: [character(MOLLY, 'introduction')], footer: 'persistence' }),
@@ -902,6 +902,12 @@ const SCREEN_OF = { playerReplacement: 'playerAssignment' };
 const isTitle = (id) => !!id && id.startsWith('title');
 const isFull = (id) => isTitle(id) || isCreator(id); // screens that own the whole display
 const GAME_SCREENS = ['roster', 'character'];
+
+// index.html's hexToggleFullscreen, so the HUD shows its button on the stand too.
+window.hexToggleFullscreen = () => {
+  const stage = document.getElementById('hex-stage');
+  if (document.fullscreenElement) document.exitFullscreen?.(); else stage?.requestFullscreen?.().catch(() => {});
+};
 
 function hudModel() {
   const h = state.hud;
@@ -924,6 +930,10 @@ function hudModel() {
     bugs: isGame(state.dialog) ? { ready: BUGS.reports.filter((r) => r.status === 'ready_for_test' && !r.archived).length, canReport: true } : null,
     debug: isGame(state.dialog) ? { open: DEBUG.open } : null,
     admin: isGame(state.dialog) ? { recording: VOICE.recording } : null,
+    // CharacterPanel.Balance: only a browser client with an account has one.
+    balance: state.platform === 'desktop' ? null : { amount: '10.07', details: state.lang === 'ru'
+      ? 'Баланс: ≈ 10.07 USD\nРасход: ≈ 3.93 USD (393.00 ¢)\nВключает тарифную оценку\n\nКредит: 14.00 USD\nПодтверждённый расход: 3.85 USD\nТарифная оценка: 0.08 USD\nЗапросы без цены: 0'
+      : 'Balance: ≈ 10.07 USD\nSpent: ≈ 3.93 USD (393.00 ¢)\nIncludes a tariff estimate\n\nCredit: 14.00 USD\nConfirmed spend: 3.85 USD\nTariff estimate: 0.08 USD\nUnpriced requests: 0' },
   };
 }
 
@@ -932,27 +942,6 @@ function sendHud() {
   if (!ready) return;
   if (isFull(state.dialog)) post({ t: 'hide', screen: 'hud' });
   else post({ t: 'show', screen: 'hud', model: hudModel() });
-  sendCorner();
-}
-
-// ---- the top-right corner (CharacterPanel): language, FPS/RAM, balance ----
-let cornerTimer = 0;
-function cornerModel() {
-  const fps = 52 + Math.round(Math.random() * 9);
-  return {
-    lang: state.lang,
-    stats: { version: '0.9.418', fps, ms: (1000 / fps).toFixed(1), ram: 404 + Math.round(Math.random() * 12), gc: 88 + Math.round(Math.random() * 6) },
-    // Only a browser client with an account has a balance (WebVoiceAgent + control token).
-    balance: state.platform === 'desktop' ? null
-      : { amount: '12.40', spent: '1.60', cents: '160.00', approximate: true, pending: 0, estimated: true, opening: '14.00', confirmed: '1.52', estimate: '0.08' },
-  };
-}
-function sendCorner() {
-  if (!ready) return;
-  clearInterval(cornerTimer);
-  if (isFull(state.dialog)) { post({ t: 'hide', screen: 'corner' }); return; }
-  post({ t: 'show', screen: 'corner', model: cornerModel() });
-  cornerTimer = setInterval(() => post({ t: 'show', screen: 'corner', model: cornerModel() }), 500);
 }
 
 function showDialog(id) {
@@ -1052,6 +1041,12 @@ function handle(message) {
   if (message.t !== 'cmd') return;
   const key = `${message.screen}.${message.cmd}`;
   const args = message.args && Object.keys(message.args).length ? JSON.stringify(message.args) : '';
+  if (key === 'gameMenu.lang') {
+    // GameMenu → Loc.Toggle: the whole page switches, as the stand's own RU/EN does.
+    note(key, `${args} → Loc.Toggle`);
+    document.getElementById(`lang-${message.args?.code}`)?.click();
+    return;
+  }
   if (key === 'gameMenu.volume') {
     state.volumes[message.args.category] = message.args.value;
     const last = log.firstElementChild; // a drag is one line per slider
@@ -1077,12 +1072,6 @@ function handle(message) {
       if (it && a.kind === 'drop') { it.count -= a.count || 1; if (it.count <= 0) inv.items = inv.items.filter((x) => x !== it); }
     }
     sendInventory();
-    return;
-  }
-  if (message.screen === 'corner') {
-    // Loc.Toggle: the whole page switches language, as the stand's own RU/EN does.
-    note(key, `${args} → Loc.Toggle`);
-    document.getElementById(`lang-${message.args?.code}`)?.click();
     return;
   }
   if (message.screen === 'adminVoice') {
@@ -1575,7 +1564,7 @@ function bindSegment(attr, apply) {
   }
 }
 
-bindSegment('lang', (lang) => { state.lang = lang; if (ready) { sendStrings(); sendCorner(); } });
+bindSegment('lang', (lang) => { state.lang = lang; if (ready) { sendStrings(); if (shownDialog === 'gameMenu') refreshDialog(); } });
 bindSegment('platform', (platform) => { state.platform = platform; state.updateFailed = false; sendHud(); refreshDialog(); });
 bindSegment('size', (size) => { state.size = size.split('x').map(Number); drawWorld(); layout(); });
 bindSegment('weather', (weather) => { state.hud.raining = weather === 'rain'; sendHud(); });

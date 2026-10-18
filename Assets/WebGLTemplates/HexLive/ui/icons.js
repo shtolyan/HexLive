@@ -23,6 +23,8 @@ export const icons = {
   phone: () => svg(html`<path d="M5.2 3.5h2.3l1.2 3-1.6 1.1a8.6 8.6 0 004.3 4.3l1.1-1.6 3 1.2v2.3c0 .8-.7 1.5-1.5 1.5A12.1 12.1 0 013.7 5c0-.8.7-1.5 1.5-1.5z" ...${stroke} stroke-width="1.6" />`),
   mic: () => svg(html`<rect x="7" y="2.5" width="6" height="10" rx="3" ...${stroke} stroke-width="1.7" /><path d="M4.5 9.5a5.5 5.5 0 0011 0M10 15v2.5M7 17.5h6" ...${stroke} stroke-width="1.7" />`),
   bug: () => svg(html`<path d="M7 8.5a3 3 0 016 0v4a3 3 0 01-6 0z" ...${stroke} stroke-width="1.7" /><path d="M10 8.5v7M7 10.5H4.5M15.5 10.5H13M7.3 14L5 16M12.7 14l2.3 2M7.8 6.3L6.2 4.5M12.2 6.3l1.6-1.8" ...${stroke} stroke-width="1.6" />`),
+  fullscreen: () => svg(html`<path d="M3 8V3h5M12 3h5v5M17 12v5h-5M8 17H3v-5" ...${stroke} />`),
+  fullscreenExit: () => svg(html`<path d="M8 3v5H3M17 8h-5V3M12 17v-5h5M3 12h5v5" ...${stroke} />`),
   hammer: () => svg(html`<path d="M10.5 7.5l-6 6.2a1.4 1.4 0 002 2l6-6.2" ...${stroke} stroke-width="1.7" /><path d="M9 6l2.6-2.6a2 2 0 012.8 0l2.2 2.2-2 2-1.2-.6-2 2z" ...${stroke} stroke-width="1.7" />`),
   rotateLeft: () => svg(html`<path d="M4.5 9a6 6 0 1 1 1.8 5.2" ...${stroke} stroke-width="1.8" /><path d="M4.2 4.6V9h4.4" ...${stroke} stroke-width="1.8" />`),
   rotateRight: () => svg(html`<path d="M15.5 9a6 6 0 1 0-1.8 5.2" ...${stroke} stroke-width="1.8" /><path d="M15.8 4.6V9h-4.4" ...${stroke} stroke-width="1.8" />`),

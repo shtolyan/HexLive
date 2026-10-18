@@ -9,12 +9,14 @@
 //   build: null | { open },                  // §120.7 build mode, when it can be used
 //   bugs: null | { ready, canReport },       // §114: report a bug; ready = waiting for your test
 //   debug: null | { open },                  // the developer tools drawer
-//   admin: null | { recording } }            // §161 admin voice: only on a server that has it
+//   admin: null | { recording },             // §161 admin voice: only on a server that has it
+//   balance: null | { amount: '10.07' | null (unavailable), details } } // the account, as «10.07 🪙»
 // Commands: pause (toggle), speed { value }, build (toggle the build tray), bug (the quick
 // bug report), debug (toggle the drawer), admin (the admin microphone:
 // opens the window until access is granted, then records / stops). On a shared world (remote) the
 // server owns the clock: pause and >1× stay visible but disabled (§83).
-import { html } from '../html.js';
+import { html, useEffect, useState } from '../html.js';
+import { tip } from '../tooltip.js';
 import { t } from '../i18n.js';
 import { icons } from '../icons.js';
 
@@ -33,8 +35,10 @@ function Weather({ model }) {
       </span>
       <span class="hx-weather__clock">${model.clock} · ${t(`phase.${model.phase}`)}</span>
       ${link && html`
-        <span class="hx-link" data-state=${link.state}>
-          ${icons.signal()}${t(`link.${link.state}`)}${link.state === 'live' && link.ping >= 0 ? ` ${link.ping} ms` : ''}
+        <span class="hx-link" data-state=${link.state} title=${t(`link.${link.state}`)}>
+          ${icons.signal()}${link.state === 'live' && link.ping >= 0
+            // Live is said by the green signal; the words would cost the row the coins (18.10.2026).
+            ? `${link.ping} ms` : t(`link.${link.state}`)}
         </span>`}
     </div>`;
 }
@@ -85,7 +89,38 @@ function Tools({ model, send }) {
   </div>`;
 }
 
+// The right end of the row: the account's coins and the fullscreen button.
+// The page's own button (index.html #unity-footer) stood exactly here and
+// left no room, so while the HUD is up the HUD carries it (body.hx-hud-on).
+function isFull() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+
+function Corner({ model }) {
+  const [full, setFull] = useState(isFull());
+  useEffect(() => {
+    const update = () => setFull(isFull());
+    document.addEventListener('fullscreenchange', update);
+    document.addEventListener('webkitfullscreenchange', update);
+    document.body.classList.add('hx-hud-on');
+    return () => {
+      document.removeEventListener('fullscreenchange', update);
+      document.removeEventListener('webkitfullscreenchange', update);
+      document.body.classList.remove('hx-hud-on');
+    };
+  }, []);
+  const b = model.balance;
+  const canFull = typeof window.hexToggleFullscreen === 'function';
+  return html`<div class="hx-hud-corner">
+    ${b && html`<span class="hx-pill hx-surface hx-coins" tabindex="0" data-off=${b.amount == null}
+      ...${tip(() => ({ icon: '🪙', title: b.amount == null ? t('account.balance.unavailable') : t('account.balance.amount', { 0: b.amount }), desc: b.amount == null ? null : b.details }))}>
+      <b>${b.amount ?? '—'}</b><span aria-hidden="true">🪙</span></span>`}
+    ${canFull && html`<button type="button" class="hx-pill hx-surface hx-fullscreen" data-hx-fullscreen
+      title=${t(full ? 'ui.fullscreen.exit' : 'ui.fullscreen')} aria-label=${t(full ? 'ui.fullscreen.exit' : 'ui.fullscreen')}
+      onClick=${() => window.hexToggleFullscreen()}>${full ? icons.fullscreenExit() : icons.fullscreen()}</button>`}
+  </div>`;
+}
+
 export function Hud({ model, send }) {
   return html`<div class="hx-hud-top"><${Weather} model=${model} />
-    <div class="hx-hud-centre"><${Speed} model=${model} send=${send} /><${Build} model=${model} send=${send} /><${Tools} model=${model} send=${send} /></div></div>`;
+    <div class="hx-hud-centre"><${Speed} model=${model} send=${send} /><${Build} model=${model} send=${send} /><${Tools} model=${model} send=${send} /></div>
+    <${Corner} model=${model} /></div>`;
 }

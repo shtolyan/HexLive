@@ -3,6 +3,7 @@
 import { html, render, useEffect, useState } from './html.js';
 import * as bridge from './bridge.js';
 import { SCREENS } from './screens/index.js';
+import { TooltipLayer } from './tooltip.js';
 
 function App() {
   const [, setVersion] = useState(0);
@@ -21,7 +22,7 @@ function App() {
     }
     return html`<div key=${id} class="hx-screen" style=${i < cover ? 'visibility:hidden' : ''}>
       <${Screen} model=${model} send=${(cmd, args) => bridge.send(id, cmd, args)} /></div>`;
-  })}`;
+  })}<${TooltipLayer} />`;
 }
 
 // §174.5: one rem follows the height of the game area — 16 px at 900 px,

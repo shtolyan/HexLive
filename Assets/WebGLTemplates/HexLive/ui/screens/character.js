@@ -23,6 +23,7 @@ import { asset } from '../bridge.js';
 import { Pips, Ring } from '../components.js';
 import { Face } from './roster.js';
 import { icons, needIcons } from '../icons.js';
+import { tip } from '../tooltip.js';
 
 const MODE_ICON = { ai: icons.ai, manual: icons.hand, call: icons.phone };
 
@@ -46,7 +47,8 @@ function Pills({ npc }) {
       ${npc.effects?.length > 0 && html`
         <ul class="hx-effects">
           ${npc.effects.map((e) => html`
-            <li key=${e.slug} class=${e.buff ? 'is-buff' : 'is-debuff'} title=${`${t(`effect.${e.slug}.title`)} — ${t(`effect.${e.slug}.desc`)}`}>
+            <li key=${e.slug} class=${e.buff ? 'is-buff' : 'is-debuff'}
+              ...${tip(() => ({ icon: e.emoji, title: t(`effect.${e.slug}.title`), tone: e.buff ? 'buff' : 'debuff', desc: t(e.desc || `effect.${e.slug}.desc`) }))}>
               <span aria-hidden="true">${e.emoji}</span><span class="hx-sr">${t(`effect.${e.slug}.title`)}</span>
             </li>`)}
         </ul>`}
@@ -171,7 +173,12 @@ function Needs({ npc }) {
       ${tab === 'needs' && html`
         <ul class="hx-needs">
           ${npc.needs.map((n) => html`
-            <li key=${n.id} title=${n.deficit > 0 ? `${t(`need.${n.id}`)}: ${Math.round(n.value * 100)}% (−${Math.round(n.deficit * 100)}%)` : undefined}>
+            <li key=${n.id} ...${tip(() => ({
+              // CharacterPanel.ShowNeedTooltip: the effects acting on this need right now.
+              icon: '↕', title: `${t(`need.${n.id}`)} · ${needValue(n)}${n.deficit > 0 ? ` (−${Math.round(n.deficit * 100)}%)` : ''}`,
+              desc: t(n.impacts?.length ? 'effect.impacts.current' : 'effect.impacts.none'),
+              rows: (n.impacts || []).map((i) => ({ icon: i.emoji, title: t(i.title), up: i.up })),
+            }))}>
               <span class="hx-needs__label"><${NeedIcon} need=${n} />${t(`need.${n.id}`)}</span>
               <span class="hx-needs__value" data-tone=${n.thermal != null ? (n.thermal < -0.05 ? 'cold' : n.thermal > 0.05 ? 'hot' : '') : ''}>${needValue(n)}</span>
               ${n.thermal != null
@@ -183,7 +190,8 @@ function Needs({ npc }) {
       ${(tab === 'nature' || tab === 'skills') && html`
         <ul class="hx-stats">
           ${(tab === 'nature' ? npc.nature : npc.skills).map((s) => html`
-            <li key=${s.id} title=${t(`${tab === 'nature' ? 'attr' : 'skill'}.${s.id}.desc`)}>
+            <li key=${s.id} ...${tip(() => ({ icon: '?', title: t(`${tab === 'nature' ? 'attr' : 'skill'}.${s.id}`),
+              desc: t(`${tab === 'nature' ? 'attr' : 'skill'}.${s.id}.desc`) }))}>
               <span>${t(`${tab === 'nature' ? 'attr' : 'skill'}.${s.id}`)}</span><${Pips} value=${s.value} /><b>${s.value}</b>
             </li>`)}
         </ul>`}
@@ -214,7 +222,8 @@ function Relations({ npc }) {
           <div class="hx-rel__rings">
             ${[['affinity', (r.affinity + 1) / 2, r.affinity >= 0 ? 'var(--hx-leaf)' : 'rgb(232 104 92)', r.affinity >= 0 ? '💗' : '💔'],
                ['familiarity', r.familiarity, 'rgb(120 170 230)', '👥'], ['trust', r.trust, 'var(--hx-gold)', '🤝']].map(([id, v, c, glyph]) => html`
-              <figure key=${id}><${Ring} value=${v} color=${c} size="3rem" stroke="0.3125rem" label=${t(`rel.${id}`)}>
+              <figure key=${id} ...${tip(() => ({ icon: glyph, title: `${t(`rel.${id}`)}: ${Math.round(v * 100)}`, desc: t(`rel.${id}.desc`) }))}>
+                <${Ring} value=${v} color=${c} size="3rem" stroke="0.3125rem" label=${t(`rel.${id}`)}>
                 <span class="hx-rel__value"><i aria-hidden="true">${glyph}</i><b>${Math.round(v * 100)}</b></span><//>
                 <figcaption>${t(`rel.${id}`)}</figcaption></figure>`)}
           </div>

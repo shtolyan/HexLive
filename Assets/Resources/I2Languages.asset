@@ -31154,6 +31154,30 @@ MonoBehaviour:
       - 'Только в мире, который идёт на этом компьютере'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'rel.affinity.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'How warmly she feels about her, from hatred to love.'
+      - 'Насколько тепло она к ней относится — от вражды до любви.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'rel.familiarity.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'How well they know each other; talks and shared work raise it.'
+      - 'Насколько хорошо они знают друг друга; растёт от разговоров и общих дел.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'rel.trust.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'How far she would rely on her.'
+      - 'Насколько она готова на неё положиться.'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

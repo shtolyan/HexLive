@@ -263,6 +263,7 @@ namespace HexLive.UnityPresentation.UI
                 // Goodness, exactly as the UI Toolkit bar colours it: full = good.
                 var good = config.Direct ? 1f - raw : config.Pressure ? 1f - raw : raw;
                 var need = new JObject { ["id"] = config.Key.Substring("need.".Length), ["value"] = Mathf.Round(good * 100f) / 100f };
+                need["impacts"] = HtmlNeedImpacts(npc, (string)need["id"]); // the row's tooltip (§48.7)
                 if (config.Key == "need.blood" && npc.BloodDeficit > 0f)
                 {
                     need["value"] = 0f;
@@ -271,7 +272,8 @@ namespace HexLive.UnityPresentation.UI
                 needs.Add(need);
                 // Temperature is the bipolar cell, placed where the UI Toolkit grid has it.
                 if (config.Key == "need.social")
-                    needs.Add(new JObject { ["id"] = "thermal", ["value"] = 0f, ["thermal"] = Mathf.Round(Mathf.Clamp(npc.ThermalComfort, -1f, 1f) * 100f) / 100f });
+                    needs.Add(new JObject { ["id"] = "thermal", ["value"] = 0f, ["thermal"] = Mathf.Round(Mathf.Clamp(npc.ThermalComfort, -1f, 1f) * 100f) / 100f,
+                        ["impacts"] = HtmlNeedImpacts(npc, "thermal") });
             }
 
             var effects = new JArray();
@@ -279,7 +281,8 @@ namespace HexLive.UnityPresentation.UI
             {
                 if (!EffectCatalog.TryGet(e.Kind, out var def)) continue;
                 var slug = def.TitleKey.Substring("effect.".Length, def.TitleKey.Length - "effect.".Length - ".title".Length);
-                effects.Add(new JObject { ["slug"] = slug, ["emoji"] = def.Emoji, ["buff"] = def.Polarity != EffectPolarity.Debuff });
+                effects.Add(new JObject { ["slug"] = slug, ["emoji"] = def.Emoji, ["buff"] = def.Polarity != EffectPolarity.Debuff,
+                    ["desc"] = string.IsNullOrEmpty(e.DetailKey) ? def.DescKey : e.DetailKey }); // the chip's tooltip
             }
 
             var relations = new JArray();

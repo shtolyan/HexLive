@@ -1757,3 +1757,30 @@
 .hx-debug__btn.is-accent { background: rgb(71 97 140); }
 .hx-debug__btn[aria-pressed="true"] { border-color: var(--hx-gold); }
 .hx-debug__check { display: grid; place-items: center; width: 0.875rem; height: 0.875rem; border: 1px solid var(--hx-stroke-strong); border-radius: 0.1875rem; font-style: normal; font-size: 0.625rem; color: var(--hx-gold); }
+
+/* ---- the rich tooltip (tooltip.js) --------------------------------------- */
+.hx-tip {
+  position: absolute;
+  z-index: 50;
+  width: max-content;
+  max-width: 21rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--hx-stroke-strong);
+  border-radius: 0.75rem;
+  background: rgb(19 24 28 / 0.98);
+  box-shadow: var(--hx-shadow);
+  pointer-events: none;
+  animation: hx-pop 90ms ease-out;
+}
+.hx-tip header { display: flex; align-items: center; gap: 0.625rem; }
+.hx-tip header b { font-size: 1rem; }
+.hx-tip[data-tone="buff"] header b { color: var(--hx-leaf); }
+.hx-tip[data-tone="debuff"] header b { color: rgb(242 196 192); }
+.hx-tip__icon { font-size: 1.5rem; line-height: 1; }
+.hx-tip p { margin: 0.375rem 0 0; color: var(--hx-text-dim); font-size: 0.8125rem; line-height: 1.4; }
+.hx-tip ul { margin: 0.375rem 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.3125rem; }
+.hx-tip li { display: grid; grid-template-columns: 1.75rem minmax(0, 1fr) auto; align-items: center; gap: 0.375rem; padding: 0.3125rem 0.5rem; border-radius: 0.4375rem; background: rgb(242 196 192 / 0.08); font-size: 0.75rem; }
+.hx-tip li[data-up="true"] { background: rgb(95 196 106 / 0.08); }
+.hx-tip li > span:first-child { font-size: 1.125rem; }
+.hx-tip li b { font-size: 1.125rem; color: rgb(242 196 192); }
+.hx-tip li[data-up="true"] b { color: var(--hx-leaf); }

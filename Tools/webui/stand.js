@@ -642,8 +642,9 @@ function npcModel(c) {
     effects: [{ slug: 'wellfed', emoji: '😋', buff: true }, { slug: 'bandaged', emoji: '🩹', buff: true },
       { slug: 'strongsun', emoji: '🌞', buff: false }, { slug: 'soaked', emoji: '💦', buff: false }],
     needs: [
-      { id: 'hunger', value: 0.78 }, { id: 'thirst', value: 0.42 }, { id: 'energy', value: 0.66 }, { id: 'comfort', value: 0.55 },
-      { id: 'social', value: 0.24 }, { id: 'thermal', value: 0, thermal: 0.35 }, { id: 'stamina', value: 0.9 },
+      { id: 'hunger', value: 0.78, impacts: [{ emoji: '😋', title: 'effect.wellfed.title', up: true }] },
+      { id: 'thirst', value: 0.42, impacts: [{ emoji: '🌞', title: 'effect.strongsun.title', up: false }] }, { id: 'energy', value: 0.66 }, { id: 'comfort', value: 0.55 },
+      { id: 'social', value: 0.24 }, { id: 'thermal', value: 0, thermal: 0.35, impacts: [{ emoji: '🌞', title: 'effect.strongsun.title', up: true }, { emoji: '💦', title: 'effect.soaked.title', up: false }] }, { id: 'stamina', value: 0.9 },
       { id: 'blood', value: 0.82, deficit: 0.12 }, { id: 'hygiene', value: 0.47 }, { id: 'stress', value: 0.71 },
       { id: 'compassion', value: 0.6 }, { id: 'breath', value: 1 },
     ],

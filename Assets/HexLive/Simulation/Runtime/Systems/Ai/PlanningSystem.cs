@@ -793,7 +793,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
-            if (npc.Mind.CurrentGoal == GoalType.Sleep && !HasFurnitureCandidate(world, npc, InteractionType.Sleep))
+            // §64.10: before the ground she recalls the home beds the memory
+            // cap evicted — the recalled entries then compete as ordinary
+            // remembered candidates in the furniture path below.
+            if (npc.Mind.CurrentGoal == GoalType.Sleep && !HasFurnitureCandidate(world, npc, InteractionType.Sleep) &&
+                !(HomeBedKnowledge.RecallHomeBeds(world, npc) &&
+                  HasFurnitureCandidate(world, npc, InteractionType.Sleep)))
             {
                 BuildGroundSleepPlan(world, npc);
                 continue;
@@ -1237,127 +1242,139 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
-            // Resolve the target junction: from the live object when it exists,
-            // from memory for remembered-but-unseen targets (the plan will walk
-            // there and only then discover whether the belief was stale).
-            JunctionId? targetJunction;
-            if (world.Entities.Objects.TryGetValue(selected.Id, out var worldObject))
-            {
-                targetJunction = worldObject.Junctions.Count > 0 ? worldObject.Junctions[0] : null;
-            }
-            else if (selected.FromMemory &&
-                     npc.Memory.KnownObjects.TryGetValue(selected.Id, out var rememberedTarget))
-            {
-                targetJunction = rememberedTarget.Junction;
-            }
-            else
+            if (!TryInstallObjectPlan(world, npc, selected, interactionType.Value,
+                    candidateCount, out var failEvent, out var failMessage))
             {
                 npc.Plan.Status = PlanStatus.Failed;
                 SetGoalCooldown(world, npc, npc.Mind.CurrentGoal);
                 if (SimTrace.Enabled)
                 {
-                    Trace.Debug(world, npc.Id, "PlanFailed",
-                        $"Goal={npc.Mind.CurrentGoal} Obj={selected.Id.Value} vanished and not remembered");
+                    Trace.Debug(world, npc.Id, failEvent, failMessage);
                 }
-                continue;
-            }
-
-            if (SimTrace.Enabled)
-            {
-                Trace.Debug(world, npc.Id, "PlanTargetSelected",
-                    $"Obj={selected.Id.Value} Def={selected.DefinitionId} " +
-                    $"Tile={selected.Tile.Q},{selected.Tile.R} Dist={selected.Distance:F2} " +
-                    $"FromMemory={selected.FromMemory} FromCandidates={candidateCount}");
-            }
-
-            // Spec 31C.1: obstacle anchors are blocked — stand beside the
-            // trunk, not inside it. Gathering a ground item (PickUp) also stands
-            // BESIDE now: she walks up to the nearest cell next to the item and
-            // collects from there instead of stepping onto it.
-            if (interactionType == InteractionType.Craft &&
-                world.Entities.Objects.TryGetValue(selected.Id, out var craftStation) &&
-                craftStation.CraftJunction is { } authoredWorkPoint)
-            {
-                targetJunction = authoredWorkPoint; // §119: always the same side of the bench
-            }
-
-            // Furniture has one approach contract for both autonomous and
-            // manual orders: seats and beds are never entered from their
-            // anchor.  Pickups/water/obstacles keep the older beside rule.
-            // Keeping this predicate shared is important: otherwise a manual
-            // sleep could still use a different junction than an autonomous
-            // sleep and the turn-back pose would start from the wrong side.
-            if (targetJunction is { } anchorId &&
-                RequiresBesideApproach(world, anchorId, interactionType.Value))
-            {
-                var besideReach = SpatialQueries.BesideReach(
-                    world.Content.ObjectDefinitions.TryGetValue(selected.DefinitionId, out var besideDef)
-                        ? besideDef.ObstacleRadius : 0f);
-                if (!TryReserveBesideJunction(world, npc, anchorId, 48, out var beside,
-                        besideReach, worldObject))
-                {
-                    npc.Plan.Status = PlanStatus.Failed;
-                    SetGoalCooldown(world, npc, npc.Mind.CurrentGoal);
-                    if (SimTrace.Enabled)
-                    {
-                        Trace.Debug(world, npc.Id, "PlanFailed",
-                            $"Goal={npc.Mind.CurrentGoal} Obj={selected.Id.Value} no free junction beside obstacle");
-                    }
-                    continue;
-                }
-
-                targetJunction = beside;
-            }
-
-            npc.Plan.TargetObjectId = selected.Id;
-            npc.Plan.TargetTile = selected.Tile;
-            npc.Plan.TargetJunctionId = targetJunction;
-
-            if (targetJunction is { } jId &&
-                !SpatialMutations.TryReserveJunction(world, jId, npc.Id, world.Tick, 48))
-            {
-                npc.Plan.Status = PlanStatus.Failed;
-                SetGoalCooldown(world, npc, npc.Mind.CurrentGoal);
-                if (SimTrace.Enabled)
-                {
-                    Trace.Debug(world, npc.Id, "ReservationFailed",
-                        $"Junction={jId.Value} Already reserved or occupied");
-                }
-                continue;
-            }
-
-            if (targetJunction is { } reservedJId)
-            {
-                if (SimTrace.Enabled)
-                {
-                    Trace.Debug(world, npc.Id, "JunctionReserved",
-                        $"Junction={reservedJId.Value} Duration=48ticks Until={world.Tick + 48}");
-                }
-            }
-
-            npc.Plan.Steps.Add(new PlanStep
-            {
-                Type = PlanStepType.MoveToJunction,
-                TargetJunction = targetJunction,
-                TargetObject = selected.Id
-            });
-            npc.Plan.Steps.Add(new PlanStep
-            {
-                Type = PlanStepType.Interact,
-                TargetObject = selected.Id,
-                TargetJunction = targetJunction,
-                Interaction = interactionType.Value
-            });
-            npc.Plan.CurrentStepIndex = 0;
-            npc.Plan.Status = PlanStatus.Active;
-            if (SimTrace.Enabled)
-            {
-                Trace.Debug(world, npc.Id, "PlanBuilt",
-                    $"Goal={npc.Plan.Goal} Target={selected.DefinitionId} " +
-                    $"Tile={selected.Tile.Q},{selected.Tile.R} Junction={Trace.FormatJunction(targetJunction)} " +
-                    $"FromMemory={selected.FromMemory} Steps=[MoveToJunction,Interact]");
             }
         }
+    }
+
+    /// <summary>
+    /// The shared tail of the object planner: resolve the target junction
+    /// (live object, or memory for a remembered-but-unseen one), take the
+    /// furniture/obstacle beside approach, reserve it and install
+    /// MoveToJunction + Interact. On failure nothing is installed and the
+    /// caller decides between failing the goal and a fallback (§64.10: the
+    /// manual sleep order falls back to the ground).
+    /// </summary>
+    private static bool TryInstallObjectPlan(
+        WorldState world, NPCState npc, PerceivedObject selected,
+        InteractionType interaction, int candidateCount,
+        out string failEvent, out string failMessage)
+    {
+        failEvent = "PlanFailed";
+        failMessage = string.Empty;
+        // Resolve the target junction: from the live object when it exists,
+        // from memory for remembered-but-unseen targets (the plan will walk
+        // there and only then discover whether the belief was stale).
+        JunctionId? targetJunction;
+        if (world.Entities.Objects.TryGetValue(selected.Id, out var worldObject))
+        {
+            targetJunction = worldObject.Junctions.Count > 0 ? worldObject.Junctions[0] : null;
+        }
+        else if (selected.FromMemory &&
+                 npc.Memory.KnownObjects.TryGetValue(selected.Id, out var rememberedTarget))
+        {
+            targetJunction = rememberedTarget.Junction;
+        }
+        else
+        {
+            failMessage = $"Goal={npc.Mind.CurrentGoal} Obj={selected.Id.Value} vanished and not remembered";
+            return false;
+        }
+
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlanTargetSelected",
+                $"Obj={selected.Id.Value} Def={selected.DefinitionId} " +
+                $"Tile={selected.Tile.Q},{selected.Tile.R} Dist={selected.Distance:F2} " +
+                $"FromMemory={selected.FromMemory} FromCandidates={candidateCount}");
+        }
+
+        // Spec 31C.1: obstacle anchors are blocked — stand beside the
+        // trunk, not inside it. Gathering a ground item (PickUp) also stands
+        // BESIDE now: she walks up to the nearest cell next to the item and
+        // collects from there instead of stepping onto it.
+        if (interaction == InteractionType.Craft &&
+            world.Entities.Objects.TryGetValue(selected.Id, out var craftStation) &&
+            craftStation.CraftJunction is { } authoredWorkPoint)
+        {
+            targetJunction = authoredWorkPoint; // §119: always the same side of the bench
+        }
+
+        // Furniture has one approach contract for both autonomous and
+        // manual orders: seats and beds are never entered from their
+        // anchor.  Pickups/water/obstacles keep the older beside rule.
+        // Keeping this predicate shared is important: otherwise a manual
+        // sleep could still use a different junction than an autonomous
+        // sleep and the turn-back pose would start from the wrong side.
+        if (targetJunction is { } anchorId &&
+            RequiresBesideApproach(world, anchorId, interaction))
+        {
+            var besideReach = SpatialQueries.BesideReach(
+                world.Content.ObjectDefinitions.TryGetValue(selected.DefinitionId, out var besideDef)
+                    ? besideDef.ObstacleRadius : 0f);
+            if (!TryReserveBesideJunction(world, npc, anchorId, 48, out var beside,
+                    besideReach, worldObject))
+            {
+                failMessage = $"Goal={npc.Mind.CurrentGoal} Obj={selected.Id.Value} no free junction beside obstacle";
+                return false;
+            }
+
+            targetJunction = beside;
+        }
+
+        npc.Plan.TargetObjectId = selected.Id;
+        npc.Plan.TargetTile = selected.Tile;
+        npc.Plan.TargetJunctionId = targetJunction;
+
+        if (targetJunction is { } jId &&
+            !SpatialMutations.TryReserveJunction(world, jId, npc.Id, world.Tick, 48))
+        {
+            failEvent = "ReservationFailed";
+            failMessage = $"Junction={jId.Value} Already reserved or occupied";
+            return false;
+        }
+
+        if (targetJunction is { } reservedJId)
+        {
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "JunctionReserved",
+                    $"Junction={reservedJId.Value} Duration=48ticks Until={world.Tick + 48}");
+            }
+        }
+
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = targetJunction,
+            TargetObject = selected.Id
+        });
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.Interact,
+            TargetObject = selected.Id,
+            TargetJunction = targetJunction,
+            Interaction = interaction
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PlanBuilt",
+                $"Goal={npc.Plan.Goal} Target={selected.DefinitionId} " +
+                $"Tile={selected.Tile.Q},{selected.Tile.R} Junction={Trace.FormatJunction(targetJunction)} " +
+                $"FromMemory={selected.FromMemory} Steps=[MoveToJunction,Interact]");
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -1956,47 +1973,114 @@ public sealed partial class PlanningSystem : ISimulationSystem
             : null;
         foreach (var perceived in npc.Perception.Objects)
         {
-            if (requiredTarget is { } required && !perceived.Id.Equals(required) ||
-                !perceived.IsReachable ||
-                !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||
-                npc.Memory.IsShunned(perceived.Id, world.Tick) ||
-                !perceived.AvailableInteractions.Contains(interactionType.Value) ||
-                !IsValidTargetFor(world, npc, goal, perceived, queuedBuildSiteId))
+            if (requiredTarget is { } required && !perceived.Id.Equals(required))
             {
                 continue;
             }
 
-            var stashPickup = goal == GoalType.GatherTools &&
-                world.Entities.Objects.TryGetValue(perceived.Id, out var stash) &&
-                stash.Contents.Count > 0 &&
-                InventoryMath.StashHoldsWantedTool(world, npc, stash);
-            if (interactionType == InteractionType.PickUp && !stashPickup &&
-                !InventoryMath.CanMakeRoomForGoal(
-                    world, npc, goal, perceived.DefinitionId))
+            if (IsObjectCandidate(world, npc, goal, interactionType.Value, perceived, queuedBuildSiteId))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>One perceived object against the exact candidate rules of
+    /// <see cref="HasObjectCandidateForGoal"/>, down to a free stand point.</summary>
+    private static bool IsObjectCandidate(
+        WorldState world, NPCState npc, GoalType goal, InteractionType interactionType,
+        PerceivedObject perceived, ObjectId? queuedBuildSiteId)
+    {
+        if (!perceived.IsReachable ||
+            !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||
+            npc.Memory.IsShunned(perceived.Id, world.Tick) ||
+            !perceived.AvailableInteractions.Contains(interactionType) ||
+            !IsValidTargetFor(world, npc, goal, perceived, queuedBuildSiteId))
+        {
+            return false;
+        }
+
+        var stashPickup = goal == GoalType.GatherTools &&
+            world.Entities.Objects.TryGetValue(perceived.Id, out var stash) &&
+            stash.Contents.Count > 0 &&
+            InventoryMath.StashHoldsWantedTool(world, npc, stash);
+        if (interactionType == InteractionType.PickUp && !stashPickup &&
+            !InventoryMath.CanMakeRoomForGoal(
+                world, npc, goal, perceived.DefinitionId))
+        {
+            return false;
+        }
+
+        if (interactionType == InteractionType.PickUp &&
+            (MobSystem.MobNear(world, perceived.Tile, 2) ||
+             (!npc.Mind.IsStarving && IsNearDanger(npc, perceived.Tile, 2) &&
+              !IsMeatSource(world, perceived))))
+        {
+            return false;
+        }
+
+        // Mirror the generic planner all the way through the exact stand
+        // point. Perception's IsReachable deliberately answers only the
+        // broader terrain question and ignores temporary actors/claims.
+        return HasUsableObjectApproach(world, npc, perceived, interactionType);
+    }
+
+    /// <summary>
+    /// §64.10: the manual «лечь спать» order in a hex that holds her own bed —
+    /// or a free bed of her camp — means that bed, not the floor beside it.
+    /// The hex rule of bug #196 stays: only a bed standing on her current tile
+    /// is considered. Own bed first, then the nearest. On failure nothing is
+    /// left installed and the caller falls back to the ground.
+    /// </summary>
+    internal static bool TryBuildLocalBedSleepPlan(WorldState world, NPCState npc)
+    {
+        PerceivedObject best = null;
+        var bestOwn = false;
+        foreach (var perceived in npc.Perception.Objects)
+        {
+            if (!perceived.Tile.Equals(npc.Tile) ||
+                !world.Entities.Objects.TryGetValue(perceived.Id, out var bed) ||
+                !HomeBedKnowledge.IsHomeBed(world, npc, bed) ||
+                !IsObjectCandidate(world, npc, GoalType.Sleep, InteractionType.Sleep, perceived, null))
             {
                 continue;
             }
 
-            if (interactionType == InteractionType.PickUp &&
-                (MobSystem.MobNear(world, perceived.Tile, 2) ||
-                 (!npc.Mind.IsStarving && IsNearDanger(npc, perceived.Tile, 2) &&
-                  !IsMeatSource(world, perceived))))
+            var own = bed.Owner is { } owner && owner.Equals(npc.Id);
+            if (best is null || own && !bestOwn ||
+                own == bestOwn && (perceived.Distance < best.Distance ||
+                                   perceived.Distance == best.Distance &&
+                                   perceived.Id.Value < best.Id.Value))
             {
-                continue;
+                best = perceived;
+                bestOwn = own;
             }
+        }
 
-            // Mirror the generic planner all the way through the exact stand
-            // point. Perception's IsReachable deliberately answers only the
-            // broader terrain question and ignores temporary actors/claims.
-            if (!HasUsableObjectApproach(
-                    world, npc, perceived, interactionType.Value))
-            {
-                continue;
-            }
+        if (best is null)
+        {
+            return false;
+        }
 
+        if (TryInstallObjectPlan(world, npc, best, InteractionType.Sleep, 1,
+                out var failEvent, out var failMessage))
+        {
             return true;
         }
 
+        if (npc.Plan.TargetJunctionId is { } reserved)
+        {
+            SpatialMutations.ReleaseJunctionReservation(world, reserved, npc.Id);
+        }
+        npc.Plan.TargetObjectId = null;
+        npc.Plan.TargetTile = null;
+        npc.Plan.TargetJunctionId = null;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, failEvent, $"{failMessage} LocalBed→Ground");
+        }
         return false;
     }
 

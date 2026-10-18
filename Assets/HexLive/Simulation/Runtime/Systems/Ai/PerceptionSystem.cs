@@ -213,6 +213,7 @@ public sealed class PerceptionSystem : ISimulationSystem
                 }
 
                 record.LastSeenTick = world.Tick;
+                HomeBedKnowledge.NoteSighting(world, npc, obj, record); // §64.10
             }
 
             // Memory maintenance (spec 27.18A): negative evidence inside the

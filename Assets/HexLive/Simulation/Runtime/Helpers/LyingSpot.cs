@@ -15,7 +15,8 @@ namespace HexLive.Simulation.Runtime
 // sleeper. The 37 interior HexPointLayout nodes are ordinary candidate centres.
 // For every node the solver tries the six hex headings and accepts the first
 // oriented body rectangle that has level walkable support under its entire area
-// and intersects neither a solid object nor another body.
+// and intersects neither a solid object, a wall/doorway node (§113.8) nor
+// another body.
 internal static class LyingSpot
 {
     private const float GeometryEpsilon = 0.0001f;
@@ -406,6 +407,7 @@ internal static class LyingSpot
         });
 
         var baseHeading = SnapToHexAxis(preferredHeading);
+        var wallRuns = CollectWallRuns(world, tileCoord);
         foreach (var candidate in candidates)
         {
             foreach (var offset in HeadingOffsets)
@@ -413,7 +415,7 @@ internal static class LyingSpot
                 var heading = Wrap360(baseHeading + offset);
                 var forward = Forward(heading);
                 var lateral = Lateral(forward);
-                if (!BodyClear(world, npc, tileCoord, candidate.Position, forward, lateral))
+                if (!BodyClear(world, npc, tileCoord, candidate.Position, forward, lateral, wallRuns))
                 {
                     continue;
                 }
@@ -470,11 +472,40 @@ internal static class LyingSpot
     }
 
     internal static bool BodyClear(
-        WorldState world, NPCState npc, TileCoord tile, Float2 spot, Float2 forward, Float2 lateral)
+        WorldState world, NPCState npc, TileCoord tile, Float2 spot, Float2 forward, Float2 lateral) =>
+        BodyClear(world, npc, tile, spot, forward, lateral, CollectWallRuns(world, tile));
+
+    /// <summary>§113.8: half thickness of a wall run — a quarter sub-grid step
+    /// (0.094 wu). Neighbouring Blocked/doorway nodes (0.375 wu apart, one
+    /// lattice step) are joined into a capsule of this radius, a lone node is a
+    /// disc. A continuous run is what stops a 0.36 wu body from slipping
+    /// between two wall nodes, and the thin radius still lets the outer ring of
+    /// interior nodes hold a body lying ALONG the wall (0.145 wu of clearance).</summary>
+    internal static float WallHalfThickness =>
+        HexSpatialMath.HexRadius / HexPointLayout.BoundaryRadius * 0.25f;
+
+    private static bool BodyClear(
+        WorldState world, NPCState npc, TileCoord tile, Float2 spot, Float2 forward, Float2 lateral,
+        List<(Float2 A, Float2 B)> wallRuns)
     {
         if (!TerrainSupports(world, tile, spot, forward, lateral))
         {
             return false;
+        }
+
+        // §113.8: a wall is neither terrain nor an object anchor — it is the
+        // Blocked flag on the junctions its section stands on (§120). The
+        // terrain test above lets a level body run across a hut edge onto the
+        // ground outside, and that is exactly how the head ended up through
+        // the planks. A doorway node counts too: lying across the threshold
+        // puts the head outside just the same and plugs the only way in.
+        var halfThickness = WallHalfThickness;
+        foreach (var run in wallRuns)
+        {
+            if (CapsuleOverlapsBody(run.A, run.B, halfThickness, spot, forward, lateral))
+            {
+                return false;
+            }
         }
 
         // A 1.32 wu body centred on an interior node can reach only its own tile
@@ -539,6 +570,85 @@ internal static class LyingSpot
         }
 
         return true;
+    }
+
+    // Blocked and doorway junctions of the body tile and its six neighbours —
+    // the region an interior-node body can reach — collected once per tile
+    // solve, not per heading. A node blocked by an object that already has a
+    // SolidRadius is left to that radius: the campfire's 0.55R ember ring is a
+    // walking rule, and §113 deliberately lets a sleeper lie closer than it
+    // (0.30R). What remains is what has no radius of its own: wall and window
+    // sections (§120, whose owner may be anchored on a hex this scan never
+    // visits), cliff and sea rims, trunks without a SolidRadius.
+    private static List<(Float2 A, Float2 B)> CollectWallRuns(WorldState world, TileCoord tile)
+    {
+        var excused = new HashSet<JunctionId>();
+        for (var i = -1; i < HexDirection.All.Length; i++)
+        {
+            var coord = i < 0
+                ? tile
+                : new TileCoord(tile.Q + HexDirection.All[i].DQ, tile.R + HexDirection.All[i].DR);
+            if (!world.Caches.ObjectsByTile.TryGetValue(coord, out var objects))
+            {
+                continue;
+            }
+
+            foreach (var objectId in objects)
+            {
+                if (world.Entities.Objects.TryGetValue(objectId, out var worldObject) &&
+                    SolidRadius(world, worldObject) > 0f)
+                {
+                    excused.UnionWith(worldObject.BlockedJunctions);
+                    excused.UnionWith(worldObject.Junctions);
+                }
+            }
+        }
+
+        var nodes = new List<Float2>();
+        var seen = new HashSet<JunctionId>();
+        for (var i = -1; i < HexDirection.All.Length; i++)
+        {
+            var coord = i < 0
+                ? tile
+                : new TileCoord(tile.Q + HexDirection.All[i].DQ, tile.R + HexDirection.All[i].DR);
+            if (!world.Tiles.Items.TryGetValue(coord, out var support))
+            {
+                continue;
+            }
+
+            foreach (var junctionId in support.Junctions)
+            {
+                if (!seen.Add(junctionId) ||
+                    !world.Junctions.Items.TryGetValue(junctionId, out var junction))
+                {
+                    continue;
+                }
+
+                if (junction.Door || junction.Blocked && !excused.Contains(junctionId))
+                {
+                    nodes.Add(junction.WorldPosition);
+                }
+            }
+        }
+
+        // Every node is a disc; every pair one lattice step apart is the run
+        // of wall between them.
+        var step = HexSpatialMath.HexRadius / HexPointLayout.BoundaryRadius;
+        var joinSq = step * step * 1.01f;
+        var runs = new List<(Float2 A, Float2 B)>(nodes.Count * 2);
+        for (var i = 0; i < nodes.Count; i++)
+        {
+            runs.Add((nodes[i], nodes[i]));
+            for (var j = i + 1; j < nodes.Count; j++)
+            {
+                if (DistanceSq(nodes[i], nodes[j]) <= joinSq)
+                {
+                    runs.Add((nodes[i], nodes[j]));
+                }
+            }
+        }
+
+        return runs;
     }
 
     private static bool TerrainSupports(
@@ -641,6 +751,83 @@ internal static class LyingSpot
             System.MathF.Abs(Dot(d, lateral)) - BodyHalfWidth, 0f);
         return outsideAlong * outsideAlong + outsideSide * outsideSide <
             radius * radius - GeometryEpsilon;
+    }
+
+    // Exact capsule-vs-OBB: the segment is taken into the body frame, where
+    // the body is the box [-L, L] x [-W, W]. A crossing segment overlaps;
+    // otherwise the closest pair is an endpoint against the box or a box
+    // corner against the segment.
+    private static bool CapsuleOverlapsBody(
+        Float2 a, Float2 b, float radius, Float2 spot, Float2 forward, Float2 lateral)
+    {
+        var da = a - spot;
+        var db = b - spot;
+        var la = new Float2(Dot(da, forward), Dot(da, lateral));
+        var lb = new Float2(Dot(db, forward), Dot(db, lateral));
+        var hx = BodyHalfLength;
+        var hy = BodyHalfWidth;
+        if (SegmentCrossesBox(la, lb, hx, hy))
+        {
+            return true;
+        }
+
+        var best = System.MathF.Min(PointBoxDistanceSq(la, hx, hy), PointBoxDistanceSq(lb, hx, hy));
+        best = System.MathF.Min(best, PointSegmentDistanceSq(new Float2(hx, hy), la, lb));
+        best = System.MathF.Min(best, PointSegmentDistanceSq(new Float2(hx, -hy), la, lb));
+        best = System.MathF.Min(best, PointSegmentDistanceSq(new Float2(-hx, hy), la, lb));
+        best = System.MathF.Min(best, PointSegmentDistanceSq(new Float2(-hx, -hy), la, lb));
+        return best < radius * radius - GeometryEpsilon;
+    }
+
+    // Liang–Barsky clip of the segment against the box.
+    private static bool SegmentCrossesBox(Float2 a, Float2 b, float hx, float hy)
+    {
+        var t0 = 0f;
+        var t1 = 1f;
+        var d = b - a;
+        return Clip(-d.X, a.X + hx, ref t0, ref t1) &&
+               Clip(d.X, hx - a.X, ref t0, ref t1) &&
+               Clip(-d.Y, a.Y + hy, ref t0, ref t1) &&
+               Clip(d.Y, hy - a.Y, ref t0, ref t1) &&
+               t0 <= t1;
+    }
+
+    private static bool Clip(float p, float q, ref float t0, ref float t1)
+    {
+        if (System.MathF.Abs(p) < 1e-9f)
+        {
+            return q >= 0f;
+        }
+
+        var t = q / p;
+        if (p < 0f)
+        {
+            if (t > t1) return false;
+            if (t > t0) t0 = t;
+        }
+        else
+        {
+            if (t < t0) return false;
+            if (t < t1) t1 = t;
+        }
+
+        return true;
+    }
+
+    private static float PointBoxDistanceSq(Float2 p, float hx, float hy)
+    {
+        var dx = System.MathF.Max(System.MathF.Abs(p.X) - hx, 0f);
+        var dy = System.MathF.Max(System.MathF.Abs(p.Y) - hy, 0f);
+        return dx * dx + dy * dy;
+    }
+
+    private static float PointSegmentDistanceSq(Float2 p, Float2 a, Float2 b)
+    {
+        var ab = b - a;
+        var lengthSq = Dot(ab, ab);
+        var t = lengthSq <= 0f ? 0f : System.MathF.Max(0f, System.MathF.Min(1f, Dot(p - a, ab) / lengthSq));
+        var closest = a + ab * t;
+        return DistanceSq(p, closest);
     }
 
     // Exact OBB-vs-OBB SAT. Both bodies share dimensions but may have unrelated

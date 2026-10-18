@@ -305,6 +305,10 @@ public sealed partial class ExecutionSystem
         if (!string.IsNullOrEmpty(variant)) raised.Variant = variant;
         ApplyIndoorFurnitureFootprint(world, raised);
         BuildingRules.ReparentElements(world, architectureOwner, raised);
+        // §64.10: the piece is a NEW object id. Without the handoff the camp's
+        // permanent record of the site died with it, and the finished bed was
+        // just another sighting the memory cap would evict a day later.
+        HomeBedKnowledge.HandOver(world, architectureOwner, raised);
         if (product == ContentIds.Workbench)
         {
             raised.CraftJunction = StructurePlacement.WorkbenchJunction(

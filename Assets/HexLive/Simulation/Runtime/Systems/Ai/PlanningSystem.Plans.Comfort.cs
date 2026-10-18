@@ -882,9 +882,15 @@ public sealed partial class PlanningSystem
         InstallGroundSleepPlan(world, npc, spot, $"Hearth={anchor}");
     }
 
-    /// <summary>§121.9: manual sleep stays inside the actor's current hex.</summary>
+    /// <summary>§121.9: manual sleep stays inside the actor's current hex.
+    /// §64.10: a hex with her own (or a free camp) bed means that bed.</summary>
     internal void BuildLocalGroundSleepPlan(WorldState world, NPCState npc)
     {
+        if (TryBuildLocalBedSleepPlan(world, npc))
+        {
+            return;
+        }
+
         var tile = npc.Tile;
         var spot = FindGroundSleepSpotOnTile(world, npc, tile);
         InstallGroundSleepPlan(world, npc, spot, $"ManualTile={tile}");

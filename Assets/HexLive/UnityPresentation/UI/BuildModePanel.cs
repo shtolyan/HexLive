@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections.Generic;
 using System.Linq;
+using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
@@ -117,6 +118,7 @@ namespace HexLive.UnityPresentation.UI
 
         // Кэш snapshot для валидации и оверлеев.
         private WorldSnapshot? _snapshot;
+        private readonly HashSet<Faction> _buildFactions = new();
         private float _nextSnapshotRefresh;
         private readonly Dictionary<TileCoord, TileSnapshot> _tiles = new();
         private readonly HashSet<TileCoord> _occupiedHexes = new();
@@ -125,7 +127,12 @@ namespace HexLive.UnityPresentation.UI
         private TileCoord? _pendingTile;
         private float _pendingDeadline;
 
-        public void SetRunner(SimulationRunnerBehaviour runner) => _runner = runner;
+        private int _worldRejectionRevision;
+        public void SetRunner(SimulationRunnerBehaviour runner)
+        {
+            _runner = runner;
+            _worldRejectionRevision = ManualOrderFeedback.WorldRevision;
+        }
 
         public void SetWorldRenderer(HexWorldRenderer renderer) => _worldRenderer = renderer;
 
@@ -586,6 +593,13 @@ namespace HexLive.UnityPresentation.UI
 
         private void Update()
         {
+            if (_worldRejectionRevision != ManualOrderFeedback.WorldRevision)
+            {
+                _worldRejectionRevision = ManualOrderFeedback.WorldRevision;
+                SetStatus(ManualOrderFeedback.WorldReasonKey);
+                _nextSnapshotRefresh = 0f;
+                _nextOverlayRefresh = 0f;
+            }
             var ready = _runner != null && _runner.IsReady && _runner.SupportsNpcCommands &&
                         !HutLayoutDesigner.WorldEditorOpen;
             CanOpen = ready;
@@ -800,6 +814,13 @@ namespace HexLive.UnityPresentation.UI
 
         private void SelectWorldObject(ObjectSnapshot obj, bool canRotate, bool canCancel)
         {
+            if (!CanEditWorldObject(obj))
+            {
+                DeselectSite();
+                RefreshSelectionCard();
+                SetStatus("toast.order_rejected.ForeignConstruction");
+                return;
+            }
             _selectedSiteId = obj.Id.Value;
             _selectedSiteProduct = string.IsNullOrEmpty(obj.BuildProduct)
                 ? obj.DefinitionId
@@ -884,6 +905,7 @@ namespace HexLive.UnityPresentation.UI
                 RotationDegrees = rotation,
                 ExistingOwner = new ObjectId(ownerId),
                 InitialDraft = draft,
+                CanBuild = updated => CanBuildDraft(updated, anchorTile, rotation),
                 OnBuild = updated => runner.EnqueueCommand(
                     new UpdateBuildingBlueprintCommand(
                         new ObjectId(ownerId),
@@ -1013,6 +1035,7 @@ namespace HexLive.UnityPresentation.UI
             if (Time.unscaledTime < _nextSnapshotRefresh) return;
             _nextSnapshotRefresh = Time.unscaledTime + SnapshotInterval;
             _snapshot = _runner!.CreateSnapshot();
+            RefreshBuildPermissions();
             _tiles.Clear();
             _occupiedHexes.Clear();
             if (_snapshot == null) return;
@@ -1059,14 +1082,43 @@ namespace HexLive.UnityPresentation.UI
         private bool TileBuildable(TileCoord coord) =>
             _tiles.TryGetValue(coord, out var tile) &&
             tile.Walkable && !tile.Water && !tile.Blocked &&
-            !_occupiedHexes.Contains(coord);
+            !_occupiedHexes.Contains(coord) && CanEditTile(coord);
 
         private bool EvaluateGhostValidity(TileCoord tile)
         {
             if (_activeCardId != HutCardId) return TileBuildable(tile);
             var footprint = Simulation.Bootstrap.BuildingBootstrap.FootprintTiles(
                 ContentIds.HutPlan, tile, _ghostYawSteps * 60f);
-            return footprint.All(TileBuildable);
+            return footprint.All(TileBuildable) &&
+                ConstructionAccess.PlanTiles(CommittedBuildingPlans.PlayerHut, tile,
+                    _ghostYawSteps * 60f)
+                    .All(CanEditTile);
+        }
+
+        private void RefreshBuildPermissions()
+        {
+            _buildFactions.Clear();
+            if (_snapshot == null || _runner == null) return;
+            foreach (var npc in _snapshot.Npcs)
+                if (npc.Health > 0 && _runner.IsAssignedNpc(npc.Id)) _buildFactions.Add(npc.Faction);
+        }
+
+        private bool CanEditTile(TileCoord tile) => _snapshot != null &&
+            ConstructionAccess.CanEditTile(_snapshot, _buildFactions, tile);
+
+        private bool CanEditWorldObject(ObjectSnapshot obj)
+        {
+            if (!CanEditTile(obj.Tile)) return false;
+            return string.IsNullOrEmpty(obj.BuildingBlueprintJson) ||
+                !BuildingBlueprintJson.TryDeserialize(obj.BuildingBlueprintJson, out var draft, out _) ||
+                ConstructionAccess.PlanTiles(draft, obj.Tile, obj.RotationDegrees).All(CanEditTile);
+        }
+
+        private bool CanBuildDraft(BuildingBlueprintDraft draft, TileCoord tile, float rotation)
+        {
+            _snapshot = _runner?.CreateSnapshot();
+            RefreshBuildPermissions();
+            return ConstructionAccess.PlanTiles(draft, tile, rotation).All(CanEditTile);
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -1268,6 +1320,11 @@ namespace HexLive.UnityPresentation.UI
             {
                 AnchorWorldPosition = anchorWorld,
                 AnchorTile = anchorTile,
+                CanBuild = draft =>
+                {
+                    var origin = BlueprintBuildingPlan.AnchorTile(draft);
+                    return CanBuildDraft(draft, new TileCoord(anchorTile.Q + origin.Q, anchorTile.R + origin.R), 0f);
+                },
                 OnBuild = draft =>
                 {
                     // Сим кладёт AnchorTile чертежа на тайл команды; черчение
@@ -1327,6 +1384,13 @@ namespace HexLive.UnityPresentation.UI
                 AnchorTile = referenceTile,
                 DirectWorldConstruction = true,
                 InitialDraft = projection,
+                CanApplyDraft = (before, after) =>
+                {
+                    _snapshot = runner.CreateSnapshot();
+                    RefreshBuildPermissions();
+                    return ConstructionAccess.ChangedElements(before, after)
+                        .SelectMany(ConstructionAccess.ElementTiles).All(CanEditTile);
+                },
                 OnApplyFreeArchitecture = (placements, removals) =>
                     runner.EnqueueCommand(new ApplyFreeArchitectureCommand(placements, removals)),
                 OnClosed = null
@@ -1337,7 +1401,7 @@ namespace HexLive.UnityPresentation.UI
             editorRoot.AddComponent<HutLayoutDesigner>();
         }
 
-        private static BuildingBlueprintDraft FreeWorldProjection(WorldSnapshot snapshot)
+        internal static BuildingBlueprintDraft FreeWorldProjection(WorldSnapshot snapshot)
         {
             var draft = new BuildingBlueprintDraft
             {

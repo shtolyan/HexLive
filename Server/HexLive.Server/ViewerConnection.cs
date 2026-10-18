@@ -614,7 +614,7 @@ public sealed class ViewerConnection
             return;
         }
 
-        var admission = _host.SubmitManualCommand(command, _controlOwner ?? "");
+        var admission = _host.SubmitManualCommand(command, _controlOwner ?? "", _assignedNpcIds);
         await SendAsync(Frame.CommandResult(correlationId, admission), cancel)
             .ConfigureAwait(false);
     }

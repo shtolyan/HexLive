@@ -246,7 +246,8 @@ public sealed partial class WorldHost : IDisposable
     /// here. A future MCP adapter must establish those before calling this seam.
     /// </para>
     /// </summary>
-    public ManualCommandAdmission SubmitManualCommand(ISimulationCommand command, string requestOwner = "")
+    public ManualCommandAdmission SubmitManualCommand(ISimulationCommand command, string requestOwner = "",
+        IReadOnlyCollection<int>? assignedNpcIds = null)
     {
         if (command is null)
         {
@@ -255,7 +256,7 @@ public sealed partial class WorldHost : IDisposable
 
         lock (_gate)
         {
-            var admission = _engine.ApplyManualCommand(command, requestOwner);
+            var admission = _engine.ApplyManualCommand(command, requestOwner, assignedNpcIds);
 
             // A command can mutate the world without advancing its tick. A
             // snapshot already cached for that tick is therefore stale even

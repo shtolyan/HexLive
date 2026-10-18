@@ -30,21 +30,37 @@ namespace HexLive.Simulation.Runtime
 //    приказ читается игроком как «игра сломалась».
 internal static class ManualCommandExecutor
 {
-    public static ManualCommandAdmission Apply(WorldState world, ISimulationCommand command, string requestOwner = "")
+    public static ManualCommandAdmission Apply(WorldState world, ISimulationCommand command, string requestOwner = "",
+        IReadOnlyCollection<int> assignedNpcIds = null)
     {
         // §138.6.1: retries return the original admission before any plan interruption.
         if (command is CraftByOutputCommand craft && craft.RequestId.Length > 0)
             return CraftRequestLedger.Apply(world, craft, requestOwner, () => ApplyCore(world, command));
-        return ApplyCore(world, command);
+        // A named remote caller without trusted assignments must never fall
+        // back to the world's union of all players' characters.
+        return ApplyCore(world, command, assignedNpcIds ??
+            (requestOwner.Length == 0 ? null : System.Array.Empty<int>()));
     }
 
-    private static ManualCommandAdmission ApplyCore(WorldState world, ISimulationCommand command)
+    private static ManualCommandAdmission ApplyCore(WorldState world, ISimulationCommand command,
+        IReadOnlyCollection<int> assignedNpcIds = null)
     {
         var admission = new AdmissionTracker(command.TargetEntity, OrderName(command));
         if (!Spec121.ManualControlEnabled)
         {
             admission.Reject("FeatureDisabled");
             return FinishAdmission(world, admission);
+        }
+
+        if (ConstructionAccess.IsConstructionCommand(command))
+        {
+            admission.BuildFactions = ConstructionAccess.Factions(world, assignedNpcIds);
+            if (!ConstructionAccess.Validate(world, command, admission.BuildFactions, out var error))
+            {
+                admission.Reject(error);
+                Trace.EmitSystem(world, "ManualOrderRejected", $"Order={admission.Order} Reason={error}");
+                return FinishAdmission(world, admission);
+            }
         }
 
         switch (command)
@@ -212,6 +228,7 @@ internal static class ManualCommandExecutor
         public EntityId? Actor { get; }
         public string Order { get; }
         public string Reason { get; private set; } = string.Empty;
+        public HashSet<Faction> BuildFactions { get; set; }
         public bool Accepted => Reason.Length == 0;
 
         public void Reject(string reason)
@@ -2854,6 +2871,13 @@ internal static class ManualCommandExecutor
             return false;
         }
 
+        if (interactionType == InteractionType.Build && !ConstructionAccess.CanEditObject(
+                world, new[] { npc.Faction }, worldObject))
+        {
+            Reject(world, npc.Id, verb, ConstructionAccess.ForeignReason, admission);
+            return false;
+        }
+
         if (!world.Content.ObjectDefinitions.TryGetValue(worldObject.DefinitionId, out var definition))
         {
             Reject(world, npc.Id, verb, "TargetGone", admission);
@@ -3556,6 +3580,7 @@ internal static class ManualCommandExecutor
             return;
         }
 
+        DoorTopology.StampOwner(world, site, ConstructionAccess.Builder(world, admission.BuildFactions, site.Tile));
         Bootstrap.BuildingBootstrap.RememberPlanSite(world, site);
         if (SimTrace.Enabled)
         {
@@ -3623,6 +3648,7 @@ internal static class ManualCommandExecutor
         // неё нельзя разметить вторую стройку и через раму не ходят.
         Core.WorldObjectMutations.SetObstacleBlocking(world, site, blocked: true);
         Bootstrap.BuildingBootstrap.ApplyFurnitureBill(site, product, householdHearth);
+        site.OwnerFaction = ConstructionAccess.Builder(world, admission.BuildFactions, site.Tile);
         Bootstrap.BuildingBootstrap.RememberPlanSite(world, site);
         if (SimTrace.Enabled)
         {
@@ -3740,6 +3766,7 @@ internal static class ManualCommandExecutor
             return;
         }
 
+        DoorTopology.StampOwner(world, site, ConstructionAccess.Builder(world, admission.BuildFactions, site.Tile));
         Bootstrap.BuildingBootstrap.RememberPlanSite(world, site);
         if (SimTrace.Enabled)
         {
@@ -3798,7 +3825,7 @@ internal static class ManualCommandExecutor
         WorldState world, ApplyFreeArchitectureCommand command, AdmissionTracker admission)
     {
         if (!Blueprints.FreeArchitectureRules.Apply(
-                world, command.Placements, command.RemovedSlotKeys, out var error))
+                world, command.Placements, command.RemovedSlotKeys, out var error, admission.BuildFactions))
         {
             admission.Reject(error);
             Trace.EmitSystem(world, "ManualOrderRejected",

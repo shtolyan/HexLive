@@ -832,15 +832,15 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
             case FrameKind.CommandResult:
             {
                 var verdict = Frame.ReadCommandResult(payload);
-                if (!verdict.Accepted && verdict.ActorId is { } rejectedActor)
+                if (!verdict.Accepted)
                 {
                     lock (_inbox)
                     {
                         _verdictEvents.Add(new SimulationEvent
                         {
                             Tick = _handshake?.Tick ?? 0,
-                            EntityId = rejectedActor,
-                            Type = "ManualOrderRejected",
+                            EntityId = verdict.ActorId,
+                            Type = verdict.ActorId.HasValue ? "ManualOrderRejected" : "WorldOrderRejected",
                             Message = $"Order={verdict.Order} Reason={verdict.Reason}",
                         });
                     }

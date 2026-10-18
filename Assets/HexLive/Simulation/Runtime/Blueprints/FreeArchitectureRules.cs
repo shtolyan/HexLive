@@ -98,7 +98,8 @@ namespace HexLive.Simulation.Runtime.Blueprints
             WorldState world,
             IReadOnlyList<FreeArchitecturePlacementData> placements,
             IReadOnlyList<string> removedSlotKeys,
-            out string error)
+            out string error,
+            IReadOnlyCollection<Agents.Faction> builderFactions = null)
         {
             error = string.Empty;
             placements ??= Array.Empty<FreeArchitecturePlacementData>();
@@ -166,7 +167,9 @@ namespace HexLive.Simulation.Runtime.Blueprints
             {
                 if (deferredReplacements.Contains(placement.SlotKey)) continue;
                 affectedTiles.Add(placement.AnchorTile);
-                Spawn(world, placement);
+                var piece = Spawn(world, placement);
+                if (builderFactions != null)
+                    Core.DoorTopology.StampOwner(world, piece, ConstructionAccess.Builder(world, builderFactions, piece.Tile));
             }
 
             RefreshAll(world, affectedTiles);

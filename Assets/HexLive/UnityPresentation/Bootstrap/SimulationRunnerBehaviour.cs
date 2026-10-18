@@ -442,6 +442,13 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
             {
                 Input.ManualOrderFeedback.Report(rejectedNpc, e.Message);
             }
+            // Remote world refusals are private CommandResult verdicts. A
+            // broadcast trace of another viewer's refusal must not reset ours.
+            else if (e.Type == "WorldOrderRejected" ||
+                e.Type == "ManualOrderRejected" && _backend.SupportsDirectWorldMutation)
+            {
+                Input.ManualOrderFeedback.ReportWorld(e.Message);
+            }
             else if (e.Type == "GroupOrderResult")
             {
                 Input.GroupOrderFeedback.Report(e.Message);

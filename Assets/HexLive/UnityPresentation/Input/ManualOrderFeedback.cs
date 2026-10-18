@@ -24,6 +24,8 @@ public static class ManualOrderFeedback
 
     /// <summary>Ключ локализации причины, например <c>toast.order_rejected.Unreachable</c>.</summary>
     public static string ReasonKey { get; private set; } = string.Empty;
+    public static int WorldRevision { get; private set; }
+    public static string WorldReasonKey { get; private set; } = string.Empty;
 
     private static float _stampedAt = float.NegativeInfinity;
 
@@ -32,6 +34,8 @@ public static class ManualOrderFeedback
     {
         NpcId = -1;
         ReasonKey = string.Empty;
+        WorldRevision = 0;
+        WorldReasonKey = string.Empty;
         _stampedAt = float.NegativeInfinity;
     }
 
@@ -58,6 +62,14 @@ public static class ManualOrderFeedback
         if (reason.StartsWith("UnknownGroundGeometry:", System.StringComparison.Ordinal)) reason = "NoDropSpot";
         ReasonKey = "toast.order_rejected." + reason;
         _stampedAt = Time.unscaledTime;
+    }
+
+    public static void ReportWorld(string message)
+    {
+        var reason = ValueOf(message, "Reason=");
+        if (reason.Length == 0) return;
+        WorldReasonKey = "toast.order_rejected." + reason;
+        WorldRevision++;
     }
 
     /// <summary>§121.5: снос ПРИНЯТОГО приказа — разбирает

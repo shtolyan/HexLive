@@ -4,13 +4,14 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Platform;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace HexLive.UnityPresentation.UI
 {
 [RequireComponent(typeof(UIDocument))]
-public sealed class CraftProjectDetailsPanel : MonoBehaviour
+public sealed partial class CraftProjectDetailsPanel : MonoBehaviour
 {
     private static CraftProjectDetailsPanel? _instance;
     private static int _closedFrame = -1;
@@ -51,6 +52,8 @@ public sealed class CraftProjectDetailsPanel : MonoBehaviour
         var panel = _instance;
         _instance = null;
         panel._windowModal?.Show(false);
+        // Now, not in OnDestroy: a reopening in this frame must not be hidden by the old card.
+        panel.CloseHtml();
         _closedFrame = Time.frameCount;
         panel.gameObject.SetActive(false);
         Destroy(panel.gameObject);
@@ -88,6 +91,7 @@ public sealed class CraftProjectDetailsPanel : MonoBehaviour
         root.Add(card);
         _windowModal = new RuntimeWindow(root, card, Close, "craft-project");
         _windowModal.Show(true);
+        InitializeHtml(card);
         root.RegisterCallback<PointerDownEvent>(evt => evt.StopPropagation());
         root.RegisterCallback<PointerUpEvent>(evt => evt.StopPropagation());
         root.RegisterCallback<WheelEvent>(evt => evt.StopPropagation());
@@ -133,6 +137,7 @@ public sealed class CraftProjectDetailsPanel : MonoBehaviour
         _remaining.text = string.Format(Loc.Get("craft.project.remaining"),
             Math.Max(0, project.CraftWorkRequired - project.CraftWorkDone), project.CraftWorkRequired);
         _close.tooltip = Loc.Get("craft.project.close");
+        PushHtml(project, ready, currentWorker.HasValue, workerId.HasValue ? workerName : null);
     }
 
     public static string ItemName(ISimulationSource runner, string definitionId)
@@ -154,6 +159,7 @@ public sealed class CraftProjectDetailsPanel : MonoBehaviour
 
     private void OnDestroy()
     {
+        CloseHtml();
         if (_settings != null) Destroy(_settings);
     }
 }

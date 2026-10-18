@@ -932,6 +932,27 @@ function sendHud() {
   if (!ready) return;
   if (isFull(state.dialog)) post({ t: 'hide', screen: 'hud' });
   else post({ t: 'show', screen: 'hud', model: hudModel() });
+  sendCorner();
+}
+
+// ---- the top-right corner (CharacterPanel): language, FPS/RAM, balance ----
+let cornerTimer = 0;
+function cornerModel() {
+  const fps = 52 + Math.round(Math.random() * 9);
+  return {
+    lang: state.lang,
+    stats: { version: '0.9.418', fps, ms: (1000 / fps).toFixed(1), ram: 404 + Math.round(Math.random() * 12), gc: 88 + Math.round(Math.random() * 6) },
+    // Only a browser client with an account has a balance (WebVoiceAgent + control token).
+    balance: state.platform === 'desktop' ? null
+      : { amount: '12.40', spent: '1.60', cents: '160.00', approximate: true, pending: 0, estimated: true, opening: '14.00', confirmed: '1.52', estimate: '0.08' },
+  };
+}
+function sendCorner() {
+  if (!ready) return;
+  clearInterval(cornerTimer);
+  if (isFull(state.dialog)) { post({ t: 'hide', screen: 'corner' }); return; }
+  post({ t: 'show', screen: 'corner', model: cornerModel() });
+  cornerTimer = setInterval(() => post({ t: 'show', screen: 'corner', model: cornerModel() }), 500);
 }
 
 function showDialog(id) {
@@ -1056,6 +1077,12 @@ function handle(message) {
       if (it && a.kind === 'drop') { it.count -= a.count || 1; if (it.count <= 0) inv.items = inv.items.filter((x) => x !== it); }
     }
     sendInventory();
+    return;
+  }
+  if (message.screen === 'corner') {
+    // Loc.Toggle: the whole page switches language, as the stand's own RU/EN does.
+    note(key, `${args} → Loc.Toggle`);
+    document.getElementById(`lang-${message.args?.code}`)?.click();
     return;
   }
   if (message.screen === 'adminVoice') {
@@ -1548,7 +1575,7 @@ function bindSegment(attr, apply) {
   }
 }
 
-bindSegment('lang', (lang) => { state.lang = lang; if (ready) sendStrings(); });
+bindSegment('lang', (lang) => { state.lang = lang; if (ready) { sendStrings(); sendCorner(); } });
 bindSegment('platform', (platform) => { state.platform = platform; state.updateFailed = false; sendHud(); refreshDialog(); });
 bindSegment('size', (size) => { state.size = size.split('x').map(Number); drawWorld(); layout(); });
 bindSegment('weather', (weather) => { state.hud.raining = weather === 'rain'; sendHud(); });

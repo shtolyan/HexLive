@@ -6,13 +6,14 @@ using HexLive.Simulation.Debug;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Platform;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace HexLive.UnityPresentation.UI
 {
     [RequireComponent(typeof(UIDocument))]
-    public sealed class HexInspectorPanel : MonoBehaviour
+    public sealed partial class HexInspectorPanel : MonoBehaviour
     {
         [SerializeField] private SimulationRunnerBehaviour? _runner;
         [SerializeField] private float _uiScale = 1f;
@@ -74,6 +75,7 @@ namespace HexLive.UnityPresentation.UI
 
             BuildUi();
             _root.style.display = DisplayStyle.None;
+            HtmlUi.Handle(HtmlScreen, OnHtmlCommand);
         }
 
         private void OnEnable()
@@ -98,8 +100,9 @@ namespace HexLive.UnityPresentation.UI
                 _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
             }
 
-            if (!HexSelection.HasSelection)
+            if (!HexSelection.HasSelection || !HexSelection.Enabled)
             {
+                HideHtml();
                 return;
             }
 
@@ -125,7 +128,8 @@ namespace HexLive.UnityPresentation.UI
         {
             _refreshedTick = -1;
             _refreshedCoord = null;
-            _root.style.display = HexSelection.Enabled && coord.HasValue ? DisplayStyle.Flex : DisplayStyle.None;
+            // §174.7: on the web the page draws the card; the UI Toolkit one never shows.
+            _root.style.display = !HtmlUi.Active && HexSelection.Enabled && coord.HasValue ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         private void Invalidate()
@@ -155,6 +159,12 @@ namespace HexLive.UnityPresentation.UI
 
         private void Rebuild(WorldSnapshot snapshot, TileCoord coord)
         {
+            if (HtmlUi.Active)
+            {
+                PublishHtml(snapshot, coord);
+                return;
+            }
+
             _scroll.Clear();
             var tile = FindTile(snapshot, coord);
 
@@ -597,14 +607,14 @@ namespace HexLive.UnityPresentation.UI
 
         private static string ItemCategoryName(ObjectDefinition? def, ItemInfo info) =>
             def == null && !Loc.Has(info.NameKey)
-                ? "Object"
+                ? Loc.Get("inspect.object")
                 : Loc.Get(info.CategoryNameKey);
 
         private static string ItemDesc(ObjectDefinition? def, ItemInfo info)
         {
             if (Loc.Has(info.DescKey)) return Loc.Get(info.DescKey);
             if (def != null) return Loc.Get(info.CategoryDescKey);
-            return "Data is available from the object model.";
+            return Loc.Get("inspect.no_desc");
         }
 
         private static Sprite? LoadItemIcon(string id)

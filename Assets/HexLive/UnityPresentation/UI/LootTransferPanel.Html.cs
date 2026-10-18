@@ -136,6 +136,8 @@ public sealed partial class LootTransferPanel
         return new JObject
         {
             ["name"] = Loc.NpcName(npc.DisplayName), ["face"] = builder.HtmlFace(owner), ["kind"] = "person",
+            // Her own count, as the UI Toolkit header read it — the groups also hold hands and overflow.
+            ["count"] = new JObject { ["used"] = npc.InventoryUsedSlots, ["cap"] = npc.InventoryCapacity },
             ["groups"] = groups, ["worn"] = worn,
         };
     }
@@ -185,7 +187,7 @@ public sealed partial class LootTransferPanel
         };
     }
 
-    private static JObject Slot(CharacterPanel builder, int owner, InventorySlotSnapshot slot, string? hand,
+    private JObject Slot(CharacterPanel builder, int owner, InventorySlotSnapshot slot, string? hand,
         bool useCellIndex = false)
     {
         JObject? item = null;
@@ -196,7 +198,12 @@ public sealed partial class LootTransferPanel
             item = builder.HtmlItem(Uid(new DragItem(owner, InventoryItemSource.Carried, index, count, slot.ItemDefinitionId)),
                 slot.ItemDefinitionId, count);
         }
-        return new JObject { ["item"] = item, ["hand"] = hand };
+        var slotModel = new JObject { ["item"] = item, ["hand"] = hand };
+        // A typed slot (a place kept for one thing): the page says which, as the
+        // UI Toolkit cell's tooltip did — otherwise a refused drop looks broken.
+        if (item == null && !string.IsNullOrEmpty(slot.AcceptedItemDefinitionId))
+            slotModel["accepts"] = ItemName(slot.AcceptedItemDefinitionId);
+        return slotModel;
     }
 
     /// <summary>§128.5: a thing that holds things — one flat group, no anatomy.</summary>

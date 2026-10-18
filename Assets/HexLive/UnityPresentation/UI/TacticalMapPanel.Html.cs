@@ -81,6 +81,7 @@ namespace HexLive.UnityPresentation.UI
                         TacticalMapMarkerKind.Resource => "resource", _ => "item",
                     },
                     ["x"] = Round(marker.Center.X), ["z"] = Round(marker.Center.Y), ["live"] = marker.Live, ["lit"] = marker.Lit,
+                    ["home"] = marker.AlwaysKnown, // her own camp: never dimmed, as TacticalMapView draws it
                 });
             }
             foreach (var item in _frame.DroppedItems)

@@ -233,6 +233,10 @@ public static class GoalCatalog
         // §127: запускается продолжением разговора либо ручным приказом,
         // поэтому аукцион её не считает и generic loop recovery сцену не рвёт.
         Add(GoalType.Romance, reactive: true, loop: LoopPolicy.Sticky);
+        // §127.13: ревность ставит RomanceMath.CatchCheaters — подбежать и
+        // ударить кулаком; аукцион её не считает, петли её не рвут.
+        Add(GoalType.Jealousy, urgency: UrgencyClass.Hurry, reactive: true,
+            loop: LoopPolicy.Sticky);
         Add(GoalType.Aid);
         Add(GoalType.TreatWounds);
         Add(GoalType.Mourn, InteractionType.Observe);

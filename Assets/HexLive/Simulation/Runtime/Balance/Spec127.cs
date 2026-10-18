@@ -40,6 +40,11 @@ public static class Spec127
     public const float JealousyAffinityCeiling = -0.10f;
     public const float JealousyTrustLoss = 0.50f;
 
+    // §127.13: the Sims slap, as one bare-handed blow. The walk over may take
+    // up to 100 s; once at arm's length the swing must land within 10 s.
+    public const int JealousStrikeApproachTicks = 400;
+    public const int JealousStrikeSwingTicks = 40;
+
     // One full scene can move either extreme of the normalized stress scale
     // all the way to its authored outcome (§127.12).
     public const float StressChangePerTick = 1f / DurationTicks;

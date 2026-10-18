@@ -20,9 +20,11 @@ public sealed class RomanceJealousyTests
 {
     private sealed record Triangle(WorldState World, NPCState Male, NPCState Lover, NPCState Other);
 
-    private static Triangle MakeTriangle(int seed = 12709)
+    private static Triangle MakeTriangle(int seed = 12709) =>
+        MakeTriangle(TestWorld.CreateWorld(seed));
+
+    private static Triangle MakeTriangle(WorldState world)
     {
-        var world = TestWorld.CreateWorld(seed);
         world.Tick = 10;
         var male = world.Entities.Npcs.Values.First(n => n.Sex == GarmentSex.Male);
         var females = world.Entities.Npcs.Values.Where(n => n.Sex == GarmentSex.Female).ToList();
@@ -249,6 +251,125 @@ public sealed class RomanceJealousyTests
         Assert.That(old.Entities.Npcs[lover.Id].Social.Relationships[male.Id].IsLover, Is.False);
         Assert.That(old.Entities.Npcs[lover.Id].Social.Relationships[male.Id].Affinity,
             Is.EqualTo(0.70f));
+    }
+
+    [Test]
+    public void JealousLoverWalksOverAndLandsOneFistBlowWithoutAFight()
+    {
+        var engine = TestWorld.CreateEngine(12709);
+        var world = engine.World;
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            npc.Mind.ManualControl = true;
+            npc.Needs.Hunger = npc.Needs.Thirst = 0f;
+            npc.Needs.Energy = 1f;
+        }
+
+        var (_, male, lover, other) = MakeTriangle(world);
+        Bond(male, other, lover: false);
+        Bond(other, male, lover: false);
+        PreparePair(world, male, other);
+        PlaceNear(world, lover, male);
+        var cheaterHealth = male.Health;
+        var cheaterToLover = male.Social.GetOrCreate(lover.Id).Affinity;
+
+        var admission = ManualCommandExecutor.Apply(world,
+            new RomancePersonCommand(male.Id, other.Id, forced: false));
+        Assert.That(admission.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted), admission.Reason);
+
+        var sawScene = false;
+        var headed = false;
+        var fought = false;
+        for (var i = 0; i < 2000 && male.HitStampTick == 0; i++)
+        {
+            engine.Step();
+            sawScene |= male.Execution.CurrentInteraction == InteractionType.Romance;
+            // She stands by until the scene starts, then her own AI takes over.
+            if (sawScene) lover.Mind.ManualControl = false;
+            headed |= lover.Mind.CurrentGoal == GoalType.Jealousy;
+            fought |= lover.IsFighting || male.IsFighting || other.IsFighting;
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(sawScene, Is.True, "the scene must actually run");
+            Assert.That(Caught(world), Is.EqualTo(1));
+            Assert.That(headed, Is.True, "the jealous walk is a real plan");
+            Assert.That(male.HitStampTick, Is.GreaterThan(0), "one blow landed on the cheater");
+            Assert.That(male.HitWeaponId, Is.Empty, "a bare-handed blow, not her knife");
+            Assert.That(male.Health, Is.LessThan(cheaterHealth));
+            Assert.That(fought, Is.False, "no fight: nobody is latched into combat");
+            Assert.That(male.Execution.CurrentInteraction, Is.Not.EqualTo(InteractionType.Romance),
+                "as in the Sims, the slap ends the scene");
+            Assert.That(other.Execution.CurrentInteraction, Is.Not.EqualTo(InteractionType.Romance));
+            Assert.That(male.Social.GetOrCreate(lover.Id).Affinity,
+                Is.EqualTo(cheaterToLover).Within(0.01f),
+                "§93.5 is skipped: the blow does not make him hate her (only ordinary drift)");
+            Assert.That(lover.Social.GetOrCreate(male.Id).Affinity,
+                Is.EqualTo(Spec127.JealousyAffinityCeiling).Within(1e-4f),
+                "her side was soured by the jealousy alone, not pushed to −0.50");
+            Assert.That(lover.Mind.CurrentGoal, Is.Not.EqualTo(GoalType.Jealousy));
+            Assert.That(lover.Mind.ForcedMeleeWeaponId, Is.Null, "her own weapon choice comes back");
+            Assert.That(male.Social.GetOrCreate(other.Id).IsLover, Is.False,
+                "an interrupted scene does not make lovers");
+        });
+    }
+
+    [Test]
+    public void PlayerDrivenWitnessStaysJealousButDoesNotStrike()
+    {
+        var engine = TestWorld.CreateEngine(12709);
+        var world = engine.World;
+        var (_, male, lover, other) = MakeTriangle(world);
+        PreparePair(world, male, other);
+        PlaceNear(world, lover, male);
+        lover.Mind.ManualControl = true;
+        LetSee(lover, male, other);
+
+        RomanceMath.CatchCheaters(world, male, other, forced: false);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Caught(world), Is.EqualTo(1));
+            Assert.That(lover.Mind.CurrentGoal, Is.Not.EqualTo(GoalType.Jealousy),
+                "§121.5: the strike is a choice, and a manual body's choices are the player's");
+        });
+    }
+
+    [Test]
+    public void InterruptedJealousWalkReturnsHerOwnWeaponChoice()
+    {
+        var engine = TestWorld.CreateEngine(12709);
+        var world = engine.World;
+        var (_, male, lover, other) = MakeTriangle(world);
+        PreparePair(world, male, other);
+        PlaceNear(world, lover, male);
+        lover.Mind.ManualControl = false;
+        LetSee(lover, male, other);
+        RomanceMath.CatchCheaters(world, male, other, forced: false);
+        Assert.That(lover.Mind.CurrentGoal, Is.EqualTo(GoalType.Jealousy));
+
+        lover.Mind.ForcedMeleeWeaponId = string.Empty; // as if mid-swing
+        PlanInterruption.TryAbort(world, lover, InterruptionCause.ThreatReroute, "test danger");
+
+        Assert.That(lover.Mind.ForcedMeleeWeaponId, Is.Null);
+    }
+
+    private static void PlaceNear(WorldState world, NPCState npc, NPCState anchor)
+    {
+        var near = SpatialQueries.GetPassableNeighbors(world, anchor.CurrentJunction!.Value)
+            .SelectMany(id => SpatialQueries.GetPassableNeighbors(world, id))
+            .First(id => SpatialQueries.IsJunctionFree(world, id) &&
+                         !world.Entities.Npcs.Values.Any(n => n.CurrentJunction is { } j && j.Equals(id)) &&
+                         !id.Equals(anchor.CurrentJunction!.Value));
+        npc.Execution.Status = ExecutionStatus.None;
+        npc.Execution.CurrentInteraction = null;
+        npc.Plan.Status = PlanStatus.None;
+        npc.Plan.Steps.Clear();
+        npc.Movement.JunctionPath.Clear();
+        npc.Movement.IsMoving = false;
+        npc.Movement.SetStatus(MovementStatus.Arrived);
+        MoveTo(world, npc, near);
     }
 
     private static WorldState RoundTrip(WorldState source, int version)

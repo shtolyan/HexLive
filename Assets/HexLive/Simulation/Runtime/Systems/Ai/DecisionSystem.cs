@@ -231,6 +231,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 continue;
             }
 
+            // §127.13: the jealous walk is one short errand (≤100 s) that the
+            // auction must not tear up halfway; danger still reroutes it.
+            if (npc.Mind.CurrentGoal == GoalType.Jealousy && npc.Plan.Status == PlanStatus.Active)
+            {
+                continue;
+            }
+
             // Behavior audit (Jul 2026): while a mob is actively trading blows
             // with her, the errand auction stays CLOSED — the old code re-picked
             // GatherTools mid-mauling and she walked off collecting a hammer

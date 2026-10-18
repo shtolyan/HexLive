@@ -3715,6 +3715,14 @@ MonoBehaviour:
       - "\u0418\u0449\u0435\u0442 \u0431\u043b\u0438\u0437\u043e\u0441\u0442\u0438"
       Flags: 0101
       Languages_Touch: []
+    - Term: goal.Jealousy
+      TermType: 0
+      Description:
+      Languages:
+      - Jealous
+      - 'Ревнует'
+      Flags: 0101
+      Languages_Touch: []
     - Term: goal.PlaceSite
       TermType: 0
       Description:

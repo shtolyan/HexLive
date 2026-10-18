@@ -286,7 +286,7 @@ internal static class MeleeSwing
     // human hit is bookkept exactly like a bite.
     internal static void ApplyHumanBlow(
         WorldState world, NPCState attacker, NPCState target,
-        float damage, string weaponId, string traceName)
+        float damage, string weaponId, string traceName, bool mutualHatred = true)
     {
         var hasPendingDecision = attacker.PendingHumanStrikeTargetId is { } pendingTarget &&
             pendingTarget.Equals(target.Id);
@@ -301,12 +301,17 @@ internal static class MeleeSwing
         StampHit(world, target, weaponId, part, attacker.Position);
         // §93.5: landed human attacks make hatred mutual, even from neutral
         // relationships. Never soften an already stronger grudge.
-        var attackerRelation = attacker.Social.GetOrCreate(target.Id);
-        var targetRelation = target.Social.GetOrCreate(attacker.Id);
-        attackerRelation.Affinity = System.Math.Min(attackerRelation.Affinity,
-            CampDiplomacyMath.HatredAffinityThreshold);
-        targetRelation.Affinity = System.Math.Min(targetRelation.Affinity,
-            CampDiplomacyMath.HatredAffinityThreshold);
+        // §127.13: the jealous blow is the one exception — the jealousy has
+        // already soured the bond, and a single strike is not a feud.
+        if (mutualHatred)
+        {
+            var attackerRelation = attacker.Social.GetOrCreate(target.Id);
+            var targetRelation = target.Social.GetOrCreate(attacker.Id);
+            attackerRelation.Affinity = System.Math.Min(attackerRelation.Affinity,
+                CampDiplomacyMath.HatredAffinityThreshold);
+            targetRelation.Affinity = System.Math.Min(targetRelation.Affinity,
+                CampDiplomacyMath.HatredAffinityThreshold);
+        }
         attacker.Social.MarkInteraction(target.Id, world.Tick);
         target.Social.MarkInteraction(attacker.Id, world.Tick);
         var partArmor = EquipmentMath.ArmorForPart(world, target, part); // trace only

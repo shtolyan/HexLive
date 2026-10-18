@@ -487,6 +487,15 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
+            // §127.13: the jealous walk is installed whole by CatchCheaters;
+            // once it is gone there is nothing to rebuild.
+            if (npc.Mind.CurrentGoal == GoalType.Jealousy)
+            {
+                npc.Plan.Status = PlanStatus.Failed;
+                npc.Mind.CurrentGoal = GoalType.None;
+                continue;
+            }
+
             if (npc.Mind.CurrentGoal == GoalType.Aid)
             {
                 BuildAidPlan(world, npc);

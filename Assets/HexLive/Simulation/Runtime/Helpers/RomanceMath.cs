@@ -205,6 +205,7 @@ internal static class RomanceMath
             witness.Social.MarkInteraction(betrayer.Id, world.Tick);
             witness.Social.MarkInteraction(paramour.Id, world.Tick);
             SocialCueSignals.Stamp(world, witness, "CaughtCheating", betrayer.Id);
+            PlanningSystem.TryInstallJealousStrikePlan(world, witness, betrayer);
 
             var toBetrayer = witness.Social.GetOrCreate(betrayer.Id);
             Trace.Emit(world, witness.Id, "CaughtCheating",

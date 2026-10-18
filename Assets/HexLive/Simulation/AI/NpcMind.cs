@@ -821,7 +821,11 @@ public enum GoalType
     CraftItem,
 
     // §172 append-only: knock two ordinary stones into a crude cutting flake.
-    CraftSharpStone
+    CraftSharpStone,
+
+    // §127.13 append-only: caught a lover with someone else — walk over and
+    // land one bare-handed blow. Assigned by RomanceMath.CatchCheaters.
+    Jealousy
 }
 
 public sealed class GoalScore

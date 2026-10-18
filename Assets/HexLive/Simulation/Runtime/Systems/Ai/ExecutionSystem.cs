@@ -213,6 +213,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            // §127.13: подбежать к изменщику и ударить кулаком.
+            if (lastStep is { Type: PlanStepType.JealousStrike })
+            {
+                RunJealousStrike(world, npc, lastStep);
+                continue;
+            }
+
             // §133: подобрать забытую одежду и отнести её домой.
             if (lastStep is { Type: PlanStepType.StowCarriedGarment })
             {

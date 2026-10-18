@@ -159,6 +159,7 @@ public static class PlanInterruption
         AgentCommandLedger.Observe(world, npc);
         AgentCommandLedger.Finish(world, npc, "failed", "PlanInterrupted." + cause);
         ExecutionSystem.ClearInterruptedRomanceInvitation(world, npc, cause);
+        ExecutionSystem.ClearInterruptedJealousStrike(npc);
         if (npc.Mind.RomancePartnerNpcId is not null)
         {
             ExecutionSystem.AbortRomancePair(world, npc, reason,

@@ -40,10 +40,14 @@ internal static class CampPropertyMath
             ? CanUse(world, actor, live)
             : ExplicitOrder(actor) || PermittedGround(world, actor, obj.Tile);
 
-    internal static bool CanUse(WorldState world, NPCState actor, WorldObjectState obj)
-    {
-        if (ExplicitOrder(actor)) return true;
+    internal static bool CanUse(WorldState world, NPCState actor, WorldObjectState obj) =>
+        ExplicitOrder(actor) || CanUseUnordered(world, actor, obj);
 
+    /// <summary>The guest rule without the explicit-order pass. §121.12: a
+    /// manual build session fetches its materials on its own initiative, so
+    /// the player's click on the SITE grants nothing over nearby camp stock.</summary>
+    internal static bool CanUseUnordered(WorldState world, NPCState actor, WorldObjectState obj)
+    {
         // Own/allied property may be recovered anywhere. Existing fellow-owner
         // wear grants are still checked separately by the wardrobe code.
         Faction? hostileOwner = null;

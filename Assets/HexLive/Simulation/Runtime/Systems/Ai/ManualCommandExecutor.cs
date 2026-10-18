@@ -549,6 +549,8 @@ internal static class ManualCommandExecutor
         // сбор за его спиной значило бы, что приказ его не слушается.
         // Приём самого «собрать всё» взводит очередь ПОСЛЕ этого вызова.
         ManualGatherTargets.Clear(npc.Mind);
+        // §121.12: стройсессия — так же, и по той же причине.
+        ManualBuildSession.Clear(npc.Mind);
         // §53.9: назначенный игроком вид помощи живёт ровно один приказ —
         // следующий приказ (любой) снимает его, чтобы метка не досталась
         // чужому походу и не подменила автономный выбор §53.3.
@@ -2718,6 +2720,14 @@ internal static class ManualCommandExecutor
             return;
         }
 
+        if (command.Interaction == InteractionType.Build &&
+            world.Entities.Objects.TryGetValue(command.Target, out var buildSite) &&
+            ManualBuildSession.Eligible(buildSite))
+        {
+            StartBuildSession(world, npc, buildSite, command.InteractionId, admission);
+            return;
+        }
+
         TryStartInteractOrder(
             world, npc, command.Target, command.Interaction, command.InteractionId,
             "Interact", admission);
@@ -3273,6 +3283,178 @@ internal static class ManualCommandExecutor
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "ManualGatherAllFinished", $"Outcome={outcome}");
+        }
+    }
+
+    // ── §121.12 «Строить» до конца ──────────────────────────────────────
+    //
+    // Тот же приём, что у «собрать всё»: обычный ручной приказ на ПЕРВЫЙ шаг
+    // и описание сессии на NPC; следующий шаг выдаёт ManualOrderSystem.
+    // Шаг — либо подобрать материал рядом с площадкой, либо ещё один цикл
+    // Build; что именно, каждый раз решает ManualBuildSession.Next по миру.
+
+    private static void StartBuildSession(
+        WorldState world, NPCState npc, WorldObjectState site,
+        string interactionId, AdmissionTracker admission)
+    {
+        var step = ManualBuildSession.Next(world, npc, site);
+        bool started;
+        switch (step.Kind)
+        {
+            // Выдохшаяся не идёт за материалом: Build-ветка ниже отклонит
+            // приказ штатным Exhausted и усадит её отдыхать (bug #310).
+            case ManualBuildSession.StepKind.Fetch
+                when npc.Needs.Stamina > SimBalance.StaminaExhaustedThreshold:
+                started = TryStartInteractOrder(
+                    world, npc, step.Fetch!.Id, InteractionType.PickUp, string.Empty,
+                    "Build", admission);
+                break;
+            // Пустого цикла больше нет: нечем помочь — отказ с причиной сразу.
+            case ManualBuildSession.StepKind.NoMaterials:
+            case ManualBuildSession.StepKind.MissingTool:
+            case ManualBuildSession.StepKind.PackFull:
+                Reject(world, npc.Id, "Build", step.Kind.ToString(), admission);
+                return;
+            default:
+                started = TryStartInteractOrder(
+                    world, npc, site.Id, InteractionType.Build, interactionId,
+                    "Interact", admission);
+                break;
+        }
+
+        if (!started)
+        {
+            return;
+        }
+
+        // TryStartInteractOrder снимает старые очереди (ClearForNewOrder) —
+        // поэтому взводим ПОСЛЕ него.
+        ManualBuildSession.Arm(npc.Mind, site);
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualBuildArmed",
+                $"Site={site.Id.Value} Product={site.BuildProduct} First={step.Kind}");
+        }
+    }
+
+    /// <summary>
+    /// §121.12: следующий шаг стройсессии. Зовётся из <c>ManualOrderSystem</c>,
+    /// когда предыдущий приказ доигран и цель вернулась в <c>None</c>.
+    /// </summary>
+    internal static void ContinueBuildAll(
+        WorldState world, NPCState npc, bool previousCompleted)
+    {
+        if (!ManualBuildSession.IsActive(npc.Mind))
+        {
+            return;
+        }
+
+        if (!npc.Mind.ManualControl)
+        {
+            FinishBuildAll(world, npc, "ManualReleased", visible: false);
+            return;
+        }
+
+        if (npc.Health <= 0f || Incapacitated(world, npc))
+        {
+            FinishBuildAll(world, npc, "Incapacitated", visible: false);
+            return;
+        }
+
+        // Доигранный план был едой/питьём §121.6, а не шагом стройки.
+        var judgePrevious = !npc.Mind.BuildAllYielded;
+        if (judgePrevious && !previousCompleted)
+        {
+            // О сорванном шаге уже сказал ManualOrderInterrupted.
+            FinishBuildAll(world, npc, "OrderFailed", visible: false);
+            return;
+        }
+
+        var sessionSiteId = npc.Mind.BuildAllSiteId;
+        var site = ManualBuildSession.Resolve(world, npc.Mind);
+        if (site is null || !ManualBuildSession.Eligible(site))
+        {
+            var built = site is not null ||
+                ManualBuildSession.ProductStandsOnTile(world, npc.Mind);
+            FinishBuildAll(world, npc, built ? "Built" : "SiteGone", visible: true);
+            return;
+        }
+
+        if (judgePrevious && npc.Plan.TargetObjectId is { } previous)
+        {
+            // Цикл на той же площадке, не сдвинувший ни сданного, ни
+            // поставленного, — петля; подъём костра в новый объект (другой
+            // id) прогресс по определению.
+            var idleBuild = previous.Equals(site.Id) &&
+                ManualBuildSession.Progress(site) == npc.Mind.BuildAllProgress;
+            // Подбор, после которого предмет всё ещё лежит в мире.
+            var idleFetch = !previous.Equals(sessionSiteId) &&
+                world.Entities.Objects.TryGetValue(previous, out var unconsumed) &&
+                System.Array.IndexOf(BuildSiteMath.AllMaterials, unconsumed.DefinitionId) >= 0;
+            if (idleBuild || idleFetch)
+            {
+                FinishBuildAll(world, npc, "NoProgress", visible: true);
+                return;
+            }
+        }
+
+        // §121.6: голодная со своей едой сначала поест — шаг ждёт проход.
+        if (DecisionSystem.ManualNeedPending(world, npc))
+        {
+            npc.Mind.BuildAllYielded = true;
+            return;
+        }
+
+        var step = ManualBuildSession.Next(world, npc, site);
+        var tracker = new AdmissionTracker(npc.Id, "Build");
+        bool started;
+        switch (step.Kind)
+        {
+            case ManualBuildSession.StepKind.Fetch:
+                started = TryStartInteractOrder(
+                    world, npc, step.Fetch!.Id, InteractionType.PickUp, string.Empty,
+                    "Build", tracker);
+                break;
+            case ManualBuildSession.StepKind.Build:
+                started = TryStartInteractOrder(
+                    world, npc, site.Id, InteractionType.Build, string.Empty,
+                    "Build", tracker);
+                break;
+            default:
+                FinishBuildAll(world, npc, step.Kind.ToString(), visible: true);
+                return;
+        }
+
+        if (!started)
+        {
+            FinishBuildAll(world, npc, "Refused", visible: true, tracker.Reason);
+            return;
+        }
+
+        ManualBuildSession.Arm(npc.Mind, site);
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualBuildNext",
+                $"Site={site.Id.Value} Step={step.Kind}" +
+                (step.Fetch is { } fetch ? $" Obj={fetch.Id.Value} Def={fetch.DefinitionId}" : string.Empty));
+        }
+    }
+
+    /// <summary>Конец стройсессии. Видимый исход — ответ на приказ игрока
+    /// (едет зрителю, §121.5): «встала и стоит» без причины читается как
+    /// поломка. Отказ шага несёт причину отказа.</summary>
+    private static void FinishBuildAll(
+        WorldState world, NPCState npc, string outcome, bool visible, string reason = "")
+    {
+        ManualBuildSession.Clear(npc.Mind);
+        if (visible)
+        {
+            Trace.Emit(world, npc.Id, "ManualBuildFinished",
+                reason.Length > 0 ? $"Outcome={outcome} Reason={reason}" : $"Outcome={outcome}");
+        }
+        else if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualBuildStopped", $"Outcome={outcome}");
         }
     }
 

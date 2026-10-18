@@ -71,6 +71,31 @@ public sealed partial class DecisionSystem
             return;
         }
 
+        var goal = PickManualNeed(world, npc);
+        if (goal == GoalType.None)
+        {
+            return;
+        }
+
+        npc.Mind.CurrentGoal = goal;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualAutoNeed",
+                $"Goal={goal} Hunger={npc.Needs.Hunger:F2} Thirst={npc.Needs.Thirst:F2}");
+        }
+    }
+
+    /// <summary>§121.12: стройсессия уступает шаг авто-нужде — между двумя
+    /// своими приказами она оставляет цель <c>None</c> на проход, если
+    /// аукцион выше её сейчас возьмёт. Тот же гейт и тот же выбор, что у
+    /// аукциона, — иначе сессия ждала бы еду, которую никто не назначит.</summary>
+    internal static bool ManualNeedPending(WorldState world, NPCState npc) =>
+        world.Tick >= npc.Mind.WakeGraceUntilTick &&
+        !(npc.IsFighting && !npc.Mind.IsStarving && !npc.Mind.IsDehydrated) &&
+        PickManualNeed(world, npc) != GoalType.None;
+
+    private static GoalType PickManualNeed(WorldState world, NPCState npc)
+    {
         // 3. Пороги — те же, что у ИИ. Доступность — СТРОГО инвентарная:
         //    ⭐ ни `npc.Perception`, ни памяти о продюсерах, ни водосборников.
         //    Это и есть весь слайс: голод не даёт ручной права уйти с места.
@@ -78,7 +103,7 @@ public sealed partial class DecisionSystem
         var thirsty = npc.Needs.Thirst >= AiBalance.DrinkThirstThreshold;
         if (!hungry && !thirsty)
         {
-            return;
+            return GoalType.None;
         }
 
         // Кокос в рюкзаке — законная еда: вскрыть его она может там, где
@@ -110,15 +135,10 @@ public sealed partial class DecisionSystem
                 continue;
             }
 
-            npc.Mind.CurrentGoal = goal;
-            if (SimTrace.Enabled)
-            {
-                Trace.Debug(world, npc.Id, "ManualAutoNeed",
-                    $"Goal={goal} Hunger={npc.Needs.Hunger:F2} Thirst={npc.Needs.Thirst:F2}");
-            }
-
-            return;
+            return goal;
         }
+
+        return GoalType.None;
     }
 }
 

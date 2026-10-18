@@ -112,6 +112,14 @@ public sealed class ManualOrderSystem : ISimulationSystem
                 ManualCommandExecutor.ContinueGatherAll(world, npc, orderCompleted);
             }
 
+            // §121.12: «Строить» до конца — та же очередь обычных приказов:
+            // подобрать материал рядом или ещё один цикл Build.
+            if (npc.Mind.CurrentGoal == GoalType.None &&
+                ManualBuildSession.IsActive(npc.Mind))
+            {
+                ManualCommandExecutor.ContinueBuildAll(world, npc, orderCompleted);
+            }
+
             // §121.7: приказ завершён (цель None, сцепки нет) и реальный lease
             // игрока истёк — возврат под ИИ. Авто-цель §121.6 (Eat/Drink)
             // держит CurrentGoal != None и потому отсрочивает релиз до своего

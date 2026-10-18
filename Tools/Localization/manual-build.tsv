@@ -1,0 +1,12 @@
+# key	English	Русский
+# §121.12: ручное «Строить» до конца — почему стройсессия закончилась.
+# Род персонажа — разметкой §58.9: [[s:женский|мужской]].
+toast.build_finished.Built	Done building	[[s:Достроила|Достроил]]
+toast.build_finished.NoMaterials	Out of materials, none nearby	Материалы кончились, рядом нет
+toast.build_finished.MissingTool	Need a hammer to go on	Дальше нужен молоток
+toast.build_finished.PackFull	Pack is full — can't carry more	Рюкзак полон — больше не унести
+toast.build_finished.Blocked	Can't place the next piece yet	Следующую деталь пока не поставить
+toast.build_finished.NoProgress	Building isn't moving — stopped	Стройка не идёт — [[s:остановилась|остановился]]
+toast.build_finished.SiteGone	The build site is gone	Стройки больше нет
+toast.order_rejected.NoMaterials	No materials in hand or nearby	Ни в руках, ни рядом нет материалов
+toast.order_rejected.PackFull	Pack is full	Рюкзак полон

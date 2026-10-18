@@ -216,8 +216,13 @@ public sealed class CampfireManualIgnitionTests
         fire.BillRope = SimBalance.CampfireBillRope;
         fire.BillStones = SimBalance.CampfireBillStones;
 
-        // Ещё площадка: счёт открыт.
+        // Ещё площадка: счёт открыт. §121.12: с пустыми руками и без материала
+        // рядом «Строить» честно отказывает NoMaterials — поэтому в руках по
+        // штуке каждого материала костра, чтобы приказу было что делать.
         fire.BuildProduct = ContentIds.Campfire;
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.Stick));
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.Rope));
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.Stone));
         var open = Exported(world, fire);
         Assert.Multiple(() =>
         {

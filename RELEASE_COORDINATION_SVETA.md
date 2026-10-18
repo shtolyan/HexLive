@@ -819,3 +819,64 @@ Public receipt: https://play.62-146-235-120.sslip.io/release-receipt.json .
 - **Сервер (server binary):** `bbc522c8aabd3c4c8d61402ce605fff1ed6aea32` (тег `deploy/singapore-20261018-login`) = прод `c2833d7d6` + `login.html` из `1bd5b0ec0`. Тесты Release в чистом worktree: Server 513/513, Simulation 1878/1884 (6 skipped). `current`: `c2833d7d6…` → `bbc522c8a…` (прежний оставлен). Один restart: saved 1909251 → restored 1909251, seed 629209070, topology 0x59DDDCBB, 3/3, NRestarts 0; voice brain agent_2301…, VOICEBRAIN_GREETING=1 в окружении; хеши admin/player/mcp не изменились; simdata, drop-in'ы, voice.env, Caddy не трогал.
 - **Снаружи:** / 200, /login/ 200 (плашка «Закрытый бета-тест»), /login/art/*.webp 200, /watch 101, client-config 200, flashback 200. В браузере: без сессии `/` → `/login/`; `/?guest` → новый загрузчик → титульный экран Unity с HTML-карточкой серверов, холст на всё окно, ошибок страницы нет.
 - **Не проверено:** настоящий вход Google и игра своим персонажем (агенты не входят в реальные аккаунты); полный экран с первого клика — в панели браузера Claude он не работает, проверять в Chrome.
+
+
+## MSI — Singapore bug487 client/server dictionary release, 2026-10-18 14:10Z
+
+Completes Tolya's pending explicit client + Singapore game-server authorization
+for #487, protocol26 -> 27, including the subsequently requested fixes for the
+two full-suite blockers. No content/world-rule/New York publication.
+
+- Exact Player/server source: `bc97a818f670009f6d4878d78a32afa2cbb12179`.
+  Includes catalog fix `cbcb6ce836db4732c4baeea6288458a276702283` and the
+  reviewed #486 gate remediation. Full Release: Voice67/67, Server513/513,
+  Simulation1954/1960 (6 existing skips, zero failures); focused30/30;
+  strict WebGL0 compiler errors /0 forbidden APIs. No gate scanners weakened.
+- Canonical Unity CLI6000.4.6f1 release Player: RuntimeSpeed, FMOD4096x4,
+  audio manifest7984, splash off, HTML39 files/DPR1;229MB,0 errors,
+  236 warnings. Editor restored to StandaloneWindows64, full WorldProp gate
+  passed, settings restored and Unity closed. No new worktree/worker or MCP.
+- Server archive SHA256:
+  `929960f0b8195538177a9b3a90adb56fe051245118662a677fae981ff8d0422b`.
+  Player archive SHA256:
+  `1598fc94571317edeff10a5152d7918889c08786b4ca21b6f6b8647bdb263297`.
+  All525 server files and50 public Player files hashed; both source-exact
+  Studio banks retained. Reused B5 audio source
+  `b5cf880c8d0fedc133df16e5287013336022b433` only after7984 source proofs
+  and5668 published FSB/vis hashes/signatures passed.
+- Private copied-save fixture executed no world ticks, orders, LLM or voice.
+  Exact canonical encoder/client replay matched all4320 objects and the839
+  explicit IDs:463 palms,1 workbench,0 heads,0 cooked torsos,3 live NPCs.
+- Actual activation: `2026-10-18T14:10:36.476644+00:00`.
+  Server `/opt/hexlive/releases/bbc522c8aabd3c4c8d61402ce605fff1ed6aea32`
+  -> `/opt/hexlive/releases/bc97a818f670009f6d4878d78a32afa2cbb12179`.
+  Player `msi-20261018-0fcfe3359` -> `msi-20261018-bc97a818f`.
+  One planned hexlive.service restart; PID1442387 ->2181647, NRestarts0.
+  Private stopped backup verified at
+  `/var/lib/hexlive/ops/msi-bug487-20261018-bc97a818f/activation-backup`
+  (0700, files0600). Previous releases retained for rollback.
+- Same world `a309de74171d470385412bfab01ffdab`, seed629209070,
+  topology59DDDCBB and3/3 live colonists; saved tick2144641 resumed2144646.
+  Accounts/keys, assignments and offline save bytes preserved. World metadata,
+  world simdata (catalog973), bootstrap simdata and all content records unchanged;
+  Asset API registry remains994 with259 records. No configuration/Caddy change.
+- Public anonymous protocol27 keyframe verified exact839-entry dictionary,
+  world/seed/topology,4376 live objects,463 palms,1 workbench,0 false heads/torso,
+  3 NPCs, no control/orders. Initial QA helper had EOF waiting for a close ACK
+  after successful validation; private helper CloseOutputAsync rerun completed
+  exit0, with all canonical game assemblies unchanged. No extra server restart.
+- Staged and public clean Chrome155: HTMLv2, actual AUDIOWORKLET48000Hz4096x4,
+  zero JS/page errors/NRE, public Singapore ready with Play enabled; New York
+  remains disabled. All50 HTTPS files, both banks, manifest/audio samples,
+  Brotli/WASM headers and public registry994 passed. New service journal:
+  zero NRE/unhandled/OOM/protocol-mismatch errors. Existing ignored2D callbacks
+  and three unsupported hidden-shader diagnostics persist from the baseline.
+
+Limits: no authenticated gameplay orders, account/character creation, paid
+voice/ElevenLabs calls, human audio-quality acceptance, in-world performance
+measurement or full live construction/wardrobe acceptance. Public keyframe
+verification establishes correct object IDs; player visual acceptance remains
+separate. No evidence archive export and no agent-confirmed fixed status.
+
+Local receipts/logs: `Build/MSIRelease/20261018-bug487-bc97a818f/DEPLOYMENT_REPORT.json`.
+Public receipt: https://play.62-146-235-120.sslip.io/release-receipt.json .

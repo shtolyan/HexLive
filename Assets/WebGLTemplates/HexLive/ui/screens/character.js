@@ -143,6 +143,16 @@ const NEED_LOOK = {
   compassion: ['heartFill', 'rgb(236 115 150)'], breath: ['energy', 'rgb(71 182 230)'],
 };
 
+// Every need shows its number (player's request 18.10.2026: blood alone used
+// to, with its deficit, and stood out); warmth is signed — cold minus, hot plus.
+function needValue(n) {
+  if (n.thermal != null) {
+    const v = Math.round(n.thermal * 100);
+    return v > 0 ? `+${v}%` : v < 0 ? `−${-v}%` : '0%';
+  }
+  return `${Math.round(n.value * 100)}%`;
+}
+
 function NeedIcon({ need }) {
   const look = need.thermal != null
     ? ['thermal', need.thermal < -0.05 ? 'rgb(71 182 230)' : need.thermal > 0.05 ? 'rgb(232 116 107)' : 'rgb(154 166 173)']
@@ -161,13 +171,13 @@ function Needs({ npc }) {
       ${tab === 'needs' && html`
         <ul class="hx-needs">
           ${npc.needs.map((n) => html`
-            <li key=${n.id} title=${n.thermal != null ? undefined : `${Math.round(n.value * 100)}%`}>
+            <li key=${n.id} title=${n.deficit > 0 ? `${t(`need.${n.id}`)}: ${Math.round(n.value * 100)}% (−${Math.round(n.deficit * 100)}%)` : undefined}>
               <span class="hx-needs__label"><${NeedIcon} need=${n} />${t(`need.${n.id}`)}</span>
+              <span class="hx-needs__value" data-tone=${n.thermal != null ? (n.thermal < -0.05 ? 'cold' : n.thermal > 0.05 ? 'hot' : '') : ''}>${needValue(n)}</span>
               ${n.thermal != null
                 ? html`<span class="hx-bar hx-bar--bipolar"><i style=${{ left: `${50 + Math.min(0, n.thermal) * 50}%`, width: `${Math.abs(n.thermal) * 50}%`,
                     background: n.thermal < 0 ? 'rgb(71 182 230)' : 'rgb(232 116 107)' }}></i></span>`
                 : html`<span class="hx-bar"><i style=${{ width: `${n.value * 100}%`, background: good(n.value) }}></i></span>`}
-              ${n.deficit > 0 && html`<span class="hx-needs__deficit">−${Math.round(n.deficit * 100)}%</span>`}
             </li>`)}
         </ul>`}
       ${(tab === 'nature' || tab === 'skills') && html`

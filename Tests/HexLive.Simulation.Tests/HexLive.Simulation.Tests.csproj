@@ -28,6 +28,11 @@
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <IsPackable>false</IsPackable>
+    <!-- #496: allocation comparisons need one JIT strategy on both sides.
+         The full-suite sample differed by 6168B before / 0B after;
+         isolate this measurement from tier promotion. This pins only the test host;
+         game/server projects and the exact allocation assertions are unchanged. -->
+    <TieredCompilation>false</TieredCompilation>
     <BaseOutputPath>../../Build/dotnet/bin/HexLive.Simulation.Tests/</BaseOutputPath>
   </PropertyGroup>
 

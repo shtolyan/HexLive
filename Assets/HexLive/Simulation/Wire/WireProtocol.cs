@@ -169,7 +169,8 @@ public sealed class Handshake
     // 21: snapshot v43 — persistent craft current/last worker (§119, #422).
     // 22: §149.6 — durable assignment notices and acknowledgement.
     // 26: §173.2 — exact inventory-seed planting command and target junction.
-    public const int ProtocolVersion = 26; // matched client/server required
+    // 27: #487 — exact encoder vocabulary, independent of either side's code defaults.
+    public const int ProtocolVersion = 27; // matched client/server required
 
     public string WorldId { get; set; } = string.Empty;
     public string CreationConfig { get; set; } = string.Empty;
@@ -203,6 +204,10 @@ public sealed class Handshake
 
     /// <summary>The server's <c>simdata.json</c>, verbatim.</summary>
     public string SimData { get; set; } = string.Empty;
+
+    /// <summary>Exact ordinal encoder vocabulary, excluding literal-escape slot 0.
+    /// This comes from the running host, not an inference from SimData JSON.</summary>
+    public List<string> ObjectDefinitionIds { get; } = new();
 
     /// <summary>§121.9: сервер принял токен игрока — этому соединению можно
     /// слать <see cref="FrameKind.NpcCommand"/>. Ложь — прежний анонимный
@@ -250,6 +255,10 @@ public sealed class Handshake
         WriteSimData(w, CreationConfig ?? string.Empty);
         w.Write(AssignmentNotices.Count);
         foreach (var notice in AssignmentNotices) notice.Write(w);
+        if (!DefinitionIdTable.IsCanonical(ObjectDefinitionIds, allowEmpty: true))
+            throw new InvalidDataException("Invalid server object-definition vocabulary.");
+        w.Write(ObjectDefinitionIds.Count);
+        foreach (var id in ObjectDefinitionIds) w.Write(id);
     }
 
     public static Handshake Read(BinaryReader r)
@@ -295,6 +304,13 @@ public sealed class Handshake
         var noticeCount = r.ReadInt32();
         if (noticeCount < 0 || noticeCount > 4096) throw new InvalidDataException("Invalid assignment notice count.");
         for (var i = 0; i < noticeCount; i++) handshake.AssignmentNotices.Add(PlayerAssignmentNotice.Read(r));
+
+        var definitionCount = r.ReadInt32();
+        if (definitionCount < 0 || definitionCount > DefinitionIdTable.MaxIds)
+            throw new InvalidDataException("Invalid object-definition vocabulary count.");
+        for (var i = 0; i < definitionCount; i++) handshake.ObjectDefinitionIds.Add(r.ReadString());
+        if (!DefinitionIdTable.IsCanonical(handshake.ObjectDefinitionIds, allowEmpty: true))
+            throw new InvalidDataException("Invalid server object-definition vocabulary.");
 
         return handshake;
     }

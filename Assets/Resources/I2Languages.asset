@@ -4460,6 +4460,14 @@ MonoBehaviour:
       - "\u0417\u0434\u0435\u0441\u044C \u043D\u0435\u043A\u0443\u0434\u0430 \u043F\u043E\u043B\u043E\u0436\u0438\u0442\u044C"
       Flags: 0101
       Languages_Touch: []
+    - Term: toast.order_rejected.ForeignConstruction
+      TermType: 0
+      Description:
+      Languages:
+      - You cannot build or edit structures in another camp
+      - "Нельзя строить и изменять постройки в чужом лагере"
+      Flags: 0101
+      Languages_Touch: []
     - Term: toast.order_rejected.ForeignCamp
       TermType: 0
       Description: 
@@ -24042,8 +24050,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Prosthetics workbench
-      - "\u0412\u0435\u0440\u0441\u0442\u0430\u043A \u043F\u0440\u043E\u0442\u0435\u0437\u043E\u0432"
+      - Workbench
+      - "\u0412\u0435\u0440\u0441\u0442\u0430\u043A"
       Flags: 0101
       Languages_Touch: []
     - Term: blueprint.catalog.workbench.description
@@ -31212,7 +31220,7 @@ MonoBehaviour:
       - 'Партнёр пока не готов к романтическому сближению.'
       Flags: 0101
       Languages_Touch: []
-    - Term: toast.build_finished.Built
+    - Term: 'toast.build_finished.Built'
       TermType: 0
       Description: 
       Languages:
@@ -31252,7 +31260,7 @@ MonoBehaviour:
       - 'Следующую деталь пока не поставить'
       Flags: 0101
       Languages_Touch: []
-    - Term: toast.build_finished.NoProgress
+    - Term: 'toast.build_finished.NoProgress'
       TermType: 0
       Description: 
       Languages:

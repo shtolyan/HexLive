@@ -52,6 +52,8 @@ namespace HexLive.UnityPresentation.HutTest
             public Action<IReadOnlyList<FreeArchitecturePlacementData>,
                 IReadOnlyList<string>> OnApplyFreeArchitecture;
             public Action OnClosed;
+            public Func<BuildingBlueprintDraft, BuildingBlueprintDraft, bool> CanApplyDraft;
+            public Func<BuildingBlueprintDraft, bool> CanBuild;
         }
 
         public static WorldPlacementConfig PendingWorldPlacement;
@@ -63,6 +65,7 @@ namespace HexLive.UnityPresentation.HutTest
         public static bool DirectWorldEditorOpen { get; private set; }
 
         private WorldPlacementConfig _worldPlacement;
+        private int _worldRejectionRevision;
         private bool WorldMode => _worldPlacement != null;
         private bool EditingExisting => _worldPlacement?.ExistingOwner != null;
         private bool DirectWorldConstruction =>
@@ -158,6 +161,7 @@ namespace HexLive.UnityPresentation.HutTest
         private void Start()
         {
             _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
+            _worldRejectionRevision = ManualOrderFeedback.WorldRevision;
             _camera = Camera.main;
             SuppressWorldSelection();
             var draftId = DraftId;
@@ -252,6 +256,7 @@ namespace HexLive.UnityPresentation.HutTest
 
         private void Update()
         {
+            RefreshWorldRejection();
             SuppressWorldSelection();
             if (!_initialized) InitializePreview();
             if (!_initialized || _preview == null || _camera == null) return;
@@ -267,6 +272,24 @@ namespace HexLive.UnityPresentation.HutTest
             {
                 _autosaveDeadline = 0f;
                 SaveDraft(false);
+            }
+        }
+
+        private void RefreshWorldRejection()
+        {
+            if (WorldMode && _worldRejectionRevision != ManualOrderFeedback.WorldRevision)
+            {
+                _worldRejectionRevision = ManualOrderFeedback.WorldRevision;
+                if (DirectWorldConstruction && _runner?.CreateSnapshot() is { } snapshot)
+                {
+                    _draft = UI.BuildModePanel.FreeWorldProjection(snapshot);
+                    _history.Clear();
+                    _selectedId = string.Empty;
+                    _selectedIds.Clear();
+                    CancelGesture();
+                    RefreshUiState();
+                }
+                SetStatus(ManualOrderFeedback.WorldReasonKey, true);
             }
         }
 
@@ -491,6 +514,11 @@ namespace HexLive.UnityPresentation.HutTest
         private void BuildAndClose()
         {
             if (_worldPlacement?.OnBuild == null) return;
+            if (_worldPlacement.CanBuild != null && !_worldPlacement.CanBuild(_draft))
+            {
+                SetStatus("toast.order_rejected.ForeignConstruction", true);
+                return;
+            }
             SaveDraft(false);
             var validation = BlueprintValidator.Validate(_draft);
             var hasFloor = _draft.Elements.Any(e => e.Kind == BlueprintElementKind.FloorSector);
@@ -790,7 +818,8 @@ namespace HexLive.UnityPresentation.HutTest
         {
             ClearRotationPreview();
             var before = DirectWorldConstruction ? _draft.Clone() : null;
-            var result = _history.Execute(_draft, gesture);
+            var result = _history.Execute(_draft, gesture, CheckWorldAccess,
+                Loc.Get("toast.order_rejected.ForeignConstruction"));
             if (result.Succeeded)
             {
                 if (DirectWorldConstruction) DispatchDirectDelta(before!, _draft);
@@ -922,7 +951,7 @@ namespace HexLive.UnityPresentation.HutTest
         {
             ClearRotationPreview();
             var before = DirectWorldConstruction ? _draft.Clone() : null;
-            if (!_history.Undo(_draft)) return;
+            if (!_history.Undo(_draft, CheckWorldAccess)) return;
             if (DirectWorldConstruction) DispatchDirectDelta(before!, _draft);
             _selectedId = string.Empty;
             _selectedIds.Clear();
@@ -936,7 +965,7 @@ namespace HexLive.UnityPresentation.HutTest
         {
             ClearRotationPreview();
             var before = DirectWorldConstruction ? _draft.Clone() : null;
-            if (!_history.Redo(_draft)) return;
+            if (!_history.Redo(_draft, CheckWorldAccess)) return;
             if (DirectWorldConstruction) DispatchDirectDelta(before!, _draft);
             _selectedId = string.Empty;
             _selectedIds.Clear();
@@ -1011,7 +1040,8 @@ namespace HexLive.UnityPresentation.HutTest
             if (result.Candidate != null && !string.IsNullOrEmpty(_dragOpeningId)) changed.Add(_dragOpeningId);
             var junctionConflicts = FurnitureConflicts(candidate);
             var buildConflicts = MissingRoofSupports(candidate);
-            var invalid = result.Candidate != null && !result.Validation.IsValid;
+            var invalid = result.Candidate != null &&
+                (!result.Validation.IsValid || !CheckWorldAccess(_draft, candidate));
             _preview.Rebuild(candidate, _mode, _selectedId,
                 junctionConflicts, buildConflicts, changed, invalid, _selectedIds,
                 OutdoorGridTiles(), DirectArchitectureGridTiles());
@@ -1085,6 +1115,13 @@ namespace HexLive.UnityPresentation.HutTest
                 .ToArray();
             if (placements.Length == 0 && removals.Length == 0) return;
             callback(placements, removals);
+        }
+
+        private bool CheckWorldAccess(BuildingBlueprintDraft before, BuildingBlueprintDraft after)
+        {
+            if (_worldPlacement?.CanApplyDraft == null || _worldPlacement.CanApplyDraft(before, after)) return true;
+            SetStatus("toast.order_rejected.ForeignConstruction", true);
+            return false;
         }
 
         private static JunctionKey[] FurnitureConflicts(BuildingBlueprintDraft draft) =>

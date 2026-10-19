@@ -874,13 +874,18 @@ Two rules when touching that list:
 (~14 000) travel: both are pure worldgen output and the receiver regenerates them
 from the seed, which the handshake's topology checksum proves matched. Object
 records drop their build-site block (twelve ints, zero on ~215 of 218 objects)
-behind a flags byte, and definition ids travel as an index into a table both ends
-derive from the same content catalog (`Wire/DefinitionIdTable.cs`).
+behind a flags byte, and definition ids travel as an index into the server's
+exact ordinal table (`Wire/DefinitionIdTable.cs`). Protocol27 sends that frozen
+vocabulary explicitly in `Handshake.ObjectDefinitionIds`; `worldObjects` JSON
+can omit built-ins and is not a substitute for the wire table (#487).
 
 ⚠️ **`DefinitionIdTable.Build(world.Content)` must run before the first frame is
 encoded or decoded** — on the server after worldgen, on the client after it
-applies the server's simdata. Skip it and objects still arrive, just nameless, and
-the renderer draws grey spheres: a silent failure, so assert it.
+applies the server's simdata and calls `CreateRemoteTopology` with the explicit
+server vocabulary. Assert `DefinitionIdTable.Matches(handshake.ObjectDefinitionIds)`
+before decoding. A shifted table silently paints valid objects as unrelated
+items; malformed, missing or changed vocabularies must fail closed. Seed,
+registry revision and matching bundle hashes alone do not prove this contract.
 
 **Frames are deltas.** One full frame on connect, then only what moved:
 `Wire/SnapshotDelta.cs` encodes, `Wire/SnapshotDeltaReader.cs` applies. Measured

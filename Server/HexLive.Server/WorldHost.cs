@@ -151,9 +151,10 @@ public sealed partial class WorldHost : IDisposable
 
         // Definition ids travel as indices into a table derived from the content
         // catalog. The client derives the same one from the simdata we ship in the
-        // handshake, so nothing is negotiated — but it must exist before the first
-        // frame is encoded.
+        // handshake. #487 sends the actual encoder vocabulary as well: JSON
+        // alone need not list every built-in type. Freeze it before encoding.
         DefinitionIdTable.Build(world.Content);
+        ObjectDefinitionIds = DefinitionIdTable.ExportIds();
 
         // §162: fingerprint captured by Create's topology callback before scenario buildings
         // change tile flags, and before restoring a save. Matches the viewer's CreateTopology.
@@ -179,6 +180,7 @@ public sealed partial class WorldHost : IDisposable
 
     public string WorldId { get; }
     public string CreationConfigText => Read(w => WorldCreationCodec.Encode(w.CreationConfig));
+    public IReadOnlyList<string> ObjectDefinitionIds { get; }
 
     public string? DrainLlmProviderFailureSummary() =>
         _llmProviderDiagnostics?.DrainSummary();
@@ -244,7 +246,8 @@ public sealed partial class WorldHost : IDisposable
     /// here. A future MCP adapter must establish those before calling this seam.
     /// </para>
     /// </summary>
-    public ManualCommandAdmission SubmitManualCommand(ISimulationCommand command, string requestOwner = "")
+    public ManualCommandAdmission SubmitManualCommand(ISimulationCommand command, string requestOwner = "",
+        IReadOnlyCollection<int>? assignedNpcIds = null)
     {
         if (command is null)
         {
@@ -253,7 +256,7 @@ public sealed partial class WorldHost : IDisposable
 
         lock (_gate)
         {
-            var admission = _engine.ApplyManualCommand(command, requestOwner);
+            var admission = _engine.ApplyManualCommand(command, requestOwner, assignedNpcIds);
 
             // A command can mutate the world without advancing its tick. A
             // snapshot already cached for that tick is therefore stale even

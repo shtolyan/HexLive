@@ -69,7 +69,7 @@ namespace HexLive.Simulation.Tests.Gates
                 Assert.That(camera, Does.Contain("TryGetSelectionFrame"));
                 Assert.That(camera, Does.Contain("NpcSelection.RightUiCoverage"));
                 Assert.That(camera, Does.Contain("_requestedDistance = FitDistance(radius)"));
-                Assert.That(camera, Does.Contain("if (HasPanInput())"));
+                Assert.That(camera, Does.Contain("if (allowWorldInput && HasPanInput())"));
                 Assert.That(camera, Does.Contain("ExitOrbit();"));
                 Assert.That(camera, Does.Contain("TryGetNpcViewPosition"));
                 Assert.That(camera, Does.Not.Contain("TryGetNpcBodyCenter(npcId"),

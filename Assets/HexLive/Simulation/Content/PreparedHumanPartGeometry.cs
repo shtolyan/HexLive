@@ -8,8 +8,8 @@ internal static class PreparedHumanPartGeometry
     {
         "food.human_arm_raw" => 0.650254f,
         "food.human_arm_cooked" => 0.650254f,
-        "food.human_leg_raw" => 0.965442f,
-        "food.human_leg_cooked" => 0.965442f,
+        "food.human_leg_raw" => 0.965443f,
+        "food.human_leg_cooked" => 0.965443f,
         "food.human_torso_raw" => 0.579169f,
         "food.human_torso_cooked" => 0.579169f,
         "resource.human_head" => 0.256191f,

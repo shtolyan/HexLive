@@ -98,6 +98,39 @@ namespace HexLive.Simulation.Content
         }
 
         /// <summary>
+        /// §83.2.7 / #487: use the explicit server wire vocabulary,
+        /// not worldObjects JSON (which can omit built-in types). Keep the definition
+        /// data already built from that handshake, but remove client-only ids
+        /// BEFORE DefinitionIdTable.Build. Validate first; a bad catalog must
+        /// never leave a partially filtered table or reuse the previous server.
+        /// This does not change the local/editor override-merge contract.
+        /// </summary>
+        public static bool RestrictToRemoteObjectCatalog(ContentCatalog catalog, IReadOnlyList<string> orderedIds)
+        {
+            if (catalog == null || !Wire.DefinitionIdTable.IsCanonical(orderedIds))
+            {
+                return false;
+            }
+
+            var ids = new HashSet<string>(System.StringComparer.Ordinal);
+            foreach (var id in orderedIds)
+            {
+                if (!catalog.ObjectDefinitions.ContainsKey(id))
+                {
+                    return false; // the handshake was not applied before topology
+                }
+                ids.Add(id);
+            }
+
+            // The authoritative table already excludes the server's retired aliases.
+            foreach (var id in new List<string>(catalog.ObjectDefinitions.Keys))
+            {
+                if (!ids.Contains(id)) catalog.ObjectDefinitions.Remove(id);
+            }
+            return true;
+        }
+
+        /// <summary>
         /// Apply a small, player-build-side balance override without rebuilding
         /// the application. Accepted shapes are either a flat object of
         /// <c>"Class.Field": value</c> pairs or a full/partial SimData object

@@ -555,7 +555,8 @@ join(binds, "HEARTH_rope_unit_00")
 
 # The renderer attaches CampfireEffect to this marker (Spec 120.2), so it must
 # stay named exactly fire_point and sit at the flame centre, not at the origin.
-new_empty("fire_point", root, loc=(0, 0, 0.055))
+# The effect's local +Y must point up (+Z in Blender), including after FBX import.
+new_empty("fire_point", root, loc=(0, 0, 0.055), rot=(math.pi / 2, 0, 0))
 
 print("=== architecture elements rebuilt ===")
 for name in ("HL_ARCH_WALL", "HL_ARCH_WINDOW", "HL_ARCH_DOOR",

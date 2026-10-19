@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Agents.Effects;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
@@ -18,6 +19,197 @@ namespace HexLive.Simulation.Tests.Behavior
 /// <summary>§127.9–12: command boundary, paired scene and authoritative outcomes.</summary>
 public sealed class RomanceInteractionTests
 {
+    [TestCase(false, false)]
+    [TestCase(false, true)]
+    [TestCase(true, false)]
+    [TestCase(true, true)]
+    public void InvitationOwnsApproachUntilAnswerAndCuesDoNotDependOnDiagnostics(bool consent, bool diagnostics)
+    {
+        var (world, initiator, listener) = InvitationPair();
+        var previousTrace = SimTrace.Enabled;
+        SimTrace.Enabled = diagnostics;
+        try
+        {
+            if (!consent) listener.Social.GetOrCreate(initiator.Id).Trust = 0f;
+            StartInvitationConversation(world, initiator, listener);
+            var approach = initiator.Plan.TargetJunctionId!.Value;
+            var listenerJunction = listener.CurrentJunction!.Value;
+            Assert.That(approach, Is.Not.EqualTo(listenerJunction));
+            Assert.That(SpatialMutations.TryReserveJunction(world, approach, initiator.Id, world.Tick, 1000), Is.True);
+            Assert.That(SpatialMutations.TryReserveJunction(world, listenerJunction, listener.Id, world.Tick, 1000), Is.True);
+
+            world.Tick = initiator.Execution.EndTick;
+            new ExecutionSystem().Run(world);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(listener.Execution.LastSocialCueKind, Is.EqualTo(consent ? "RomanceAccepted" : "RomanceRefused"));
+                Assert.That(initiator.Execution.Status, Is.EqualTo(ExecutionStatus.None));
+                Assert.That(initiator.Execution.CurrentTalkTopic, Is.Null);
+                Assert.That(listener.Execution.CurrentTalkTopic, Is.Null);
+                Assert.That(initiator.Plan.Status, Is.EqualTo(consent ? PlanStatus.Active : PlanStatus.Completed));
+                Assert.That(listener.Mind.PendingRomanceFrom, Is.EqualTo(consent ? (EntityId?)initiator.Id : null));
+                Assert.That(world.Reservations.Junctions.ContainsKey(approach), Is.EqualTo(consent));
+                Assert.That(world.Occupancy.JunctionOwner.TryGetValue(approach, out var owner) && owner == initiator.Id, Is.EqualTo(consent));
+                Assert.That(world.Reservations.Junctions[listenerJunction].Owner, Is.EqualTo(listener.Id), "never release someone else's reservation");
+                Assert.That(world.Events.Items.Any(e => e.Type == "ManualOrderInterrupted"), Is.False, "an answer is not an aborted order");
+                Assert.That(world.Events.Items.Any(e => e.Type == "RomanceInvitationStarted"), Is.EqualTo(diagnostics));
+                Assert.That(world.Events.Items.Any(e => e.Type == (consent ? "RomanceInvitationAccepted" : "RomanceInvitationDeclined")), Is.EqualTo(diagnostics));
+            });
+            if (consent)
+            {
+                Assert.That(initiator.Plan.Steps[^1].Interaction, Is.EqualTo(InteractionType.Romance));
+            }
+            else
+            {
+                Assert.That(initiator.Plan.Steps, Is.Empty);
+                Assert.That(initiator.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+            }
+        }
+        finally
+        {
+            SimTrace.Enabled = previousTrace;
+        }
+    }
+
+    [TestCase(0f, .25f)]
+    [TestCase(.55f, .9f)]
+    [TestCase(1f, 1f)]
+    public void MutualInteractionRecoversBothSocialNeedsThroughoutItsDuration(float first, float second)
+    {
+        var (world, initiator, listener) = StartMutualNeedInteraction();
+        initiator.Needs.Social = first;
+        listener.Needs.Social = second;
+        initiator.EffectImpacts.Clear(EffectImpactCadence.Fast);
+        listener.EffectImpacts.Clear(EffectImpactCadence.Fast);
+        var execution = new ExecutionSystem();
+        for (var elapsed = 1; elapsed <= Spec127.DurationTicks; elapsed++)
+        {
+            world.Tick++;
+            execution.Run(world);
+            if (elapsed == 1)
+            {
+                Assert.That(initiator.EffectImpacts.Items.Any(i => i.Need == NeedKind.Social && i.Direction == EffectImpactDirection.Positive), Is.EqualTo(first < 1f));
+                Assert.That(listener.EffectImpacts.Items.Any(i => i.Need == NeedKind.Social && i.Direction == EffectImpactDirection.Positive), Is.EqualTo(second < 1f));
+            }
+            if (elapsed % 100 != 0 && elapsed != Spec127.DurationTicks) continue;
+            var progress = elapsed / (float)Spec127.DurationTicks;
+            Assert.Multiple(() =>
+            {
+                Assert.That(initiator.Needs.Social, Is.EqualTo(first + (1f - first) * progress).Within(.0001f));
+                Assert.That(listener.Needs.Social, Is.EqualTo(second + (1f - second) * progress).Within(.0001f));
+                if (elapsed < Spec127.DurationTicks)
+                    Assert.That(initiator.Social.GetOrCreate(listener.Id).Affinity, Is.EqualTo(.55f),
+                        "Relationship completion reward must not be repeated each tick.");
+            });
+        }
+        Assert.That(initiator.Needs.Social, Is.EqualTo(1f));
+        Assert.That(listener.Needs.Social, Is.EqualTo(1f));
+        foreach (var relationship in new[] { initiator.Social.GetOrCreate(listener.Id), listener.Social.GetOrCreate(initiator.Id) })
+        {
+            Assert.That(relationship.Affinity, Is.EqualTo(.65f).Within(.0001f));
+            Assert.That(relationship.Trust, Is.EqualTo(.41f).Within(.0001f));
+            Assert.That(relationship.Familiarity, Is.EqualTo(.63f).Within(.0001f));
+        }
+        execution.Run(world);
+        Assert.That(initiator.Social.GetOrCreate(listener.Id).Affinity, Is.EqualTo(.65f).Within(.0001f));
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public void StoppingMutualInteractionKeepsPartialSocialWithoutFullCompletionReward(bool stopInitiator)
+    {
+        var (world, initiator, listener) = StartMutualNeedInteraction();
+        initiator.Needs.Social = listener.Needs.Social = .1f;
+        var execution = new ExecutionSystem();
+        for (var tick = 0; tick < 100; tick++) { world.Tick++; execution.Run(world); }
+        var earned = initiator.Needs.Social;
+        Assert.That(earned, Is.GreaterThan(.1f).And.LessThan(1f));
+        var stopped = stopInitiator ? initiator : listener;
+        stopped.Mind.ManualControl = true;
+        Assert.That(ManualCommandExecutor.Apply(world, new StopCommand(stopped.Id)).Accepted, Is.True);
+        world.Tick++;
+        execution.Run(world);
+        Assert.That(initiator.Needs.Social, Is.EqualTo(earned));
+        Assert.That(listener.Needs.Social, Is.EqualTo(earned));
+        Assert.That(initiator.Social.GetOrCreate(listener.Id).Affinity, Is.EqualTo(.55f));
+    }
+
+    [Test]
+    public void EarnedMutualSocialSurvivesSaveLoadWithoutAnUnearnedCompletionGrant()
+    {
+        var (world, initiator, listener) = StartMutualNeedInteraction();
+        initiator.Needs.Social = listener.Needs.Social = .1f;
+        var execution = new ExecutionSystem();
+        for (var tick = 0; tick < 100; tick++) { world.Tick++; execution.Run(world); }
+        var earned = initiator.Needs.Social;
+        Assert.That(earned, Is.GreaterThan(.1f).And.LessThan(1f));
+        using var bytes = new MemoryStream();
+        using (var writer = new BinaryWriter(bytes, System.Text.Encoding.UTF8, true)) WorldSaveSerializer.Write(world, writer);
+        bytes.Position = 0;
+        var loaded = TestWorld.CreateWorld(world.Seed);
+        using (var reader = new BinaryReader(bytes, System.Text.Encoding.UTF8, true)) WorldSaveSerializer.Read(loaded, reader);
+        Assert.That(loaded.Entities.Npcs[initiator.Id].Needs.Social, Is.EqualTo(earned));
+        Assert.That(loaded.Entities.Npcs[listener.Id].Needs.Social, Is.EqualTo(earned));
+        loaded.Tick++;
+        execution.Run(loaded);
+        Assert.That(loaded.Entities.Npcs[initiator.Id].Needs.Social, Is.GreaterThan(earned).And.LessThan(1f));
+        Assert.That(loaded.Entities.Npcs[listener.Id].Needs.Social, Is.GreaterThan(earned).And.LessThan(1f));
+    }
+
+    [Test]
+    public void MutualSocialRecoveryStillWorksWithOrdinaryNeedsDecay()
+    {
+        var (world, initiator, listener) = StartMutualNeedInteraction();
+        initiator.Needs.Social = .2f;
+        listener.Needs.Social = .6f;
+        var endTick = initiator.Execution.EndTick;
+        var engine = new SimulationEngine(world, new SimulationSettings(), new SimulationClock());
+        engine.Register(new ExecutionSystem());
+        engine.Register(new NeedsDecaySystem());
+        for (var step = 0; step < 100; step++) engine.Step();
+        Assert.That(initiator.Needs.Social, Is.GreaterThan(.2f).And.LessThan(1f));
+        Assert.That(listener.Needs.Social, Is.GreaterThan(.6f).And.LessThan(1f));
+        for (var step = 100; world.Tick <= endTick && step <= Spec127.DurationTicks + 1; step++) engine.Step();
+        Assert.That(world.Tick, Is.GreaterThan(endTick), "The isolated simulation must advance through completion.");
+        Assert.That(initiator.Needs.Social, Is.EqualTo(1f).Within(.001f));
+        Assert.That(listener.Needs.Social, Is.EqualTo(1f).Within(.001f));
+    }
+
+    [TestCase(0)]
+    [TestCase(1)]
+    [TestCase(2)]
+    public void SocialDecayExemptionRequiresAnActiveReciprocalPair(int brokenState)
+    {
+        var (world, initiator, listener) = StartMutualNeedInteraction();
+        initiator.Needs.Social = listener.Needs.Social = .9f; // Above the ambient-company cap.
+        if (brokenState == 1) listener.Mind.RomancePartnerNpcId = null;
+        if (brokenState == 2) listener.Execution.Status = ExecutionStatus.None;
+        new NeedsDecaySystem().Run(world);
+        if (brokenState == 0)
+        {
+            Assert.That(initiator.Needs.Social, Is.EqualTo(.9f));
+            Assert.That(listener.Needs.Social, Is.EqualTo(.9f));
+        }
+        else
+        {
+            Assert.That(initiator.Needs.Social, Is.LessThan(.9f));
+            Assert.That(listener.Needs.Social, Is.LessThan(.9f));
+        }
+    }
+
+    private static (WorldState world, NPCState initiator, NPCState listener) StartMutualNeedInteraction()
+    {
+        var (world, initiator, listener) = InvitationPair();
+        StartInvitationConversation(world, initiator, listener);
+        world.Tick = initiator.Execution.EndTick;
+        var execution = new ExecutionSystem();
+        execution.Run(world);
+        execution.Run(world);
+        Assert.That(initiator.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Romance));
+        return (world, initiator, listener);
+    }
+
     private static (WorldState world, NPCState initiator, NPCState listener) InvitationPair(WorldState existing = null)
     {
         var world = existing ?? TestWorld.CreateWorld(12709);
@@ -361,8 +553,8 @@ public sealed class RomanceInteractionTests
         Assert.Multiple(() =>
         {
             Assert.That(female.Body.Condition(BodyPart.Pelvis).IntimacySoil, Is.EqualTo(1f));
-            Assert.That(male.Needs.Social, Is.EqualTo(0.90f).Within(0.0001f));
-            Assert.That(female.Needs.Social, Is.EqualTo(0.90f).Within(0.0001f));
+            Assert.That(male.Needs.Social, Is.EqualTo(1f));
+            Assert.That(female.Needs.Social, Is.EqualTo(1f));
             Assert.That(male.Social.GetOrCreate(female.Id).Affinity,
                 Is.EqualTo(0.65f).Within(0.0001f));
             Assert.That(male.Mind.RomancePartnerNpcId, Is.Null);

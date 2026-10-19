@@ -29,7 +29,7 @@ namespace HexLive.UnityPresentation.UI
         private bool _dollOnScreen;
         private Rect _dollShownAt;
         private bool _inventoryHtmlHidden;
-        private readonly VisualElement _statScratch = new();
+        private VisualElement _statScratch;
 
         private void UpdateHtmlInventory(WorldSnapshot snapshot)
         {
@@ -148,7 +148,7 @@ namespace HexLive.UnityPresentation.UI
             }
         }
 
-        /// <summary>The card's stat rows as (label, value): first and last label of each row.</summary>
+        /// <summary>Keep the card's authored value colour and optional normalized meter.</summary>
         private static JArray StatRows(VisualElement rows)
         {
             var stats = new JArray();
@@ -156,7 +156,11 @@ namespace HexLive.UnityPresentation.UI
             {
                 var labels = new List<Label>();
                 row.Query<Label>().ForEach(labels.Add);
-                if (labels.Count >= 2) stats.Add(new JArray(labels[0].text, labels[labels.Count - 1].text));
+                if (labels.Count < 2) continue;
+                var valueLabel = labels[labels.Count - 1];
+                var progress = row.Q<VisualElement>("item-stat-progress");
+                stats.Add(new JArray(labels[0].text, valueLabel.text, Hex(valueLabel.style.color.value),
+                    progress?.userData is float fill ? (JToken)Mathf.Clamp01(fill) : JValue.CreateNull()));
             }
             return stats;
         }
@@ -255,7 +259,9 @@ namespace HexLive.UnityPresentation.UI
             var info = ResolveItemInfo(id, def);
             var isWater = !worn && IsWaterContainerId(id);
 
-            // The card's own rows, read back as (label, value).
+            // The card's own rows, including authored colour and optional meter.
+            // UITK elements cannot be constructed in a MonoBehaviour initializer.
+            _statScratch ??= new VisualElement();
             BuildItemStats(def, info, worn, durability, water, stacks, wetness, dirtiness,
                 sourceIndex, ResolveInventoryOwnerId(id, worn, sourceIndex), _statScratch);
             var stats = StatRows(_statScratch);
@@ -298,6 +304,7 @@ namespace HexLive.UnityPresentation.UI
                 return new JObject { ["blocked"] = npc.IsManualControl ? "craft.block.Incapacitated" : "craft.block.NotManual" };
 
             var categories = new JArray();
+            var seenCategories = new HashSet<string>(StringComparer.Ordinal);
             var recipes = new JArray();
             var detail = new JObject();
             foreach (var option in _craftOptions)
@@ -306,7 +313,7 @@ namespace HexLive.UnityPresentation.UI
                 var def = ResolveDef(id);
                 var info = ResolveItemInfo(id, def);
                 var category = CraftCategories.For(id).ToString().ToLowerInvariant();
-                if (!categories.Contains(category)) categories.Add(category);
+                if (seenCategories.Add(category)) categories.Add(category);
                 var queued = _craftQueue.Remaining(_inventoryActorId, id);
                 recipes.Add(new JObject
                 {

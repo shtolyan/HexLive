@@ -71,7 +71,10 @@ public sealed partial class ExecutionSystem
             if (leader.Plan.TargetJunctionId is { } at) SpatialMutations.OccupyJunction(world, at, leader.Id);
             SocialCueSignals.Stamp(world, leader, "RomanceRequest", partner.Id);
             SocialCueSignals.Stamp(world, partner, "RomanceIncoming", leader.Id);
-            Trace.Emit(world, leader.Id, "RomanceInvitationStarted", $"Partner={partner.Id.Value} Duration={Spec127.InvitationTalkTicks}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, leader.Id, "RomanceInvitationStarted", $"Partner={partner.Id.Value} Duration={Spec127.InvitationTalkTicks}");
+            }
             return;
         }
         if (partner.Execution.Status == ExecutionStatus.InProgress &&
@@ -93,6 +96,8 @@ public sealed partial class ExecutionSystem
         ClearInvitationTopics(leader, partner);
         leader.Plan.RequestedTalkTopic = null;
         leader.Plan.Steps[^1].Interaction = InteractionType.Romance;
+        // Successful phase transition, not an interruption: retain this
+        // active plan, the listener claim and the occupied approach junction.
         leader.Execution.Status = ExecutionStatus.None;
         leader.Execution.CurrentInteraction = null;
         leader.Execution.StartTick = leader.Execution.EndTick = 0;
@@ -100,7 +105,10 @@ public sealed partial class ExecutionSystem
         leader.Mind.RomanceLeaderNpcId = leader.Id;
         SocialCueSignals.Stamp(world, leader, "RomanceAccepted", partner.Id);
         SocialCueSignals.Stamp(world, partner, "RomanceAccepted", leader.Id);
-        Trace.Emit(world, leader.Id, "RomanceInvitationAccepted", $"Partner={partner.Id.Value}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, leader.Id, "RomanceInvitationAccepted", $"Partner={partner.Id.Value}");
+        }
     }
 
     private static void ClearInvitationTopics(NPCState leader, NPCState partner)
@@ -144,6 +152,9 @@ public sealed partial class ExecutionSystem
             SpatialMutations.FreeJunction(world, at, leader.Id);
             SpatialMutations.ReleaseJunctionReservation(world, at, leader.Id);
         }
+        // A refusal completes the conversation normally. This talk-only plan
+        // owns the listener claim and approach released above, not an object,
+        // craft project or carried item. Abort would report a failed order.
         leader.Plan.Status = PlanStatus.Completed;
         leader.Plan.Steps.Clear();
         leader.Plan.TargetAgentId = null;
@@ -162,7 +173,10 @@ public sealed partial class ExecutionSystem
         PlanningSystem.SetGoalCooldown(world, leader, GoalType.Romance);
         SocialCueSignals.Stamp(world, leader, "RomanceRejected", partner?.Id);
         if (partner != null) SocialCueSignals.Stamp(world, partner, "RomanceRefused", leader.Id);
-        Trace.Emit(world, leader.Id, "RomanceInvitationDeclined", $"Reason={reason} Partner={partner?.Id.Value}");
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, leader.Id, "RomanceInvitationDeclined", $"Reason={reason} Partner={partner?.Id.Value}");
+        }
     }
 }
 }

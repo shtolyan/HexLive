@@ -4,8 +4,10 @@ blender -b -t 2 -P Tools/Art/slice_human_parts.py
 Source bodies are read-only; no armature, morph, hair or genital mesh is exported.
 """
 from pathlib import Path
+import argparse
 import hashlib
 import json
+import sys
 import bpy
 import bmesh
 from mathutils import Matrix, Vector
@@ -37,6 +39,30 @@ def source_parts(body):
     return path, vertices, faces, points
 
 
+def close_rims(bm, point, normal):
+    """Close one cut before intersecting it with the next anatomical plane."""
+    pending = {e for e in bm.edges if e.is_boundary}
+    count = 0
+    while pending:
+        rim = {next(iter(pending))}
+        fringe = list(rim)
+        while fringe:
+            edge = fringe.pop()
+            for vertex in edge.verts:
+                for neighbor in vertex.link_edges:
+                    if neighbor in pending and neighbor not in rim:
+                        rim.add(neighbor)
+                        fringe.append(neighbor)
+        pending.difference_update(rim)
+        vertices = {v for e in rim for v in e.verts}
+        center = bm.verts.new(sum((v.co for v in vertices), Vector()) / len(vertices))
+        anatomical = all(abs((v.co-Vector(point)).dot(Vector(normal))) < .0001 for v in vertices)
+        for edge in rim:
+            bm.faces.new((edge.verts[0], edge.verts[1], center)).material_index = 1 if anatomical else 0
+        count += 1
+    return count
+
+
 def make_piece(vertices, faces, points, zone, name, cooked=False):
     used = sorted({i for face in faces for i in face})
     remap = {old: new for new, old in enumerate(used)}
@@ -60,36 +86,24 @@ def make_piece(vertices, faces, points, zone, name, cooked=False):
                   ((shoulder, 0, 0), (-1, 0, 0)), ((-shoulder, 0, 0), (1, 0, 0))],
         'head': [((0, 0, neck), (0, 0, 1))],
     }[zone]
+    cap_count = 0
     for point, normal in planes:
         bmesh.ops.bisect_plane(bm, geom=list(bm.verts)+list(bm.edges)+list(bm.faces),
             plane_co=Vector(point), plane_no=Vector(normal), dist=.000001,
             clear_inner=True, clear_outer=False)
-    # A fan per cut rim closes every original edge, including thin boundary
-    # triangles a planar ngon triangulator can otherwise drop.
-    pending = {e for e in bm.edges if e.is_boundary}
-    cap_count = 0
-    while pending:
-        rim = {next(iter(pending))}
-        fringe = list(rim)
-        while fringe:
-            edge = fringe.pop()
-            for vertex in edge.verts:
-                for neighbor in vertex.link_edges:
-                    if neighbor in pending and neighbor not in rim:
-                        rim.add(neighbor)
-                        fringe.append(neighbor)
-        pending.difference_update(rim)
-        points = {v for e in rim for v in e.verts}
-        center = bm.verts.new(sum((v.co for v in points), Vector()) / len(points))
-        anatomical = any(all(abs((v.co-Vector(point)).dot(Vector(normal))) < .0001
-                              for v in points) for point,normal in planes)
-        for edge in rim:
-            bm.faces.new((edge.verts[0], edge.verts[1], center)).material_index = 1 if anatomical else 0
-        cap_count += 1
+        # Closing only after every bisect joins the hip and centre-plane rims
+        # into one non-planar loop. It then fails the planar test and becomes
+        # skin, leaving all four leg exports without any CutSurface polygons.
+        cap_count += close_rims(bm, point, normal)
     bmesh.ops.triangulate(bm, faces=list(bm.faces))
     bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
     boundaries = sum(e.is_boundary for e in bm.edges)
     assert boundaries == 0, (name, 'open boundary', boundaries)
+    cuts = [f for f in bm.faces if f.material_index == 1 and f.calc_area() > 1e-10]
+    assert cuts, (name, 'missing actual cut surface')
+    assert any(f.material_index == 0 for f in bm.faces), (name, 'missing source skin')
+    assert all(any(all(abs((v.co-Vector(point)).dot(Vector(normal))) < .0001
+                       for v in face.verts) for point, normal in planes) for face in cuts), (name, 'non-planar cut')
     bm.to_mesh(mesh)
     bm.free()
     for face in mesh.polygons:
@@ -109,28 +123,45 @@ def make_piece(vertices, faces, points, zone, name, cooked=False):
         axis_forward='-Z', axis_up='Y', path_mode='STRIP', add_leaf_bones=False,
         bake_anim=False, mesh_smooth_type='FACE')
     return dict(id=name, triangles=len(mesh.polygons), sourceFaces=len(faces),
-        cutLoops=cap_count, openEdges=boundaries, size=list(obj.dimensions),
+        cutLoops=cap_count, cutTriangles=len(cuts), cutTrianglesPlanar=True,
+        openEdges=boundaries, size=list(obj.dimensions),
         sha256=hashlib.sha256(path.read_bytes()).hexdigest())
 
 
 def main():
-    rows=[]
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--only', nargs='+', help='Re-export these existing owners; preserve every other model')
+    args = parser.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
+    expected = {f'food.human_{part}{sex}_{state}' for part in ('arm', 'leg', 'torso')
+                for sex in ('', '_male') for state in ('raw', 'cooked')} | {'resource.human_head'}
+    selected = set(args.only) if args.only else expected
+    assert selected and selected <= expected, ('unknown owner', selected-expected)
+    report=ROOT/'ArtSource/WorldProps/human-parts.json'
+    rows = json.loads(report.read_text())['rows'] if args.only else []
+    if args.only:
+        assert {r['id'] for r in rows} == expected, 'Partial export requires the complete existing provenance report'
+        for row in rows:
+            assert hashlib.sha256((OUT/(row['id']+'.fbx')).read_bytes()).hexdigest() == row['sha256']
+            assert hashlib.sha256((ROOT/row['source']).read_bytes()).hexdigest() == row['sourceSha256']
     for body in ('Marta', 'Kshishtof'):
         path, vertices, faces, points = source_parts(body)
         for part, zone in (('arm', 'armL'), ('leg', 'legL'), ('torso', 'torso')):
             for cooked in (False, True):
                 suffix = '_male' if body == 'Kshishtof' else ''
                 name = f'food.human_{part}{suffix}_{"cooked" if cooked else "raw"}'
+                if name not in selected:
+                    continue
                 row=make_piece(vertices, faces, points, zone, name, cooked)
                 row.update(body=body, source=path.relative_to(ROOT).as_posix(),
                     sourceSha256=hashlib.sha256(path.read_bytes()).hexdigest(), zone=zone)
-                rows.append(row)
-        if body == 'Marta':
+                if args.only: rows[ next(i for i,r in enumerate(rows) if r['id']==name) ] = row
+                else: rows.append(row)
+        if body == 'Marta' and 'resource.human_head' in selected:
             row=make_piece(vertices, faces, points, 'head', 'resource.human_head')
             row.update(body='universal', source=path.relative_to(ROOT).as_posix(),
                 sourceSha256=hashlib.sha256(path.read_bytes()).hexdigest(), zone='head')
-            rows.append(row)
-    report=ROOT/'ArtSource/WorldProps/human-parts.json'
+            if args.only: rows[ next(i for i,r in enumerate(rows) if r['id']==row['id']) ] = row
+            else: rows.append(row)
     report.parent.mkdir(parents=True, exist_ok=True)
     report.write_text(json.dumps(dict(schemaVersion=1, generator='Tools/Art/slice_human_parts.py',
         partition='bone-measured anatomical planes, interpolated boundary triangles; closed caps', rows=rows), indent=2)+'\n')

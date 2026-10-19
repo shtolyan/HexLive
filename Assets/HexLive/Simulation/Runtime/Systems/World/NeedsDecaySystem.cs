@@ -548,8 +548,13 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // во сне не с кем и не поговорить. Для чужака это било вдвойне: его
             // Social и так не закрывается ничем, кроме насилия.
             var socialDrift = SocialRate * (sleeping ? Spec85.SleepSocialFactor : 1f);
-            npc.Needs.Social = MathUtil.Clamp01(npc.Needs.Social - socialDrift);
-            RecordImpact(npc, NeedKind.Social, EffectKind.NaturalDecay, positive: false);
+            // §127.12 / #489: active mutual company satisfies this need;
+            // loneliness must not outweigh recovery for the other participant.
+            if (!RomanceMath.HasActiveMutualPartner(world, npc))
+            {
+                npc.Needs.Social = MathUtil.Clamp01(npc.Needs.Social - socialDrift);
+                RecordImpact(npc, NeedKind.Social, EffectKind.NaturalDecay, positive: false);
+            }
             if (Spec49.AmbientSocial && !sleeping && npc.Needs.Social < AmbientSocialCap && HasNearbyCompanion(npc))
             {
                 npc.Needs.Social = System.Math.Min(

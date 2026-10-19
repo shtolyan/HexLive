@@ -14,6 +14,21 @@ namespace HexLive.Simulation.Runtime
 /// <summary>§127: pure eligibility, authored-pose placement and outcomes.</summary>
 internal static class RomanceMath
 {
+    public static bool HasActiveMutualPartner(WorldState world, NPCState npc) =>
+        !npc.Mind.RomanceForced &&
+        npc.Execution.Status == ExecutionStatus.InProgress &&
+        npc.Execution.CurrentInteraction == InteractionType.Romance &&
+        npc.Execution.EndTick > world.Tick &&
+        npc.Mind.RomancePartnerNpcId is { } partnerId &&
+        world.Entities.Npcs.TryGetValue(partnerId, out var partner) &&
+        !partner.Mind.RomanceForced &&
+        partner.Execution.Status == ExecutionStatus.InProgress &&
+        partner.Execution.CurrentInteraction == InteractionType.Romance &&
+        partner.Execution.EndTick > world.Tick &&
+        partner.Mind.RomancePartnerNpcId == npc.Id &&
+        npc.Mind.RomanceLeaderNpcId == partner.Mind.RomanceLeaderNpcId &&
+        npc.Mind.RomanceLeaderNpcId is not null;
+
     // This authored male piece is labelled "Nabedrenniki" and occupies only
     // ThighR/ThighL in the wear data, yet its side panels reach into the groin
     // in the fitted mesh. Pelvis-only undressing therefore left it visibly in

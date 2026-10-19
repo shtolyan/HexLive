@@ -91,6 +91,17 @@ namespace HexLive.Editor
                 var owner = nodes.FirstOrDefault(t => t.name == definition.id) ?? model.transform;
                 foreach (var required in definition.requiredNodes ?? Array.Empty<string>())
                     if (!nodes.Any(t => t.name == required)) issues.Add(definition.id + ": missing " + required);
+                foreach (var pose in definition.requiredMarkerPoses ?? Array.Empty<MarkerPose>())
+                {
+                    var marker = nodes.SingleOrDefault(t => t.name == pose.name);
+                    if (marker == null || pose.unityPosition?.Length != 3 || pose.unityUp?.Length != 3)
+                        issues.Add(definition.id + ": invalid marker pose contract " + pose.name);
+                    else if (Vector3.Distance(wrapper.transform.InverseTransformPoint(marker.position),
+                                 new Vector3(pose.unityPosition[0], pose.unityPosition[1], pose.unityPosition[2])) > .00001f ||
+                             Vector3.Distance(wrapper.transform.InverseTransformDirection(marker.up),
+                                 new Vector3(pose.unityUp[0], pose.unityUp[1], pose.unityUp[2])) > .00001f)
+                        issues.Add(definition.id + ": marker outside authored pose " + pose.name);
+                }
                 foreach (var filter in model.GetComponentsInChildren<MeshFilter>(true))
                 {
                     if (!(definition.outwardMeshPrefixes ?? Array.Empty<string>()).Any(prefix =>
@@ -207,11 +218,13 @@ namespace HexLive.Editor
             public string id;
             public string export;
             public string[] requiredNodes;
+            public MarkerPose[] requiredMarkerPoses;
             public string[] outwardMeshPrefixes;
             public string[] forbiddenNodeFragments;
             public Stage[] stages;
         }
         [Serializable] private sealed class Stage { public int index; public string material; public int units; }
+        [Serializable] private sealed class MarkerPose { public string name; public float[] unityPosition; public float[] unityUp; }
         [Serializable] private sealed class Receipt
         {
             public int version;

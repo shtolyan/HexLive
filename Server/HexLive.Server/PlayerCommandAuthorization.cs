@@ -21,6 +21,12 @@ public static class PlayerCommandAuthorization
     {
         refusal = string.Empty;
 
+        if (ConstructionAccess.IsConstructionCommand(command) && assignedNpcIds.Count == 0)
+        {
+            refusal = "NotAssigned";
+            return false;
+        }
+
         // §159: only the authenticated local MCP bridge may write companion
         // memory. It calls WorldHost directly; a viewer must never smuggle this
         // metadata command through the ordinary player-command wire.

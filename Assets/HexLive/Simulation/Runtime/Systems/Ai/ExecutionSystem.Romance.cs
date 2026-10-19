@@ -1,4 +1,5 @@
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Agents.Effects;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
@@ -188,6 +189,7 @@ public sealed partial class ExecutionSystem
         }
 
         RomanceMath.CatchCheaters(world, leader, partner, forced);
+        if (!forced) ApplyMutualSocialTick(world, leader, partner);
         ApplyRomanceStressTick(leader, partner, forced);
         if (world.Tick < leader.Execution.EndTick)
         {
@@ -274,10 +276,8 @@ public sealed partial class ExecutionSystem
         }
         else
         {
-            leader.Needs.Social = MathUtil.Clamp01(
-                leader.Needs.Social + Spec127.ConsentSocialGain);
-            partner.Needs.Social = MathUtil.Clamp01(
-                partner.Needs.Social + Spec127.ConsentSocialGain);
+            leader.Needs.Social = Spec127.ConsentSocialTarget;
+            partner.Needs.Social = Spec127.ConsentSocialTarget;
             ImproveMutualRelationship(leader, partner);
             ImproveMutualRelationship(partner, leader);
             SocialCueSignals.Stamp(world, leader, "RomanceCompleted", partner.Id);
@@ -291,6 +291,24 @@ public sealed partial class ExecutionSystem
         leader.Social.MarkInteraction(partner.Id, world.Tick);
         partner.Social.MarkInteraction(leader.Id, world.Tick);
         FinishRomancePair(world, leader, partner);
+    }
+
+    private static void ApplyMutualSocialTick(WorldState world, NPCState leader, NPCState partner)
+    {
+        // Recover the remaining deficit over the remaining active ticks. This
+        // stays gradual from any initial value and adapts to ordinary decay
+        // without another counter or a second completion bonus.
+        var remaining = System.Math.Max(1, leader.Execution.EndTick - world.Tick + 1);
+        var leaderSocial = leader.Needs.Social;
+        var partnerSocial = partner.Needs.Social;
+        leader.Needs.Social = MathUtil.Clamp01(leader.Needs.Social +
+            (Spec127.ConsentSocialTarget - leader.Needs.Social) / remaining);
+        partner.Needs.Social = MathUtil.Clamp01(partner.Needs.Social +
+            (Spec127.ConsentSocialTarget - partner.Needs.Social) / remaining);
+        if (leader.Needs.Social > leaderSocial)
+            RecordSocialImpact(leader, NeedKind.Social, EffectKind.NearbyCompany, positive: true);
+        if (partner.Needs.Social > partnerSocial)
+            RecordSocialImpact(partner, NeedKind.Social, EffectKind.NearbyCompany, positive: true);
     }
 
     private static void ApplyRomanceStressTick(NPCState leader, NPCState partner,

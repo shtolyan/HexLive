@@ -66,6 +66,16 @@ def validate(definition):
     missing = [name for name in required if name not in export_names]
     if missing:
         issues.append("Missing required sockets/parts: " + ", ".join(missing))
+    for pose in definition.get("requiredMarkerPoses", []):
+        name, position = pose["name"], pose["position"]
+        marker = next((obj for obj in root.children_recursive if stage_name(obj) == name), None)
+        if marker is None:
+            issues.append("Missing positioned marker: " + name)
+        elif (root.matrix_world.inverted() @ marker.matrix_world.translation - Vector(position)).length > 1e-5:
+            issues.append("Marker outside authored position: " + name)
+        elif ((root.matrix_world.inverted().to_3x3() @ marker.matrix_world.to_3x3() @ Vector((0, 1, 0))).normalized()
+              - Vector(pose["up"])).length > 1e-5:
+            issues.append("Marker has incorrect up axis: " + name)
     for prefix in ("DryingSlot_", "ClothingSlot_"):
         sockets = [obj for obj in root.children_recursive if stage_name(obj).startswith(prefix)]
         for i, socket in enumerate(sockets):

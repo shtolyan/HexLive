@@ -16,7 +16,7 @@
 //                          accepts?: name }] }],  // hand: a hand, not a pocket; accepts: a slot kept for one thing
 //     worn: [item],                             // clothes that hold nothing
 //   },
-//   info: null | { uid, detail: { category, desc, stats: [[label, value]] } },  // the card asked for
+//   info: null | { uid, detail: { category, desc, stats: [[label, value, color, fill|null]] } },  // the card asked for
 // }
 // item: { uid, def, icon, emoji, name, count }
 // Commands: move { uid, to: 'left'|'right', count }, quick { uid }, info { uid|null }, close.
@@ -24,7 +24,7 @@ import { html, useState, useRef } from '../html.js';
 import { t } from '../i18n.js';
 import { asset } from '../bridge.js';
 import { icons } from '../icons.js';
-import { Pic, Quantity } from '../components.js';
+import { Pic, Quantity, ItemStats } from '../components.js';
 
 const sideOf = (model, uid) => {
   for (const side of ['left', 'right']) {
@@ -92,7 +92,7 @@ function Info({ item, detail, onClose }) {
       <button class="hx-close" type="button" aria-label=${t('ui.close')} onClick=${onClose}>${icons.close()}</button>
     </header>
     ${d.desc && html`<p class="hx-text">${d.desc}</p>`}
-    ${d.stats?.length > 0 && html`<dl class="hx-kv">${d.stats.map(([k, v]) => html`<dt key=${k}>${k}</dt><dd>${v}</dd>`)}</dl>`}
+    <${ItemStats} rows=${d.stats} />
   </section>`;
 }
 

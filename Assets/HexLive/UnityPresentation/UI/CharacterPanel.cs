@@ -4898,7 +4898,7 @@ namespace HexLive.UnityPresentation.UI
             var volumeCapacity = DisplayCapacityLiters(id, capacity);
             var volumeAmount = volumeCapacity * value;
             var millilitres = volumeCapacity < 1f;
-            var color = CategoryColor(ItemCategory.Water);
+            var color = Warn;
 
             var block = new VisualElement();
             block.style.backgroundColor = PanelMid;
@@ -4935,6 +4935,8 @@ namespace HexLive.UnityPresentation.UI
             block.Add(header);
 
             var track = MakeTrack(12f);
+            track.name = "item-stat-progress";
+            track.userData = value;
             track.style.backgroundColor = new Color(0.035f, 0.046f, 0.054f);
 
             var fill = MakeFill(color);
@@ -4985,6 +4987,8 @@ namespace HexLive.UnityPresentation.UI
             block.Add(header);
 
             var track = MakeTrack(12f);
+            track.name = "item-stat-progress";
+            track.userData = value;
             track.style.backgroundColor = new Color(0.035f, 0.046f, 0.054f);
 
             var fill = MakeFill(color);

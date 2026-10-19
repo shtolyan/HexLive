@@ -148,6 +148,7 @@ public sealed class ViewerConnection
             handshake.AssignedNpcIds.AddRange(_assignedNpcIds);
             handshake.AssignedNpcIds.Sort();
         }
+        handshake.ObjectDefinitionIds.AddRange(_host.ObjectDefinitionIds);
 
         if (ControlEnabled && _currentAssignments != null)
             handshake.AssignmentNotices.AddRange(_currentAssignments.PendingNotices(_controlOwner!.Substring(3)));
@@ -613,7 +614,7 @@ public sealed class ViewerConnection
             return;
         }
 
-        var admission = _host.SubmitManualCommand(command, _controlOwner ?? "");
+        var admission = _host.SubmitManualCommand(command, _controlOwner ?? "", _assignedNpcIds);
         await SendAsync(Frame.CommandResult(correlationId, admission), cancel)
             .ConfigureAwait(false);
     }

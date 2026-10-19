@@ -474,29 +474,40 @@ namespace HexLive.Simulation.Runtime.Blueprints
 
         public bool CanUndo => _undo.Count > 0;
         public bool CanRedo => _redo.Count > 0;
+        public void Clear() { _undo.Clear(); _redo.Clear(); }
 
         public BlueprintCommandResult Execute(
-            BuildingBlueprintDraft draft, Func<BuildingBlueprintDraft, BlueprintCommandResult> gesture)
+            BuildingBlueprintDraft draft, Func<BuildingBlueprintDraft, BlueprintCommandResult> gesture,
+            Func<BuildingBlueprintDraft, BuildingBlueprintDraft, bool> canApply = null,
+            string deniedMessage = "")
         {
             var before = draft.Clone();
-            var result = gesture(draft);
+            var working = canApply == null ? draft : draft.Clone();
+            var result = gesture(working);
             if (!result.Succeeded) return result;
+            if (canApply != null && !canApply(before, working))
+                return new BlueprintCommandResult(false, new BlueprintValidationResult(), deniedMessage, working);
+            if (canApply != null) BlueprintEditorCommands.ReplaceDraft(draft, working);
             _undo.Push(before);
             _redo.Clear();
             return result;
         }
 
-        public bool Undo(BuildingBlueprintDraft draft)
+        public bool Undo(BuildingBlueprintDraft draft,
+            Func<BuildingBlueprintDraft, BuildingBlueprintDraft, bool> canApply = null)
         {
             if (!CanUndo) return false;
+            if (canApply != null && !canApply(draft, _undo.Peek())) return false;
             _redo.Push(draft.Clone());
             BlueprintEditorCommands.ReplaceDraft(draft, _undo.Pop());
             return true;
         }
 
-        public bool Redo(BuildingBlueprintDraft draft)
+        public bool Redo(BuildingBlueprintDraft draft,
+            Func<BuildingBlueprintDraft, BuildingBlueprintDraft, bool> canApply = null)
         {
             if (!CanRedo) return false;
+            if (canApply != null && !canApply(draft, _redo.Peek())) return false;
             _undo.Push(draft.Clone());
             BlueprintEditorCommands.ReplaceDraft(draft, _redo.Pop());
             return true;

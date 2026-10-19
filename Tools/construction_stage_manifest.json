@@ -213,6 +213,10 @@
     {
       "id": "furniture.hearth",
       "requiredNodes": ["fire_point", "stick_bar"],
+      "requiredMarkerPoses": [
+        {"name": "fire_point", "position": [0, 0, 0.055], "up": [0, 0, 1],
+         "unityPosition": [0, 0.055, 0], "unityUp": [0, 1, 0]}
+      ],
       "source": "_ArtSource/Construction/hexlive_construction_stages.blend",
       "sourceRoot": "furniture.hearth",
       "export": "Assets/HexLiveContent/RuntimeSource/Objects/furniture.hearth.fbx",

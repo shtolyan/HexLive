@@ -1,7 +1,10 @@
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace HexLive.Simulation.Tests
 {
@@ -215,30 +218,45 @@ public static class UnityAsset
         return seen && last > first ? (last - first) / mixamoFps : 0;
     }
 
-    private static Dictionary<string, string> _metaByGuid;
+    private static readonly ConcurrentDictionary<string, Lazy<Dictionary<string, string>>> MetaIndexes =
+        new ConcurrentDictionary<string, Lazy<Dictionary<string, string>>>(
+            Path.DirectorySeparatorChar == '\\' ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
 
-    /// <summary>Путь к <c>.meta</c> по GUID. Индекс строится один раз на прогон.</summary>
+    /// <summary>Полный индекс GUID, один раз на корень; читатель не видит незавершённый кеш.</summary>
     public static string MetaByGuid(string assetsRoot, string guid)
     {
-        if (_metaByGuid == null)
+        var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(assetsRoot));
+        var index = MetaIndexes.GetOrAdd(root,
+            rootPath => new Lazy<Dictionary<string, string>>(() => BuildMetaIndex(rootPath))).Value;
+        return index.TryGetValue(guid, out var path) ? path : null;
+    }
+
+    private static Dictionary<string, string> BuildMetaIndex(string assetsRoot)
+    {
+        var metas = Directory.GetFiles(assetsRoot, "*.meta", SearchOption.AllDirectories);
+        var guids = new string[metas.Length];
+        // #495: последовательное открытие 24k+ файлов на MSI превышало timeout.
+        // Ограничиваем I/O восемью читателями, не исключая ни каталогов, ни типов
+        // метаданных. Каждый слот принадлежит одному читателю; словарь собираем
+        // после Join, в прежнем порядке обхода (включая поведение дубликатов).
+        Parallel.For(0, metas.Length, new ParallelOptions { MaxDegreeOfParallelism = 8 }, i =>
         {
-            _metaByGuid = new Dictionary<string, string>();
-            foreach (var meta in Directory.EnumerateFiles(assetsRoot, "*.meta",
-                         SearchOption.AllDirectories))
+            foreach (var line in File.ReadLines(metas[i]))
             {
-                foreach (var line in File.ReadLines(meta))
+                var m = Regex.Match(line, @"^guid:\s*([0-9a-f]{32})");
+                if (m.Success)
                 {
-                    var m = Regex.Match(line, @"^guid:\s*([0-9a-f]{32})");
-                    if (m.Success)
-                    {
-                        _metaByGuid[m.Groups[1].Value] = meta;
-                        break;
-                    }
+                    guids[i] = m.Groups[1].Value;
+                    break;
                 }
             }
-        }
+        });
 
-        return _metaByGuid.TryGetValue(guid, out var path) ? path : null;
+        var index = new Dictionary<string, string>(StringComparer.Ordinal);
+        for (var i = 0; i < metas.Length; i++)
+            if (guids[i] != null)
+                index[guids[i]] = metas[i];
+        return index;
     }
 }
 

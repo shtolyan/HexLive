@@ -273,6 +273,145 @@ public sealed class LlmHttpControlProviderTests
         });
     }
 
+    [Test]
+    public void ResponseWithoutExplicitCharset_IsAccepted()
+    {
+        using var content = new ByteArrayContent(Encoding.UTF8.GetBytes(
+            "{\"contractVersion\":1,\"commandKind\":\"MoveTo\"," +
+            "\"targetPosition\":{\"x\":4.25,\"y\":-1.5},\"reason\":\"no-charset\"}"));
+        content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+        using var handler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = content,
+        });
+        using var http = new HttpClient(handler);
+        using var provider = new LlmHttpControlProvider(Options(), http);
+
+        Assert.That(content.Headers.ContentType!.CharSet, Is.Null,
+            "The fixture must exercise the media type without a charset parameter.");
+        Assert.That(provider.TryRequest(Request()), Is.True);
+        var result = WaitForResult(provider);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(LlmControlResultStatus.Completed));
+            Assert.That(result.Decision, Is.Not.Null);
+            Assert.That(result.Decision!.CommandKind, Is.EqualTo(LlmCommandKind.MoveTo));
+            Assert.That(result.Decision.TargetPosition, Is.EqualTo(new Float2(4.25f, -1.5f)));
+            Assert.That(result.Decision.Reason, Is.EqualTo("no-charset"));
+        });
+    }
+
+    [Test]
+    public void ResponseWithQuotedCharset_IsAccepted()
+    {
+        using var content = new ByteArrayContent(Encoding.UTF8.GetBytes(
+            "{\"contractVersion\":1,\"commandKind\":\"MoveTo\"," +
+            "\"targetPosition\":{\"x\":-2.5,\"y\":7.75},\"reason\":\"quoted-charset\"}"));
+        content.Headers.ContentType =
+            MediaTypeHeaderValue.Parse("application/json; charset=\"utf-8\"");
+        using var handler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = content,
+        });
+        using var http = new HttpClient(handler);
+        using var provider = new LlmHttpControlProvider(Options(), http);
+
+        Assert.That(content.Headers.ContentType!.CharSet, Is.EqualTo("\"utf-8\""),
+            "The fixture must exercise a charset parameter that keeps its quotes.");
+        Assert.That(provider.TryRequest(Request()), Is.True);
+        var result = WaitForResult(provider);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(LlmControlResultStatus.Completed));
+            Assert.That(result.Decision, Is.Not.Null);
+            Assert.That(result.Decision!.CommandKind, Is.EqualTo(LlmCommandKind.MoveTo));
+            Assert.That(result.Decision.TargetPosition, Is.EqualTo(new Float2(-2.5f, 7.75f)));
+            Assert.That(result.Decision.Reason, Is.EqualTo("quoted-charset"));
+        });
+    }
+
+    [TestCase(
+        "application/json; charset=utf-8; version=1",
+        TestName = "Response accepts a benign parameter beside the charset")]
+    [TestCase(
+        "application/json; version=1",
+        TestName = "Response accepts a benign parameter without a charset")]
+    [TestCase(
+        "application/json; charset=utf-8; profile=\"https://example.invalid/decision\"",
+        TestName = "Response accepts a quoted benign parameter value")]
+    public void ResponseWithAdditionalMediaTypeParameters_IsAccepted(string contentType)
+    {
+        using var content = new ByteArrayContent(Encoding.UTF8.GetBytes(
+            "{\"contractVersion\":1,\"commandKind\":\"MoveTo\"," +
+            "\"targetPosition\":{\"x\":6.5,\"y\":-0.25},\"reason\":\"extra-parameter\"}"));
+        content.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
+        using var handler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = content,
+        });
+        using var http = new HttpClient(handler);
+        using var provider = new LlmHttpControlProvider(Options(), http);
+
+        Assert.That(
+            content.Headers.ContentType!.Parameters.Any(parameter => !string.Equals(
+                parameter.Name, "charset", StringComparison.OrdinalIgnoreCase)),
+            Is.True,
+            "The fixture must carry a parameter beyond the charset.");
+        Assert.That(provider.TryRequest(Request()), Is.True);
+        var result = WaitForResult(provider);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(LlmControlResultStatus.Completed));
+            Assert.That(result.Decision, Is.Not.Null);
+            Assert.That(result.Decision!.CommandKind, Is.EqualTo(LlmCommandKind.MoveTo));
+            Assert.That(result.Decision.TargetPosition, Is.EqualTo(new Float2(6.5f, -0.25f)));
+            Assert.That(result.Decision.Reason, Is.EqualTo("extra-parameter"));
+        });
+    }
+
+    [TestCase(
+        "application/vnd.hexlive+json",
+        TestName = "Response rejects a vendor +json media type")]
+    [TestCase(
+        "application/problem+json",
+        TestName = "Response rejects a problem+json media type")]
+    [TestCase(
+        "application/json-seq",
+        TestName = "Response rejects a media type that merely starts with json")]
+    public void ResponseWithNonExactJsonMediaType_FailsClosed(string contentType)
+    {
+        var warnings = new List<string>();
+        var diagnostics = new LlmProviderDiagnostics(warnings.Add);
+        using var content = new ByteArrayContent(Encoding.UTF8.GetBytes(
+            "{\"contractVersion\":1,\"commandKind\":\"None\"}"));
+        content.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
+        using var handler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = content,
+        });
+        using var http = new HttpClient(handler);
+        using var provider = new LlmHttpControlProvider(Options(), http, diagnostics);
+
+        Assert.That(provider.TryRequest(Request()), Is.True);
+        var result = WaitForResult(provider);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(LlmControlResultStatus.Failed));
+            Assert.That(result.Decision, Is.Null);
+            Assert.That(result.ErrorType, Is.EqualTo("LlmProviderFailureException"));
+            Assert.That(result.ErrorMessage,
+                Is.EqualTo("LLM provider failure category=response-media-type."));
+            Assert.That(warnings, Has.Count.EqualTo(1));
+            Assert.That(warnings[0], Does.Contain("category=response-media-type"));
+            Assert.That(diagnostics.DrainSummary(),
+                Is.EqualTo("[llm] provider failures response-media-type=1"));
+        });
+    }
+
     [TestCase(LlmProviderFailureCategory.Timeout)]
     [TestCase(LlmProviderFailureCategory.Transport)]
     [TestCase(LlmProviderFailureCategory.HttpStatus)]

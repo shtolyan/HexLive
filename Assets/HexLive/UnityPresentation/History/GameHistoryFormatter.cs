@@ -61,8 +61,8 @@ namespace HexLive.UnityPresentation.History
                 "CaughtCheating" => F("history.CaughtCheating", actor,
                     TargetFromArrow(record.Message, target),
                     Npc(int.TryParse(Token(record.Message, "With=NPC"),
-                        NumberStyles.Integer, CultureInfo.InvariantCulture, out var withId)
-                        ? (int?)withId : null)),
+                        NumberStyles.Integer, CultureInfo.InvariantCulture, out var partnerId)
+                        ? (int?)partnerId : null)),
                 "TalkCompleted" => F("history.TalkCompleted", actor, target),
                 // §153.3: подарок читается в ленте как поступок дарительницы —
                 // кому, видно по стрелке, а КАК приняли живёт в детали.

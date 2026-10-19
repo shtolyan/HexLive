@@ -757,6 +757,82 @@ to Flashback and no bug was marked fixed by this release.
 Local operational receipts: `Build/MSIRelease/20261017-production-refresh/`.
 Public receipt: https://play.62-146-235-120.sslip.io/release-receipt.json .
 
+## MSI — Singapore master refresh and ClipWindow remediation, 2026-10-19 06:57Z
+
+Completes Tolya's explicit request to pull master, build WebGL first, then
+resolve ClipWindowGate and update the Singapore client and game server while
+preserving world, accounts and characters. No content/world-rule/New York update.
+
+- Initial clean master3c170377b fast-forwarded to4d26a3096; `git lfs pull`
+  exited0. Fresh source had CS0136 in `GameHistoryFormatter`: fixed atomically
+  as #494 `562a3b07d7fec9bfe6066ff66937aa68701656f6`; strict WebGL0 compiler
+  errors /0 forbidden APIs. No translation or formatter behaviour change.
+- **Player source:** `562a3b07d7fec9bfe6066ff66937aa68701656f6`.
+  Canonical Unity CLI6000.4.6f1 Release, RuntimeSpeed, FMOD4096x4, manifest7984,
+  splash off, HTML39 verbatim files/DPR1;230MB,0 errors,245 warnings, exit0.
+  Packaged; Editor restored to StandaloneWindows64, WorldProp gate passed,
+  settings restored, Unity closed. No MCP/new worktree/worker/heartbeat.
+- **Server source:** `40583839585fb7304d98092fed42e5b5446a14be`.
+  After Player build only native Tests/Docs changed. Git trees of Assets,
+  Server, SimData, Packages, ProjectSettings and Tools are byte-source identical
+  across both sources; the complete changed-path list is Tests/Docs only.
+- #495 `50ec382c7ecee64038cc61bb8f5ce6ab96e5b803`: isolated timeout reproduced;
+  managed stack in FileStream open during MetaByGuid. Serial diagnostic read
+  all24,232 metas in318.660s. Eight bounded readers retain every meta, parser,
+  original dictionary order and ClipWindow thresholds; complete Lazy cache per
+  root. Focused12/12 passed. See `Docs/Bug495Verification.md`.
+- The first full suite finished2023passed/1failed/6existing skips. The single
+  failure compared allocation baseline6168B to0B after adding distant objects;
+  logs/TRX retained. #496405838395 pins only Simulation.Tests JIT strategy,
+  preserving exact assertions and production runtime configuration. Four A/B
+  diagnostics and generated runtimeconfig checked; see `Docs/Bug496Verification.md`.
+  Final clean405 Release: **Voice68/68, Server515/515, Simulation2024/2030**,
+  with exactly the same6named skips and zero failures/aborts/timeouts.
+  Actual full-suite ClipWindow35.534s, allocation gate87.5ms, both passed.
+- Server archive SHA256:
+  `0befe825fbb723043388981dfd614f01571ca959e6bcbc0ac0f3573e71ca9f37`.
+  Player archive SHA256:
+  `2cc0d66b22a4e93fe109fc7bc164d69bfc9627bca89f4528936ad0eb24a46f0a`.
+  All525 server files and50 public Player files verified. Both source-exact
+  Studio banks retained. B5 audio reused only after7984 source proofs and
+  all5668 published FSB/vis hashes/signatures passed against its5706-file receipt.
+- Private copied-save fixture:4266 objects, tick2384919, exact839-entry wire
+  dictionary; no world ticks/orders/voice/LLM. Staged HTTPS50/50 files and clean
+  Chrome155 passed: HTMLv2, AUDIOWORKLET48000Hz4096x4, Singapore ready/Play enabled,
+  zero JS/page errors/NRE, no failed requests or blocked mutation attempts.
+- **Activation:**2026-10-19T06:57:56Z–06:58:04Z. One planned hexlive.service
+  stop/start, PID2181647→2931482, NRestarts0. Server current
+  `/opt/hexlive/releases/bc97a818f670009f6d4878d78a32afa2cbb12179`
+  →`/opt/hexlive/releases/40583839585fb7304d98092fed42e5b5446a14be`;
+  Player `msi-20261018-bc97a818f`→`msi-20261019-562a3b07d`.
+  Private stopped backup verified at
+  `/var/lib/hexlive/ops/msi-master-release-20261019-405838395/activation-backup`
+  (directories0700/files0600); previous releases retained.
+- Same world `a309de74171d470385412bfab01ffdab`, seed629209070,
+  topology59DDDCBB, existing1/1 live census. Saved tick2386391 resumed2386397.
+  Accounts/keys and assignments unchanged; offline save bytes, world metadata,
+  world-local/bootstrap simdata and every content record preserved. Public
+  snapshot confirmed the same existing live/corpse IDs; no reset or respawn.
+- **Save compatibility:** payload85→86 (new lover marker), envelope2 and wire27
+  unchanged. New saves observed at tick2386864 in blob86. The old85 reader rejects86.
+  Startup/preservation failure restores the stopped85 checkpoint before old-server
+  restart. A late client rollback retains the healthy86 server and latest data;
+  never blindly swap an85 reader onto an86 save. No rollback was needed.
+- Public HTTPS50/50 files, both banks/audio samples/Brotli headers and clean
+  Chrome passed again. Anonymous protocol27 keyframe:839-entry dictionary,
+  correct object IDs,463 palms/1 workbench, stable character identities; no orders.
+  New-service journal:0 NRE/unhandled/OOM/protocol mismatch; registry994 with259
+  records unchanged. No config/Caddy/world-rule/content publication.
+
+Limits: no authenticated gameplay, account/character creation, phone/ElevenLabs
+or external LLM test calls, human audio acceptance, in-world FPS/portrait timing
+or full visual gameplay acceptance. Existing ignored2D callbacks and3 unsupported
+hidden-shader diagnostics remain from the baseline. Reports stay ready_for_test;
+the player confirms fixes. No evidence archive export.
+
+Local aggregate: `Build/MSIRelease/20261019-master-release/DEPLOYMENT_REPORT.json`.
+Public receipt: https://play.62-146-235-120.sslip.io/release-receipt.json .
+
 ## MSI — Singapore client/content refresh, 2026-10-18 10:05Z
 
 Tolya explicitly requested latest master, a release WebGL Player, needed

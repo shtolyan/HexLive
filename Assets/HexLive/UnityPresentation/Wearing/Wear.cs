@@ -128,6 +128,17 @@ public sealed class Wear : MonoBehaviour
                     _meshRenderer.sharedMesh = config.mesh;
                 }
 
+                if (slots.Count == 0 && config.hairLodMeshes != null &&
+                    TryGetComponent<LODGroup>(out var hairLods))
+                {
+                    var lods = hairLods.GetLODs();
+                    for (var i = 0; i < lods.Length && i < config.hairLodMeshes.Length; i++)
+                        if (config.hairLodMeshes[i] != null)
+                            foreach (var renderer in lods[i].renderers)
+                                if (renderer is SkinnedMeshRenderer skin)
+                                    skin.sharedMesh = config.hairLodMeshes[i];
+                }
+
                 break;
             }
         }

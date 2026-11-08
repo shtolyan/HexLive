@@ -162,6 +162,9 @@ public class WearConfig
     public float heightOffset;
 
     public Mesh mesh;
+
+    // §169: body-specific source scalp fits, one mesh per hair LOD.
+    public Mesh[] hairLodMeshes;
 }
 
 }

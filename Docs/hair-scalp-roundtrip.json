@@ -1,0 +1,648 @@
+{
+  "modelsVerified": 64,
+  "errors": [],
+  "unityValidated": false,
+  "publishedWebGLValidated": false,
+  "models": [
+    {
+      "model": "AdellHair_LOD0",
+      "actor": "Marta",
+      "sha256": "be7007b782e003d785460ff167ea49699e836a20c7a04ce958503352b8cce339",
+      "minimumClearanceM": 0.0005042410921305418,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 6699,
+      "materialsVerified": 2
+    },
+    {
+      "model": "AdellHair_LOD1",
+      "actor": "Marta",
+      "sha256": "7b7e3398496434cdf17d8ebb55adb6d0caa74e216552e90c4cfbb113b36c0ccd",
+      "minimumClearanceM": 0.0005042410921305418,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 5100,
+      "materialsVerified": 2
+    },
+    {
+      "model": "AsukaHair_LOD0",
+      "actor": "Marta",
+      "sha256": "8ae9e931a597088ae25f42d8bbc15dffc3cd3f71809c62423941dd415ef14b14",
+      "minimumClearanceM": 0.0005009539308957756,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20048,
+      "importedTriangles": 6683,
+      "materialsVerified": 12
+    },
+    {
+      "model": "AsukaHair_LOD1",
+      "actor": "Marta",
+      "sha256": "caa2ac0b3bfc9016415c88dbb8ec69143161667f047feb31357da5fa2c52c672",
+      "minimumClearanceM": 0.0006393868243321776,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20048,
+      "importedTriangles": 5084,
+      "materialsVerified": 12
+    },
+    {
+      "model": "BendineHair_LOD0",
+      "actor": "Marta",
+      "sha256": "25e51931668cc4d22c2e049a3e62342b2273d244cf57066d3487dbfdf4604329",
+      "minimumClearanceM": 0.000671960471663624,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20048,
+      "importedTriangles": 14684,
+      "materialsVerified": 5
+    },
+    {
+      "model": "BendineHair_LOD1",
+      "actor": "Marta",
+      "sha256": "8253c958e8567e71b12b413583f8e5017ead371519f335d702403c428c7ff662",
+      "minimumClearanceM": 0.000671960471663624,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20048,
+      "importedTriangles": 8684,
+      "materialsVerified": 5
+    },
+    {
+      "model": "Bob3Hair_LOD0",
+      "actor": "Marta",
+      "sha256": "2a8fdb85a6bc6c88a0c07a7d32530abac898ad8d27a96030b39268ef78656d2f",
+      "minimumClearanceM": 0.0005062156706117094,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 6700,
+      "materialsVerified": 5
+    },
+    {
+      "model": "Bob3Hair_LOD1",
+      "actor": "Marta",
+      "sha256": "5a7772659e3cb1d4509be7fcd5203586ae75af07545eaddb48ba1d2826c5ec83",
+      "minimumClearanceM": 0.0005397444474510849,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 5100,
+      "materialsVerified": 5
+    },
+    {
+      "model": "ChunkyHair_LOD0",
+      "actor": "Marta",
+      "sha256": "2384ba0a64355abe3b9610223a16095403fc827ff62f2851ef85678350db8f33",
+      "minimumClearanceM": 0.0005015236092731357,
+      "maxBindingError": 2.9736975659666598e-08,
+      "samples": 20160,
+      "importedTriangles": 14700,
+      "materialsVerified": 6
+    },
+    {
+      "model": "ChunkyHair_LOD1",
+      "actor": "Marta",
+      "sha256": "0f656f30edb142b9ee0b2c94978a090ff5cec101a8efba91d17ffc7a83dd1776",
+      "minimumClearanceM": 0.0005015236092731357,
+      "maxBindingError": 2.9736975659666598e-08,
+      "samples": 20160,
+      "importedTriangles": 8700,
+      "materialsVerified": 6
+    },
+    {
+      "model": "EilisHair_LOD0",
+      "actor": "Marta",
+      "sha256": "8be228ac3eb109021730628461c043d6399cbd6adea652b34994e5a45e259805",
+      "minimumClearanceM": 0.0005045270663686097,
+      "maxBindingError": 2.9687294511582252e-08,
+      "samples": 20160,
+      "importedTriangles": 6700,
+      "materialsVerified": 3
+    },
+    {
+      "model": "EilisHair_LOD1",
+      "actor": "Marta",
+      "sha256": "8142bd8164cc30728081556eff6ee47da2e5a0b027c5e7c70083d0ec9d87e5eb",
+      "minimumClearanceM": 0.0005078341928310692,
+      "maxBindingError": 2.9687294511582252e-08,
+      "samples": 20160,
+      "importedTriangles": 5099,
+      "materialsVerified": 3
+    },
+    {
+      "model": "Hair07_LOD0",
+      "actor": "Marta",
+      "sha256": "43f2907ca916e304042be7c154e55d6b86bb471f36611dafa7d33e920abc93ec",
+      "minimumClearanceM": 0.0005002565449103713,
+      "maxBindingError": 2.97950991656748e-08,
+      "samples": 20048,
+      "importedTriangles": 6683,
+      "materialsVerified": 6
+    },
+    {
+      "model": "Hair07_LOD1",
+      "actor": "Marta",
+      "sha256": "dddda5cc0731e4651eb22a6d71198aef71484ac0d0aed324c621a75f570181c7",
+      "minimumClearanceM": 0.000561779597774148,
+      "maxBindingError": 2.97950991656748e-08,
+      "samples": 20048,
+      "importedTriangles": 5083,
+      "materialsVerified": 6
+    },
+    {
+      "model": "JelikaHair_32434_LOD0",
+      "actor": "Marta",
+      "sha256": "c64b9e825c0c8284c26b0c144cfb0feb5b23917a8d7d2da204cbedcf84178a01",
+      "minimumClearanceM": 0.0005040310206823051,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20048,
+      "importedTriangles": 6684,
+      "materialsVerified": 17
+    },
+    {
+      "model": "JelikaHair_32434_LOD1",
+      "actor": "Marta",
+      "sha256": "1cc36f0edc8e35ef513879773e9ff89a4de0cad985ee533d0eb9c113c197f1a8",
+      "minimumClearanceM": 0.0005179527215659618,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20048,
+      "importedTriangles": 5084,
+      "materialsVerified": 17
+    },
+    {
+      "model": "JenniferHair_LOD0",
+      "actor": "Marta",
+      "sha256": "d9f360820a98de966fe9d61fb53b4e46304b1cdb03bdf119230cee7f03cdb9f6",
+      "minimumClearanceM": 0.0005023258272558451,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 6699,
+      "materialsVerified": 10
+    },
+    {
+      "model": "JenniferHair_LOD1",
+      "actor": "Marta",
+      "sha256": "ddd81562fd7d500fd2dffd488514d4efbdcdbf1015756e94ab59b34e63bd05eb",
+      "minimumClearanceM": 0.0005074407090432942,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 5100,
+      "materialsVerified": 10
+    },
+    {
+      "model": "LeonyPonytail_LOD0",
+      "actor": "Marta",
+      "sha256": "712250d92bdef8be150f8bd8b7867de056a2ae44ce865fff497caa0a98329e2f",
+      "minimumClearanceM": 0.000506513868458569,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 6699,
+      "materialsVerified": 10
+    },
+    {
+      "model": "LeonyPonytail_LOD1",
+      "actor": "Marta",
+      "sha256": "cd2fa92b5e8f92518447345c01f4b8a82edce7e8f85fee9a299374141a32a120",
+      "minimumClearanceM": 0.000506513868458569,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 5100,
+      "materialsVerified": 10
+    },
+    {
+      "model": "LoonaHair_LOD0",
+      "actor": "Marta",
+      "sha256": "30f6e563d2e7dd75a479b57d3e0f9e578b2c6fa032e2b1dfc6970e261764be19",
+      "minimumClearanceM": 0.0005020721582695842,
+      "maxBindingError": 2.9782427746205542e-08,
+      "samples": 20048,
+      "importedTriangles": 6684,
+      "materialsVerified": 7
+    },
+    {
+      "model": "LoonaHair_LOD1",
+      "actor": "Marta",
+      "sha256": "2dcad7d19bed30e9e28bad7bbdf48d1c6689232e37d0b1aea8da6604422f8552",
+      "minimumClearanceM": 0.0005546515458263457,
+      "maxBindingError": 2.9782427746205542e-08,
+      "samples": 20048,
+      "importedTriangles": 5084,
+      "materialsVerified": 7
+    },
+    {
+      "model": "LowPonytail_LOD0",
+      "actor": "Marta",
+      "sha256": "186c8a7faedd8a8872d4997201e02a5cab49db2aa3441372a466e46364123021",
+      "minimumClearanceM": 0.0005009202286601067,
+      "maxBindingError": 2.975764035184625e-08,
+      "samples": 20048,
+      "importedTriangles": 6683,
+      "materialsVerified": 9
+    },
+    {
+      "model": "LowPonytail_LOD1",
+      "actor": "Marta",
+      "sha256": "f28e716c2896dc517b1d3890a79cfbf71a7866d9b44fede8f5633a2c5da7a7ff",
+      "minimumClearanceM": 0.0005282246274873614,
+      "maxBindingError": 2.975764035184625e-08,
+      "samples": 20048,
+      "importedTriangles": 5083,
+      "materialsVerified": 9
+    },
+    {
+      "model": "Neu09Hair_LOD0",
+      "actor": "Marta",
+      "sha256": "55f31a7370f6c635db8b8e5c3b52331b84e54b2c6542cc4e05daddad1010f574",
+      "minimumClearanceM": 0.0005039912648499012,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 6698,
+      "materialsVerified": 9
+    },
+    {
+      "model": "Neu09Hair_LOD1",
+      "actor": "Marta",
+      "sha256": "db5a6d3c72728e650ecc7899d4cff352f409955995898c9bd74e9f5bdf92afac",
+      "minimumClearanceM": 0.0005088678444735706,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 5096,
+      "materialsVerified": 9
+    },
+    {
+      "model": "OnyxHair_LOD0",
+      "actor": "Marta",
+      "sha256": "63122fa658d83fab94e2be9af7d878d08d6c6153e3b3017f6e12b0833857adb1",
+      "minimumClearanceM": 0.0005028006271459162,
+      "maxBindingError": 0,
+      "samples": 20048,
+      "importedTriangles": 6684,
+      "materialsVerified": 9
+    },
+    {
+      "model": "OnyxHair_LOD1",
+      "actor": "Marta",
+      "sha256": "65100dc3500693f908da9cfa45c12eaf15d4e04186333d12a99b59772eb2d040",
+      "minimumClearanceM": 0.0005028006271459162,
+      "maxBindingError": 0,
+      "samples": 20048,
+      "importedTriangles": 5152,
+      "materialsVerified": 8
+    },
+    {
+      "model": "ShilohHair_LOD0",
+      "actor": "Marta",
+      "sha256": "5537a074b3867a32c253016ebc9015637997850c3b158c203e3369ad46f2cd34",
+      "minimumClearanceM": 0.0012166735250502825,
+      "maxBindingError": 2.9778060461893574e-08,
+      "samples": 20048,
+      "importedTriangles": 6684,
+      "materialsVerified": 4
+    },
+    {
+      "model": "ShilohHair_LOD1",
+      "actor": "Marta",
+      "sha256": "cbe4bdab0df6fa669bfdd49a99958523d7842ad50624d4ae85e478c1a41210df",
+      "minimumClearanceM": 0.0005702273338101804,
+      "maxBindingError": 2.9778060461893574e-08,
+      "samples": 20048,
+      "importedTriangles": 5083,
+      "materialsVerified": 4
+    },
+    {
+      "model": "TootsieRollHair_LOD0",
+      "actor": "Marta",
+      "sha256": "9d09ea62a4c5a6aa39b99318684d5013727c8e5d5b44028d6e05c8b64897c35c",
+      "minimumClearanceM": 0.0005003092810511589,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 6700,
+      "materialsVerified": 11
+    },
+    {
+      "model": "TootsieRollHair_LOD1",
+      "actor": "Marta",
+      "sha256": "3d572df9b311808dbe8e697a5c2b3ad3035d5cc046e41514457d11c079af71cd",
+      "minimumClearanceM": 0.000506941054482013,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 5100,
+      "materialsVerified": 11
+    },
+    {
+      "model": "AdellHair_Kshishtof_LOD0",
+      "actor": "Kshishtof",
+      "sha256": "4b45b6afac68e6ebf5fe6f24ca23791209b9a969672956aa7cf44cadb825633a",
+      "minimumClearanceM": 0.0005036356742493808,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 6699,
+      "materialsVerified": 2
+    },
+    {
+      "model": "AdellHair_Kshishtof_LOD1",
+      "actor": "Kshishtof",
+      "sha256": "a39f2e2944609676a4d2207f8c110e85510313e5c61b30fc32e1023d2c11f37b",
+      "minimumClearanceM": 0.0005073312786407769,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 5100,
+      "materialsVerified": 2
+    },
+    {
+      "model": "AsukaHair_Kshishtof_LOD0",
+      "actor": "Kshishtof",
+      "sha256": "1e9745d084e78b9524bbb6fd51ba87411205d2f63a3a555801b7963f12d0839b",
+      "minimumClearanceM": 0.0005004284321330488,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20048,
+      "importedTriangles": 6683,
+      "materialsVerified": 12
+    },
+    {
+      "model": "AsukaHair_Kshishtof_LOD1",
+      "actor": "Kshishtof",
+      "sha256": "dfb757972db2564e4dfb2ab32f36dcc0134da25e12568b24fc3042cdfef73d33",
+      "minimumClearanceM": 0.0005630205268971622,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20048,
+      "importedTriangles": 5084,
+      "materialsVerified": 12
+    },
+    {
+      "model": "BendineHair_Kshishtof_LOD0",
+      "actor": "Kshishtof",
+      "sha256": "04ac6ef90165d07d31a0c4c24a1b53b5d370beb9e1fdc7d07260126b55ebad07",
+      "minimumClearanceM": 0.0005008928710594773,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20048,
+      "importedTriangles": 14684,
+      "materialsVerified": 5
+    },
+    {
+      "model": "BendineHair_Kshishtof_LOD1",
+      "actor": "Kshishtof",
+      "sha256": "91f36ce10fe565838b6b71dafe2d7e60172c48d3b28323036745ab4bb2a50fcb",
+      "minimumClearanceM": 0.0005008928710594773,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20048,
+      "importedTriangles": 8684,
+      "materialsVerified": 5
+    },
+    {
+      "model": "Bob3Hair_Kshishtof_LOD0",
+      "actor": "Kshishtof",
+      "sha256": "602d5701ab860e710b09481f4d79bdc594d292c527c44244ebd9c3b5c4899118",
+      "minimumClearanceM": 0.0005001321551389992,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 6700,
+      "materialsVerified": 5
+    },
+    {
+      "model": "Bob3Hair_Kshishtof_LOD1",
+      "actor": "Kshishtof",
+      "sha256": "90785cbcf94d463913d198491812a5687eb1dcb58155bca5820c181203fb6272",
+      "minimumClearanceM": 0.0005041120457462966,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 5100,
+      "materialsVerified": 5
+    },
+    {
+      "model": "ChunkyHair_Kshishtof_LOD0",
+      "actor": "Kshishtof",
+      "sha256": "dfede489808b2af7cd499bef6ca2ac94369b9ec5d05340c2c45873a59fd34044",
+      "minimumClearanceM": 0.0005062272539362311,
+      "maxBindingError": 2.9736975659666598e-08,
+      "samples": 20160,
+      "importedTriangles": 14700,
+      "materialsVerified": 6
+    },
+    {
+      "model": "ChunkyHair_Kshishtof_LOD1",
+      "actor": "Kshishtof",
+      "sha256": "e163b1a56250a5ed0db41a5fe224de6bee41699a789c0308308ad6a93bf5ba19",
+      "minimumClearanceM": 0.0005062272539362311,
+      "maxBindingError": 2.9736975659666598e-08,
+      "samples": 20160,
+      "importedTriangles": 8700,
+      "materialsVerified": 6
+    },
+    {
+      "model": "EilisHair_Kshishtof_LOD0",
+      "actor": "Kshishtof",
+      "sha256": "0b6baea676686a2dc2f9f1f93c0146eccb3008196b2071b5ac773199d85a0691",
+      "minimumClearanceM": 0.0005071005434729159,
+      "maxBindingError": 2.9687294511582252e-08,
+      "samples": 20160,
+      "importedTriangles": 6700,
+      "materialsVerified": 3
+    },
+    {
+      "model": "EilisHair_Kshishtof_LOD1",
+      "actor": "Kshishtof",
+      "sha256": "4983496e0c4348ab9cc76a6f22ce71e6a6841d747c44a6a345a06e6b01fe757b",
+      "minimumClearanceM": 0.0005044440622441471,
+      "maxBindingError": 2.9687294511582252e-08,
+      "samples": 20160,
+      "importedTriangles": 5099,
+      "materialsVerified": 3
+    },
+    {
+      "model": "Hair07_Kshishtof_LOD0",
+      "actor": "Kshishtof",
+      "sha256": "fd3b5bf010c3db54356d693b11113035038c2f145ffdc9c7da8cfbe48903949f",
+      "minimumClearanceM": 0.0005032209446653724,
+      "maxBindingError": 2.97950991656748e-08,
+      "samples": 20048,
+      "importedTriangles": 6683,
+      "materialsVerified": 6
+    },
+    {
+      "model": "Hair07_Kshishtof_LOD1",
+      "actor": "Kshishtof",
+      "sha256": "d778c24a874ee912cd34a244da4dc84f7809aea41976d0fa8fb3a78aa289b06c",
+      "minimumClearanceM": 0.000514534127432853,
+      "maxBindingError": 2.97950991656748e-08,
+      "samples": 20048,
+      "importedTriangles": 5083,
+      "materialsVerified": 6
+    },
+    {
+      "model": "JelikaHair_32434_Kshishtof_LOD0",
+      "actor": "Kshishtof",
+      "sha256": "02948559f62d424a86beef321b12395d96d496b2733cc0dd7b6c81ea9d34653d",
+      "minimumClearanceM": 0.0005110171623528004,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20048,
+      "importedTriangles": 6684,
+      "materialsVerified": 17
+    },
+    {
+      "model": "JelikaHair_32434_Kshishtof_LOD1",
+      "actor": "Kshishtof",
+      "sha256": "e439b4e000abe824d453353c2b54397258981d3bee4216d98d4cb0b9a384e3b0",
+      "minimumClearanceM": 0.000501831469591707,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20048,
+      "importedTriangles": 5084,
+      "materialsVerified": 17
+    },
+    {
+      "model": "JenniferHair_Kshishtof_LOD0",
+      "actor": "Kshishtof",
+      "sha256": "16c4a69576c985c00eb5d47b48300b9a78bb0ce8e96730f572ded8e925075349",
+      "minimumClearanceM": 0.0005000701639801264,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 6699,
+      "materialsVerified": 10
+    },
+    {
+      "model": "JenniferHair_Kshishtof_LOD1",
+      "actor": "Kshishtof",
+      "sha256": "3232e594cc88871a9a71275f0209e97932aee8c750bb89d6fd95a01dfcdeeb9a",
+      "minimumClearanceM": 0.0005082788993604481,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 5100,
+      "materialsVerified": 10
+    },
+    {
+      "model": "LeonyPonytail_Kshishtof_LOD0",
+      "actor": "Kshishtof",
+      "sha256": "27d5e56eb069b55f529a8baef62daa4bbb63ee65475e9a1c64fd7f54597b5ed9",
+      "minimumClearanceM": 0.0005186943453736603,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 6699,
+      "materialsVerified": 10
+    },
+    {
+      "model": "LeonyPonytail_Kshishtof_LOD1",
+      "actor": "Kshishtof",
+      "sha256": "9e736d912f3bc451a814da51b7ebf8645376424b58e64b38954932a2a630630d",
+      "minimumClearanceM": 0.0005186943453736603,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 5100,
+      "materialsVerified": 10
+    },
+    {
+      "model": "LoonaHair_Kshishtof_LOD0",
+      "actor": "Kshishtof",
+      "sha256": "e7a571806e9229075d19eff9a8e039328a676d583d925df2e2259978dfc070c1",
+      "minimumClearanceM": 0.0005003527039662004,
+      "maxBindingError": 2.9782427746205542e-08,
+      "samples": 20048,
+      "importedTriangles": 6684,
+      "materialsVerified": 7
+    },
+    {
+      "model": "LoonaHair_Kshishtof_LOD1",
+      "actor": "Kshishtof",
+      "sha256": "6f715db1f11483ac4742e7cd0e3fdc9eaaf0a2ad4ce7ca6e7fc2ceba25046cf6",
+      "minimumClearanceM": 0.0005454441416077316,
+      "maxBindingError": 2.9782427746205542e-08,
+      "samples": 20048,
+      "importedTriangles": 5084,
+      "materialsVerified": 7
+    },
+    {
+      "model": "LowPonytail_Kshishtof_LOD0",
+      "actor": "Kshishtof",
+      "sha256": "adefae8d19eb0775c6326cfed040c70a77dd0283f15dce9ce8256855a4a42887",
+      "minimumClearanceM": 0.0005008245352655649,
+      "maxBindingError": 2.975764035184625e-08,
+      "samples": 20048,
+      "importedTriangles": 6683,
+      "materialsVerified": 9
+    },
+    {
+      "model": "LowPonytail_Kshishtof_LOD1",
+      "actor": "Kshishtof",
+      "sha256": "a3e4da2c76adad7b5536dea1de80ad29de69ae099db2e032e420addc788e5cab",
+      "minimumClearanceM": 0.0005138221313245595,
+      "maxBindingError": 2.975764035184625e-08,
+      "samples": 20048,
+      "importedTriangles": 5083,
+      "materialsVerified": 9
+    },
+    {
+      "model": "Neu09Hair_Kshishtof_LOD0",
+      "actor": "Kshishtof",
+      "sha256": "7b7a02ec6e65586b376fde4b5b2685ce5039b23ff3c844e5bd0c40b3859e9697",
+      "minimumClearanceM": 0.000502387061715126,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 6698,
+      "materialsVerified": 9
+    },
+    {
+      "model": "Neu09Hair_Kshishtof_LOD1",
+      "actor": "Kshishtof",
+      "sha256": "cf2b7cfb483237755718b9a55bc552b587433cf9fb89d3839409405e44c1937c",
+      "minimumClearanceM": 0.0005442012334242463,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 5096,
+      "materialsVerified": 9
+    },
+    {
+      "model": "OnyxHair_Kshishtof_LOD0",
+      "actor": "Kshishtof",
+      "sha256": "e3ab38031c73c1af1554de0ba459cc41215e304c0c842d4cbfe48ca2d2aab154",
+      "minimumClearanceM": 0.0005114073865115643,
+      "maxBindingError": 0,
+      "samples": 20048,
+      "importedTriangles": 6684,
+      "materialsVerified": 9
+    },
+    {
+      "model": "OnyxHair_Kshishtof_LOD1",
+      "actor": "Kshishtof",
+      "sha256": "6d5c6eb44dda4958bbb981477ff0ae081087765e45977ae33d451fd3d04b21d2",
+      "minimumClearanceM": 0.0005018221563659608,
+      "maxBindingError": 0,
+      "samples": 20048,
+      "importedTriangles": 5152,
+      "materialsVerified": 8
+    },
+    {
+      "model": "ShilohHair_Kshishtof_LOD0",
+      "actor": "Kshishtof",
+      "sha256": "7badde78c56d9c4127ba7ed8fcaa9a0e8b63a48419d33b2b306151e898389a03",
+      "minimumClearanceM": 0.0005190700758248568,
+      "maxBindingError": 2.9778060461893574e-08,
+      "samples": 20048,
+      "importedTriangles": 6684,
+      "materialsVerified": 4
+    },
+    {
+      "model": "ShilohHair_Kshishtof_LOD1",
+      "actor": "Kshishtof",
+      "sha256": "9352a2f69d9030f3cc095bef0ceacab77ac1c6b855d91c0c85134172c2fccaa0",
+      "minimumClearanceM": 0.0005190700758248568,
+      "maxBindingError": 2.9778060461893574e-08,
+      "samples": 20048,
+      "importedTriangles": 5083,
+      "materialsVerified": 4
+    },
+    {
+      "model": "TootsieRollHair_Kshishtof_LOD0",
+      "actor": "Kshishtof",
+      "sha256": "295daba5cda960f6392e4fc95e1cc9d1db24570b6960e02f3cc88ad47859a472",
+      "minimumClearanceM": 0.0005069095059297979,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 6700,
+      "materialsVerified": 11
+    },
+    {
+      "model": "TootsieRollHair_Kshishtof_LOD1",
+      "actor": "Kshishtof",
+      "sha256": "0d93faf71ec4cc71cc133b6bf87c6a126796a48c1b9f38a90082875280303e02",
+      "minimumClearanceM": 0.0005484736757352948,
+      "maxBindingError": 2.9802322387695312e-08,
+      "samples": 20160,
+      "importedTriangles": 5100,
+      "materialsVerified": 11
+    }
+  ]
+}

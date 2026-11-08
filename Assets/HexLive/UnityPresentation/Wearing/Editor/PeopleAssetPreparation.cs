@@ -416,7 +416,8 @@ public static class PeopleAssetPreparation
             importer.alphaSource = TextureImporterAlphaSource.FromInput; importer.alphaIsTransparency = true;
             importer.textureCompression = TextureImporterCompression.Compressed; importer.SaveAndReimport();
         }
-        foreach (var row in rows)
+        foreach (var row in rows.Concat(rows.SelectMany(m =>
+                     (m["bodyFits"] as JObject)?.Properties().Select(p => p.Value) ?? Enumerable.Empty<JToken>())))
         {
             var importer = (ModelImporter)AssetImporter.GetAtPath(Root + "/Source/" + (string)row["path"]);
             importer.importAnimation = false; importer.importCameras = false; importer.importLights = false;
@@ -542,6 +543,7 @@ public static class PeopleAssetPreparation
                     var wear = go.AddComponent<Wear>();
                     var so = new SerializedObject(wear);
                     so.FindProperty("gender").intValue = (int)(actor == "Kshishtof" ? VisualGender.Male : VisualGender.Female);
+                    if (kind == "hair") ConfigureHairBodyFits(go, so, row, manifest);
                     var definition = wardrobe.FirstOrDefault(w => id.Contains((string)w["name"]));
                     if (definition != null && kind == "wear")
                     {
@@ -879,6 +881,44 @@ public static class PeopleAssetPreparation
             lod.RecalculateBounds();
         }
         finally { UnityEngine.Object.DestroyImmediate(lowModel); }
+    }
+
+    private static void ConfigureHairBodyFits(GameObject go, SerializedObject wear, JToken row, JObject manifest)
+    {
+        if (row["bodyFits"] is not JObject fits) return;
+        var lowRow = manifest["models"].First(m =>
+            (string)m["id"] == ((string)row["id"]).Replace("_LOD0", "_LOD1"));
+        var lods = go.GetComponent<LODGroup>().GetLODs();
+        var configs = wear.FindProperty("configs");
+        configs.arraySize = fits.Count;
+        int index = 0;
+        foreach (var fit in fits.Properties())
+        {
+            var config = configs.GetArrayElementAtIndex(index++);
+            config.FindPropertyRelative("actorName").intValue = (int)Enum.Parse(typeof(ActorName), fit.Name);
+            config.FindPropertyRelative("scale").floatValue = 1f;
+            config.FindPropertyRelative("heightOffset").floatValue = 0f;
+            var meshes = config.FindPropertyRelative("hairLodMeshes");
+            meshes.arraySize = lods.Length;
+            for (int lod = 0; lod < lods.Length; lod++)
+            {
+                var sourceRow = lod == 0 ? fit.Value : lowRow["bodyFits"]?[fit.Name];
+                if (sourceRow == null) throw new InvalidOperationException(go.name + ": missing body fit " + fit.Name);
+                var source = AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/Source/" + (string)sourceRow["path"]);
+                var skin = source.GetComponentInChildren<SkinnedMeshRenderer>();
+                var target = (SkinnedMeshRenderer)lods[lod].renderers.Single();
+                if (!skin.bones.Select(b => b.name).SequenceEqual(target.bones.Select(b => b.name)) ||
+                    skin.sharedMesh.bindposes.Length != target.sharedMesh.bindposes.Length)
+                    throw new InvalidOperationException(go.name + ": incompatible hair fit skeleton " + fit.Name);
+                var sourcePoses = skin.sharedMesh.bindposes;
+                var targetPoses = target.sharedMesh.bindposes;
+                for (int bone = 0; bone < sourcePoses.Length; bone++)
+                    for (int element = 0; element < 16; element++)
+                        if (Mathf.Abs(sourcePoses[bone][element] - targetPoses[bone][element]) > .0001f)
+                            throw new InvalidOperationException(go.name + ": incompatible hair fit bind pose " + fit.Name);
+                meshes.GetArrayElementAtIndex(lod).objectReferenceValue = skin.sharedMesh;
+            }
+        }
     }
 
     private static void SetSlots(SerializedProperty p, IEnumerable<string> slots)

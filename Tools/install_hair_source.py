@@ -3,7 +3,20 @@ import argparse
 import hashlib
 import json
 import subprocess
+import re
+import uuid
 from pathlib import Path
+
+
+def ensure_fit_metadata(root, rows):
+    for row in rows:
+        for fit in row.get('bodyFits', {}).values():
+            for field in ('path', 'authoredBindings'):
+                target = root / (fit[field] + '.meta')
+                if target.exists(): continue
+                template = (root / (row[field] + '.meta')).read_text(encoding='utf-8')
+                target.write_text(re.sub(r'(?m)^guid: [0-9a-f]+$', 'guid: ' + uuid.uuid4().hex,
+                                         template), encoding='utf-8')
 
 
 def main():
@@ -19,8 +32,9 @@ def main():
     rows=export['models']; assert len(rows)==32 and all(m['kind']=='hair' for m in rows)
     assert {m['id'] for m in rows}=={m['id'] for m in manifest['models'] if m['kind']=='hair'}
     replacements={m['id']:m for m in rows}
-    files={m['path'] for m in rows}|{m['authoredBindings'] for m in rows}|{t['path'] for t in export['textures'].values()}
-    expected={m['path']:m['sha256'] for m in rows}
+    all_fits=rows+[fit for m in rows for fit in m.get('bodyFits',{}).values()]
+    files={m['path'] for m in all_fits}|{m['authoredBindings'] for m in all_fits}|{t['path'] for t in export['textures'].values()}
+    expected={m['path']:m['sha256'] for m in all_fits}
     expected.update({t['path']:t['sha256'] for t in export['textures'].values()})
     for relative in files:
         assert (root/relative).resolve().is_relative_to(root.resolve())
@@ -46,6 +60,7 @@ def main():
         report.append({'path':str(target.relative_to(project)).replace('\\','/'),'sha256':hashlib.sha256(data).hexdigest()})
     assert path.read_bytes()==original,'Manifest changed concurrently'
     path.write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+    ensure_fit_metadata(root, rows)
     (stage/'installed-files.json').write_text(json.dumps(report,indent=2))
     print(json.dumps({'models':len(rows),'filesInstalled':len(report),'manifest':str(path)}))
 

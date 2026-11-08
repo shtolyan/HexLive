@@ -604,7 +604,8 @@ public sealed class BatheUndressAtHomeTests
             // v83 (§171.10): account character creation receipts, private to the world save.
             // v84 (§54/#469): physical leaf drying clocks; v83 still readable.
             // v86 (§127.13): lover mark in every relationship record.
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(86));
+            // v87 (§175.2): one-time natural flint migration, preserving the v86 layout.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(87));
         });
     }
 

@@ -4,6 +4,7 @@ using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Spatial;
+using HexLive.Simulation.Wildlife;
 
 namespace HexLive.Simulation.Runtime
 {
@@ -17,6 +18,32 @@ namespace HexLive.Simulation.Runtime
 /// </summary>
 internal static class PopulationArrivalMath
 {
+    // §132.3: two complete tiles beyond both the predator's aggro and the AI danger ring.
+    internal const int PredatorLandingMarginTiles = 2;
+
+    internal static HashSet<TileCoord> UnsafeHumanLandingTiles(WorldState world)
+    {
+        var unsafeTiles = new HashSet<TileCoord>();
+        void Exclude(TileCoord center, string species)
+        {
+            var stats = MobCatalog.For(species);
+            if (stats.AttackDamage <= 0f || (stats.AttackMediums & AttackMedium.Land) == 0) return;
+            var radius = System.Math.Max(stats.AggroRadiusTiles, Spec62.DangerRingTiles) + PredatorLandingMarginTiles;
+            for (var q = -radius; q <= radius; q++)
+            for (var r = System.Math.Max(-radius, -q - radius); r <= System.Math.Min(radius, -q + radius); r++)
+                unsafeTiles.Add(new TileCoord(center.Q + q, center.R + r));
+        }
+        foreach (var mob in world.Mobs)
+            if (mob.Health > 0f) Exclude(mob.Tile, mob.MobId);
+        foreach (var slot in world.MobSpawnSlots)
+        {
+            if (slot.State != MobSlotState.Virtual) continue;
+            foreach (var waypoint in slot.Ring) Exclude(waypoint.Tile, slot.MobId);
+            if (slot.Ring.Count == 0 && world.Junctions.Items.TryGetValue(slot.HomeJunction, out var home))
+                foreach (var tile in home.Tiles) Exclude(tile, slot.MobId);
+        }
+        return unsafeTiles;
+    }
     internal readonly struct Landing
     {
         public readonly TileCoord Tile;
@@ -117,11 +144,13 @@ internal static class PopulationArrivalMath
         WorldState world, TileCoord home, int sequence, int salt, out Landing landing, bool nearestToHome = false, Float2? nearPoint = null)
     {
         var candidates = new List<Landing>();
+        var unsafeTiles = UnsafeHumanLandingTiles(world);
         var seen = new HashSet<JunctionId>();
         foreach (var pair in world.Tiles.Items)
         {
             var tile = pair.Value;
-            if (HexSpatialMath.HexDistance(pair.Key, home) > 1 ||
+            if (unsafeTiles.Contains(pair.Key) ||
+                HexSpatialMath.HexDistance(pair.Key, home) > 1 ||
                 !tile.Flags.HasFlag(TileFlags.Walkable) ||
                 tile.Flags.HasFlag(TileFlags.Blocked) ||
                 tile.Flags.HasFlag(TileFlags.Water))
@@ -191,6 +220,7 @@ internal static class PopulationArrivalMath
         int sequence, int salt, out Landing landing)
     {
         var candidates = new List<(Landing landing, int distance)>();
+        var unsafeTiles = UnsafeHumanLandingTiles(world);
         foreach (var junction in world.Junctions.Items.Values)
         {
             if (junction.Blocked || junction.Tiles.Count == 0 ||
@@ -232,7 +262,7 @@ internal static class PopulationArrivalMath
             }
 
             var distance = HexSpatialMath.HexDistance(dryTile, home);
-            if (distance < minDistance || distance > maxDistance)
+            if (distance < minDistance || distance > maxDistance || unsafeTiles.Contains(dryTile))
             {
                 continue;
             }

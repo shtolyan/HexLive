@@ -105,6 +105,7 @@ public sealed class ShipwreckSurvivorSystem : ISimulationSystem
         WorldState world, TileCoord home, out ShoreLanding landing)
     {
         var candidates = new List<(ShoreLanding landing, int distance)>();
+        var unsafeTiles = PopulationArrivalMath.UnsafeHumanLandingTiles(world);
         foreach (var junction in world.Junctions.Items.Values)
         {
             if (junction.Blocked || junction.Tiles.Count == 0 ||
@@ -146,7 +147,7 @@ public sealed class ShipwreckSurvivorSystem : ISimulationSystem
             }
 
             var distance = HexSpatialMath.HexDistance(dryTile, home);
-            if (distance <= 18)
+            if (distance <= 18 && !unsafeTiles.Contains(dryTile))
             {
                 candidates.Add((new ShoreLanding(
                     dryTile, junction.Id, junction.Fragment, junction.WorldPosition), distance));

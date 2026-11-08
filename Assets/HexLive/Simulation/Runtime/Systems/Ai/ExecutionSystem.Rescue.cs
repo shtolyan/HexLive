@@ -24,7 +24,10 @@ public sealed partial class ExecutionSystem
 
         if (helper.Plan.TargetAgentId is not { } patientId ||
             !world.Entities.Npcs.TryGetValue(patientId, out var patient) ||
-            !CampDiplomacyMath.CanProvideCare(world, helper, patient))
+            (!CampDiplomacyMath.CanProvideCare(world, helper, patient) &&
+             !(ManualControlMath.IsManual(helper) && helper.CarriedNpcId == patient.Id &&
+               helper.Plan.Steps.Count > 0 &&
+               helper.Plan.Steps[^1].Type == PlanStepType.PutPersonInBed)))
         {
             KenshiRescueMath.DropSafely(world, helper, "patient missing or hostile");
             return;

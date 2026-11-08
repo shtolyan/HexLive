@@ -96,11 +96,14 @@ public sealed class ManualBedAndLootTests
         return null;
     }
 
-    [Test]
-    public void PutPersonInBedCarriesToTheBedAndTucksIn()
+    [TestCase(Faction.Colony)]
+    [TestCase(Faction.Colony2)]
+    [TestCase(Faction.Outsiders)]
+    public void PutPersonInBedCarriesToTheBedAndTucksIn(Faction patientFaction)
     {
         var (engine, carrier, patient) = CarryScene();
         var world = engine.World;
+        patient.Faction = patientFaction;
         var bed = SpawnReachableBed(world, carrier);
 
         engine.Commands.Enqueue(new PutPersonInBedCommand(carrier.Id, bed.Id));
@@ -120,6 +123,7 @@ public sealed class ManualBedAndLootTests
         Assert.That(patient.Execution.TargetObject, Is.EqualTo(bed.Id),
             "Пациентка не в кровати — BedSleep.TryEnter не отработал.");
         Assert.That(bed.IsOccupied, Is.True);
+        Assert.That(patient.Faction, Is.EqualTo(patientFaction));
         Assert.That(bed.CurrentUser, Is.EqualTo(patient.Id));
         Assert.That(carrier.Mind.CurrentGoal, Is.EqualTo(GoalType.None),
             "После укладки носильщица обязана стоять и ждать приказа.");

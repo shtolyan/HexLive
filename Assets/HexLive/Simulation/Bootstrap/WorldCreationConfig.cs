@@ -26,6 +26,11 @@ public sealed class WorldCreationConfig
     public int PopulationLimit { get; set; } = 10;
     public int SeaRaidIntervalDays { get; set; }
     public bool PlayersOnly { get; set; }
+    // §72.14: player-created residents and hostile arrivals are independent.
+    // Defaults also restore raids in existing PlayersOnly saves, whose old
+    // SeaRaidIntervalDays was forcibly zeroed by the migration policy.
+    public int PlayerHostileRaidIntervalDays { get; set; } = 3;
+    public int PlayerHostileCampLimit { get; set; } = 1;
     // §146.10: false removes the scripted wounded castaway (id 900) from this world.
     // Absent in older creation.xml/JSON ⇒ true, the shipped HugeIsland/Maniac story.
     public bool ShipwreckSurvivorEnabled { get; set; } = true;
@@ -159,6 +164,8 @@ public static class WorldCreation
         if (!Guid.TryParseExact(config.CreatorPlayerId, "N", out _)) Error("creatorPlayerId", "invalid");
         if (config.PopulationLimit < 1 || config.PopulationLimit > 256) Error("populationLimit", "range");
         if (config.SeaRaidIntervalDays < 0 || config.SeaRaidIntervalDays > 3650) Error("seaRaidIntervalDays", "range");
+        if (config.PlayerHostileRaidIntervalDays < 0 || config.PlayerHostileRaidIntervalDays > 3650) Error("playerHostileRaidIntervalDays", "range");
+        if (config.PlayerHostileCampLimit < 0 || config.PlayerHostileCampLimit > config.PopulationLimit) Error("playerHostileCampLimit", "range");
         if (!ValidBudget(config.AttributeBudget, AttributeSet.All.Length)) Error("attributeBudget", "range");
         if (!ValidBudget(config.SkillBudget, SkillSet.All.Length)) Error("skillBudget", "range");
         if (config.Camps == null || config.Characters == null) { Error("config", "required"); return errors; }

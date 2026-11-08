@@ -27,44 +27,20 @@ public sealed class RaidWaveSystem : ISimulationSystem
 
     private static readonly List<Faction> _islandScratch = new();
 
-    private static readonly string[] MaleArmor =
-    {
-        "TonnyFlash", "FCO Pants Male", "FCO Belt Male", "FCO Gloves Male",
-        "FAO Harness Male", "FCO Boots Male", "FCO Legs Straps Male",
-        "FCO Knee Straps Male", "FCO Waist Strappy Male",
-    };
-
-    // Both sets are slot-compatible. The seeded wave parity varies the look
-    // without ever rolling beachwear.
-    private static readonly string[][] FemaleArmor =
-    {
-        new[]
-        {
-            "underwear.panty_basic",
-            "clothing.gloves_classic", "clothing.boots_cammy",
-            "clothing.headdress_jaguar",
-        },
-        new[]
-        {
-            "underwear.panty_flair",
-            "clothing.gloves_stars", "clothing.boots_classic",
-            "clothing.cap_stars",
-        },
-    };
-
     public string Name => nameof(RaidWaveSystem);
     public TickLayer Layer => TickLayer.Medium;
 
     public ChunkPolicy ChunkPolicy => ChunkPolicy.Global;
 
-    private static int Interval(WorldState world) => world.CreationConfig == null
+    private static int Interval(WorldState world) => world.CreationConfig?.PlayersOnly == true
+        ? world.CreationConfig.PlayerHostileRaidIntervalDays
+        : world.CreationConfig == null
         ? Spec72.RaidWaveIntervalDays
         : world.Mode == Bootstrap.GameMode.Islands ? world.CreationConfig.SeaRaidIntervalDays
         : world.CreationConfig.Camp(Faction.Outsiders)?.ArrivalIntervalDays ?? 0;
 
     public void Run(WorldState world)
     {
-        if (world.CreationConfig?.PlayersOnly == true) return;
         var interval = Interval(world);
         if ((world.CreationConfig == null && (!Spec72.Enabled || Spec72.OutsiderCount <= 0)) || interval <= 0)
         {
@@ -91,6 +67,11 @@ public sealed class RaidWaveSystem : ISimulationSystem
         // which reads as "day three came and nobody arrived".
         var wavesDue = EnvironmentSystem.CalendarDay(world.Tick) /
             Interval(world);
+        if (world.CreationConfig?.PlayersOnly == true && !HasInhabitedPlayerCamp(world))
+        {
+            world.RaidWavesSpawned = wavesDue;
+            return;
+        }
         while (world.RaidWavesSpawned < wavesDue)
         {
             var wave = world.RaidWavesSpawned + 1;
@@ -98,7 +79,11 @@ public sealed class RaidWaveSystem : ISimulationSystem
             // §132: a full camp consumes this scheduled wave. A later death
             // opens a seat for the NEXT boundary; it must not unleash every
             // missed attacker immediately from a hidden backlog.
-            if (!PopulationArrivalMath.HasRoom(world, Faction.Outsiders))
+            var hasRoom = world.CreationConfig?.PlayersOnly == true
+                ? world.Entities.Npcs.Count < world.CreationConfig.PopulationLimit &&
+                  PopulationArrivalMath.CampResidents(world, Faction.Outsiders) < world.CreationConfig.PlayerHostileCampLimit
+                : PopulationArrivalMath.HasRoom(world, Faction.Outsiders);
+            if (!hasRoom)
             {
                 world.RaidWavesSpawned = wave;
                 if (SimTrace.Enabled)
@@ -118,6 +103,16 @@ public sealed class RaidWaveSystem : ISimulationSystem
 
             world.RaidWavesSpawned = wave;
         }
+    }
+
+    private static bool HasInhabitedPlayerCamp(WorldState world)
+    {
+        foreach (var faction in world.FactionHomes.Keys)
+            if (FactionRelations.IsGirlCamp(faction) &&
+                world.CreationConfig.Camp(faction)?.Enabled == true &&
+                PopulationArrivalMath.CampResidents(world, faction) > 0)
+                return true;
+        return false;
     }
 
     // §157.7: у каждого острова свой трёхдневный курсор. Живой чужак острова
@@ -145,7 +140,13 @@ public sealed class RaidWaveSystem : ISimulationSystem
             while (processed < wavesDue)
             {
                 var wave = processed + 1;
-                if (HasLivingIslandOutsider(world, faction) ||
+                var camp = world.CreationConfig?.Camp(faction);
+                var closed = world.CreationConfig != null && camp?.Enabled != true;
+                var emptyPlayerCamp = world.CreationConfig?.PlayersOnly == true &&
+                    PopulationArrivalMath.CampResidents(world, faction) == 0;
+                var cap = world.CreationConfig?.PlayersOnly == true
+                    ? world.CreationConfig.PlayerHostileCampLimit : 1;
+                if (closed || emptyPlayerCamp || LivingIslandOutsiders(world, faction) >= cap ||
                     world.Entities.Npcs.Count >= (world.CreationConfig?.PopulationLimit ?? PopulationArrivalMath.MaxLivingNpcsFor(world.Mode)))
                 {
                     processed = wave;
@@ -174,7 +175,11 @@ public sealed class RaidWaveSystem : ISimulationSystem
 
     // «Мёртв» = его нет среди живых. Труп с тем же id границу не держит.
     internal static bool HasLivingIslandOutsider(WorldState world, Faction island)
+        => LivingIslandOutsiders(world, island) > 0;
+
+    private static int LivingIslandOutsiders(WorldState world, Faction island)
     {
+        var count = 0;
         var from = IslandRaiderIdBase + (int)island * IslandRaiderIdStride;
         var to = from + IslandRaiderIdStride;
         foreach (var npc in world.Entities.Npcs.Values)
@@ -182,11 +187,11 @@ public sealed class RaidWaveSystem : ISimulationSystem
             if (npc.Faction == Faction.Outsiders && npc.Health > 0f &&
                 npc.Id.Value > from && npc.Id.Value < to)
             {
-                return true;
+                count++;
             }
         }
 
-        return false;
+        return count;
     }
 
     private static bool SpawnIslandOutsider(WorldState world, Faction island, TileCoord home, int wave)
@@ -312,12 +317,7 @@ public sealed class RaidWaveSystem : ISimulationSystem
             }
         }
 
-        var armor = female ? FemaleArmor[wave % FemaleArmor.Length] : MaleArmor;
-        EquipKnownArmor(world, npc, armor);
-        if (female)
-        {
-            RaidSpawnWardrobe.EquipFemale(world, npc);
-        }
+        RaidSpawnWardrobe.EquipPrimal(world, npc);
 
         PopulationArrivalMath.AddToWorld(world, npc, landing.Junction);
         EquipmentMath.Recalculate(world, npc);
@@ -329,37 +329,6 @@ public sealed class RaidWaveSystem : ISimulationSystem
                 $"Weapon={WeaponForWave(wave)} Armor={npc.EquippedArmor:F2} " +
                 $"Strength={npc.Attributes.Strength:F2} " +
                 $"Tile={landing.Tile.Q},{landing.Tile.R} Junction={landing.Junction.Value}");
-        }
-    }
-
-    // A raid is authored from a fixed kit, but its content table may be
-    // supplied by an older remote build or a partially updated external
-    // wardrobe. Never put an id the current world cannot describe into an NPC:
-    // it becomes an "unknown item" in the inspector and cannot be rendered or
-    // looted consistently. The valid pieces keep their ordinary sim inventory
-    // path; a bad content entry is visible in the trace and is retried only by
-    // fixing the content, never by creating a ghost item.
-    private static void EquipKnownArmor(
-        WorldState world,
-        NPCState npc,
-        IEnumerable<string> armor)
-    {
-        foreach (var piece in armor)
-        {
-            if (string.IsNullOrEmpty(piece) ||
-                !world.Content.ObjectDefinitions.TryGetValue(piece, out var definition) ||
-                !definition.HasTag("Clothing") ||
-                !GarmentLibrary.IsSpawnable(piece))
-            {
-                if (SimTrace.Enabled)
-                {
-                    Trace.Debug(world, npc.Id, "RaidWaveArmorSkipped",
-                        $"Item={piece ?? "<null>"} missing-or-not-clothing");
-                }
-                continue;
-            }
-
-            npc.WornItems.Add(piece);
         }
     }
 

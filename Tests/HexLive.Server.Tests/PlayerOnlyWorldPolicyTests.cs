@@ -68,7 +68,7 @@ public sealed class PlayerOnlyWorldPolicyTests
     }
 
     [Test]
-    public void SaveRestoreKeepsPolicyAndBlocksEveryAutomaticHumanSpawner()
+    public void EmptyPlayerWorldStaysEmptyAfterSaveRestoreAndScheduleChanges()
     {
         using (var host = Host()) { host.Read(w => PlayerOnlyWorldPolicy.Apply(w)); host.Save(); }
         using var restored = Host();
@@ -76,7 +76,7 @@ public sealed class PlayerOnlyWorldPolicyTests
         {
             Assert.That(w.CreationConfig.PlayersOnly, Is.True);
             Assert.That(w.Entities.Npcs, Is.Empty);
-            // Even if a later operator changes arrival schedules, the world policy remains authoritative.
+            // Friendly/story arrivals remain disabled; hostile waves need an inhabited camp.
             foreach (var camp in w.CreationConfig.Camps) camp.ArrivalIntervalDays = 1;
             w.CreationConfig.SeaRaidIntervalDays = 1;
             w.CreationConfig.ShipwreckSurvivorEnabled = true;

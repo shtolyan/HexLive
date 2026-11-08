@@ -13,6 +13,20 @@ internal static class RaidSpawnWardrobe
 {
     private const float ExtraTopChance = 0.20f;
 
+    internal static void EquipPrimal(WorldState world, NPCState npc)
+    {
+        foreach (var wanted in new[] { "underwear.briefs_primal", "clothing.top_primal",
+                     "clothing.armwraps_primal", "clothing.wrapboots_primal" })
+        {
+            var id = GarmentLibrary.FitDefinitionId(npc.Sex, wanted);
+            if (id == null || !GarmentLibrary.IsSpawnable(id) ||
+                !GarmentLibrary.FitsSex(npc.Sex, id) ||
+                !world.Content.ObjectDefinitions.TryGetValue(id, out var definition) ||
+                !definition.HasTag("Clothing")) continue;
+            npc.WornItems.Add(new ItemInstance(id) { OwnerId = npc.Id.Value });
+        }
+    }
+
     internal static void EquipFemale(WorldState world, NPCState npc)
     {
         if (world == null || npc == null)

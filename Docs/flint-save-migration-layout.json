@@ -1,0 +1,644 @@
+{
+  "seed": 12345,
+  "hexRadius": 1.5,
+  "windowRadius": 0.75,
+  "worldgenSourceCommit": "7b17da560268be28801cfd5c9f8fbbf0b5783954",
+  "points": [
+    {
+      "index": 0,
+      "x": 0.649519,
+      "y": -18.75,
+      "quantity": 1,
+      "q": 4,
+      "r": -8,
+      "occupied": true,
+      "nodes": [
+        {
+          "x": 0,
+          "y": -19.125,
+          "Blocked": false
+        },
+        {
+          "x": 0.3247595,
+          "y": -18.9375,
+          "Blocked": false
+        },
+        {
+          "x": 0.649519,
+          "y": -18.75,
+          "Blocked": false
+        },
+        {
+          "x": 0.97427857,
+          "y": -18.5625,
+          "Blocked": false
+        },
+        {
+          "x": 0,
+          "y": -18.75,
+          "Blocked": false
+        },
+        {
+          "x": 0.3247595,
+          "y": -18.5625,
+          "Blocked": false
+        },
+        {
+          "x": 0.649519,
+          "y": -18.375,
+          "Blocked": false
+        },
+        {
+          "x": 0.97427857,
+          "y": -18.1875,
+          "Blocked": false
+        },
+        {
+          "x": 0,
+          "y": -18.375,
+          "Blocked": false
+        },
+        {
+          "x": 0.3247595,
+          "y": -18.1875,
+          "Blocked": false
+        },
+        {
+          "x": 0.649519,
+          "y": -18,
+          "Blocked": false
+        },
+        {
+          "x": 1.299038,
+          "y": -18.375,
+          "Blocked": false
+        },
+        {
+          "x": 1.299038,
+          "y": -18.75,
+          "Blocked": false
+        },
+        {
+          "x": 0.97427857,
+          "y": -18.9375,
+          "Blocked": false
+        },
+        {
+          "x": 0.649519,
+          "y": -19.125,
+          "Blocked": false
+        },
+        {
+          "x": 0.3247595,
+          "y": -19.3125,
+          "Blocked": false
+        },
+        {
+          "x": 0.649519,
+          "y": -19.5,
+          "Blocked": false
+        },
+        {
+          "x": 0.97427857,
+          "y": -19.3125,
+          "Blocked": false
+        },
+        {
+          "x": 1.299038,
+          "y": -19.125,
+          "Blocked": false
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "x": 4.5466332,
+      "y": 24,
+      "quantity": 1,
+      "q": -4,
+      "r": 11,
+      "occupied": false,
+      "nodes": [
+        {
+          "x": 3.8971143,
+          "y": 23.625,
+          "Blocked": false
+        },
+        {
+          "x": 4.2218738,
+          "y": 23.8125,
+          "Blocked": false
+        },
+        {
+          "x": 4.5466332,
+          "y": 24,
+          "Blocked": false
+        },
+        {
+          "x": 4.8713927,
+          "y": 24.1875,
+          "Blocked": false
+        },
+        {
+          "x": 3.8971143,
+          "y": 24,
+          "Blocked": false
+        },
+        {
+          "x": 4.2218738,
+          "y": 24.1875,
+          "Blocked": false
+        },
+        {
+          "x": 4.5466332,
+          "y": 24.375,
+          "Blocked": false
+        },
+        {
+          "x": 4.8713927,
+          "y": 24.5625,
+          "Blocked": false
+        },
+        {
+          "x": 3.8971143,
+          "y": 24.375,
+          "Blocked": false
+        },
+        {
+          "x": 4.2218738,
+          "y": 24.5625,
+          "Blocked": false
+        },
+        {
+          "x": 4.5466332,
+          "y": 24.75,
+          "Blocked": false
+        },
+        {
+          "x": 5.196152,
+          "y": 24.375,
+          "Blocked": false
+        },
+        {
+          "x": 5.196152,
+          "y": 24,
+          "Blocked": false
+        },
+        {
+          "x": 4.8713927,
+          "y": 23.8125,
+          "Blocked": false
+        },
+        {
+          "x": 4.5466332,
+          "y": 23.625,
+          "Blocked": false
+        },
+        {
+          "x": 4.2218738,
+          "y": 23.4375,
+          "Blocked": false
+        },
+        {
+          "x": 4.5466332,
+          "y": 23.25,
+          "Blocked": false
+        },
+        {
+          "x": 4.8713927,
+          "y": 23.4375,
+          "Blocked": false
+        },
+        {
+          "x": 5.196152,
+          "y": 23.625,
+          "Blocked": false
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "x": -5.845671,
+      "y": 6,
+      "quantity": 1,
+      "q": -4,
+      "r": 3,
+      "occupied": false,
+      "nodes": [
+        {
+          "x": -6.49519,
+          "y": 5.625,
+          "Blocked": false
+        },
+        {
+          "x": -6.1704307,
+          "y": 5.8125,
+          "Blocked": false
+        },
+        {
+          "x": -5.845671,
+          "y": 6,
+          "Blocked": false
+        },
+        {
+          "x": -5.5209117,
+          "y": 6.1875,
+          "Blocked": false
+        },
+        {
+          "x": -6.49519,
+          "y": 6,
+          "Blocked": false
+        },
+        {
+          "x": -6.1704307,
+          "y": 6.1875,
+          "Blocked": false
+        },
+        {
+          "x": -5.845671,
+          "y": 6.375,
+          "Blocked": false
+        },
+        {
+          "x": -5.5209117,
+          "y": 6.5625,
+          "Blocked": false
+        },
+        {
+          "x": -6.49519,
+          "y": 6.375,
+          "Blocked": false
+        },
+        {
+          "x": -6.1704307,
+          "y": 6.5625,
+          "Blocked": false
+        },
+        {
+          "x": -5.845671,
+          "y": 6.75,
+          "Blocked": false
+        },
+        {
+          "x": -5.196152,
+          "y": 6.375,
+          "Blocked": true
+        },
+        {
+          "x": -5.196152,
+          "y": 6,
+          "Blocked": true
+        },
+        {
+          "x": -5.5209117,
+          "y": 5.8125,
+          "Blocked": true
+        },
+        {
+          "x": -5.845671,
+          "y": 5.625,
+          "Blocked": true
+        },
+        {
+          "x": -6.1704307,
+          "y": 5.4375,
+          "Blocked": true
+        },
+        {
+          "x": -5.845671,
+          "y": 5.25,
+          "Blocked": false
+        },
+        {
+          "x": -5.5209117,
+          "y": 5.4375,
+          "Blocked": false
+        },
+        {
+          "x": -5.196152,
+          "y": 5.625,
+          "Blocked": false
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "x": 21.434128,
+      "y": 8.25,
+      "quantity": 1,
+      "q": 6,
+      "r": 4,
+      "occupied": false,
+      "nodes": [
+        {
+          "x": 20.784609,
+          "y": 7.875,
+          "Blocked": false
+        },
+        {
+          "x": 21.10937,
+          "y": 8.0625,
+          "Blocked": false
+        },
+        {
+          "x": 21.434128,
+          "y": 8.25,
+          "Blocked": false
+        },
+        {
+          "x": 21.758888,
+          "y": 8.4375,
+          "Blocked": false
+        },
+        {
+          "x": 20.784609,
+          "y": 8.25,
+          "Blocked": false
+        },
+        {
+          "x": 21.10937,
+          "y": 8.4375,
+          "Blocked": false
+        },
+        {
+          "x": 21.434128,
+          "y": 8.625,
+          "Blocked": false
+        },
+        {
+          "x": 21.758888,
+          "y": 8.8125,
+          "Blocked": false
+        },
+        {
+          "x": 20.784609,
+          "y": 8.625,
+          "Blocked": false
+        },
+        {
+          "x": 21.10937,
+          "y": 8.8125,
+          "Blocked": false
+        },
+        {
+          "x": 21.434128,
+          "y": 9,
+          "Blocked": false
+        },
+        {
+          "x": 22.083647,
+          "y": 8.625,
+          "Blocked": true
+        },
+        {
+          "x": 22.083647,
+          "y": 8.25,
+          "Blocked": true
+        },
+        {
+          "x": 21.758888,
+          "y": 8.0625,
+          "Blocked": false
+        },
+        {
+          "x": 21.434128,
+          "y": 7.875,
+          "Blocked": false
+        },
+        {
+          "x": 21.10937,
+          "y": 7.6875,
+          "Blocked": false
+        },
+        {
+          "x": 21.434128,
+          "y": 7.5,
+          "Blocked": false
+        },
+        {
+          "x": 21.758886,
+          "y": 7.6875,
+          "Blocked": false
+        },
+        {
+          "x": 22.083647,
+          "y": 7.875,
+          "Blocked": false
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "x": 21.434128,
+      "y": -5.25,
+      "quantity": 1,
+      "q": 9,
+      "r": -2,
+      "occupied": false,
+      "nodes": [
+        {
+          "x": 20.784609,
+          "y": -5.625,
+          "Blocked": false
+        },
+        {
+          "x": 21.10937,
+          "y": -5.4375,
+          "Blocked": false
+        },
+        {
+          "x": 21.434128,
+          "y": -5.25,
+          "Blocked": false
+        },
+        {
+          "x": 21.758888,
+          "y": -5.0625,
+          "Blocked": false
+        },
+        {
+          "x": 20.784609,
+          "y": -5.25,
+          "Blocked": false
+        },
+        {
+          "x": 21.10937,
+          "y": -5.0625,
+          "Blocked": false
+        },
+        {
+          "x": 21.434128,
+          "y": -4.875,
+          "Blocked": false
+        },
+        {
+          "x": 21.758888,
+          "y": -4.6875,
+          "Blocked": false
+        },
+        {
+          "x": 20.784609,
+          "y": -4.875,
+          "Blocked": false
+        },
+        {
+          "x": 21.10937,
+          "y": -4.6875,
+          "Blocked": false
+        },
+        {
+          "x": 21.434128,
+          "y": -4.5,
+          "Blocked": false
+        },
+        {
+          "x": 22.083647,
+          "y": -4.875,
+          "Blocked": false
+        },
+        {
+          "x": 22.083647,
+          "y": -5.25,
+          "Blocked": true
+        },
+        {
+          "x": 21.758888,
+          "y": -5.4375,
+          "Blocked": true
+        },
+        {
+          "x": 21.434128,
+          "y": -5.625,
+          "Blocked": true
+        },
+        {
+          "x": 21.10937,
+          "y": -5.8125,
+          "Blocked": true
+        },
+        {
+          "x": 21.434128,
+          "y": -6,
+          "Blocked": false
+        },
+        {
+          "x": 21.758886,
+          "y": -5.8125,
+          "Blocked": false
+        },
+        {
+          "x": 22.083647,
+          "y": -5.625,
+          "Blocked": false
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "x": -1.9485571,
+      "y": 8.25,
+      "quantity": 1,
+      "q": -3,
+      "r": 4,
+      "occupied": false,
+      "nodes": [
+        {
+          "x": -1.9485571,
+          "y": 7.5,
+          "Blocked": false
+        },
+        {
+          "x": -1.6237975,
+          "y": 7.6875,
+          "Blocked": false
+        },
+        {
+          "x": -1.299038,
+          "y": 7.875,
+          "Blocked": false
+        },
+        {
+          "x": -2.2733166,
+          "y": 7.6875,
+          "Blocked": false
+        },
+        {
+          "x": -1.9485571,
+          "y": 7.875,
+          "Blocked": false
+        },
+        {
+          "x": -1.6237975,
+          "y": 8.0625,
+          "Blocked": false
+        },
+        {
+          "x": -1.299038,
+          "y": 8.25,
+          "Blocked": false
+        },
+        {
+          "x": -1.299038,
+          "y": 8.625,
+          "Blocked": false
+        },
+        {
+          "x": -2.598076,
+          "y": 7.875,
+          "Blocked": false
+        },
+        {
+          "x": -2.2733166,
+          "y": 8.0625,
+          "Blocked": false
+        },
+        {
+          "x": -1.9485571,
+          "y": 8.25,
+          "Blocked": false
+        },
+        {
+          "x": -1.6237975,
+          "y": 8.4375,
+          "Blocked": false
+        },
+        {
+          "x": -2.598076,
+          "y": 8.25,
+          "Blocked": false
+        },
+        {
+          "x": -2.2733166,
+          "y": 8.4375,
+          "Blocked": false
+        },
+        {
+          "x": -1.9485571,
+          "y": 8.625,
+          "Blocked": false
+        },
+        {
+          "x": -1.6237975,
+          "y": 8.8125,
+          "Blocked": false
+        },
+        {
+          "x": -2.598076,
+          "y": 8.625,
+          "Blocked": false
+        },
+        {
+          "x": -2.2733166,
+          "y": 8.8125,
+          "Blocked": false
+        },
+        {
+          "x": -1.9485571,
+          "y": 9,
+          "Blocked": false
+        }
+      ]
+    }
+  ]
+}

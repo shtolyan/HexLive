@@ -183,7 +183,9 @@ public static class WorldSaveSerializer
     // v84 (§54): fresh/dry leaf provenance on world objects and items.
     // v85 (§120): installed building units are durable and distinct from stock.
     // v86 (§127.13): lover mark in every relationship record.
-    public const int BlobVersion = 86;
+    // v87 (§175.2): one-time natural flint seeding for pre-flint islands.
+    // The payload layout stays v86; the version records the completed migration.
+    public const int BlobVersion = 87;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -561,6 +563,11 @@ public static class WorldSaveSerializer
         {
             throw new InvalidDataException($"Save blob version {version}, expected {BlobVersion}.");
         }
+
+        var flintSeeds = version < 87
+            ? world.Entities.Objects.Values.Where(o => o.DefinitionId == ContentIds.Flint)
+                .OrderBy(o => o.Id.Value).ToArray()
+            : Array.Empty<WorldObjectState>();
 
         var seed = r.ReadInt32();
         if (seed != world.Seed)
@@ -1104,6 +1111,30 @@ public static class WorldSaveSerializer
         foreach (var obj in world.Entities.Objects.Values)
             foreach (var item in obj.Contents) LeafDryingMath.Initialize(item,world.Tick);
         MigrateBuildingOwnership(world, version);
+        MigrateNaturalFlint(world, flintSeeds);
+    }
+
+    private static void MigrateNaturalFlint(WorldState world, WorldObjectState[] seeds)
+    {
+        // Use this island's normal worldgen, never regenerate its lived-in map.
+        if (seeds.Length == 0 || !world.Content.ObjectDefinitions.ContainsKey(ContentIds.Flint) ||
+            world.Entities.Objects.Values.Any(o => o.DefinitionId == ContentIds.Flint && o.ResourceAmount > 0 ||
+                o.Contents.Any(i => i.DefinitionId == ContentIds.Flint)) ||
+            world.Entities.Npcs.Values.Concat(world.Entities.Corpses.Values)
+                .Any(n => n.Inventory.Items.Any(i => i.DefinitionId == ContentIds.Flint))) return;
+        var occupied = new HashSet<JunctionId>(world.Entities.Objects.Values.SelectMany(o => o.Junctions));
+        foreach (var seed in seeds)
+        {
+            if (seed.Junctions.Count == 0 || seed.ResourceAmount <= 0 ||
+                occupied.Contains(seed.Junctions[0]) ||
+                !world.Junctions.Items.TryGetValue(seed.Junctions[0], out var point) || point.Blocked || point.Door ||
+                !world.Tiles.Items.TryGetValue(seed.Tile, out var tile) || tile.Flags.HasFlag(TileFlags.HasFloor) ||
+                point.Tiles.Any(t => world.Tiles.Items.TryGetValue(t, out var neighbor) && neighbor.Flags.HasFlag(TileFlags.HasFloor))) continue;
+            while (world.Entities.Objects.ContainsKey(new ObjectId(world.NextRuntimeObjectId))) world.NextRuntimeObjectId++;
+            var added = WorldObjectMutations.SpawnObject(world, ContentIds.Flint, point.Fragment, seed.Tile, seed.Junctions[0]);
+            added.ResourceAmount = seed.ResourceAmount;
+            occupied.Add(seed.Junctions[0]);
+        }
     }
 
     // v62 (§129/#237): дом, у которого лагерь-хозяин не записан, получает его

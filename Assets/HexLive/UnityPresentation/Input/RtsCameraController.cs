@@ -411,6 +411,15 @@ namespace HexLive.UnityPresentation.Input
                 }
             }
 
+            // Dismissal must precede the world-input gate: the open menu itself
+            // closes that gate, so HandlePointerGesture cannot receive this press.
+            var menuMouse = Mouse.current;
+            if (UI.ContextMenuPanel.IsOpen && menuMouse != null &&
+                (menuMouse.leftButton.wasPressedThisFrame || menuMouse.rightButton.wasPressedThisFrame))
+            {
+                UI.ContextMenuPanel.TryDismissOnOutsidePress(menuMouse.position.ReadValue());
+            }
+
             var allowWorldInput = !(PointerBlockedForWorld() || Platform.HtmlUi.TextInputFocused);
             if (!allowWorldInput)
             {

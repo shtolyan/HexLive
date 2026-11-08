@@ -12,9 +12,9 @@
 // Model also carries `id`: every opening is a new one, even with the same title
 // at the same spot (a «…» entry opens its confirmation there).
 //
-// Nothing catches presses outside the card: they reach the world, and C#
-// closes the menu there (TryDismissOnOutsidePress), as with the UI Toolkit
-// card. The focused card owns the keyboard (data-hx-keys), so arrows and
+// The transparent backdrop owns outside presses and closes the menu. The
+// bridge retains that gesture until release, so it cannot move a character.
+// The focused card owns the keyboard (data-hx-keys), so arrows and
 // Escape drive the menu instead of panning the camera or opening the game menu.
 import { html, useEffect, useRef, useState } from '../html.js';
 
@@ -112,7 +112,10 @@ export function ContextMenu({ model, send }) {
   };
 
   return html`
-    <div class="hx-ctx-layer">
+    <div class="hx-ctx-layer hx-surface" onPointerDown=${(e) => {
+      if (e.target.closest('.hx-ctx')) return;
+      e.preventDefault(); e.stopPropagation(); send('close');
+    }} onContextMenu=${(e) => e.preventDefault()}>
       <div class="hx-ctx hx-surface" ref=${card} role="menu" aria-label=${model.title} tabindex="-1" data-hx-keys onKeyDown=${onKey}
         onContextMenu=${(e) => e.preventDefault()}
         style=${pos ? { left: `${pos.left}px`, top: `${pos.top}px` } : { visibility: 'hidden' }}>

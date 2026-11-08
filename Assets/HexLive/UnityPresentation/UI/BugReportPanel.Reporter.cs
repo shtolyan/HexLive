@@ -110,11 +110,12 @@ namespace HexLive.UnityPresentation.UI
             if (_reviewJob != null)
             {
                 if (_voiceWav != null) { _reviewJob.Wav = _voiceWav; _reviewJob.DraftId = ""; }
+                else if (text.Length > 0) { _reviewJob.Wav = null; _reviewJob.DraftId = ""; }
                 if (text.Length == 0 && _reviewJob.Wav == null) { _reportError = "bugs.voice.empty"; RefreshQuickReporter(); return; }
                 if (!_sender.Retry(_reviewJob, text)) return;
                 _reviewJob = null;
             }
-            else if (!_sender.Enqueue(_capturedContext, _capturedPng, text.Length == 0 ? _voiceWav : null, text))
+            else if (!_sender.Enqueue(_capturedContext, _capturedPng, _voiceWav, text))
             { RefreshQuickReporter(); return; }
             _quickInput.value = ""; _voiceWav = null; SetQuickVisible(false);
         }
@@ -125,7 +126,7 @@ namespace HexLive.UnityPresentation.UI
             _sender.ClearError();
             _sender.CancelRecording(); _waitingVoiceFinish = false; _captureSession++;
             _reviewJob = job; _capturingReport = false; _quickVisible = true; _managerVisible = false;
-            _capturedContext = job.Context; _capturedPng = job.Screenshot; _voiceWav = job.Wav;
+            _capturedContext = job.Context; _capturedPng = job.Screenshot; _voiceWav = null;
             _reportError = job.Error; _quickInput.value = job.Text; SetReportPreview(job.Screenshot);
             ApplyVisible(); RefreshQuickReporter();
         }

@@ -37,7 +37,7 @@ namespace HexLive.UnityPresentation.UI
         public int LastReportId { get; private set; }
         public string Toast => Time.realtimeSinceStartup < _toastUntil ? ToastKey : "";
         private Connection _connection;
-        private FmodMicrophoneCapture _microphone;
+        private BugReportMicrophoneCapture _microphone;
         private UnityWebRequest _request;
         private float _recordingStart, _toastUntil;
         private byte[] _completedRecording;
@@ -48,7 +48,7 @@ namespace HexLive.UnityPresentation.UI
             _instance = this;
             var asset = Resources.Load<TextAsset>("HexLive/RuntimeReporterConnection");
             if (asset != null) try { _connection = JsonUtility.FromJson<Connection>(asset.text); } catch { }
-            _microphone = new FmodMicrophoneCapture(90f, finishOnSilence: false);
+            _microphone = new BugReportMicrophoneCapture();
         }
         private void Update()
         {
@@ -110,7 +110,7 @@ namespace HexLive.UnityPresentation.UI
         private System.Collections.Generic.IEnumerable<object> DeliverSteps(BugReportQueue.Job job)
         {
             if (!Configured) { Queue.Fail(job, "bugs.report.not_configured"); yield break; }
-            if (string.IsNullOrWhiteSpace(job.Text))
+            if (job.Wav != null)
             {
                 if (job.Wav == null) { Queue.Fail(job, "bugs.voice.empty"); yield break; }
                 job.State = BugReportQueue.Delivery.Recognizing; Notify();
@@ -134,11 +134,13 @@ namespace HexLive.UnityPresentation.UI
                     if (draft == null) { Queue.RetryNetwork(job, Time.realtimeSinceStartup, "bugs.send.failed"); yield break; }
                     if (draft.status == "failed") { Queue.Fail(job, "bugs.voice.failed"); yield break; }
                     if (draft.status != "complete") continue;
-                    job.Text = Bound(draft.text, 12000).Trim();
-                    if (job.Text.Length == 0) { Queue.Fail(job, "bugs.voice.empty"); yield break; }
+                    var recognized = Bound(draft.text, 12000).Trim();
+                    if (recognized.Length == 0) { Queue.Fail(job, "bugs.voice.empty"); yield break; }
+                    job.Text = Bound((string.IsNullOrWhiteSpace(job.Text) ? "" : job.Text.Trim() + "\n\n") + recognized, 12000);
                     job.Wav = null; break;
                 }
             }
+            if (string.IsNullOrWhiteSpace(job.Text)) { Queue.Fail(job, "bugs.voice.empty"); yield break; }
             job.State = BugReportQueue.Delivery.Sending; Notify();
             var payload = new Submission { text = job.Text, context = job.Context, requestId = job.RequestId,
                 reportedInVersion = Application.version + " / " + Application.platform,

@@ -61,6 +61,9 @@ namespace HexLive.UnityPresentation.UI
 
         private void OnDestroy()
         {
+            if (_sender != null) _sender.Changed -= ReporterChanged;
+            _sender?.CancelRecording();
+            if (_reportTexture != null) Destroy(_reportTexture);
             IsOpen = false;
             HtmlUi.Unhandle(HtmlQuick, OnHtmlCommand);
             HtmlUi.Unhandle(HtmlManager, OnHtmlCommand);
@@ -68,6 +71,8 @@ namespace HexLive.UnityPresentation.UI
 
         private void Awake()
         {
+            _sender = BugReportSender.Ensure();
+            _sender.Changed += ReporterChanged;
             var document = GetComponent<UIDocument>();
             var baseSettings = Resources.Load<PanelSettings>("HexLive/DebugPanelSettings");
             if (baseSettings != null)
@@ -90,7 +95,12 @@ namespace HexLive.UnityPresentation.UI
 
         private void OnEnable() => Loc.LanguageChanged += Relocalize;
 
-        private void OnDisable() => Loc.LanguageChanged -= Relocalize;
+        private void OnDisable()
+        {
+            Loc.LanguageChanged -= Relocalize;
+            _waitingVoiceFinish = false; _captureSession++;
+            if (_quickVisible) _sender?.CancelRecording();
+        }
 
         private void Relocalize()
         {
@@ -113,9 +123,9 @@ namespace HexLive.UnityPresentation.UI
         {
             if (ClosedTestAccess.Enabled)
             {
-                if (_quickVisible && !ClosedTestAccess.Can("bugs.create")) SetQuickVisible(false);
                 if (_managerVisible && !ClosedTestAccess.Can("bugs.read")) SetManagerVisible(false);
             }
+            RefreshRecordingMeter();
             UpdateHtml();
             if (!Visible || Time.unscaledTime < _nextExternalCheck)
             {
@@ -139,8 +149,9 @@ namespace HexLive.UnityPresentation.UI
 
         private void SetQuickVisible(bool visible)
         {
-            if (visible && ClosedTestAccess.Enabled && !ClosedTestAccess.Can("bugs.create")) return;
+            if (visible && !_quickVisible) { BeginQuickCapture(); return; }
             _quickVisible = visible;
+            if (!visible) { _captureSession++; _capturingReport = false; _waitingVoiceFinish = false; _sender?.CancelRecording(); }
             if (visible)
             {
                 _managerVisible = false;
@@ -157,6 +168,8 @@ namespace HexLive.UnityPresentation.UI
             _managerVisible = visible;
             if (visible)
             {
+                _waitingVoiceFinish = false; _capturingReport = false; _captureSession++;
+                _sender?.CancelRecording();
                 _quickVisible = false;
                 _reportEditorId = -1;
                 _reworkEditorId = -1;
@@ -172,12 +185,12 @@ namespace HexLive.UnityPresentation.UI
         private void ApplyVisible()
         {
             IsOpen = Visible;
-            _quickModal?.Show(_quickVisible);
+            _quickModal?.Show(_quickVisible && !_capturingReport);
             _managerModal?.Show(_managerVisible);
             HideToolkitUnderHtml();
             if (_quickWindow != null)
             {
-                _quickWindow.style.display = _quickVisible ? DisplayStyle.Flex : DisplayStyle.None;
+                _quickWindow.style.display = _quickVisible && !_capturingReport ? DisplayStyle.Flex : DisplayStyle.None;
             }
 
             if (_managerWindow != null)
@@ -200,7 +213,7 @@ namespace HexLive.UnityPresentation.UI
             root.style.justifyContent = Justify.Center;
             root.pickingMode = PickingMode.Ignore;
 
-            _quickWindow = MakeWindow(480f, 290f);
+            _quickWindow = MakeWindow(620f, Length.Percent(88f));
             root.Add(_quickWindow);
             BuildQuickWindow();
             _quickModal = new RuntimeWindow(root, _quickWindow, () => SetQuickVisible(false), "bug-quick");
@@ -239,7 +252,18 @@ namespace HexLive.UnityPresentation.UI
             hint.style.marginBottom = 8f;
             _quickWindow.Add(hint);
 
-            _quickInput = new TextField { multiline = true };
+            _reportPreview = new Image { scaleMode = ScaleMode.ScaleToFit };
+            _reportPreview.style.height = 160f;
+            _reportPreview.image = _reportTexture;
+            _quickWindow.Add(_reportPreview);
+            _reportStatus = new Label(); _reportStatus.style.whiteSpace = WhiteSpace.Normal;
+            _reportStatus.style.marginTop = 6f; _reportStatus.style.marginBottom = 6f;
+            _quickWindow.Add(_reportStatus);
+            _recordReportButton = new Button(ToggleReportRecording) { text = Loc.Get("bugs.voice.record") };
+            _recordReportButton.style.height = 32f;
+            _quickWindow.Add(_recordReportButton);
+
+            _quickInput = new TextField { multiline = true, maxLength = 12000 };
             _quickInput.style.fontSize = 13;
             _quickInput.style.minHeight = 110f;
             _quickInput.style.whiteSpace = WhiteSpace.Normal;
@@ -247,9 +271,13 @@ namespace HexLive.UnityPresentation.UI
 
             var actions = MakeActionRow();
             actions.style.marginTop = 10f;
-            actions.Add(MakeButton(Loc.Get("bugs.open_manager"), Raised, () => SetManagerVisible(true)));
+            if (!ClosedTestAccess.Enabled || ClosedTestAccess.Can("bugs.read"))
+                actions.Add(MakeButton(Loc.Get("bugs.open_manager"), Raised, () => SetManagerVisible(true)));
             actions.Add(MakeButton(Loc.Get("bugs.submit"), Accent, Submit));
             _quickWindow.Add(actions);
+            _reportJobs = new ScrollView(); _reportJobs.style.maxHeight = 180f;
+            _quickWindow.Add(_reportJobs);
+            RefreshQuickReporter();
         }
 
         private void BuildManagerWindow()
@@ -352,17 +380,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void Submit()
         {
-            var text = _quickInput.value?.Trim();
-            if (string.IsNullOrEmpty(text))
-            {
-                return;
-            }
-
-            BugReportStore.Add(text, BuildContext());
-            _quickInput.value = string.Empty;
-            SetQuickVisible(false);
-            _tab = ManagerTab.Open;
-            SetManagerVisible(true);
+            SubmitQuickReport();
         }
 
         private string BuildContext()

@@ -20,6 +20,7 @@ import { html, useState, useEffect, useRef } from '../html.js';
 import { t } from '../i18n.js';
 import { icons } from '../icons.js';
 import { Button, ModalWindow } from '../components.js';
+import { asset } from '../bridge.js';
 
 const STATUSES = ['created', 'in_progress', 'ready_for_test', 'rework', 'fixed'];
 
@@ -43,19 +44,34 @@ function Editor({ initial = '', placeholder, confirm, tone, onSave, onCancel, au
 export function BugReport({ model, send }) {
   const [text, setText] = useState('');
   const area = useRef(null);
-  useEffect(() => { area.current?.focus(); }, []);
+  useEffect(() => { setText(model.text || ''); area.current?.focus(); }, [model.draftId]);
+  const update = (value) => { setText(value); send('draft', { text: value }); };
   return html`
     <${ModalWindow} id="bug-quick" title=${t('bugs.quick.title')} size="wide" onClose=${() => send('close')}>
-      <p class="hx-muted">${t('bugs.quick.hint')}</p>
-      <textarea ref=${area} class="hx-bug-quick__text" rows="6" value=${text} onInput=${(e) => setText(e.currentTarget.value)}
-        onKeyDown=${(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && text.trim()) send('submit', { text: text.trim() }); }}></textarea>
-      ${model.context && html`<code class="hx-bug-context">${model.context}</code>`}
-      ${model.error && html`<p class="hx-warn">${model.error}</p>`}
-      <div class="hx-actions">
-        <${Button} onClick=${() => send('manager')}>${t('bugs.open_manager')}<//>
-        <${Button} variant="primary" disabled=${!text.trim() || model.sending} title="Ctrl+Enter"
-          onClick=${() => send('submit', { text: text.trim() })}>${t('bugs.submit')}<//>
+      <p class="hx-muted">${t('bugs.capture.attached')}</p>
+      ${model.image && html`<img class="hx-bug-screenshot" src=${asset(model.image)} alt=${t('bugs.capture.preview')} />`}
+      <div class="hx-actions hx-actions--left">
+        <${Button} variant=${model.recording ? 'danger' : 'primary'} onClick=${() => send('record')}>${icons.mic()} ${t(model.recording ? 'bugs.voice.done' : 'bugs.voice.record')}<//>
+        ${model.recording && html`<span role="status">${t('bugs.voice.recording')} ${model.seconds || 0}s <meter min="0" max="1" value=${model.level || 0}></meter></span>`}
       </div>
+      <textarea ref=${area} class="hx-bug-quick__text" rows="4" maxlength="12000" value=${text} placeholder=${t('bugs.voice.or_type')}
+        onInput=${(e) => update(e.currentTarget.value)}
+        onKeyDown=${(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && text.trim()) send('submit', { text: text.trim() }); }}></textarea>
+      ${model.error && html`<p class="hx-warn" role="alert">${t(model.error)}</p>`}
+      <div class="hx-actions">
+        ${model.canManage && html`<${Button} onClick=${() => send('manager')}>${t('bugs.open_manager')}<//>`}
+        <${Button} variant="primary" disabled=${model.recording || (!text.trim() && !model.reviewing)} title="Ctrl+Enter"
+          onClick=${() => send('submit', { text: text.trim() })}>${t(model.reviewing ? 'bugs.queue.retry' : 'bugs.submit')}<//>
+      </div>
+      <p class="hx-muted" role="status">${t('bugs.queue.counts', { 0: model.pending || 0, 1: model.failed || 0 })}</p>
+      <div class="hx-bug-queue">${(model.queue || []).map((job) => html`
+        <div class="hx-bug-queue__row" key=${job.id}>
+          <span>${t(`bugs.queue.${job.state}`)}${job.text && ` · ${job.text}`}</span>
+          ${job.state === 'failed' && html`<div class="hx-actions">
+            <${Button} onClick=${() => send('review', { requestId: job.id })}>${t('bugs.queue.review')}<//>
+            <${Button} onClick=${() => send('discard', { requestId: job.id })}>${t('bugs.queue.discard')}<//>
+          </div>`}
+        </div>`)}</div>
     <//>`;
 }
 

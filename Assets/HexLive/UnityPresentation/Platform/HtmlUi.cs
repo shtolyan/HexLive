@@ -55,6 +55,8 @@ public static class HtmlUi
 
     private static readonly Dictionary<string, Action<string, JObject>> Handlers = new();
     private static readonly HashSet<string> Shown = new();
+    public static string[] VisibleScreenNames()
+    { var values = new string[Shown.Count]; Shown.CopyTo(values); Array.Sort(values); return values; }
     private static readonly HashSet<string> Assets = new();
     private static int _bits;
     private static int _releaseFrame = -1;
@@ -98,9 +100,9 @@ public static class HtmlUi
     /// a creator thumbnail travels once, not with every keystroke. Each key is
     /// sent once per page.
     /// </summary>
-    public static void Asset(string key, string dataUrl)
+    public static void Asset(string key, string dataUrl, bool replace = false)
     {
-        if (!Active || !Assets.Add(key))
+        if (!Active || (!Assets.Add(key) && !replace))
         {
             return;
         }

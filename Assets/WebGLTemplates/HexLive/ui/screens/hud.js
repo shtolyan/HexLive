@@ -82,7 +82,11 @@ function Tools({ model, send }) {
   return html`<div class="hx-pill hx-surface">
     ${model.bugs && html`<button class="hx-seg hx-seg--wide" type="button" disabled=${!model.bugs.canReport}
       title=${t('debug.report')} onClick=${() => send('bug')}>${icons.bug()}
+      ${model.bugs.pending > 0 && html`<b class="hx-hud__badge" title=${t('bugs.queue.waiting')}>↻ ${model.bugs.pending}</b>`}
       ${model.bugs.ready > 0 && html`<b class="hx-hud__badge" title=${t('bugs.debug.ready', { 0: model.bugs.ready })}>${model.bugs.ready}</b>`}</button>`}
+    ${model.bugs?.failed > 0 && html`<button class="hx-seg hx-warn" type="button" aria-label=${t('bugs.queue.review')}
+      onClick=${() => send('bugErrors')}>! ${model.bugs.failed}</button>`}
+    ${model.bugs?.toast && html`<span class="hx-hud__report-toast" role="status">${model.bugs.toast}</span>`}
     ${model.admin && html`<button class=${`hx-seg${model.admin.recording ? ' is-recording' : ''}`} type="button" aria-pressed=${!!model.admin.recording}
       title=${t('admin.voice.title')} aria-label=${t('admin.voice.title')} onClick=${() => send('admin')}>${icons.mic()}</button>`}
     ${model.debug && html`<button class="hx-seg" type="button" aria-pressed=${!!model.debug.open} title="DEBUG" onClick=${() => send('debug')}>DEBUG</button>`}

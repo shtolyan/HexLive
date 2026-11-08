@@ -13,7 +13,8 @@ namespace HexLive.UnityPresentation.Audio
     {
         // Both voice entry points share the FMOD device and master-mute owner.
         private static FmodMicrophoneCapture? _owner;
-        private const float MaxSeconds = 30f;
+        private readonly float _maxSeconds;
+        private readonly bool _finishOnSilence;
         private const float SilenceToFinishSeconds = 3f;
         private const float VoiceRms = 0.008f;
         private const float MinimumSeconds = 0.25f;
@@ -34,6 +35,9 @@ namespace HexLive.UnityPresentation.Audio
 
         public bool IsRecording => _recording;
         public float Level { get; private set; }
+
+        public FmodMicrophoneCapture(float maxSeconds = 30f, bool finishOnSilence = true)
+        { _maxSeconds = Mathf.Clamp(maxSeconds, 1f, 90f); _finishOnSilence = finishOnSilence; }
 
         public bool Start(out string error)
         {
@@ -71,7 +75,7 @@ namespace HexLive.UnityPresentation.Audio
                 return false;
             }
 
-            _bufferBytes = (uint)(_sampleRate * 2 * (MaxSeconds + 1f));
+            _bufferBytes = (uint)(_sampleRate * 2 * (_maxSeconds + 1f));
             var info = new FMOD.CREATESOUNDEXINFO
             {
                 cbsize = Marshal.SizeOf<FMOD.CREATESOUNDEXINFO>(),
@@ -132,7 +136,8 @@ namespace HexLive.UnityPresentation.Audio
             return CaptureComplete;
         }
 
-        private bool CaptureComplete => _elapsed >= MaxSeconds || (_heardVoice && _silence >= SilenceToFinishSeconds);
+        private bool CaptureComplete => _elapsed >= _maxSeconds ||
+            (_finishOnSilence && _heardVoice && _silence >= SilenceToFinishSeconds);
 
         private void AppendRecordedChunk(byte[] chunk)
         {

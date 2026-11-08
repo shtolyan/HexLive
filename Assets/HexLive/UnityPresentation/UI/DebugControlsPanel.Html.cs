@@ -42,7 +42,8 @@ namespace HexLive.UnityPresentation.UI
             _instance._bugReportPanel?.ToggleQuick();
         }
 
-        public static bool CanReportBugs => !ClosedTestAccess.Enabled || ClosedTestAccess.Can("bugs.create");
+        public static bool CanReportBugs => true;
+        public static void OpenFailedBugReport() => _instance?._bugReportPanel?.OpenFailedReport();
 
         /// <summary>Fixes waiting for the player's test; 0 until the tracker was loaded once.</summary>
         public static int ReadyForTest =>

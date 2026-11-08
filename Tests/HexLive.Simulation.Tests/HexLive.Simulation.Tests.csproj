@@ -57,6 +57,10 @@
     <Compile Include="../../Assets/HexLive/UnityPresentation/Rendering/NpcGroundSupport.cs" />
     <Compile Include="../../Assets/HexLive/UnityPresentation/Wearing/PresentationSpeed.cs" />
     <Compile Include="../../Assets/HexLive/UnityPresentation/UI/LobbyWardrobeRules.cs" />
+    <Compile Include="../../Assets/HexLive/UnityPresentation/UI/BugReportQueue.cs" />
+    <Compile Include="../../Assets/HexLive/UnityPresentation/UI/BugReportWav.cs" />
+    <Compile Include="../../Assets/HexLive/UnityPresentation/UI/BugReportContextData.cs" />
+    <Compile Include="../../Assets/HexLive/UnityPresentation/UI/BugReportConnectionPolicy.cs" />
     <Compile Include="../../Assets/HexLive/Tests/PerceptionObservationBufferTests.cs" />
   </ItemGroup>
 

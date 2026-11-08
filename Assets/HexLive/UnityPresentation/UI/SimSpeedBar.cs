@@ -32,7 +32,7 @@ namespace HexLive.UnityPresentation.UI
         private const string HtmlScreen = "hud";
         private bool _inHtml;
         private string _lastHudJson;
-        private (int, LinkState, int, bool, int, bool, bool, bool, bool?, int, int, int, int)? _lastHudKey;
+        private (int, LinkState, int, bool, int, bool, bool, bool, bool?, int, int, int, int, int, int, string)? _lastHudKey;
 
         // Weather widget (top-left): temperature, rain/clear, clock + phase.
         private VectorIcon _sunIcon;
@@ -375,7 +375,8 @@ namespace HexLive.UnityPresentation.UI
                 _runner.IsPaused, NearestPreset(_runner.SpeedMultiplier), keyLink.IsRemote,
                 BuildModePanel.CanOpen, BuildModePanel.IsOpen,
                 DebugControlsPanel.HtmlOpen, DebugControlsPanel.ReadyForTest, AdminVoicePanel.HtmlMicState,
-                CharacterPanel.HtmlBalanceVersion, Loc.Current == HexLive.UnityPresentation.Localization.Language.Russian ? 1 : 0);
+                CharacterPanel.HtmlBalanceVersion, Loc.Current == HexLive.UnityPresentation.Localization.Language.Russian ? 1 : 0,
+                BugReportSender.Pending, BugReportSender.Failed, BugReportSender.Ensure().Toast);
             if (_lastHudJson != null && _lastHudKey == key)
             {
                 return;
@@ -444,6 +445,9 @@ namespace HexLive.UnityPresentation.UI
                 ["bugs"] = new JObject
                 {
                     ["ready"] = DebugControlsPanel.ReadyForTest, ["canReport"] = DebugControlsPanel.CanReportBugs,
+                    ["pending"] = BugReportSender.Pending, ["failed"] = BugReportSender.Failed,
+                    ["toast"] = BugReportSender.Ensure().Toast is var toast && toast.Length > 0
+                        ? string.Format(Loc.Get(toast), BugReportSender.Ensure().LastReportId) : "",
                 },
                 ["debug"] = DebugControlsPanel.HtmlOpen is { } debugOpen ? new JObject { ["open"] = debugOpen } : null,
                 // §161: the admin microphone, only on a server that has the voice admin.
@@ -477,6 +481,9 @@ namespace HexLive.UnityPresentation.UI
                     break;
                 case "bug":
                     DebugControlsPanel.OpenBugReport();
+                    break;
+                case "bugErrors":
+                    DebugControlsPanel.OpenFailedBugReport();
                     break;
                 case "admin":
                     AdminVoicePanel.HtmlMicrophone();

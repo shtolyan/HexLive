@@ -143,3 +143,6 @@ _ArtSource/Voice/lipsync_analysis.json
 # Standalone test build outputs.
 /Tests/**/bin/
 /Tests/**/obj/
+
+# Verified write-only game reporting capability, generated only on a builder.
+/Assets/Resources/HexLive/RuntimeReporterConnection.json*

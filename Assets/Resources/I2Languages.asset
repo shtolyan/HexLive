@@ -31292,6 +31292,214 @@ MonoBehaviour:
       - 'Рюкзак полон'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'bugs.capture.attached'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A screenshot and game context are attached automatically. Record your report or type it below.'
+      - 'Скриншот и контекст игры прикрепятся автоматически. Надиктуйте ошибку или напишите ниже.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.capture.preview'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Game screenshot'
+      - 'Скриншот игры'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.capture.failed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Could not capture the screen. You can still send a description.'
+      - 'Не удалось сделать скриншот. Описание всё равно можно отправить.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.voice.record'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Record a bug'
+      - 'Надиктовать ошибку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.voice.done'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Done — send in background'
+      - 'Готово — отправить в фоне'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.voice.recording'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Recording'
+      - 'Идёт запись'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.voice.or_type'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Or describe what happened here…'
+      - 'Или напишите здесь, что произошло…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.voice.unavailable'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Microphone unavailable or in use. Allow microphone access or type a description.'
+      - 'Микрофон недоступен или занят. Разрешите доступ к микрофону или напишите описание.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.voice.interrupted'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Recording stopped when the app lost focus. Record again or type your report.'
+      - 'Запись остановлена при уходе из приложения. Запишите ещё раз или напишите описание.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.voice.empty'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No speech or description yet. Record again or type your report.'
+      - 'Пока нет речи или описания. Запишите ещё раз или напишите текст.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.voice.failed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Speech recognition failed. Retry or type a description.'
+      - 'Не удалось распознать речь. Повторите попытку или напишите описание.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.voice.timeout'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Speech recognition took too long. Retry or type a description.'
+      - 'Распознавание заняло слишком долго. Повторите попытку или напишите описание.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.report.not_configured'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Reporting is not configured in this build. Your draft remains here.'
+      - 'Отправка репортов не настроена в этой сборке. Черновик остаётся в окне.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.queue.full'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The report queue is full. Wait for a delivery or remove a failed report; your draft stays here.'
+      - 'Очередь репортов заполнена. Дождитесь отправки или удалите неудачный репорт. Черновик остаётся в окне.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.queue.accepted'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Thank you! Sending in the background.'
+      - 'Спасибо! Репорт отправляется в фоне.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.queue.sent'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Bug #{0} sent. Thank you!'
+      - 'Баг №{0} отправлен. Спасибо!'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.queue.counts'
+      TermType: 0
+      Description:
+      Languages:
+      - 'In queue: {0} · Need attention: {1}'
+      - 'В очереди: {0} · Нуждаются во внимании: {1}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.queue.waiting'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Waiting to send'
+      - 'Ожидает отправки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.queue.recognizing'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Recognizing speech'
+      - 'Распознаётся речь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.queue.sending'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Sending report'
+      - 'Репорт отправляется'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.queue.failed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Could not send'
+      - 'Не удалось отправить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.queue.review'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Review failed report'
+      - 'Открыть неотправленный репорт'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.queue.retry'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Retry'
+      - 'Повторить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.queue.discard'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Delete draft'
+      - 'Удалить черновик'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.send.failed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Connection failed. The report is kept for retry.'
+      - 'Связь прервалась. Репорт сохранён для повторной отправки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.send.refused'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The server refused this report. Review it and try again.'
+      - 'Сервер отклонил репорт. Проверьте его и повторите попытку.'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

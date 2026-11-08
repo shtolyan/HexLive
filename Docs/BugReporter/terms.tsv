@@ -1,0 +1,27 @@
+# key	English	Русский
+bugs.capture.attached	A screenshot and game context are attached automatically. Record your report or type it below.	Скриншот и контекст игры прикрепятся автоматически. Надиктуйте ошибку или напишите ниже.
+bugs.capture.preview	Game screenshot	Скриншот игры
+bugs.capture.failed	Could not capture the screen. You can still send a description.	Не удалось сделать скриншот. Описание всё равно можно отправить.
+bugs.voice.record	Record a bug	Надиктовать ошибку
+bugs.voice.done	Done — send in background	Готово — отправить в фоне
+bugs.voice.recording	Recording	Идёт запись
+bugs.voice.or_type	Or describe what happened here…	Или напишите здесь, что произошло…
+bugs.voice.unavailable	Microphone unavailable or in use. Allow microphone access or type a description.	Микрофон недоступен или занят. Разрешите доступ к микрофону или напишите описание.
+bugs.voice.interrupted	Recording stopped when the app lost focus. Record again or type your report.	Запись остановлена при уходе из приложения. Запишите ещё раз или напишите описание.
+bugs.voice.empty	No speech or description yet. Record again or type your report.	Пока нет речи или описания. Запишите ещё раз или напишите текст.
+bugs.voice.failed	Speech recognition failed. Retry or type a description.	Не удалось распознать речь. Повторите попытку или напишите описание.
+bugs.voice.timeout	Speech recognition took too long. Retry or type a description.	Распознавание заняло слишком долго. Повторите попытку или напишите описание.
+bugs.report.not_configured	Reporting is not configured in this build. Your draft remains here.	Отправка репортов не настроена в этой сборке. Черновик остаётся в окне.
+bugs.queue.full	The report queue is full. Wait for a delivery or remove a failed report; your draft stays here.	Очередь репортов заполнена. Дождитесь отправки или удалите неудачный репорт. Черновик остаётся в окне.
+bugs.queue.accepted	Thank you! Sending in the background.	Спасибо! Репорт отправляется в фоне.
+bugs.queue.sent	Bug #{0} sent. Thank you!	Баг №{0} отправлен. Спасибо!
+bugs.queue.counts	In queue: {0} · Need attention: {1}	В очереди: {0} · Нуждаются во внимании: {1}
+bugs.queue.waiting	Waiting to send	Ожидает отправки
+bugs.queue.recognizing	Recognizing speech	Распознаётся речь
+bugs.queue.sending	Sending report	Репорт отправляется
+bugs.queue.failed	Could not send	Не удалось отправить
+bugs.queue.review	Review failed report	Открыть неотправленный репорт
+bugs.queue.retry	Retry	Повторить
+bugs.queue.discard	Delete draft	Удалить черновик
+bugs.send.failed	Connection failed. The report is kept for retry.	Связь прервалась. Репорт сохранён для повторной отправки.
+bugs.send.refused	The server refused this report. Review it and try again.	Сервер отклонил репорт. Проверьте его и повторите попытку.

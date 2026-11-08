@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Platform;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
@@ -39,16 +41,33 @@ namespace HexLive.UnityPresentation.UI
         private void UpdateHtml()
         {
             if (!HtmlUi.Active) return;
-            if (!_quickVisible && _lastQuickJson != null) { HtmlUi.Hide(HtmlQuick); _lastQuickJson = null; }
+            if ((!_quickVisible || _capturingReport) && _lastQuickJson != null) { HtmlUi.Hide(HtmlQuick); _lastQuickJson = null; }
             if (!_managerVisible && _lastManagerJson != null) { HtmlUi.Hide(HtmlManager); _lastManagerJson = null; }
             if (!Visible) return;
             // The store changes by commands and a 2 s poll; once a second is enough.
             if (!_htmlDirty && Time.unscaledTime < _htmlNext) return;
             _htmlDirty = false;
             _htmlNext = Time.unscaledTime + 1f;
-            if (_quickVisible)
-                Push(HtmlQuick, new JObject { ["context"] = BuildContext(), ["sending"] = false, ["error"] = null }, ref _lastQuickJson);
+            if (_quickVisible && !_capturingReport) Push(HtmlQuick, QuickReporterModel(), ref _lastQuickJson);
             if (_managerVisible) Push(HtmlManager, ManagerModel(), ref _lastManagerJson);
+        }
+
+        private JObject QuickReporterModel()
+        {
+            if (_capturedPng != null && !HtmlUi.HasAsset(ReportImageKey))
+                HtmlUi.Asset(ReportImageKey, "data:image/png;base64," + Convert.ToBase64String(_capturedPng));
+            var queue = new JArray();
+            foreach (var job in _sender.Queue.Jobs)
+                queue.Add(new JObject { ["id"] = job.RequestId, ["state"] = job.State.ToString().ToLowerInvariant(),
+                    ["text"] = job.Text.Length > 100 ? job.Text.Substring(0, 100) : job.Text });
+            var error = !string.IsNullOrEmpty(_sender.Error) ? _sender.Error : _reportError;
+            return new JObject { ["draftId"] = _captureSession, ["text"] = _quickInput.value,
+                ["image"] = _capturedPng == null ? null : ReportImageKey, ["context"] = "",
+                ["error"] = error, ["recording"] = _sender.IsRecording,
+                ["seconds"] = Mathf.FloorToInt(_sender.RecordingSeconds), ["level"] = _sender.Level,
+                ["pending"] = BugReportSender.Pending, ["failed"] = BugReportSender.Failed,
+                ["reviewing"] = _reviewJob != null, ["queue"] = queue,
+                ["canManage"] = !ClosedTestAccess.Enabled || ClosedTestAccess.Can("bugs.read") };
         }
 
         private static void Push(string screen, JObject model, ref string last)
@@ -158,13 +177,23 @@ namespace HexLive.UnityPresentation.UI
                     SetManagerVisible(false);
                     return;
                 case "submit":
-                    if (string.IsNullOrEmpty(text) || !_quickVisible) return;
-                    var created = BugReportStore.Add(text, BuildContext());
-                    SetQuickVisible(false);
-                    _tab = ManagerTab.Open;
-                    _statusFilter = null;
-                    SetManagerVisible(true);
-                    _htmlCard = created?.id ?? -1;
+                    if (!_quickVisible) return;
+                    _quickInput.value = text ?? ""; SubmitQuickReport();
+                    return;
+                case "draft":
+                    if (_quickVisible) _quickInput.value = text ?? "";
+                    return;
+                case "record":
+                    if (_quickVisible) ToggleReportRecording();
+                    return;
+                case "review":
+                    ReviewFailedReport((string)args["requestId"]);
+                    return;
+                case "discard":
+                    var discardId = (string)args["requestId"];
+                    var doomed = _sender.Queue.Jobs.FirstOrDefault(j => j.RequestId == discardId);
+                    _sender.Discard(doomed);
+                    if (_reviewJob == doomed) { _reviewJob = null; SetQuickVisible(false); }
                     return;
                 case "manager":
                     SetManagerVisible(true);

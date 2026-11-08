@@ -107,7 +107,7 @@ namespace HexLive.UnityPresentation.UI
             UpdateHtml();
             if (ClosedTestAccess.Enabled)
             {
-                _reportBugButton?.SetEnabled(ClosedTestAccess.Can("bugs.create"));
+                _reportBugButton?.SetEnabled(true);
                 _bugManagerButton?.SetEnabled(ClosedTestAccess.Can("bugs.read"));
             }
             if (_runner == null)
@@ -136,7 +136,9 @@ namespace HexLive.UnityPresentation.UI
                     : 0;
                 _bugLabel.text = readyCount > 0
                     ? string.Format(Loc.Get("bugs.debug.ready"), readyCount)
-                    : "Report bug";
+                    : Loc.Get("debug.report");
+                if (BugReportSender.Pending + BugReportSender.Failed > 0)
+                    _bugLabel.text += " · " + string.Format(Loc.Get("bugs.queue.counts"), BugReportSender.Pending, BugReportSender.Failed);
             }
         }
 

@@ -30,7 +30,7 @@ public sealed class SpawnModestyTests
     }
 
     [Test]
-    public void WeeklyArrivalAndFemaleRaidWaveUseTheSameMandatoryCover()
+    public void WeeklyArrivalAndFemaleRaidWaveKeepMandatoryCoverWithPrimalRaidOutfit()
     {
         var oldInterval = WorldBalance.ColonyArrivalIntervalDays;
         var oldTotal = WorldBalance.MaxLivingNpcs;
@@ -58,7 +58,17 @@ public sealed class SpawnModestyTests
             new RaidWaveSystem().Run(raidWorld);
             var raider = raidWorld.Entities.Npcs[new EntityId(1001)];
             Assert.That(raider.Sex, Is.EqualTo(GarmentSex.Female));
-            AssertRequiredSpawnCover(raidWorld, raider, "female raid arrival");
+            Assert.Multiple(() =>
+            {
+                Assert.That(raider.WornItems.Any(i => i.DefinitionId == "underwear.briefs_primal"), Is.True,
+                    "Female raiders need the authored hide briefs.");
+                Assert.That(raider.WornItems.Any(i => i.DefinitionId == "clothing.top_primal"), Is.True,
+                    "The visible chest cover must be present, independently of catalog Covers metadata.");
+                Assert.That(raider.WornItems.All(i => i.DefinitionId.Contains("_primal")), Is.True,
+                    "Raid arrivals must use the requested primitive wardrobe.");
+                Assert.That(ModestyMath.MissingCover(raidWorld, raider), Is.False,
+                    "The complete primitive outfit must cover pelvis and chest.");
+            });
         }
         finally
         {

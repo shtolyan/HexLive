@@ -664,6 +664,7 @@ namespace HexLive.Simulation.Bootstrap
             // for (plus a palm for food/wood), reached via the cheap strait.
             definition.Objects.Add(Object(nextId++, "tree.palm", 1, 9, 4, 1));
             definition.Objects.Add(Object(nextId++, "tool.pickaxe_stone", 1, 9, 5, 2));
+            Place(ContentIds.Flint, 6, 17501, 2);
 
             // §55: river drink-anchors retired — rivers are gone and water is no
             // longer drinkable. Thirst is quenched by cracking a coconut instead

@@ -1387,6 +1387,7 @@ namespace HexLive.Simulation.Bootstrap
                 Place(pool, "tool.lighter", 1, 14637 + i * 10, 2);
                 Place(pool, "tool.bottle", 1, 14643 + i * 10, 2); // §55.4 (bug #317)
             }
+            Place(open, Content.ContentIds.Flint, System.Math.Max(1, settings.LooseStoneCount / 8), 17501, 2);
         }
 
         // §146.4/§146.9: заданное режимом число девушек на лагерь — якорь и

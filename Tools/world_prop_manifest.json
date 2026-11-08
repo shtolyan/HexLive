@@ -40,6 +40,10 @@
         {"id":"station.drying_rack","source":"resource.stick.fbx + rope_lashing.fbx","native":"runtime assembly","mode":"native-assembly","minRenderers":8,"materialSlots":["Bark","Heartwood"],"alpha":"opaque","stagedBill":{"sticks":4,"rope":4}}
     ],
     "addressableNativeGroups": [
-        {"id":"prosthetic.core","root":"Assets/HexLiveContent/Prosthetics","pattern":"*.fbx","expectedCount":8,"forbidImporterDependencies":[".glb",".gltf"]}
+        {"id":"prosthetic.core","root":"Assets/HexLiveContent/Prosthetics","pattern":"*.fbx","expectedCount":8,"forbidImporterDependencies":[".glb",".gltf"]},
+        {"id":"resource.flint","source":"Tools/make_survival_tools.py","native":"resource.flint.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["SurvivalWood","SurvivalBark","SurvivalRope","SurvivalFlint","SurvivalStone","SurvivalCloth"],"alpha":"opaque"},
+        {"id":"tool.saw_crude","source":"Tools/make_survival_tools.py","native":"tool.saw_crude.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["SurvivalWood","SurvivalBark","SurvivalRope","SurvivalFlint","SurvivalStone","SurvivalCloth"],"alpha":"opaque"},
+        {"id":"tool.firestarter","source":"Tools/make_survival_tools.py","native":"tool.firestarter.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["SurvivalWood","SurvivalBark","SurvivalRope","SurvivalFlint","SurvivalStone","SurvivalCloth"],"alpha":"opaque"},
+        {"id":"tool.torch","source":"Tools/make_survival_tools.py","native":"tool.torch.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["SurvivalWood","SurvivalBark","SurvivalRope","SurvivalFlint","SurvivalStone","SurvivalCloth"],"alpha":"opaque"}
     ]
 }

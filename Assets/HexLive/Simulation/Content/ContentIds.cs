@@ -25,6 +25,10 @@ namespace HexLive.Simulation.Content
 /// </summary>
 public static class ContentIds
 {
+    public const string Flint = "resource.flint";
+    public const string CrudeSaw = "tool.saw_crude";
+    public const string Firestarter = "tool.firestarter";
+    public const string Torch = "tool.torch";
     // ── Еда и питьё ──────────────────────────────────────────────────────
 
     /// <summary>Целый кокос: не еда и не питьё, пока его не вскрыли лезвием.</summary>

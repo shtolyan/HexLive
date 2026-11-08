@@ -282,6 +282,9 @@ public static class GoalCatalog
         Add(GoalType.CraftSharpStone, InteractionType.Craft,
             craftOutputs: new[] { ContentIds.SharpStone },
             craftTrace: "CraftedSharpStone", craftNeedsHands: true);
+        Add(GoalType.CraftHammer, InteractionType.Craft,
+            craftOutputs: new[] { GearCatalog.Hammer },
+            craftTrace: "CraftedHammer", craftNeedsHands: true);
         Add(GoalType.CraftBow, InteractionType.Craft,
             craftOutputs: new[] { ContentIds.Bow },
             craftTrace: "CraftedBow", craftNeedsHands: true);
@@ -310,6 +313,7 @@ public static class GoalCatalog
         Add(GoalType.CraftItem, InteractionType.Craft, reactive: true,
             craftTrace: "CraftedItem", craftNeedsHands: true, loop: LoopPolicy.Sticky);
         Add(GoalType.CraftLeather, InteractionType.Craft);
+        Add(GoalType.TendGarden);
         Add(GoalType.CookMeat, InteractionType.Craft);
         Add(GoalType.CraftBed, InteractionType.Craft);
         Add(GoalType.CraftTent, InteractionType.Craft, craftNeedsHands: true);

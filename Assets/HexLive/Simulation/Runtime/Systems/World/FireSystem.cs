@@ -26,11 +26,21 @@ public sealed class FireSystem : ISimulationSystem
 
     public void Run(WorldState world)
     {
+        PortableFireMath.BurnCarried(world);
         // §156: обход по бодрым чанкам. При выключенной механике это весь
         // ростер в его собственном порядке — то есть прежняя игра.
         ChunkMath.CollectTickable(world, _tickable);
         foreach (var obj in _tickable)
         {
+            var elapsed = world.Tick - System.Math.Min(world.Tick - world.SlowIntervalTicks,
+                ChunkMath.SleepWindowStart(world, obj.Tile));
+            PortableFireMath.BurnItems(obj.Contents, elapsed);
+            if (obj.DefinitionId == ContentIds.Torch && !obj.IsCraftProject)
+            {
+                obj.Durability = System.Math.Max(0f, obj.Durability - elapsed / PortableFireMath.TorchLifetimeTicks);
+                if (obj.Durability <= 0f) WorldObjectMutations.DespawnObject(world, obj.Id);
+                continue;
+            }
             if (obj.ResourceAmount <= 0f ||
                 !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
                 !definition.HasTag("Campfire"))

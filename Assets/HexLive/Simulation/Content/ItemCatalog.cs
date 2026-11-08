@@ -800,8 +800,19 @@ namespace HexLive.Simulation.Content
                     // доски. ChopWood у пилы делал её годной для «разрубить»
                     // (split.log) и прочей рубки — убран.
                     Capabilities = GearCapability.Saw,
-                    HarvestSpeedMult = 2f,        // spec 35.2: the saw fells twice as fast
+                    HarvestSpeedMult = 3f,        // §175.1: found saw is 1.5x faster than before
                 },
+                [ContentIds.CrudeSaw] = new GearStats
+                {
+                    Id = ContentIds.CrudeSaw, Damage = 0.15f,
+                    Capabilities = GearCapability.Saw, HarvestSpeedMult = 1.5f,
+                },
+                [ContentIds.Firestarter] = new GearStats
+                {
+                    Id = ContentIds.Firestarter, Damage = 0.15f,
+                    Capabilities = GearCapability.Ignite, HarvestSpeedMult = 0.5f,
+                },
+                [ContentIds.Torch] = new GearStats { Id = ContentIds.Torch, Damage = 0.15f },
                 // §gear-personal: the former "personal effects" live on the SAME
                 // rails as every item now — droppable, losable, GOAP-fetchable.
                 // No combat sheet (priority 0); their verbs are capabilities.

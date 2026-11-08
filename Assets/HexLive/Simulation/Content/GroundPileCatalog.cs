@@ -145,7 +145,7 @@ public static class GroundPileCatalog
         // three local axis extents to <=T. Orthogonal base rotation therefore
         // bounds each world extent by sqrt(3)*T. Presentation recenters XZ and
         // seats Y before applying slots; source pivots cannot escape this cube.
-        foreach(var id in new[] {"food.coconut_open","food.meat_raw","food.meat_cooked","item.bandage","item.pill","item.plaster","med.splint","resource.arrow","resource.board","resource.cloth","resource.fiber","resource.herb_leaf","resource.herb_seed","resource.hide","resource.log","resource.mechanical_part","resource.rope","resource.stone","resource.yucca_seed","food.coconut","food.coconut_pierced","tool.axe_stone","tool.bottle","tool.bow","tool.hammer","tool.knife","tool.lighter","tool.machete","tool.pickaxe_stone","tool.saw","tool.sharp_stone","tool.spear"})
+        foreach(var id in new[] {"food.coconut_open","food.meat_raw","food.meat_cooked","item.bandage","item.pill","item.plaster","med.splint","resource.arrow","resource.board","resource.cloth","resource.fiber","resource.herb_leaf","resource.herb_seed","resource.hide","resource.log","resource.mechanical_part","resource.rope","resource.stone","resource.yucca_seed","food.coconut","food.coconut_pierced","tool.axe_stone","tool.bottle","tool.bow","tool.hammer","tool.knife","tool.lighter","tool.machete","tool.pickaxe_stone","tool.saw","tool.sharp_stone","tool.spear",ContentIds.Flint,ContentIds.CrudeSaw,ContentIds.Firestarter,ContentIds.Torch})
         {
             var target=TargetWorldSize(id);var extent=(float)Math.Sqrt(3d)*target;
             var layout=id=="resource.cloth"?5:id.StartsWith("tool.",StringComparison.Ordinal)?4:
@@ -3324,10 +3324,10 @@ public static class GroundPileCatalog
         "resource.arrow" or "resource.board" or "resource.fiber" or
         "resource.herb_leaf" or "resource.herb_seed" or "resource.yucca_seed" or
         "resource.hide" or "resource.log" or
-        "resource.mechanical_part" or "resource.rope" or "resource.stone" => 20,
+        "resource.mechanical_part" or "resource.rope" or "resource.stone" or ContentIds.Flint => 20,
         "tool.axe_stone" or "tool.bow" or "tool.hammer" or "tool.knife" or
         "tool.lighter" or "tool.machete" or "tool.pickaxe_stone" or
-        "tool.saw" or "tool.sharp_stone" or "tool.spear" => 4,
+        "tool.saw" or "tool.sharp_stone" or "tool.spear" or ContentIds.CrudeSaw or ContentIds.Firestarter or ContentIds.Torch => 4,
         _ => 1 // clothes, individual containers and unknown definitions
     };
     public static bool TryGet(string id,bool garment,out GroundPileProfile profile)
@@ -3387,6 +3387,9 @@ public static class GroundPileCatalog
             // A lighter is a tiny pocket object — 1/3 of the standard tool size,
             // applied to BOTH ground and hand (0.216 / 3).
             if (definitionId == "tool.lighter") return r * 0.072f;
+            if (definitionId == ContentIds.Torch) return r * 0.6f;
+            if (definitionId == ContentIds.Flint) return r * 0.10f;
+            if (definitionId == ContentIds.Firestarter) return r * 0.12f;
             // A one-litre bottle is shorter than a hand tool. Keep this in the
             // shared fit table so the ground and hand cannot drift apart again.
             if (definitionId == "tool.bottle") return r * 0.18f;

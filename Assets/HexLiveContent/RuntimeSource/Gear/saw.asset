@@ -20,7 +20,7 @@ MonoBehaviour:
   attackDurationSeconds: 1.86
   cooldownSeconds: 1.14
   attackSpeed: 0.9
-  harvestSpeedMult: 2
+  harvestSpeedMult: 3
   meleePriority: 7
   twoHanded: 0
   capabilities:

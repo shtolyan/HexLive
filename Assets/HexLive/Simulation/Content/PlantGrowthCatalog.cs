@@ -22,18 +22,20 @@ public static class PlantGrowthCatalog
             string seedDefinitionId,
             string matureDefinitionId,
             string[] stageDefinitionIds,
-            Func<int> stageDurationTicks)
+            Func<int> stageDurationTicks, int gardenTargetCount = 10)
         {
             SeedDefinitionId = seedDefinitionId;
             MatureDefinitionId = matureDefinitionId;
             StageDefinitionIds = stageDefinitionIds;
             _stageDurationTicks = stageDurationTicks;
+            GardenTargetCount = gardenTargetCount;
         }
 
         public string SeedDefinitionId { get; }
         public string MatureDefinitionId { get; }
         public string[] StageDefinitionIds { get; }
         public int StageDurationTicks => _stageDurationTicks();
+        public int GardenTargetCount { get; }
 
         public int TotalGrowthTicks => StageDurationTicks * StageDefinitionIds.Length;
     }
@@ -49,7 +51,7 @@ public static class PlantGrowthCatalog
                 ContentIds.PalmSapling,
                 ContentIds.PalmYoung,
             },
-            () => WorldBalance.PalmGrowthStageTicks),
+            () => WorldBalance.PalmGrowthStageTicks, gardenTargetCount: 0),
         new Profile(
             ContentIds.HerbSeed,
             ContentIds.HerbBush,

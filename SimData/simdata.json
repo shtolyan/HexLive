@@ -726,9 +726,12 @@
     {"id": "tool.lighter", "damage": 0.15, "cutFraction": 0, "bloodLossMultiplier": 0, "hitDelaySeconds": 1.1, "attackDurationSeconds": 1.5, "cooldownSeconds": 1.5, "attackSpeed": 1, "meleePriority": 0, "twoHanded": false, "harvestSpeedMult": 1, "capabilities": ["Ignite"], "strikes": []},
     {"id": "tool.machete", "damage": 0.5625, "cutFraction": 0.85, "bloodLossMultiplier": 1.2, "hitDelaySeconds": 0.75, "attackDurationSeconds": 1.86, "cooldownSeconds": 1.14, "attackSpeed": 0.8, "meleePriority": 35, "twoHanded": false, "harvestSpeedMult": 2, "capabilities": ["Cut", "Butcher", "ChopWood", "OpenCoconut", "ButcherAnimal"], "strikes": []},
     {"id": "tool.pickaxe_stone", "damage": 0.24, "cutFraction": 0.45, "bloodLossMultiplier": 0.6, "hitDelaySeconds": 0.75, "attackDurationSeconds": 1.86, "cooldownSeconds": 1.14, "attackSpeed": 0.8, "meleePriority": 8, "twoHanded": false, "harvestSpeedMult": 1, "capabilities": ["Mine"], "strikes": []},
-    {"id": "tool.saw", "damage": 0.21, "cutFraction": 0.75, "bloodLossMultiplier": 1.3, "hitDelaySeconds": 0.75, "attackDurationSeconds": 1.86, "cooldownSeconds": 1.14, "attackSpeed": 0.9, "meleePriority": 7, "twoHanded": false, "harvestSpeedMult": 2, "capabilities": ["Saw"], "strikes": []},
+    {"id": "tool.saw", "damage": 0.21, "cutFraction": 0.75, "bloodLossMultiplier": 1.3, "hitDelaySeconds": 0.75, "attackDurationSeconds": 1.86, "cooldownSeconds": 1.14, "attackSpeed": 0.9, "meleePriority": 7, "twoHanded": false, "harvestSpeedMult": 3, "capabilities": ["Saw"], "strikes": []},
     {"id": "tool.sharp_stone", "damage": 0.15, "cutFraction": 0.75, "bloodLossMultiplier": 0.75, "hitDelaySeconds": 0.75, "attackDurationSeconds": 1.86, "cooldownSeconds": 1.14, "attackSpeed": 0.8, "meleePriority": 0, "twoHanded": false, "harvestSpeedMult": 0.5, "capabilities": ["CutPlant", "ButcherAnimal"], "strikes": []},
-    {"id": "tool.spear", "damage": 0.375, "cutFraction": 0.8, "bloodLossMultiplier": 1.1, "hitDelaySeconds": 0.75, "attackDurationSeconds": 2.62, "cooldownSeconds": 0.38, "attackSpeed": 0.6, "meleePriority": 30, "twoHanded": true, "harvestSpeedMult": 1, "capabilities": [], "strikes": []}
+    {"id": "tool.spear", "damage": 0.375, "cutFraction": 0.8, "bloodLossMultiplier": 1.1, "hitDelaySeconds": 0.75, "attackDurationSeconds": 2.62, "cooldownSeconds": 0.38, "attackSpeed": 0.6, "meleePriority": 30, "twoHanded": true, "harvestSpeedMult": 1, "capabilities": [], "strikes": []},
+    {"id": "tool.saw_crude", "damage": 0.21, "cutFraction": 0.75, "bloodLossMultiplier": 1.3, "hitDelaySeconds": 0.75, "attackDurationSeconds": 1.86, "cooldownSeconds": 1.14, "attackSpeed": 0.9, "meleePriority": 0, "twoHanded": false, "harvestSpeedMult": 1.5, "capabilities": ["Saw"], "strikes": []},
+    {"id": "tool.firestarter", "damage": 0.15, "cutFraction": 0, "bloodLossMultiplier": 0, "hitDelaySeconds": 1.1, "attackDurationSeconds": 1.5, "cooldownSeconds": 1.5, "attackSpeed": 1, "meleePriority": 0, "twoHanded": false, "harvestSpeedMult": 0.5, "capabilities": ["Ignite"], "strikes": []},
+    {"id": "tool.torch", "damage": 0.15, "cutFraction": 0, "bloodLossMultiplier": 0, "hitDelaySeconds": 1.1, "attackDurationSeconds": 1.5, "cooldownSeconds": 1.5, "attackSpeed": 1, "meleePriority": 0, "twoHanded": false, "harvestSpeedMult": 1, "capabilities": [], "strikes": []}
   ],
   "garments": [
     {"id": "FAO Harness Male", "sex": "Any", "displayName": "Portupeya", "layer": "Outerwear", "warmth": 0.1, "armor": 0.4, "thermalDelta": -0.06, "dressDurationTicks": 8, "capacity": 3, "covers": ["Torso"]},
@@ -2225,7 +2228,11 @@
     {"id": "underwear.top_vapor_12", "displayName": "Sheer Top (12)", "tags": ["Clothing", "Armor"], "storage": [], "interactions": [{"id": "dress.underwear.top_vapor_12", "type": "Dress", "requiredCapabilities": [], "durationTicks": 8, "effects": {"warmth": 0.06, "armor": 0.01}, "yields": []}, {"id": "pickup.underwear.top_vapor_12", "type": "PickUp", "requiredCapabilities": [], "durationTicks": 4, "yields": []}]},
     {"id": "vessel.raft", "displayName": "Raft", "tags": ["Raft"], "storage": [], "interactions": [{"id": "build.raft", "type": "BuildRaft", "requiredCapabilities": [], "durationTicks": 24, "yields": []}]},
     {"id": "water.pond", "displayName": "Pond", "tags": ["Water", "RawWater"], "storage": [], "interactions": [{"id": "fill.raw", "type": "FillBottle", "requiredCapabilities": [], "durationTicks": 6, "yields": []}]},
-    {"id": "water.river", "displayName": "River", "tags": ["Water", "RawWater"], "storage": [], "interactions": [{"id": "fill.river", "type": "FillBottle", "requiredCapabilities": [], "durationTicks": 6, "yields": []}]}
+    {"id": "water.river", "displayName": "River", "tags": ["Water", "RawWater"], "storage": [], "interactions": [{"id": "fill.river", "type": "FillBottle", "requiredCapabilities": [], "durationTicks": 6, "yields": []}]},
+    {"id": "resource.flint", "displayName": "resource.flint", "tags": ["Resource"], "storage": [], "interactions": [{"id": "pickup.resource.flint", "type": "PickUp", "requiredCapabilities": [], "durationTicks": 4, "yields": []}]},
+    {"id": "tool.saw_crude", "displayName": "tool.saw_crude", "tags": ["Tool", "Saw"], "storage": [], "interactions": [{"id": "pickup.tool.saw_crude", "type": "PickUp", "requiredCapabilities": [], "durationTicks": 4, "yields": []}]},
+    {"id": "tool.firestarter", "displayName": "tool.firestarter", "tags": ["Tool"], "storage": [], "interactions": [{"id": "pickup.tool.firestarter", "type": "PickUp", "requiredCapabilities": [], "durationTicks": 4, "yields": []}]},
+    {"id": "tool.torch", "displayName": "tool.torch", "tags": ["Tool"], "storage": [], "interactions": [{"id": "pickup.tool.torch", "type": "PickUp", "requiredCapabilities": [], "durationTicks": 4, "yields": []}]}
   ],
   "recipes": [
     {"output": "food.meat_cooked", "needsLitFire": true, "station": "Campfire", "baseWorkTicks": 24, "inputs": [{"id": "food.meat_raw", "count": 1}]},
@@ -2240,6 +2247,9 @@
     {"output": "tool.knife", "needsLitFire": false, "station": "", "baseWorkTicks": 24, "inputs": [{"id": "tool.sharp_stone", "count": 1}, {"id": "resource.stick", "count": 1}, {"id": "resource.rope", "count": 1}]},
     {"output": "tool.pickaxe_stone", "needsLitFire": false, "station": "", "baseWorkTicks": 24, "inputs": [{"id": "resource.stick", "count": 1}, {"id": "resource.stone", "count": 2}]},
     {"output": "tool.sharp_stone", "needsLitFire": false, "station": "", "baseWorkTicks": 24, "inputs": [{"id": "resource.stone", "count": 2}]},
-    {"output": "tool.spear", "needsLitFire": false, "station": "", "baseWorkTicks": 24, "inputs": [{"id": "tool.sharp_stone", "count": 1}, {"id": "resource.rope", "count": 1}]}
+    {"output": "tool.spear", "needsLitFire": false, "station": "", "baseWorkTicks": 24, "inputs": [{"id": "tool.sharp_stone", "count": 1}, {"id": "resource.rope", "count": 1}]},
+    {"output": "tool.saw_crude", "needsLitFire": false, "station": "", "baseWorkTicks": 48, "inputs": [{"id": "resource.stick", "count": 1}, {"id": "tool.sharp_stone", "count": 2}, {"id": "resource.rope", "count": 1}]},
+    {"output": "tool.firestarter", "needsLitFire": false, "station": "", "baseWorkTicks": 24, "inputs": [{"id": "resource.flint", "count": 1}, {"id": "resource.stone", "count": 1}]},
+    {"output": "tool.torch", "needsLitFire": true, "station": "Campfire", "baseWorkTicks": 32, "inputs": [{"id": "resource.stick", "count": 1}, {"id": "resource.cloth", "count": 1}, {"id": "resource.rope", "count": 1}]}
   ]
 }

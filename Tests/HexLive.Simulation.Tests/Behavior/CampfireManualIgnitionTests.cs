@@ -61,11 +61,14 @@ public sealed class CampfireManualIgnitionTests
         Assert.That(npc.Plan.Status, Is.EqualTo(HexLive.Simulation.AI.PlanStatus.Invalid));
     }
 
-    [TestCase(ContentIds.Stick, ContainerLootMath.FuelTicksPerStick)]
-    [TestCase(ContentIds.Board, ContainerLootMath.FuelTicksPerStick)]
-    [TestCase(ContentIds.Log, ContainerLootMath.FuelTicksPerStick * 4f)]
+    [TestCase(ContentIds.Stick, ContainerLootMath.FuelTicksPerStick, GearCatalog.Lighter)]
+    [TestCase(ContentIds.Board, ContainerLootMath.FuelTicksPerStick, GearCatalog.Lighter)]
+    [TestCase(ContentIds.Log, ContainerLootMath.FuelTicksPerStick * 4f, GearCatalog.Lighter)]
+    [TestCase(ContentIds.Stick, ContainerLootMath.FuelTicksPerStick, ContentIds.Firestarter)]
+    [TestCase(ContentIds.Board, ContainerLootMath.FuelTicksPerStick, ContentIds.Firestarter)]
+    [TestCase(ContentIds.Log, ContainerLootMath.FuelTicksPerStick * 4f, ContentIds.Firestarter)]
     public void ManualFuelStocksAnyWoodAndIgniteNeedsLighter(
-        string fuelId, float expectedFuel)
+        string fuelId, float expectedFuel, string igniterId)
     {
         var engine = TestWorld.CreateEngine(22801);
         var world = engine.World;
@@ -106,7 +109,8 @@ public sealed class CampfireManualIgnitionTests
             Assert.That(fire.ResourceAmount, Is.Zero);
         });
 
-        npc.Inventory.Items.Add(new ItemInstance(GearCatalog.Lighter));
+        var igniter = new ItemInstance(igniterId);
+        npc.Inventory.Items.Add(igniter);
         var ignite = ManualCommandExecutor.Apply(
             world, new InteractCommand(npc.Id, fire.Id, InteractionType.Ignite));
         Assert.That(ignite.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted));
@@ -120,8 +124,8 @@ public sealed class CampfireManualIgnitionTests
                 "Между розжигом и наблюдением проходит один slow tick горения.");
             Assert.That(ContainerLootMath.HasQueuedCampfireFuel(world, fire), Is.False,
                 "Розжиг должен перевести первую вещь из буфера в активное топливо.");
-            Assert.That(npc.Inventory.Items.Contains(GearCatalog.Lighter), Is.True,
-                "Зажигалка — многоразовый инструмент и не расходуется.");
+            Assert.That(npc.Inventory.Items.Contains(igniterId), Is.True);
+            Assert.That(igniter.Durability, Is.EqualTo(1f - PortableFireMath.IgnitionWear).Within(.00001f));
         });
     }
 

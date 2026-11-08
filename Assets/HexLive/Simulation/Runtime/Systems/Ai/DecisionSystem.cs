@@ -1232,6 +1232,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
             !BuildSiteMath.CampfireSpitComplete(buildSite) &&
             (HumanMeatCatalog.CountRaw(npc) > 0) && !freshDanger;
         var buildWindow = buildPeacetime || hearthUrgent || collectorUrgent || spitUrgent;
+        var needsBuildHammer = buildWindow && buildSite != null &&
+            BuildSiteMath.NeedsHammer(world, buildSite) && !hasHammer;
         // The collector is survival infrastructure with five sequential
         // visual stages. Waiting for each stage to open before even gathering
         // the next material made the 8-rope funnel start on day four, after
@@ -1282,7 +1284,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // log 0/4 for ~22 000 ticks. GatherWood carried siteNeedsLogs in its
         // availability but nothing in its score, so it lost every auction.
         var bedLogPull = siteWantsLogs ? AiBalance.BuildSiteMaterialPull : 0f;
-        var bedRopePull = siteNeedsRope ? AiBalance.BuildSiteMaterialPull : 0f;
+        var bedRopePull = siteNeedsRope || needsBuildHammer ? AiBalance.BuildSiteMaterialPull : 0f;
         // BuildFurniture fires when I can advance the site: bring a material
         // it still needs, or raise it once stocked — with a hammer, except a
         // §54 campfire (piled from stones) and the leaf mat (hand-lashed).
@@ -1488,7 +1490,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 (woodenBoardShortfall > 0 &&
                  HasReachableDefinition(npc, world, ContentIds.Board)) ||
                 raftWoodDemand ||
-                (coconutToolPressure && carriedSticks < knifeStickCost)) &&
+                (coconutToolPressure && carriedSticks < knifeStickCost) ||
+                (needsBuildHammer && carriedSticks < RecipeCatalog.InputCount(GoalType.CraftHammer, ContentIds.Stick))) &&
             gatherWoodTargetReachable;
         // §45 r5: a genuinely cold girl can start the fire WITHOUT the
         // lighter (friction/hand-drill). The freeze probe showed 60-75%
@@ -1970,6 +1973,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     GoalType.CraftSpear, ContentIds.SharpStone)
                 : 0);
         var stonesNeeded = (!hasAxe && !hasSaw ? axeStoneCost : 0) +
+            (needsBuildHammer ? RecipeCatalog.InputCount(GoalType.CraftHammer, ContentIds.Stone) : 0) +
             (!hasPickaxe ? pickaxeStoneCost : 0) +
             (carriedSharpStones < sharpStoneTarget
                 ? sharpStoneStoneCost
@@ -2205,7 +2209,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // fire, or a stick-framed craft one split away. Needs a chop tool
         // (deadfall sticks bootstrap the first axe, breaking the chicken-and-
         // egg). Fire-urgent so it can win the auction and keep the hearth fed.
-        var ordinaryStickDemand = fuelLow || siteNeedsSticks ||
+        var ordinaryStickDemand = fuelLow || siteNeedsSticks || needsBuildHammer ||
             (splintSupplyNeeded && carriedSticks < 2) ||
             (campfireSeen && (!hasSpear ||
                 (!hasPickaxe && stoneCount >= 2) ||
@@ -2275,7 +2279,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var ropeTarget = System.Math.Max(
             System.Math.Max(siteRopeTarget, medicalRopeTarget),
             System.Math.Max(knifeRopeTarget, System.Math.Max(axeRopeTarget, spearRopeTarget)));
+        var hammerRopeTarget = needsBuildHammer ? RecipeCatalog.InputCount(GoalType.CraftHammer, ContentIds.Rope) : 0;
+        ropeTarget = System.Math.Max(ropeTarget, hammerRopeTarget);
         var wantRope = (siteNeedsRope && carriedRope < ropeTarget) ||
+            (hammerRopeTarget > 0 && carriedRope < hammerRopeTarget) ||
             (medicalRopeTarget > 0 && carriedRope < medicalRopeTarget) ||
             (knifeRopeTarget > 0 && carriedRope < knifeRopeTarget) ||
             (axeRopeTarget > 0 && carriedRope < axeRopeTarget) ||
@@ -2340,6 +2347,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
             ((HasRecipeInputs(npc, GoalType.CraftKnife) &&
               CraftPlaceOk(GoalType.CraftKnife)) ||
              CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftKnife));
+        var craftHammerAvail = ctx.CanUseToolsOrWeapons && needsBuildHammer &&
+            !PlanningSystem.HasToolCandidateWithCapability(world, npc, GearCapability.Hammer) &&
+            ((HasRecipeInputs(npc, GoalType.CraftHammer) && CraftPlaceOk(GoalType.CraftHammer)) ||
+             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftHammer));
+        AddGoalScore(npc, world.Tick, GoalType.CraftHammer, 0.65f + freeHands, craftHammerAvail);
         AddGoalScore(npc, world.Tick, GoalType.HarvestYucca, 0.26f + freeHands + bedRopePull, harvestYuccaAvail);
         AddGoalScore(npc, world.Tick, GoalType.GatherFiber, 0.24f + freeHands + bedRopePull + dreamPull, gatherFiberAvail,
             command: DirectiveMath.Pull(ctx.DirectiveKind, GoalType.GatherFiber));
@@ -2849,6 +2861,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
             !ModestyMath.OutsiderKnown(world, npc) &&
             FindRemovableItem(npc, world) is not null;
         AddGoalScore(npc, world.Tick, GoalType.Undress, npc.Needs.ThermalDiscomfort, undressAvail);
+
+        var gardenWindow = buildPeacetime && ctx.CanUseToolsOrWeapons &&
+            !npc.IsCarryingPerson && npc.Needs.Stamina > 0.35f &&
+            (npc.Mind.CurrentGoal == GoalType.TendGarden ||
+             (world.Tick + npc.Id.Value * 16) % 160 < 16);
+        AddGoalScore(npc, world.Tick, GoalType.TendGarden, 0.48f,
+            gardenWindow && GardenMath.TryChooseTask(world, npc, out _));
 
         // Spec 29C.5: seeded wandering urge, changes every 160 ticks —
         // occasionally beats Idle, loses to any pressing need.

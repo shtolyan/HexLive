@@ -825,7 +825,11 @@ public enum GoalType
 
     // §127.13 append-only: caught a lover with someone else — walk over and
     // land one bare-handed blow. Assigned by RomanceMath.CatchCheaters.
-    Jealousy
+    Jealousy,
+
+    // §173.8: maintain a small renewable garden around the camp.
+    TendGarden,
+    CraftHammer
 }
 
 public sealed class GoalScore

@@ -50,7 +50,7 @@ public static class ActionItemResolver
 
         if (npc.Execution.CurrentInteraction is not { } interaction)
         {
-            return string.Empty;
+            return PortableFireMath.HeldTorch(world, npc);
         }
 
         switch (interaction)
@@ -129,9 +129,7 @@ public static class ActionItemResolver
                 return ContainerLootMath.FindCarriedCampfireFuel(world,npc)?.DefinitionId ?? string.Empty;
 
             case InteractionType.Ignite:
-                return InventoryContains(npc, GearCatalog.Lighter)
-                    ? GearCatalog.Lighter
-                    : string.Empty;
+                return WorkTool(world, npc)?.DefinitionId ?? string.Empty;
 
             case InteractionType.Craft:
                 return WorkTool(world, npc)?.DefinitionId ?? string.Empty;

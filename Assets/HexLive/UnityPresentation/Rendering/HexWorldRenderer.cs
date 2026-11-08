@@ -1933,6 +1933,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     leaves=objectView.AddComponent<LeafDryingTint>();
                     leaves.Initialize(); leaves.Sync(worldObject.LeafDryness);
                 }
+                if (worldObject.DefinitionId == ContentIds.Torch)
+                    HexLive.UnityPresentation.Environment.PortableTorchVisual.Attach(objectView);
                 _objectViewParts[key] = new ObjectViewParts
                 {
                     // The compact hut hearth keeps its effect on the authored
@@ -2046,6 +2048,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
 
             // Spec 29E.3: the campfire burns only while it has fuel.
+            if (worldObject.DefinitionId == ContentIds.Torch)
+                parts.Fire?.SetLit(worldObject.Durability > 0f &&
+                    !(worldObject.CraftWorkRequired > 0 && worldObject.CraftWorkDone < worldObject.CraftWorkRequired));
+
             if (worldObject.DefinitionId == "campfire.spot")
             {
                 var fire = parts.Fire;

@@ -7,6 +7,14 @@ internal static class HandPropVisual
 {
     public static GameObject Create(string itemId, Transform hand, bool leftHanded)
     {
+        var model = CreateModel(itemId, hand, leftHanded);
+        if (model != null && itemId == Simulation.Content.ContentIds.Torch)
+            Environment.PortableTorchVisual.Attach(model);
+        return model;
+    }
+
+    private static GameObject CreateModel(string itemId, Transform hand, bool leftHanded)
+    {
         // #243: model and grip live in two entries of one atomic object. Do not
         // instantiate a known tool with a fallback grip during the short window
         // in which `main` is ready but `gear-config` is not: _currentPropId

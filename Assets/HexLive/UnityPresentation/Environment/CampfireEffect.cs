@@ -17,11 +17,13 @@ namespace HexLive.UnityPresentation.Environment
         private Vector3 _lightBasePos;
         private float _seed;
         private bool _lit;
+        private bool _playCrackle = true;
 
-        public void Construct(float hexRadius)
+        public void Construct(float hexRadius, float lightRadius = 0f, bool playCrackle = true)
         {
+            _playCrackle = playCrackle;
             _seed = (GetInstanceID() % 997) * 0.131f;
-            BuildLight(hexRadius);
+            BuildLight(lightRadius > 0f ? lightRadius : hexRadius);
             _flame = BuildFlame(hexRadius);
             _embers = BuildEmbers(hexRadius);
             // Campfires start cold (spec 29E.3); RenderSnapshot lights them
@@ -66,6 +68,7 @@ namespace HexLive.UnityPresentation.Environment
 
         private void SyncCrackle()
         {
+            if (!_playCrackle) return;
             if (_lit && isActiveAndEnabled)
             {
                 if (!_crackle.IsValid)

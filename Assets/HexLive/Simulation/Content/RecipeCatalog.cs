@@ -89,11 +89,17 @@ public static class RecipeCatalog
                 foreach (var recipe in ByGoal.Values)
                     if (!string.IsNullOrEmpty(recipe.OutputDefinitionId))
                         _byOutput.Add(recipe.OutputDefinitionId, recipe);
-                _byOutput.Add(GearCatalog.Hammer, new Recipe(GoalType.CraftItem,
-                    new[] { new RecipeIngredient(ContentIds.Stick, 1),
-                        new RecipeIngredient(ContentIds.Stone, 1),
-                        new RecipeIngredient(ContentIds.Rope, 1) },
-                    station: "", outputDefinitionId: GearCatalog.Hammer));
+                _byOutput.Add(ContentIds.CrudeSaw, new Recipe(GoalType.CraftItem,
+                    new[] { new RecipeIngredient(ContentIds.Stick, 1), new RecipeIngredient(ContentIds.SharpStone, 2),
+                        new RecipeIngredient(ContentIds.Rope, 1) }, station: "", baseWorkTicks: 48,
+                    outputDefinitionId: ContentIds.CrudeSaw));
+                _byOutput.Add(ContentIds.Firestarter, new Recipe(GoalType.CraftItem,
+                    new[] { new RecipeIngredient(ContentIds.Flint, 1), new RecipeIngredient(ContentIds.Stone, 1) },
+                    station: "", outputDefinitionId: ContentIds.Firestarter));
+                _byOutput.Add(ContentIds.Torch, new Recipe(GoalType.CraftItem,
+                    new[] { new RecipeIngredient(ContentIds.Stick, 1), new RecipeIngredient(ContentIds.Cloth, 1),
+                        new RecipeIngredient(ContentIds.Rope, 1) }, needsLitFire: true, baseWorkTicks: 32,
+                    outputDefinitionId: ContentIds.Torch));
             }
             return _byOutput;
         }
@@ -214,6 +220,10 @@ public static class RecipeCatalog
         {
             I(ContentIds.Stick, 1), I(ContentIds.Stone, 1), I(ContentIds.Rope, 1)
         }, station: "", output: ContentIds.AxeStone);
+        Add(GoalType.CraftHammer, new[]
+        {
+            I(ContentIds.Stick, 1), I(ContentIds.Stone, 1), I(ContentIds.Rope, 1)
+        }, station: "", output: GearCatalog.Hammer);
         Add(GoalType.CraftPickaxe, new[] { I("resource.stick", 1), I("resource.stone", 2) },
             output: ContentIds.PickaxeStone);
         Add(GoalType.CraftRack, new[] { I("resource.stick", 2) }, noRack: true);

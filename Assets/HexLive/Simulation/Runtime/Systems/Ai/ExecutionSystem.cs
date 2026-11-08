@@ -824,6 +824,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // multiplier 1f both are exactly the authored number.
                 var actionTool = Content.GearCatalog.BestToolFor(npc.Inventory.Items,
                     Content.GearCatalog.RequiredCapabilities(interaction, definition), npc.Body.IntactHands);
+                if (interaction.Type == InteractionType.Fuel && worldObject.ResourceAmount <= 0f)
+                    actionTool = Content.GearCatalog.BestToolFor(npc.Inventory.Items,
+                        Content.GearCapability.Ignite, npc.Body.IntactHands);
                 var toolSpeedMult = actionTool is null ? 1f
                     : Content.GearCatalog.For(actionTool.DefinitionId).HarvestSpeedMult;
                 var authoredWorkTicks = RecipeCatalog.UsesPersistentProject(npc.Plan.Goal)
@@ -1498,6 +1501,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                         $"Cannot fuel {worldObject.DefinitionId} (no wood left on arrival)");
                 }
                 worldObject.ResourceAmount += fuel;
+                if (!wasLit) PortableFireMath.WearIgniter(world, npc);
                 Trace.Emit(world, npc.Id, wasLit ? "FireFueled" : "FireLit",
                     $"{worldObject.DefinitionId} Fuel={worldObject.ResourceAmount:F0} ticks");
                 worldObject.IsOccupied = false;
@@ -1518,6 +1522,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             }
 
             worldObject.ResourceAmount = fuel;
+            PortableFireMath.WearIgniter(world, npc);
             Trace.Emit(world, npc.Id, "FireLit",
                 $"{worldObject.DefinitionId} Fuel={worldObject.ResourceAmount:F0} ticks");
             worldObject.IsOccupied = false;

@@ -208,6 +208,16 @@ public sealed partial class PlanningSystem : ISimulationSystem
             npc.Plan.RequestedTalkTopic = null;
             npc.Plan.Goal = npc.Mind.CurrentGoal;
 
+            if (npc.Mind.CurrentGoal == GoalType.TendGarden)
+            {
+                if (!TryBuildGardenPlan(world, npc))
+                {
+                    npc.Plan.Status = PlanStatus.Failed;
+                    SetGoalCooldown(world, npc, GoalType.TendGarden);
+                }
+                continue;
+            }
+
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "PlanStarted",
@@ -2266,6 +2276,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
             case GoalType.CraftRope:
             case GoalType.CraftCloth:
             case GoalType.CraftSharpStone:
+            case GoalType.CraftHammer:
             case GoalType.CraftKnife:
             case GoalType.CraftBandage:
             case GoalType.CraftSplint:

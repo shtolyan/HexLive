@@ -46,3 +46,10 @@ Runtime проверен headless-компиляцией Windows и WebGL: ош�
 Состояние production не менялось. Исходные хеши и результаты измерений:
 [hair-scalp-fit-report.json](hair-scalp-fit-report.json),
 [hair-scalp-roundtrip.json](hair-scalp-roundtrip.json).
+# Импорт в Unity, 2026-11-09
+
+`PeopleAssetPreparation.ImportHairAndPrepare` выполнен официальным Unity CLI
+в Unity 6000.4.6f1, exit 0. Пересохранены все 16 штатных префабов волос;
+каждый получил две ссылки hairLodMeshes для мужского тела. Основной проект
+остался на нативной платформе. Это подготовка входных данных контента;
+публикация и визуальная проверка готовых WebGL-бандлов учитываются отдельно.

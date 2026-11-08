@@ -187,7 +187,6 @@ namespace HexLive.UnityPresentation.UI
             IsOpen = Visible;
             _quickModal?.Show(_quickVisible && !_capturingReport);
             _managerModal?.Show(_managerVisible);
-            HideToolkitUnderHtml();
             if (_quickWindow != null)
             {
                 _quickWindow.style.display = _quickVisible && !_capturingReport ? DisplayStyle.Flex : DisplayStyle.None;
@@ -197,6 +196,10 @@ namespace HexLive.UnityPresentation.UI
             {
                 _managerWindow.style.display = _managerVisible ? DisplayStyle.Flex : DisplayStyle.None;
             }
+
+            // Apply the HTML suppression last: the visibility setters above
+            // otherwise redraw the native form underneath the page's modal.
+            HideToolkitUnderHtml();
 
             if (!Visible)
             {

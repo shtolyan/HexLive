@@ -32052,6 +32052,38 @@ MonoBehaviour:
       - '{0} [[0:пригласила|пригласил]] меня в лагерь. Теперь и у меня есть дом.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'journal.TravelPartyJoined.did.v0'
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} agreed to travel with me. It is good to have company for a while.'
+      - '{0} [[0:согласилась|согласился]] пойти со мной. Хорошо хотя бы ненадолго быть вместе.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.TravelPartyJoined.got.v0'
+      TermType: 0
+      Description:
+      Languages:
+      - 'I decided to travel with {0}. For now, we can face the island together.'
+      - 'Я [[s:решилась|решился]] пойти с {0}. Пока будем держаться вместе.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.TravelPartyReleased.did.v0'
+      TermType: 0
+      Description:
+      Languages:
+      - 'I let {0} return to their own plans. Our journey together has ended for now.'
+      - 'Наш совместный путь с {0} пока закончился. Снова у каждого свои планы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.TravelPartyReleased.got.v0'
+      TermType: 0
+      Description:
+      Languages:
+      - 'My time travelling with {0} is over for now. I can return to my own plans.'
+      - 'Время нашего пути с {0} пока вышло. Снова займусь своими делами.'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

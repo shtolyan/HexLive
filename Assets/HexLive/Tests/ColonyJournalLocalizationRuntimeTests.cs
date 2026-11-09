@@ -19,6 +19,11 @@ public sealed class ColonyJournalLocalizationRuntimeTests
     public void RecruitedNewcomerHasDistinctImportedPersonalMemories(int perspective) =>
         AssertFormatted("OutsiderRecruited",perspective,true);
 
+    [TestCase("TravelPartyJoined",0)] [TestCase("TravelPartyJoined",1)]
+    [TestCase("TravelPartyReleased",0)] [TestCase("TravelPartyReleased",1)]
+    public void TemporaryCompanionsHaveDistinctImportedPersonalMemories(string type,int perspective) =>
+        AssertFormatted(type,perspective,true);
+
     internal static void AssertFormatted(string type,int perspective,bool mentionsName)
     {
         var original=Loc.Current;

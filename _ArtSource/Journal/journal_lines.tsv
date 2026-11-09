@@ -177,3 +177,9 @@ journal.DoorBroken.got.v0	{0} broke our door. Home no longer felt safe.	{0} [[0:
 # #655: a voluntary newcomer, both perspectives
 journal.OutsiderRecruited.did.v0	I invited {0} into our camp. We have one more person to call our own.	Я [[s:пригласила|пригласил]] {0} в наш лагерь. Теперь среди нас ещё один близкий человек.
 journal.OutsiderRecruited.got.v0	{0} invited me into the camp. I finally have a place to call home.	{0} [[0:пригласила|пригласил]] меня в лагерь. Теперь и у меня есть дом.
+
+# #653: temporary travel, not a camp merge
+journal.TravelPartyJoined.did.v0	{0} agreed to travel with me. It is good to have company for a while.	{0} [[0:согласилась|согласился]] пойти со мной. Хорошо хотя бы ненадолго быть вместе.
+journal.TravelPartyJoined.got.v0	I decided to travel with {0}. For now, we can face the island together.	Я [[s:решилась|решился]] пойти с {0}. Пока будем держаться вместе.
+journal.TravelPartyReleased.did.v0	I let {0} return to their own plans. Our journey together has ended for now.	Наш совместный путь с {0} пока закончился. Снова у каждого свои планы.
+journal.TravelPartyReleased.got.v0	My time travelling with {0} is over for now. I can return to my own plans.	Время нашего пути с {0} пока вышло. Снова займусь своими делами.

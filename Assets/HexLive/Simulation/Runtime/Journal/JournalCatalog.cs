@@ -266,6 +266,10 @@ public static class JournalCatalog
             90, JournalRole.Token, "Target=", mirrorWeight: 90);
         // #655: joining a home matters to both the inviter and the newcomer.
         r["OutsiderRecruited"] = new JournalRule(88, JournalRole.Token, "Target=", mirrorWeight: 90);
+        // #653: consenting travel companions remember joining and parting,
+        // without calling either scene a permanent camp/faction change.
+        r["TravelPartyJoined"] = new JournalRule(58, JournalRole.Token, "Target=", mirrorWeight: 62);
+        r["TravelPartyReleased"] = new JournalRule(34, JournalRole.Token, "Target=", mirrorWeight: 42);
         r["TalkStarted"] = new JournalRule(22, JournalRole.FirstNpc,
             extra: JournalExtra.Token, extraToken: "Topic=");
         r["TalkRequested"] = new JournalRule(16, JournalRole.FirstNpc);

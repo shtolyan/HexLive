@@ -1,5 +1,92 @@
 # Singapore release coordination — Sveta
 
+## MSI — Singapore and New York published, 2026-11-09 07:08Z
+
+Tolya explicitly requested updating **both Singapore and New York** in this
+chat, including server, full WebGL Player, bundles and Singapore disk cleanup.
+Both deployments are complete. This authorization supersedes the historical
+Singapore-only boundaries below for this release; it does not authorize later
+unrelated deployments. Work was committed and pushed on master as requested.
+
+- Server: `0b6903f5c8ac6766d3e6af08ab8b860dbb72f313`; final Player and
+  bundled/external server directory: `811056ccaf206235ba140338740ba17c000fe3de`;
+  263 WebGL content owners: `7b17da560268be28801cfd5c9f8fbbf0b5783954`.
+  Protocol 27, save payload 87. Reporter implementation is unchanged from
+  `4c540c21f3b9cc0234d42d5b8d176307953e6704`; 811 enables New York in the
+  bundled fallback too, so an unavailable external directory cannot hide it.
+- Final Player: canonical `HexLiveWebGLPlayerBuild.Build`, Unity CLI
+  6000.4.6f1, RuntimeSpeed, FMOD 4096x4, 0 build errors. Both hosts verified
+  all 5719 final files. Final archive SHA256:
+  `4ef5096bb913b8312cc42e5ad2da4fa257ba0f8f89242fbed00a38d03de2ef72`.
+  The final directory correction uploaded only three changed files (~36 MB),
+  reusing 5716 verified immutable files, with no additional game restart.
+  Audio reused from `b5cf880c8d0fedc133df16e5287013336022b433` only after
+  7984 source proofs, all 5668 FSB/vis hashes and both Studio banks passed.
+- Singapore server current: `40583839585fb7304d98092fed42e5b5446a14be`
+  -> `0b6903f5c8ac6766d3e6af08ab8b860dbb72f313`; Player
+  `msi-20261019-562a3b07d` -> `msi-20261109-811056cca`.
+  Asset root `/var/lib/hexlive/assets-webgl`, registry 994 -> 1103.
+  Active world `a309de74171d470385412bfab01ffdab`, seed 629209070,
+  topology 0x59DDDCBB; stopped tick 9233673 resumed 9233681.
+- New York server current: `9abd82f57f3e7c37795e5c8e6f2821b535848020`
+  -> the same 0b server; new Player `msi-20261109-811056cca`, protocol 18 -> 27.
+  Asset root `/var/lib/hexlive/assets`, registry 6169 -> 6432.
+  Active world `a91b0fbf20314a04b7775de564ecd49c`, seed 760064115,
+  topology 0xEDF30A9D; stopped tick 12849094 resumed 12849102.
+  Existing native variants remain resolvable through canonical revision
+  history: all previous OSX 2739 / Windows 1597 variants and metadata match.
+  This does not convert every legacy native garment into a WebGL asset.
+- Exactly one planned `hexlive.service` stop/start on each host, NRestarts 0;
+  no Caddy, Flashback, admin-agent or staging restart. New York adds
+  `--web-root /var/lib/hexlive-web/current` and the same public Firebase
+  browser configuration as Singapore, retaining existing arguments and keys.
+  Persistent `--start-paused` semantics remain; this activation preserved the
+  observed running clock with a temporary runtime override, since removed.
+  Both worlds continue at speed 1, unpaused. No game clock/order commands.
+- Stopped private backups on **each host**:
+  `/var/lib/hexlive/ops/msi-dual-release-20261109-4c540c21f/activation-backup`.
+  Worlds, accounts, keys, assignments, configuration and voice state retained;
+  all previous server/client releases and asset-root snapshots retained.
+  All six New York worlds (old formats 72/77) and both Singapore worlds
+  (83/86) loaded in isolated copies with matching topology, without ticks,
+  LLM or voice calls. Original active-world NPC identities were preserved;
+  normal subsequent arrivals are allowed. Legacy saw speed exactly 2 becomes
+  3; custom values and unrelated simdata fields are preserved. Save migration
+  adds 55 flint objects once in each active world; public recipes/rates pass.
+  **Rollback to an older server requires restoring the stopped checkpoint
+  before starting it: old readers cannot read payload 87.** A client-only
+  rollback must keep the healthy current server and latest world data.
+- Tests: Simulation 2063 passed / 6 existing skips, Server 515, Voice 68;
+  reporter focused 17, all 35 JS module syntax checks, strict WebGL compile
+  0 errors / 0 forbidden APIs. Actual WASM reporter with synthetic microphone
+  and a local receiver passed immediate dismissal, concurrent queue, continued
+  game UI use, green OK/counts and retry of identical request ID/payload.
+  All 16 hairstyles on both bodies, front/back (64 actual WebGL frames),
+  were inspected against the published content inputs.
+- Public HTTPS checks passed on each host: 263 content blobs, Player/audio
+  hashes, Brotli/WASM headers, protocol 27 keyframes, object dictionaries
+  (Singapore 843 / New York 799), reporter CORS and no fatal server errors.
+  Final 811 menus loaded on both public origins: both Play buttons enabled,
+  zero browser console errors. Actual WASM with external directory forced
+  unavailable also kept both buttons enabled.
+- Singapore cleanup reclaimed 7,078,143,170 bytes (~6.59 GiB): 11 duplicate
+  transport-part directories (whole archives retained and SHA matched), plus
+  17,916 byte-identical runtime files shared by hardlinks in inactive old
+  releases. All logical paths/content/owner/mode/mtime retained; active and
+  immediate rollback releases excluded, undo manifest recorded. No backup,
+  world, content history, Docker data or active staging deleted. Final free
+  space 8,173,809,664 bytes (~7.61 GiB); temporary server uploads/parts: 0.
+
+Public clients: https://play.62-146-235-120.sslip.io/ and
+https://163-245-204-96.sslip.io/play/ . Each serves `release-receipt.json`.
+Local aggregate: `Build/MSIRelease/20261109-dual-release/DEPLOYMENT_REPORT.json`;
+screenshots and DOM/error evidence in its `browser/` directory.
+
+Limits: no production account/NPC/report creation, authenticated gameplay
+orders, paid external test calls, physical-microphone or human audio-quality
+acceptance. No native application publication. Flashback #431, #608–612 and
+#616 remain ready_for_test; only the player confirms fixes.
+
 ## CURRENT OVERRIDE — player requested backpack overlap restored (2026-10-10)
 
 **Include corrective commit `d42be421673599ceb719728fa6dd357d6802f8a7` before publishing the combined Player.** Direct latest instruction from Tolya: remove ONLY automatic clearance outside the backpack; he wants a partially concealed weapon/visible handle. Previous requirement and render comparison showing a tool outside the backpack are superseded.

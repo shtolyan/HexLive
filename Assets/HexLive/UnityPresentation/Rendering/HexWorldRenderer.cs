@@ -3532,6 +3532,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             rainWet, waterWet, npc.WornWetness, npc.WornDirtiness, npc.WornBloodiness,
             npc.Wounds, npc.BandagedZones, npc.SeveredParts, npc.BodyPartConditions);
         actorView.SetClothingHidden(UI.DebugControlsPanel.HideClothing);
+        TravelPartyStar.Sync(actorView,npc.TravelLeaderNpcId.HasValue &&
+            _runner != null && _runner.CanControlNpc(npc.Id));
         // Portrait isolation: keep the whole actor hierarchy (incl. garments,
         // props and decals spawned this tick) on the Actors layer.
         actorView.EnsureActorLayer();

@@ -1066,6 +1066,7 @@ public static class WorldSnapshotCodec
         w.Write(n.IsManualControl); // §121
         w.Write(n.RunByDefault); // §121.11
         w.Write(n.OutfitLocked); // §133.9
+        WireIo.WriteNullableInt(w, n.TravelLeaderNpcId);
     }
 
     private static void WriteNpcInventory(BinaryWriter w, NpcSnapshot n)
@@ -1443,6 +1444,7 @@ public static class WorldSnapshotCodec
         n.IsManualControl = r.ReadBoolean(); // §121
         n.RunByDefault = r.ReadBoolean(); // §121.11
         n.OutfitLocked = r.ReadBoolean(); // §133.9
+        n.TravelLeaderNpcId = WireIo.ReadNullableInt(r);
     }
 
     private static void ReadNpcInventory(BinaryReader r, NpcSnapshot n)

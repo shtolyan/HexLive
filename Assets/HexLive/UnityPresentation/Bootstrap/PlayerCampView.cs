@@ -38,7 +38,7 @@ public static class PlayerCampView
         _camp = Faction.Colony;
         foreach (var npc in snapshot.Npcs)
         {
-            if (runner.CanControlNpc(npc.Id))
+            if (npc.TravelLeaderNpcId == null && runner.CanControlNpc(npc.Id))
             {
                 _camp = npc.Faction;
                 break;

@@ -267,7 +267,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
     {
         lock (_inbox)
             return _handshake?.ControlEnabled == true &&
-                   _handshake.AssignedNpcIds.Contains(npc.Value);
+                   IsEffectivelyAssigned(npc);
     }
 
     public bool CanControlNpc(EntityId npc)
@@ -275,9 +275,19 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
         lock (_inbox)
         {
             return _handshake?.ControlEnabled == true &&
-                   _handshake.AssignedNpcIds.Contains(npc.Value) &&
+                   IsEffectivelyAssigned(npc) &&
                    (!_agentStates.TryGetValue(npc.Value, out var agent) || !agent.Attached);
         }
+    }
+
+    private bool IsEffectivelyAssigned(EntityId npc)
+    {
+        if (_handshake == null) return false;
+        if (_handshake.AssignedNpcIds.Contains(npc.Value)) return true;
+        foreach (var member in _snapshot.Npcs)
+            if (member.Id.Equals(npc) && member.Health > 0f && member.TravelLeaderNpcId is { } leader &&
+                _handshake.AssignedNpcIds.Contains(leader)) return true;
+        return false;
     }
 
     public bool TryGetAgentState(EntityId npc, out AgentStateFrame state)

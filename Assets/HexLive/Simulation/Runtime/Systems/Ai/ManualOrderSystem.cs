@@ -35,6 +35,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
             return;
         }
 
+        TravelPartyMath.Sweep(world);
         foreach (var npc in world.Entities.Npcs.Values)
         {
             AgentCommandLedger.Observe(world, npc);

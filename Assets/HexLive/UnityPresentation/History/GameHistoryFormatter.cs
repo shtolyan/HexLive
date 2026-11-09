@@ -70,6 +70,8 @@ namespace HexLive.UnityPresentation.History
                     TargetFromArrow(record.Message, target)),
                 "CampsMerged" => F("history.CampsMerged", actor),
                 "OutsiderRecruited" => F("history.OutsiderRecruited", actor, target),
+                "TravelPartyJoined" => F("history.TravelPartyJoined", actor, target),
+                "TravelPartyReleased" => F("history.TravelPartyReleased", actor, target),
                 "TalkQuarreled" => F("history.TalkQuarreled", actor, target),
                 "TalkWaitTimeout" => F("history.TalkWaitTimeout", actor),
                 // §108: сговор против чужака и чем он кончился.

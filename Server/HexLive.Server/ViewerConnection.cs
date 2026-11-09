@@ -232,6 +232,23 @@ public sealed class ViewerConnection
     /// <summary>Called by the endpoint finally-block even if handshake/send failed.</summary>
     public void Disconnect()
     {
+        if (ControlEnabled && _assignedNpcIds != null)
+        {
+            var companions = _host.Read(world => {
+                var result = new List<(int leader,int member)>();
+                foreach (var npc in world.Entities.Npcs.Values)
+                    if (npc.Mind.TravelLeaderNpcId is { } leader && _assignedNpcIds.Contains(leader.Value))
+                        result.Add((leader.Value,npc.Id.Value));
+                return result;
+            });
+            foreach (var (leader,member) in companions)
+            {
+                _host.SubmitManualCommand(new ReleaseTravelPartyCommand(
+                    new HexLive.Simulation.Common.EntityId(leader),new HexLive.Simulation.Common.EntityId(member)),
+                    _controlOwner ?? "", _assignedNpcIds);
+                _leases!.Release(member,_controlOwner!);
+            }
+        }
         if (_agentSessions != null)
             _agentSessions.SetViewerPresence(_viewerId, Array.Empty<int>(), false);
     }
@@ -614,7 +631,31 @@ public sealed class ViewerConnection
             return;
         }
 
-        var admission = _host.SubmitManualCommand(command, _controlOwner ?? "", _assignedNpcIds);
+        var effectiveAssignments = _host.Read(world => TravelPartyMath.EffectiveAssignments(world,_assignedNpcIds!));
+        var admission = _host.SubmitManualCommand(command, _controlOwner ?? "", effectiveAssignments);
+        if (admission.Accepted && command is RequestTravelPartyCommand invited &&
+            !_leases!.TryAcquire(invited.Target.Value,_controlOwner!,out _,out _))
+        {
+            _host.SubmitManualCommand(new ReleaseTravelPartyCommand(invited.Npc,invited.Target),
+                _controlOwner ?? "",_assignedNpcIds);
+            await SendResultAsync(correlationId,"ControlledByOther",cancel,invited.Target.Value).ConfigureAwait(false);
+            return;
+        }
+        if (admission.Accepted && command is ReleaseTravelPartyCommand released)
+            _leases!.Release(released.Target.Value,_controlOwner!);
+        if (admission.Accepted)
+        {
+            // The leader's ordinary heartbeat keeps the whole consenting
+            // party online, including companions not currently selected.
+            var companions = _host.Read(world => {
+                var result = new List<int>();
+                foreach (var npc in world.Entities.Npcs.Values)
+                    if (npc.Mind.TravelLeaderNpcId is { } leader && _assignedNpcIds!.Contains(leader.Value))
+                        result.Add(npc.Id.Value);
+                return result;
+            });
+            foreach (var companion in companions) _leases!.TryAcquire(companion,_controlOwner!,out _,out _);
+        }
         await SendAsync(Frame.CommandResult(correlationId, admission), cancel)
             .ConfigureAwait(false);
     }
@@ -623,6 +664,11 @@ public sealed class ViewerConnection
     {
         if (_currentAssignments != null && _assignedNpcIds != null && _controlOwner != null)
             _assignedNpcIds.RemoveWhere(id => !_currentAssignments.StillAssigned(_controlOwner.Substring(3), id));
+
+        if (command is RequestTravelPartyCommand invitation &&
+            ((_leases!.HolderOf(invitation.Target.Value) is { Length: > 0 } targetHolder && targetHolder != _controlOwner) ||
+             _agentSessions?.HasAttachment(invitation.Target.Value) == true))
+        { refusal = "ControlledByOther"; return false; }
 
         if (_agentSessions != null)
         {
@@ -646,7 +692,8 @@ public sealed class ViewerConnection
         }
 
         return PlayerCommandAuthorization.TryAuthorize(
-            command, _assignedNpcIds!, _leases!, _controlOwner!, out refusal);
+            command, _host.Read(world => TravelPartyMath.EffectiveAssignments(world,_assignedNpcIds!)),
+            _leases!, _controlOwner!, out refusal);
     }
 
     private bool TakeRateToken()

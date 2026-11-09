@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="530" viewBox="0 0 1000 530">
+<rect width="1000" height="530" fill="#14242c"/>
+<style>text{fill:#edf5f6;font:17px sans-serif}.small{font-size:14px}</style>
+<defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0L0,6L8,3z" fill="#67bded"/></marker></defs>
+<text x="22" y="35">#653 — временный отряд по согласию</text>
+<circle cx="250" cy="260" r="195.0" fill="#235a77" fill-opacity=".35" stroke="#67bded"/>
+<circle cx="165.56" cy="211.25" r="3" fill="#a17b52"/>
+<circle cx="165.56" cy="235.62" r="3" fill="#a17b52"/>
+<circle cx="165.56" cy="260.00" r="3" fill="#a17b52"/>
+<circle cx="165.56" cy="284.38" r="3" fill="#a17b52"/>
+<circle cx="165.56" cy="308.75" r="3" fill="#a17b52"/>
+<circle cx="186.67" cy="199.06" r="3" fill="#a17b52"/>
+<circle cx="186.67" cy="223.44" r="3" fill="#5c7786"/>
+<circle cx="186.67" cy="247.81" r="3" fill="#5c7786"/>
+<circle cx="186.67" cy="272.19" r="3" fill="#5c7786"/>
+<circle cx="186.67" cy="296.56" r="3" fill="#5c7786"/>
+<circle cx="186.67" cy="320.94" r="3" fill="#a17b52"/>
+<circle cx="207.78" cy="186.88" r="3" fill="#a17b52"/>
+<circle cx="207.78" cy="211.25" r="3" fill="#5c7786"/>
+<circle cx="207.78" cy="235.62" r="3" fill="#5c7786"/>
+<circle cx="207.78" cy="260.00" r="3" fill="#5c7786"/>
+<circle cx="207.78" cy="284.38" r="3" fill="#5c7786"/>
+<circle cx="207.78" cy="308.75" r="3" fill="#5c7786"/>
+<circle cx="207.78" cy="333.12" r="3" fill="#a17b52"/>
+<circle cx="228.89" cy="174.69" r="3" fill="#a17b52"/>
+<circle cx="228.89" cy="199.06" r="3" fill="#5c7786"/>
+<circle cx="228.89" cy="223.44" r="3" fill="#5c7786"/>
+<circle cx="228.89" cy="247.81" r="3" fill="#5c7786"/>
+<circle cx="228.89" cy="272.19" r="3" fill="#5c7786"/>
+<circle cx="228.89" cy="296.56" r="3" fill="#5c7786"/>
+<circle cx="228.89" cy="320.94" r="3" fill="#5c7786"/>
+<circle cx="228.89" cy="345.31" r="3" fill="#a17b52"/>
+<circle cx="250.00" cy="162.50" r="3" fill="#a17b52"/>
+<circle cx="250.00" cy="186.88" r="3" fill="#5c7786"/>
+<circle cx="250.00" cy="211.25" r="3" fill="#5c7786"/>
+<circle cx="250.00" cy="235.62" r="3" fill="#5c7786"/>
+<circle cx="250.00" cy="260.00" r="3" fill="#5c7786"/>
+<circle cx="250.00" cy="284.38" r="3" fill="#5c7786"/>
+<circle cx="250.00" cy="308.75" r="3" fill="#5c7786"/>
+<circle cx="250.00" cy="333.12" r="3" fill="#5c7786"/>
+<circle cx="250.00" cy="357.50" r="3" fill="#a17b52"/>
+<circle cx="271.11" cy="174.69" r="3" fill="#a17b52"/>
+<circle cx="271.11" cy="199.06" r="3" fill="#5c7786"/>
+<circle cx="271.11" cy="223.44" r="3" fill="#5c7786"/>
+<circle cx="271.11" cy="247.81" r="3" fill="#5c7786"/>
+<circle cx="271.11" cy="272.19" r="3" fill="#5c7786"/>
+<circle cx="271.11" cy="296.56" r="3" fill="#5c7786"/>
+<circle cx="271.11" cy="320.94" r="3" fill="#5c7786"/>
+<circle cx="271.11" cy="345.31" r="3" fill="#a17b52"/>
+<circle cx="292.22" cy="186.88" r="3" fill="#a17b52"/>
+<circle cx="292.22" cy="211.25" r="3" fill="#5c7786"/>
+<circle cx="292.22" cy="235.62" r="3" fill="#5c7786"/>
+<circle cx="292.22" cy="260.00" r="3" fill="#5c7786"/>
+<circle cx="292.22" cy="284.38" r="3" fill="#5c7786"/>
+<circle cx="292.22" cy="308.75" r="3" fill="#5c7786"/>
+<circle cx="292.22" cy="333.12" r="3" fill="#a17b52"/>
+<circle cx="313.33" cy="199.06" r="3" fill="#a17b52"/>
+<circle cx="313.33" cy="223.44" r="3" fill="#5c7786"/>
+<circle cx="313.33" cy="247.81" r="3" fill="#5c7786"/>
+<circle cx="313.33" cy="272.19" r="3" fill="#5c7786"/>
+<circle cx="313.33" cy="296.56" r="3" fill="#5c7786"/>
+<circle cx="313.33" cy="320.94" r="3" fill="#a17b52"/>
+<circle cx="334.44" cy="211.25" r="3" fill="#a17b52"/>
+<circle cx="334.44" cy="235.62" r="3" fill="#a17b52"/>
+<circle cx="334.44" cy="260.00" r="3" fill="#a17b52"/>
+<circle cx="334.44" cy="284.38" r="3" fill="#a17b52"/>
+<circle cx="334.44" cy="308.75" r="3" fill="#a17b52"/>
+<circle cx="250" cy="260" r="9" fill="#edb258"/>
+<text x="215" y="295">Лидер</text>
+<circle cx="292.2187384344914" cy="260" r="9" fill="#4b9fff"/>
+<path d="M292.2187384344914,238 L340.2187384344914,185" stroke="#67bded" stroke-width="2" marker-end="url(#a)"/>
+<text x="319.2187384344914" y="175">Спутник</text>
+<text x="500" y="115">Доверие спутника к лидеру &gt;60%</text>
+<text x="500" y="153">Приглашение рядом: 2R = 3 wu</text>
+<text x="500" y="205">Синий: радиус разговора и свой grant</text>
+<text x="500" y="240">Оранжевый: занятый узел / граница</text>
+<circle cx="515" cy="280" r="7" fill="#e98770"/>
+<text x="535" y="286">Чужой игрок — доступ запрещён</text>
+<text x="500" y="340">Групповые приказы → обычный pipeline</text>
+<text x="500" y="380">ИИ / отпуск / disconnect / timeout:</text>
+<text x="500" y="412">grant закрывается, спутник живёт сам</text>
+<text x="22" y="489">R=1.5 wu · шаг=0.375 wu · 37 внутренних + 24 граничных узла</text>
+<text x="22" y="518" class="small">Владение лагерем, вещами и постоянные назначения не меняются.</text>
+</svg>

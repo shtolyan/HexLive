@@ -1377,6 +1377,20 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
                 () => EnqueueOrder(carrier!.Id.Value, new TalkToCommand(
                     carrier.Id, new EntityId(npcId), TalkTopic.AskWashClothes)),
                 canOrderSocial, canOrderSocial ? null : socialBlocked));
+            if (target.TravelLeaderNpcId is { } travelLeader)
+            {
+                var canRelease = runner.CanControlNpc(new EntityId(travelLeader));
+                _entries.Add(new ContextMenuEntry(Loc.Get("menu.travel.release"),
+                    () => runner.EnqueueCommand(new ReleaseTravelPartyCommand(new EntityId(travelLeader),target.Id)),
+                    canRelease,canRelease ? null : socialBlocked));
+            }
+            else
+            {
+                var trusted = carrier != null && TrustTo(target,carrier.Id.Value) > TravelPartyMath.RequiredTrust;
+                _entries.Add(new ContextMenuEntry(Loc.Get("menu.travel.invite"),
+                    () => EnqueueOrder(carrier!.Id.Value,new RequestTravelPartyCommand(carrier.Id,target.Id)),
+                    canOrderSocial && trusted, trusted ? socialBlocked : Loc.Get("menu.travel.need_trust")));
+            }
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.romance"),
                 () => EnqueueOrder(carrier!.Id.Value, new RomancePersonCommand(
                     new EntityId(carrier.Id.Value), new EntityId(npcId),

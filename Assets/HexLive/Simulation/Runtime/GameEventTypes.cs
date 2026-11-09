@@ -168,6 +168,8 @@ public static class GameEventTypes
         "ShipwreckSurvivorAppeared",
         "ShipwreckSurvivorJoined",
         "OutsiderRecruited",
+        "TravelPartyJoined",
+        "TravelPartyReleased",
         // §157.5: прибой вынес потерпевшую на берег острова.
         "CastawayWashedAshore",
 

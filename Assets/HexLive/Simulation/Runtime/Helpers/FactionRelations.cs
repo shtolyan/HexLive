@@ -119,9 +119,10 @@ public static class FactionRelations
     public static bool AreNeutral(WorldState world, NPCState actor, NPCState target) =>
         !AreAllies(actor, target) && !AreHostile(world, actor, target);
 
-    public static bool AreAllies(NPCState a, NPCState b) => AreAllies(a.Faction, b.Faction);
+    public static bool AreAllies(NPCState a, NPCState b) =>
+        TravelPartyMath.ArePartyMates(a,b) || AreAllies(a.Faction, b.Faction);
 
-    public static bool AreHostile(NPCState a, NPCState b) => AreHostile(a.Faction, b.Faction);
+    public static bool AreHostile(NPCState a, NPCState b) => Spec72.Enabled && !AreAllies(a,b);
 }
 
 }

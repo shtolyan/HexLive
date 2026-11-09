@@ -96,6 +96,8 @@ public static class SimulationCommandCodec
         ButcherPerson = 47,
         CraftByOutput = 48, // §138.6 append-only
         PlantInventorySeed = 49, // §173.2 append-only
+        RequestTravelParty = 50,
+        ReleaseTravelParty = 51,
         PlacePlantingSite = 56, // #638; 50-55 reserved for party/door/gift commands.
     }
 
@@ -363,6 +365,14 @@ public static class SimulationCommandCodec
                 w.Write(c.Tile.R);
                 w.Write(c.Anchor.Value);
                 break;
+            case RequestTravelPartyCommand c:
+                w.Write((ushort)CommandType.RequestTravelParty);
+                w.Write(c.Npc.Value); w.Write(c.Target.Value);
+                break;
+            case ReleaseTravelPartyCommand c:
+                w.Write((ushort)CommandType.ReleaseTravelParty);
+                w.Write(c.Npc.Value); w.Write(c.Target.Value);
+                break;
             case RotateBuildSiteCommand c:
                 w.Write((ushort)CommandType.RotateBuildSite);
                 w.Write(c.Site.Value);
@@ -557,6 +567,10 @@ public static class SimulationCommandCodec
             case CommandType.PlacePlantingSite:
                 return new PlacePlantingSiteCommand(r.ReadString(),
                     new TileCoord(r.ReadInt32(), r.ReadInt32()), new JunctionId(r.ReadInt32()));
+            case CommandType.RequestTravelParty:
+                return new RequestTravelPartyCommand(ReadEntity(r),ReadEntity(r));
+            case CommandType.ReleaseTravelParty:
+                return new ReleaseTravelPartyCommand(ReadEntity(r),ReadEntity(r));
             case CommandType.CancelBuildSite:
                 return new CancelBuildSiteCommand(new ObjectId(r.ReadInt32()));
             case CommandType.PlaceBuildingBlueprint:

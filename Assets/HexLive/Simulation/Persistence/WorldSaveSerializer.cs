@@ -188,7 +188,8 @@ public static class WorldSaveSerializer
     // v88 (§151.4 / #620): explicit campfire fuel role appended to each item.
     // Old negative wood markers migrate to Wood/0; water and leaf state stay independent.
     // v89 (#627): persist object placement Variant after the v85 material tail.
-    public const int BlobVersion = 89;
+    // v90 (#653): scoped travel-party leader, normalized to AI on load.
+    public const int BlobVersion = 90;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1117,6 +1118,11 @@ public static class WorldSaveSerializer
             foreach (var item in obj.Contents) LeafDryingMath.Initialize(item,world.Tick);
         MigrateBuildingOwnership(world, version);
         MigrateNaturalFlint(world, flintSeeds);
+        // A save cannot preserve a live viewer/lease. End only the explicitly
+        // tagged travel grants after their canonical fields/caches are restored.
+        foreach (var npc in world.Entities.Npcs.Values)
+            if (npc.Mind.TravelLeaderNpcId != null)
+                ManualCommandExecutor.ReleaseToAi(world,npc,"Travel session ended on load",expired:false);
     }
 
     private static void MigrateNaturalFlint(WorldState world, WorldObjectState[] seeds)
@@ -2296,6 +2302,7 @@ public static class WorldSaveSerializer
                 w.Write(directive.UntilTick);
             }
         }
+        if (version >= 90) WriteNullableEntity(w,npc.Mind.TravelLeaderNpcId);
     }
 
     private static NPCState ReadNpc(BinaryReader r, int version)
@@ -3064,6 +3071,8 @@ public static class WorldSaveSerializer
                 UntilTick = r.ReadInt32()
             };
         }
+
+        if (version >= 90) npc.Mind.TravelLeaderNpcId = ReadNullableEntity(r);
 
         // v66/v67 kept one global pair; v68's item state is authoritative.
         // Legacy values stay local to this reader and never become runtime state.

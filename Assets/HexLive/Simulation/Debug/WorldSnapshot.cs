@@ -782,6 +782,7 @@ public sealed class NpcSnapshot
     /// а не из своего кэша: тумблер живёт в симуляции, и она же авторитет —
     /// иначе кнопка показывала бы одно, а персонаж делал другое.</summary>
     public bool IsManualControl { get; set; }
+    public int? TravelLeaderNpcId { get; set; }
 
     /// <summary>§121.11 (bug #294): постоянный темп её ручных приказов —
     /// бегом или шагом. Тумблер в карточке читает ЭТО, а не своё поле: темп

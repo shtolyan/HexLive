@@ -31788,6 +31788,46 @@ MonoBehaviour:
       - 'Бывший чужак принял личное приглашение и присоединился к лагерю. Другие чужаки и их имущество остались независимыми.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.travel.invite'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Invite on a journey'
+      - 'Позвать в путешествие'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.travel.release'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Release travel companion'
+      - 'Отпустить спутника'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.travel.need_trust'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Their trust in the leader must be greater than 60'
+      - 'Доверие персонажа к лидеру должно быть выше 60'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.TravelPartyJoined'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} invited {1} on a journey'
+      - '{0} позвала {1} в путешествие'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.TravelPartyReleased'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} released travel companion {1}'
+      - '{0} отпустила спутника {1}'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

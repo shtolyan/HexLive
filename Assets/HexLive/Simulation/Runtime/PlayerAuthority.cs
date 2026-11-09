@@ -37,6 +37,12 @@ namespace HexLive.Simulation.Runtime
         /// <summary>Тот же ответ для уже найденного NPC — чтобы вызывающий не
         /// заводил вторую, расходящуюся формулировку «своей».</summary>
         public static bool IsPlayerOwned(WorldState world, NPCState npc) =>
+            IsPermanentlyOwned(world, npc) ||
+            (npc?.Mind.TravelLeaderNpcId is { } leaderId &&
+             world.Entities.Npcs.TryGetValue(leaderId, out var leader) &&
+             leader.Health > 0f && IsPermanentlyOwned(world, leader));
+
+        internal static bool IsPermanentlyOwned(WorldState world, NPCState npc) =>
             npc != null &&
             (world.CreationConfig != null ? world.PlayerControlledNpcs.Contains(npc.Id.Value) && FactionRelations.IsGirlCamp(npc.Faction) :
              npc.Faction == Faction.Colony ||

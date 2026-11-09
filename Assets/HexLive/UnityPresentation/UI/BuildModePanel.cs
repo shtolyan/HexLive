@@ -1136,7 +1136,7 @@ namespace HexLive.UnityPresentation.UI
             _buildFactions.Clear();
             if (_snapshot == null || _runner == null) return;
             foreach (var npc in _snapshot.Npcs)
-                if (npc.Health > 0 && _runner.IsAssignedNpc(npc.Id)) _buildFactions.Add(npc.Faction);
+                if (npc.Health > 0 && npc.TravelLeaderNpcId == null && _runner.IsAssignedNpc(npc.Id)) _buildFactions.Add(npc.Faction);
         }
 
         private bool CanEditTile(TileCoord tile) => _snapshot != null &&

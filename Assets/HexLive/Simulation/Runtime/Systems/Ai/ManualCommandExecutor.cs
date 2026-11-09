@@ -46,6 +46,7 @@ internal static partial class ManualCommandExecutor
         IReadOnlyCollection<int> assignedNpcIds = null)
     {
         var admission = new AdmissionTracker(command.TargetEntity, OrderName(command));
+        admission.AssignedNpcIds = assignedNpcIds;
         if (!Spec121.ManualControlEnabled)
         {
             admission.Reject("FeatureDisabled");
@@ -73,6 +74,12 @@ internal static partial class ManualCommandExecutor
                 break;
             case SetManualControlCommand setManual:
                 ApplySetManual(world, setManual, admission);
+                break;
+            case RequestTravelPartyCommand requestParty:
+                ApplyRequestTravelParty(world, requestParty, admission);
+                break;
+            case ReleaseTravelPartyCommand releaseParty:
+                ApplyReleaseTravelParty(world, releaseParty, admission);
                 break;
             case SetRunByDefaultCommand setRunByDefault:
                 ApplySetRunByDefault(world, setRunByDefault, admission);
@@ -232,6 +239,7 @@ internal static partial class ManualCommandExecutor
         public string Order { get; }
         public string Reason { get; private set; } = string.Empty;
         public HashSet<Faction> BuildFactions { get; set; }
+        public IReadOnlyCollection<int> AssignedNpcIds { get; set; }
         public bool Accepted => Reason.Length == 0;
 
         public void Reject(string reason)
@@ -251,6 +259,8 @@ internal static partial class ManualCommandExecutor
         RecordAgentSocialCommand => "RecordAgentSocial",
         RecordCompanionTurnCommand => "RecordCompanionTurn",
         SetManualControlCommand => "SetManual",
+        RequestTravelPartyCommand => "RequestTravelParty",
+        ReleaseTravelPartyCommand => "ReleaseTravelParty",
         SetRunByDefaultCommand => "SetRunByDefault",
         SetOutfitLockCommand => "SetOutfitLock",
         MoveToCommand => "MoveTo",
@@ -758,6 +768,11 @@ internal static partial class ManualCommandExecutor
     internal static void ReleaseToAi(
         WorldState world, NPCState npc, string reason, bool expired)
     {
+        // End the scoped grant before returning to autonomous behaviour.
+        npc.Mind.TravelLeaderNpcId = null;
+        foreach (var member in world.Entities.Npcs.Values)
+            if (member.Mind.TravelLeaderNpcId == npc.Id)
+                ReleaseToAi(world, member, reason, expired:false);
         // keepCarriedPerson НЕ ставим: как и прежний тумблер off, возврат под
         // ИИ безопасно кладёт ношу — дальше RescueSystem сам решит поднять.
         ClearForNewOrder(world, npc, reason,
@@ -2278,6 +2293,11 @@ internal static partial class ManualCommandExecutor
             }
 
             accepted++;
+            if (!command.Enabled)
+            {
+                ReleaseToAi(world,npc,"Игрок вернул группу ИИ",expired:false);
+                continue;
+            }
             if (npc.Mind.ManualControl == command.Enabled) continue;
             ClearForNewOrder(world, npc, command.Enabled
                 ? "Игрок взял групповое управление"

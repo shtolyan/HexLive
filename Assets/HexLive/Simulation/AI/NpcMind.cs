@@ -501,6 +501,7 @@ public sealed class NPCMind
     }
 
     internal bool PersistedManualControl => _playerManualControl;
+    public Common.EntityId? TravelLeaderNpcId { get; set; }
     public ExternalNpcControl ExternalControl { get; set; }
 
     // §121.11 (bug #294): ПОСТОЯННЫЙ темп ручных приказов этой девушки. Раньше

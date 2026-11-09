@@ -53,6 +53,8 @@ public sealed class CommandCodecCoverageGateTests
             new EntityId(902), "agent-turn-160", CompanionReaction.Tense),
         new SetManualControlCommand(new EntityId(11), true),
         new PlacePlantingSiteCommand(ContentIds.YuccaSeed, new TileCoord(4, -7), new JunctionId(638)),
+        new RequestTravelPartyCommand(new EntityId(653),new EntityId(3653)),
+        new ReleaseTravelPartyCommand(new EntityId(654),new EntityId(4653)),
         new SetOutfitLockCommand(new EntityId(111), true),
         new SetRunByDefaultCommand(new EntityId(114), true),
         new MoveToCommand(new EntityId(12), new Float2(3.5f, -7.25f), run: true),

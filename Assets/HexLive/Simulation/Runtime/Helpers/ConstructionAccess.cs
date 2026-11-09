@@ -25,7 +25,7 @@ public static class ConstructionAccess
 
     public static HashSet<Faction> Factions(WorldState world, IEnumerable<int> assigned) =>
         world.Entities.Npcs.Values.Where(npc => npc.Health > 0 &&
-            PlayerAuthority.IsPlayerOwned(world, npc) &&
+            PlayerAuthority.IsPermanentlyOwned(world, npc) &&
             (assigned == null || assigned.Contains(npc.Id.Value)))
             .Select(npc => npc.Faction).ToHashSet();
 

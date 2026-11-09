@@ -2225,7 +2225,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // §gear-data: the log's own declaration decides the tool (axe OR
         // knife OR whatever the asset lists) — canChop is only the legacy
         // fallback for undeclared content.
-        var splitLogAvail = ((ordinaryStickDemand && carriedSticks < stickCap) ||
+        var stickYield = world.Content.ObjectDefinitions.TryGetValue(ContentIds.Log, out var logDefinition)
+            ? logDefinition.Interactions.Find(i => i.Type == InteractionType.Process &&
+                i.Yields.Exists(y => y.DefinitionId == ContentIds.Stick))?.Yields
+                .Find(y => y.DefinitionId == ContentIds.Stick)?.Count ?? SimBalance.LogSplitYield
+            : SimBalance.LogSplitYield;
+        var splitLogAvail = ((ordinaryStickDemand && carriedSticks < stickCap &&
+                              CampStickStock.CanProduce(world, npc, stickYield)) ||
                              boardSawAvailable) &&
             CanPerformDeclared(world, npc, ContentIds.Log, InteractionType.Process,
                 legacyOk: canChop) &&

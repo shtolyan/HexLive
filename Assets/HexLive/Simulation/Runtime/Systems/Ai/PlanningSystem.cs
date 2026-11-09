@@ -2217,7 +2217,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // и было настоящим содержанием этой ветки.
                 if (!definition.HasTag("Log"))
                 {
-                    return true;
+                    // Existing stock stays available to actual consumers; do not
+                    // keep importing more sticks from outside an already full camp.
+                    return definition.Id != ContentIds.Stick ||
+                        ColonyQueries.InCamp(world, perceived.Tile, npc.Faction) ||
+                        CampStickStock.Count(world, npc) < CampStickStock.Limit;
                 }
 
                 return Content.GearCatalog.HasCapability(

@@ -23,19 +23,22 @@ public sealed class McpDirectiveTests
         var shout = McpTools.Catalog.Single(t => t.Name == "shout_directive").InputSchema;
         var kinds = shout.GetProperty("properties").GetProperty("kind").GetProperty("enum")
             .EnumerateArray().Select(x => x.GetString()).ToArray();
-        Assert.That(kinds, Is.EquivalentTo(new[] { "Build", "StockFood", "StockWater", "Firewood" }));
+        Assert.That(kinds, Is.EquivalentTo(new[] { DirectiveKind.Build, DirectiveKind.StockFood, DirectiveKind.StockWater,
+            DirectiveKind.Firewood, DirectiveKind.Bathe, DirectiveKind.WashClothes }.Select(kind => kind.ToString())));
         Assert.That(McpTools.Catalog.Any(t => t.Name == "respond_directive"), Is.True);
         Assert.That(McpTools.Catalog.Any(t => t.Name == "send_agent_message"), Is.True);
     }
 
-    [Test]
-    public async Task ShoutNeedsTheLeaseAndReachesTheSimulation()
+    [TestCase(DirectiveKind.StockWater)]
+    [TestCase(DirectiveKind.Bathe)]
+    [TestCase(DirectiveKind.WashClothes)]
+    public async Task ShoutNeedsTheLeaseAndReachesTheSimulation(DirectiveKind kind)
     {
         using var host = CreateHost();
         await RunOneTick(host);
         var pair = ColonyPair(host);
         var tools = new McpTools(host, new ControlLeases(45));
-        var args = JsonSerializer.SerializeToElement(new { npcId = pair[0], kind = "StockWater" });
+        var args = JsonSerializer.SerializeToElement(new { npcId = pair[0], kind = kind.ToString() });
         tools.Call("shout_directive", args, "mcp:directive-test", out var error);
         Assert.That(error, Is.True, "No lease — no shout.");
         var bad = tools.Call("shout_directive", JsonSerializer.SerializeToElement(new { npcId = pair[0], kind = "None" }),

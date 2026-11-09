@@ -160,7 +160,7 @@ namespace HexLive.UnityPresentation.UI
         private Label _outfitLockLabel;
         private bool _outfitLockedNow;
         // §138: the backpack and manual recipe browser share one floating
-        // window. Crafting is local-only and never exists for group/AI views.
+        // window. Crafting recipes remain readable for one controlled NPC in AI mode; orders require manual mode.
         private VisualElement _inventoryTabs;
         private VisualElement _inventoryBackpackTab;
         private VisualElement _inventoryClothesTab;
@@ -188,6 +188,7 @@ namespace HexLive.UnityPresentation.UI
         private bool _craftPage;
         private bool _clothesPage;
         private bool _craftAvailable;
+        private bool _craftCanOrder;
         private VisualElement _invListView;   // elastic flat grid + aspect-locked doll
         private VisualElement _invItemsPane;
         private VisualElement _invItemsContent;
@@ -2373,8 +2374,9 @@ namespace HexLive.UnityPresentation.UI
         private void RefreshCrafting(NpcSnapshot npc)
         {
             var eligible = _runner != null && _runner.SupportsNpcCommands &&
-                NpcSelection.Count == 1 && npc.IsManualControl && npc.Health > 0f &&
+                NpcSelection.Count == 1 && npc.Health > 0f &&
                 _runner.CanControlNpc(npc.Id);
+            _craftCanOrder = eligible && npc.IsManualControl;
             _craftOptions.Clear();
             _craftAvailable = eligible && _runner.TryGetCraftingOptions(
                 new HexLive.Simulation.Common.EntityId(npc.Id.Value), _craftOptions);
@@ -2399,7 +2401,7 @@ namespace HexLive.UnityPresentation.UI
                 _selectedCraftOutputByNpc[npc.Id.Value] = _selectedCraftOutput;
             }
 
-            var sig = CraftingSignature() + "|q" + _craftQueue.Remaining(npc.Id.Value, _selectedCraftOutput);
+            var sig = CraftingSignature() + "|manual" + _craftCanOrder + "|q" + _craftQueue.Remaining(npc.Id.Value, _selectedCraftOutput);
             if (sig == _craftSig)
             {
                 return;
@@ -2582,15 +2584,15 @@ namespace HexLive.UnityPresentation.UI
                 _craftProgress.text = $"{Loc.Get("craft.progress")}: {percent}%";
             }
 
-            var blocked = !option.CanCraft && !option.IsActive;
+            var blocked = !_craftCanOrder || !option.CanCraft && !option.IsActive;
             _craftReason.style.display = blocked ? DisplayStyle.Flex : DisplayStyle.None;
             _craftReason.text = blocked
-                ? Loc.Get("craft.block." + option.BlockReason) : string.Empty;
+                ? Loc.Get("craft.block." + (_craftCanOrder ? option.BlockReason : CraftBlockReason.NotManual)) : string.Empty;
 
             // §138.7: every press queues one more; while she works the button
             // stays live («make another») and shows how many are left.
             var queued = _craftQueue.Remaining(_inventoryActorId, option.OutputDefinitionId);
-            var canQueue = option.CanCraft || option.IsActive;
+            var canQueue = _craftCanOrder && (option.CanCraft || option.IsActive);
             var label = option.IsActive
                 ? Loc.Get("craft.create_more")
                 : option.IsResume ? Loc.Get("craft.continue") : Loc.Get("craft.create");
@@ -2671,7 +2673,7 @@ namespace HexLive.UnityPresentation.UI
         private void EnqueueSelectedCraft()
         {
             var option = FindSelectedCraft();
-            if (!(_craftAvailable && option != null && (option.CanCraft || option.IsActive)) ||
+            if (!(_craftAvailable && _craftCanOrder && option != null && (option.CanCraft || option.IsActive)) ||
                 _runner == null || _inventoryActorId < 0)
             {
                 return;

@@ -18,6 +18,36 @@ public sealed class HtmlCraftCategoriesRuntimeTests
     const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
 
     [Test]
+    public void AiCraftModelRetainsRecipesAndDetailsButNeverAcceptsStaleReadyOptions()
+    {
+        var host = new GameObject("AI craft browser verification"); host.SetActive(false);
+        var panel = host.AddComponent<CharacterPanel>();
+        try
+        {
+            var type = typeof(CharacterPanel);
+            type.GetField("_craftAvailable", Private).SetValue(panel, true);
+            var options = (List<CraftRecipeOption>)type.GetField("_craftOptions", Private).GetValue(panel);
+            options.Add(new CraftRecipeOption { OutputDefinitionId = "tool.hammer", CanCraft = true });
+            var canOrder = type.GetField("_craftCanOrder", Private);
+            var build = type.GetMethod("CraftModel", Private);
+            var npc = new NpcSnapshot();
+            JObject Model() => (JObject)build.Invoke(panel, new object[] { npc });
+            canOrder.SetValue(panel, true);
+            var manual = Model();
+            Assert.That((bool)manual["detail"]["tool.hammer"]["canQueue"], Is.True);
+            canOrder.SetValue(panel, false);
+            var ai = Model();
+            Assert.That(ai["blocked"].Type, Is.EqualTo(JTokenType.Null));
+            Assert.That(JToken.DeepEquals(ai["recipes"], manual["recipes"]), Is.True);
+            Assert.That(JToken.DeepEquals(ai["detail"]["tool.hammer"]["ingredients"],
+                manual["detail"]["tool.hammer"]["ingredients"]), Is.True);
+            Assert.That((bool)ai["detail"]["tool.hammer"]["canQueue"], Is.False);
+            Assert.That((string)ai["detail"]["tool.hammer"]["block"], Is.EqualTo("NotManual"));
+        }
+        finally { Object.DestroyImmediate(host); }
+    }
+
+    [Test]
     public void RealCraftModelHasOneCategoryPerIdWithoutDroppingRecipesOrAccumulatingRefreshes()
     {
         var host = new GameObject("HTML craft category verification"); host.SetActive(false);

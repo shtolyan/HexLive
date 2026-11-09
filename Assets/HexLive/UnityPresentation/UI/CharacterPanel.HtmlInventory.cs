@@ -339,10 +339,11 @@ namespace HexLive.UnityPresentation.UI
                     ["station"] = string.IsNullOrEmpty(option.StationTag) ? null : option.StationTag.ToLowerInvariant(),
                     ["progress"] = option.IsResume && option.WorkRequired > 0
                         ? Mathf.Clamp01(option.WorkDone / (float)option.WorkRequired) : 0f,
-                    ["block"] = !option.CanCraft && !option.IsActive ? option.BlockReason.ToString() : null,
+                    ["block"] = !_craftCanOrder ? CraftBlockReason.NotManual.ToString() :
+                        !option.CanCraft && !option.IsActive ? option.BlockReason.ToString() : null,
                     ["button"] = option.IsActive ? "working" : option.IsResume ? "continue" : "create",
                     ["queued"] = queued,
-                    ["canQueue"] = option.CanCraft || option.IsActive,
+                    ["canQueue"] = _craftCanOrder && (option.CanCraft || option.IsActive),
                 };
             }
 

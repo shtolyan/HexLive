@@ -35,6 +35,32 @@ public sealed class ManualCraftingTests
     }
 
     [Test]
+    public void AiModeCanReadCompleteRecipeBookButCannotPlaceManualCraftOrder()
+    {
+        var world = TestWorld.CreateWorld(64101);
+        var npc = PrepareManual(world);
+        Strip(world, ContentIds.Stick, ContentIds.Stone, ContentIds.Rope, GearCatalog.Hammer);
+        Add(npc, ContentIds.Stick, 1); Add(npc, ContentIds.Stone, 1); Add(npc, ContentIds.Rope, 1);
+        var manual = new List<CraftRecipeOption>();
+        Assert.That(CraftingOptions.TryFill(world, npc.Id, manual), Is.True);
+        var ready = manual.Single(o => o.OutputDefinitionId == GearCatalog.Hammer);
+        Assert.That(ready.CanCraft, Is.True);
+        npc.Mind.ManualControl = false;
+        var ai = new List<CraftRecipeOption>();
+        Assert.That(CraftingOptions.TryFill(world, npc.Id, ai), Is.True);
+        Assert.That(ai.Select(o => o.OutputDefinitionId), Is.EqualTo(manual.Select(o => o.OutputDefinitionId)));
+        var viewed = ai.Single(o => o.OutputDefinitionId == GearCatalog.Hammer);
+        Assert.That(viewed.Ingredients.Select(i => (i.DefinitionId, i.Available, i.Required)),
+            Is.EqualTo(ready.Ingredients.Select(i => (i.DefinitionId, i.Available, i.Required))));
+        Assert.That(ai.All(o => !o.CanCraft && !o.IsActive), Is.True);
+        Assert.That(viewed.BlockReason, Is.EqualTo(CraftBlockReason.NotManual));
+        var before = npc.Inventory.Items.Select(i => i.DefinitionId).ToArray();
+        ManualCommandExecutor.Apply(world, new CraftByOutputCommand(npc.Id, GearCatalog.Hammer));
+        Assert.That(npc.Inventory.Items.Select(i => i.DefinitionId), Is.EqualTo(before));
+        Assert.That(world.Entities.Objects.Values.Any(o => o.DefinitionId == GearCatalog.Hammer), Is.False);
+    }
+
+    [Test]
     public void ExistingHammerCanBeCraftedInPlaceFromItsPhysicalBill()
     {
         var engine = TestWorld.CreateEngine(44901);

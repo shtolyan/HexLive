@@ -2455,7 +2455,7 @@ internal static partial class ManualCommandExecutor
                 world, source, command.Item, command.Count,
                 out var selectedItems, out _) ||
             !PlayerInventoryTransferMath.FitsAfter(
-                world, source, destination, command.Item, command.Count, wear))
+                world, source, destination, command.Item, command.Count, wear, gift: !take))
         {
             Reject(world, looter.Id, "TransferInventory", "StaleOrNoSpace", admission);
             return;

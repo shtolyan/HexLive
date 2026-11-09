@@ -237,7 +237,7 @@ public sealed class PlayerInventoryTransferTests
     }
 
     [Test]
-    public void CanGiveAWholeFilledGarmentAndItRemainsWorn()
+    public void GivingFilledGarmentToUnconsciousRecipientPreservesItCarriedUntilSheCanChoose()
     {
         var (engine, looter, other) = Scene(allied: true);
         const string garmentId = "test.loot.given_jacket";
@@ -253,7 +253,9 @@ public sealed class PlayerInventoryTransferTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(other.WornItems.Any(i => ReferenceEquals(i, jacket)), Is.True);
+            Assert.That(other.Inventory.Items.Any(i => ReferenceEquals(i, jacket)), Is.True);
+            Assert.That(jacket.OwnerId, Is.EqualTo(other.Id.Value));
+            Assert.That(other.WornItems.Any(i => ReferenceEquals(i, jacket)), Is.False);
             Assert.That(other.Inventory.Items.Any(i => ReferenceEquals(i, pocketItem)), Is.True);
             Assert.That(looter.WornItems.Any(i => ReferenceEquals(i, jacket)), Is.False);
             Assert.That(looter.Inventory.Items.Any(i => ReferenceEquals(i, pocketItem)), Is.False);

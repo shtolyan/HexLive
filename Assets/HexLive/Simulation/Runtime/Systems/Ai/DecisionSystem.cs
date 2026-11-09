@@ -57,6 +57,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // reopen her survival-only auction) now governs on its own.
             UpdateStarvingStatus(world, npc);
             UpdateDehydratedStatus(world, npc);
+            // A gift received asleep stays owned/carried, then is considered on a safe idle pass.
+            GiftGarmentChoice.TryWearOwnedUpgrade(world, npc);
 
             // Spec §60: comatose — the body lies as if dead; recovery runs in
             // NeedsDecaySystem (sleep rules) and the wake check lives there

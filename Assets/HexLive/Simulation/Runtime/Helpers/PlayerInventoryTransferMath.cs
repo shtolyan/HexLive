@@ -80,7 +80,7 @@ internal static class PlayerInventoryTransferMath
         NPCState destination,
         InventoryItemRef itemRef,
         int count,
-        bool wear = false)
+        bool wear = false, bool gift = false)
     {
         if (!TryResolveTransfer(
                 world, source, itemRef, count, out var moving, out var contents))
@@ -102,9 +102,17 @@ internal static class PlayerInventoryTransferMath
             InventoryMath.RemoveReference(sourceCarried, item);
         }
 
+        var giftWear = gift && moving.Count == 1 && GiftGarmentChoice.ShouldWear(world, destination, moving[0]) &&
+            CanWearIncoming(world, destination, moving[0], contents);
+        if (gift) wear = giftWear;
         var destinationCarried = new List<ItemInstance>(destination.Inventory.Items);
         var destinationWorn = new List<ItemInstance>(destination.WornItems);
-        if (itemRef.Source == InventoryItemSource.Worn)
+        if (gift)
+        {
+            destinationCarried.AddRange(moving);
+            destinationCarried.AddRange(contents);
+        }
+        else if (itemRef.Source == InventoryItemSource.Worn)
         {
             // §128.2: a free compatible body slot wins. If it is occupied, the
             // transferred garment is folded into ordinary carry space instead
@@ -166,8 +174,15 @@ internal static class PlayerInventoryTransferMath
         InventoryItemRef itemRef,
         IReadOnlyList<ItemInstance> moving,
         IReadOnlyList<ItemInstance> contents,
-        bool wear = false)
+        bool wear = false, bool gift = false)
     {
+        if (gift)
+        {
+            wear = moving.Count == 1 && GiftGarmentChoice.ShouldWear(world, destination, moving[0]) &&
+                CanWearIncoming(world, destination, moving[0], contents);
+            ClothingOwnership.TransferGiftOwnership(world, destination, moving);
+            ClothingOwnership.TransferGiftOwnership(world, destination, contents);
+        }
         if (wear)
         {
             var sourceItems = itemRef.Source == InventoryItemSource.Worn
@@ -187,7 +202,7 @@ internal static class PlayerInventoryTransferMath
         if (itemRef.Source == InventoryItemSource.Worn)
         {
             InventoryMath.RemoveReference(source.WornItems, moving[0]);
-            if (HasWearConflict(world, destination, moving[0]))
+            if (gift || HasWearConflict(world, destination, moving[0]))
             {
                 destination.Inventory.Items.Add(moving[0]);
             }

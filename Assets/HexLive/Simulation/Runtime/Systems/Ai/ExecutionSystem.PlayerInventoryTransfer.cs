@@ -113,7 +113,7 @@ public sealed partial class ExecutionSystem
         }
 
         if (!PlayerInventoryTransferMath.FitsAfter(
-                world, source, destination, itemRef, count, wear))
+                world, source, destination, itemRef, count, wear, gift: !take))
         {
             FailPlayerInventoryTransfer(world, looter, "InsufficientSpace");
             return;
@@ -121,7 +121,7 @@ public sealed partial class ExecutionSystem
 
         var theft = take && TheftMath.IsTakingTheft(world, looter, source, selected);
         PlayerInventoryTransferMath.MoveResolved(
-            world, source, destination, itemRef, moving, contents, wear);
+            world, source, destination, itemRef, moving, contents, wear, gift: !take);
         if (theft) TheftMath.OnStolen(world, looter, source, selected);
 
         if (take && world.Entities.Npcs.ContainsKey(other.Id) &&

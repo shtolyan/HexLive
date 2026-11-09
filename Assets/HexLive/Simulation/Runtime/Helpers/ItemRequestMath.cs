@@ -74,18 +74,12 @@ public static class ItemRequestMath
         {
             return ItemRequestOutcome.MissingItem;
         }
-        if (!PlayerInventoryTransferMath.FitsAfter(world, owner, requester, itemRef, 1))
+        if (!PlayerInventoryTransferMath.FitsAfter(world, owner, requester, itemRef, 1, gift: true))
         {
             return ItemRequestOutcome.NoSpace;
         }
 
-        PlayerInventoryTransferMath.MoveResolved(world, owner, requester, itemRef, moving, contents);
-        if (selected.OwnerId != 0 ||
-            (world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition) &&
-             definition.Layer.HasValue))
-        {
-            selected.OwnerId = requester.Id.Value;
-        }
+        PlayerInventoryTransferMath.MoveResolved(world, owner, requester, itemRef, moving, contents, gift: true);
         ExecutionSystem.ReactToGift(world, owner, requester, definitionId, moving);
         return ItemRequestOutcome.Transferred;
     }

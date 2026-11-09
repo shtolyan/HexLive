@@ -73,6 +73,15 @@ public static class ClothingOwnership
             : taker.Id.Value;  // трофей с чужака — новый владелец
     }
 
+    internal static void TransferGiftOwnership(WorldState world, NPCState receiver,
+        System.Collections.Generic.IReadOnlyList<ItemInstance> moving)
+    {
+        foreach (var item in moving)
+            if (item.OwnerId != 0 || world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition) &&
+                definition.Layer.HasValue)
+                item.OwnerId = receiver.Id.Value;
+    }
+
     /// <summary>
     /// §64-идиома, перенесённая на одежду: со смертью колонистки её вещи на
     /// земле становятся ничейными, иначе разрешение спрашивать было бы не у

@@ -59,6 +59,10 @@ public sealed class ContentObjectVariant
     /// </summary>
     public string? IconAsset { get; set; }
     public List<ContentObjectAttachment> Attachments { get; set; } = new();
+
+    /// <summary>Current platform-specific metadata preserved by one-time legacy compaction.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, JsonElement>? Metadata { get; set; }
 }
 
 /// <summary>

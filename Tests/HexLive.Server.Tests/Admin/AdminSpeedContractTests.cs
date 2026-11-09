@@ -86,7 +86,7 @@ public sealed class AdminSpeedContractTests
         };
 
         var html = AdminPages.CatalogRecord(
-            record, new[] { record }, entry, liveRevision: 10, pinnedRevision: 9, notice: null);
+            record, entry, liveRevision: 10, pinnedRevision: 9, notice: null);
 
         Assert.Multiple(() =>
         {

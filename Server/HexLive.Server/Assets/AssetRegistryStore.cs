@@ -12,10 +12,10 @@ namespace HexLive.Server.Assets
 {
 
 /// <summary>
-/// §152 persistent live registry. Records are mutable pointers; blobs and
-/// history are immutable. Every public lookup starts from validated identities.
+/// §152 persistent live registry. Only current records and their payloads are
+/// retained; revision numbers are cache/concurrency cursors, not an archive.
 /// </summary>
-public sealed class AssetRegistryStore
+public sealed partial class AssetRegistryStore
 {
     private sealed class RegistryState
     {
@@ -42,7 +42,6 @@ public sealed class AssetRegistryStore
     private readonly string _root;
     private readonly string _blobs;
     private readonly string _records;
-    private readonly string _history;
     private readonly string _changes;
     private readonly string _staging;
     private readonly string _statePath;
@@ -58,7 +57,6 @@ public sealed class AssetRegistryStore
         _root = Path.GetFullPath(root);
         _blobs = Path.Combine(_root, "blobs");
         _records = Path.Combine(_root, "records");
-        _history = Path.Combine(_root, "history");
         _changes = Path.Combine(_root, "changes");
         _staging = Path.Combine(_root, "staging");
         _statePath = Path.Combine(_root, "registry-state.json");
@@ -66,7 +64,6 @@ public sealed class AssetRegistryStore
 
         Directory.CreateDirectory(_blobs);
         Directory.CreateDirectory(_records);
-        Directory.CreateDirectory(_history);
         Directory.CreateDirectory(_changes);
         Directory.CreateDirectory(_staging);
         RecoverTransactions();
@@ -99,6 +96,7 @@ public sealed class AssetRegistryStore
         try
         {
             await using var fileLock = await AcquireFileLockAsync(cancellationToken).ConfigureAwait(false);
+            RequireCompactedStorage();
 
             // Recheck after the cross-process lock: staging bytes are part of
             // the transaction, not a promise made before another publisher ran.
@@ -116,7 +114,10 @@ public sealed class AssetRegistryStore
                 // item and reactivation does not require a re-upload.
                 proposedVariants.AddRange(current.Variants.Select(CloneVariant));
             }
-            if (retainCurrentVariants && current is not null &&
+            // The legacy flag remains accepted by existing content publishers.
+            // A single-current registry always keeps other platform variants;
+            // there is no historical fallback to recover a dropped platform.
+            if (current is not null &&
                 current.State == "active" && candidate.State == "active")
             {
                 var incoming = proposedVariants.Select(VariantKey)
@@ -143,6 +144,7 @@ public sealed class AssetRegistryStore
 
             if (current is not null && SamePublishedValue(current, candidate, proposedVariants))
             {
+                CollectUnreferencedBlobs();
                 return new ContentPublishResult
                 {
                     Changed = false,
@@ -199,6 +201,7 @@ public sealed class AssetRegistryStore
             {
                 ApplyTransaction(record, change, registryRevision);
                 File.Delete(transactionPath);
+                CollectUnreferencedBlobs();
             }
             catch
             {
@@ -342,6 +345,7 @@ public sealed class AssetRegistryStore
         try
         {
             await using var fileLock = await AcquireFileLockAsync(cancellationToken).ConfigureAwait(false);
+            RequireCompactedStorage();
             var current = ReadCurrent(type, id)
                 ?? throw new InvalidOperationException($"Content object {type}/{id} does not exist.");
             if (current.Revision != expectedRevision)
@@ -362,18 +366,16 @@ public sealed class AssetRegistryStore
             }
 
             var variants = current.Variants.Select(CloneVariant).ToList();
+            foreach (var variant in variants.Where(value => value.Metadata is not null))
+            {
+                if (proposedMetadata.TryGetValue("simulation", out var simulation))
+                    variant.Metadata!["simulation"] = simulation.Clone();
+                else variant.Metadata!.Remove("simulation");
+            }
             if (state == "active" && variants.Count == 0)
             {
-                var lastActive = ReadHistory(type, id)
-                    .Where(value => value.State == "active" && value.Variants.Count > 0)
-                    .OrderByDescending(value => value.Revision)
-                    .FirstOrDefault();
-                if (lastActive is null)
-                {
-                    throw new InvalidOperationException(
-                        $"Cannot reactivate {type}/{id}: no published payload exists in history.");
-                }
-                variants.AddRange(lastActive.Variants.Select(CloneVariant));
+                throw new InvalidOperationException(
+                    $"Cannot reactivate {type}/{id}: publish its current payload first.");
             }
             foreach (var variant in variants)
             {
@@ -412,6 +414,7 @@ public sealed class AssetRegistryStore
             // On failure the intent deliberately remains for startup recovery.
             ApplyTransaction(record, change, registryRevision);
             File.Delete(transactionPath);
+            CollectUnreferencedBlobs();
 
             return new ContentPublishResult
             {
@@ -432,9 +435,7 @@ public sealed class AssetRegistryStore
     /// operator needs before believing a platform's content is complete.
     ///
     /// The pairs come from the CURRENT records, i.e. what publication targets
-    /// today. Coverage inside a pair still honours the §152.1 history fallback,
-    /// but a profile that exists only in history is not a pair of its own —
-    /// per-request <see cref="GetIndex"/> answers for such a client.
+    /// today. Only current platform/profile variants count; no history is read.
     /// </summary>
     public AssetCoverageReport AuditCoverage() => AuditCoverage(ReadSnapshot());
 
@@ -508,8 +509,6 @@ public sealed class AssetRegistryStore
     private AssetResolvedObject? ResolveRecord(
         ContentObjectRecord current, string platform, string runtimeProfile)
     {
-        var type = current.Type;
-        var id = current.Id;
         if (string.Equals(current.State, "retired", StringComparison.Ordinal))
         {
             return ToResolved(current, null);
@@ -519,24 +518,6 @@ public sealed class AssetRegistryStore
         if (selected is not null)
         {
             return ToResolved(current, selected);
-        }
-
-        // A profile migration must not turn a still-valid old Player into a
-        // content-release client. Find the newest history revision that has a
-        // physically compatible payload (§152.1).
-        foreach (var historical in ReadHistory(type, id).OrderByDescending(value => value.Revision))
-        {
-            if (historical.Revision >= current.Revision ||
-                !string.Equals(historical.State, "active", StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            selected = FindVariant(historical, platform, runtimeProfile);
-            if (selected is not null)
-            {
-                return ToResolved(historical, selected);
-            }
         }
 
         return null;
@@ -597,30 +578,7 @@ public sealed class AssetRegistryStore
         }
 
         var selected = FindVariant(current, platform, runtimeProfile);
-        if (selected is null)
-        {
-            selected = ReadHistory(type, id)
-                .Where(value => value.State == "active")
-                .OrderByDescending(value => value.Revision)
-                .Select(value => FindVariant(value, platform, runtimeProfile))
-                .FirstOrDefault(value => value is not null);
-        }
         return selected is null ? null : ToResolved(current, selected, "legacy");
-    }
-
-    public IReadOnlyList<ContentObjectRecord> ReadHistory(string type, string id)
-    {
-        ValidateIdentity(type, id);
-        var directory = HistoryDirectory(type, id);
-        if (!Directory.Exists(directory))
-        {
-            return Array.Empty<ContentObjectRecord>();
-        }
-
-        return Directory.EnumerateFiles(directory, "*.json", SearchOption.TopDirectoryOnly)
-            .Select(ReadJson<ContentObjectRecord>)
-            .OrderBy(value => value.Revision)
-            .ToArray();
     }
 
     public bool TryGetVerifiedBlob(string sha256, out string path, out long size)
@@ -662,7 +620,7 @@ public sealed class AssetRegistryStore
         Id = record.Id,
         Revision = record.Revision,
         State = state ?? record.State,
-        Metadata = CloneMetadata(record.Metadata),
+        Metadata = CloneMetadata(variant?.Metadata ?? record.Metadata),
         Variant = variant,
     };
 
@@ -727,19 +685,7 @@ public sealed class AssetRegistryStore
     }
 
     private long NextObjectRevision(string type, string id, ContentObjectRecord? current)
-    {
-        var highest = current?.Revision ?? 0;
-        var directory = HistoryDirectory(type, id);
-        if (Directory.Exists(directory))
-        {
-            highest = Directory.EnumerateFiles(directory, "*.json")
-                .Select(path => long.TryParse(Path.GetFileNameWithoutExtension(path), out var value) ? value : 0)
-                .Append(highest)
-                .Max();
-        }
-
-        return checked(highest + 1);
-    }
+        => checked((current?.Revision ?? 0) + 1);
 
     private void InstallBlob(string sha256, long size, string stagedPath)
     {
@@ -806,12 +752,6 @@ public sealed class AssetRegistryStore
     private void ApplyTransaction(
         ContentObjectRecord record, RegistryChange change, long registryRevision)
     {
-        var historyPath = HistoryPath(record.Type, record.Id, record.Revision);
-        if (!File.Exists(historyPath))
-        {
-            WriteJsonNew(historyPath, record);
-        }
-
         var current = ReadCurrent(record.Type, record.Id);
         if (current is null || current.Revision <= record.Revision)
         {
@@ -1018,6 +958,7 @@ public sealed class AssetRegistryStore
         PayloadType = value.PayloadType,
         EntryAsset = value.EntryAsset,
         IconAsset = value.IconAsset,
+        Metadata = value.Metadata is null ? null : CloneMetadata(value.Metadata),
         Attachments = value.Attachments.Select(attachment => new ContentObjectAttachment
         {
             Name = attachment.Name,
@@ -1050,6 +991,8 @@ public sealed class AssetRegistryStore
                 left.Sha256 != right.Sha256 || left.Size != right.Size ||
                 left.PayloadType != right.PayloadType || left.EntryAsset != right.EntryAsset ||
                 left.IconAsset != right.IconAsset ||
+                ((left.Metadata is null) != (right.Metadata is null)) ||
+                (left.Metadata is not null && right.Metadata is not null && !JsonEquals(left.Metadata, right.Metadata)) ||
                 !SameAttachments(left.Attachments, right.Attachments))
             {
                 return false;
@@ -1129,10 +1072,6 @@ public sealed class AssetRegistryStore
 
     private string RecordPath(string type, string id) =>
         Path.Combine(_records, type, id + ".json");
-    private string HistoryDirectory(string type, string id) =>
-        Path.Combine(_history, type, id);
-    private string HistoryPath(string type, string id, long revision) =>
-        Path.Combine(HistoryDirectory(type, id), revision + ".json");
     private string ChangePath(long revision) => Path.Combine(_changes, revision + ".json");
 
     private static bool IsUnder(string path, string root)

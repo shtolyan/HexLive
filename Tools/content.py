@@ -104,6 +104,15 @@ def parser() -> argparse.ArgumentParser:
     publish_all.add_argument(
         "--server-dll", default="/opt/hexlive/current/HexLive.Server")
 
+    compact = commands.add_parser("compact", help="verify current-only asset migration; preview unless --apply")
+    compact_destination = compact.add_mutually_exclusive_group(required=True)
+    compact_destination.add_argument("--host")
+    compact_destination.add_argument("--asset-root", type=Path)
+    compact.add_argument("--remote-root", default="/var/lib/hexlive/assets")
+    compact.add_argument("--remote-user", default="hexlive")
+    compact.add_argument("--server-dll", default="/opt/hexlive/current/HexLive.Server")
+    compact.add_argument("--apply", action="store_true", help="remove historical records and unreferenced payloads")
+
     return root
 
 
@@ -652,6 +661,21 @@ def run_checked(command: list[str]) -> None:
     subprocess.run(command, check=True)
 
 
+def compact_assets(args: argparse.Namespace) -> int:
+    if args.host:
+        validate_remote_destination(args)
+        command = ["ssh", args.host, *remote_server_invocation(args),
+                   "--asset-root", args.remote_root, "--compact-assets"]
+    else:
+        binary = Path(args.server_dll).expanduser()
+        invocation = server_invocation(str(binary)) if binary.is_file() else [
+            "dotnet", "run", "--project", str(REPO / "Server/HexLive.Server"), "--"]
+        command = invocation + ["--asset-root", str(args.asset_root.expanduser().resolve()), "--compact-assets"]
+    if args.apply:
+        command.append("--apply-asset-compaction")
+    return subprocess.run(command, cwd=REPO, check=False).returncode
+
+
 def main() -> int:
     args = parser().parse_args()
     try:
@@ -665,6 +689,8 @@ def main() -> int:
             return publish(args)
         if args.command == "publish-all":
             return publish_all(args)
+        if args.command == "compact":
+            return compact_assets(args)
         raise AssertionError(args.command)
     except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as error:
         print(f"[content] error: {error}", file=sys.stderr)

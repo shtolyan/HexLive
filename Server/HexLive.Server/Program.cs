@@ -61,6 +61,22 @@ public static class Program
             return 1;
         }
 
+        if (options.CompactAssets)
+        {
+            try
+            {
+                var registry = new AssetRegistryStore(options.AssetRoot);
+                Console.WriteLine(JsonSerializer.Serialize(registry.CompactStorage(options.ApplyAssetCompaction),
+                    new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+                return 0;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+            {
+                Console.Error.WriteLine($"[assets] compaction refused: {ex.Message}");
+                return 1;
+            }
+        }
+
         // §152.3: the installed server binary is also the SSH-only promotion
         // command. It never starts a world or opens an upload endpoint in this
         // mode; all bytes must already be under asset-root/staging.
@@ -127,6 +143,7 @@ public static class Program
         try
         {
             assetRegistry = new AssetRegistryStore(options.AssetRoot);
+            assetRegistry.RequireCompactedStorage();
             assetCatalog = new AssetGarmentCatalog(assetRegistry, options.SimDataPath);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
@@ -701,6 +718,9 @@ public sealed class ServerOptions
     /// <summary>SSH-only bootstrap/resume mode for many independent candidates.</summary>
     public string? PublishCandidatesDirectory { get; private set; }
 
+    public bool CompactAssets { get; private set; }
+    public bool ApplyAssetCompaction { get; private set; }
+
     /// <summary>
     /// Administrative platform bootstrap: keep verified variants absent from
     /// the incoming candidate. Metadata must remain byte-for-byte equivalent.
@@ -910,6 +930,12 @@ public sealed class ServerOptions
                 case "--retain-current-asset-variants":
                     options.RetainCurrentAssetVariants = true;
                     break;
+                case "--compact-assets":
+                    options.CompactAssets = true;
+                    break;
+                case "--apply-asset-compaction":
+                    options.ApplyAssetCompaction = true;
+                    break;
                 case "--autosave" when i + 1 < args.Length:
                     options.AutosaveSeconds = int.Parse(args[++i]);
                     break;
@@ -979,6 +1005,8 @@ public sealed class ServerOptions
                         "  --admin-icon-root PATH direct PNG previews for authenticated catalog\n" +
                         "  --web-root PATH  serve the WebGL client at /play/ (same origin as /watch)\n" +
                         "  --publish-candidate PATH  validate/promote one staged object, then exit\n" +
+                        "  --compact-assets  verify and preview migration to current content only\n" +
+                        "  --apply-asset-compaction  apply the previewed compaction, without starting a world\n" +
                         "  --publish-candidates DIR  promote sorted candidate JSON files, then exit\n" +
                         "  --retain-current-asset-variants  add a platform without dropping verified existing variants\n" +
                         "  --autosave N     seconds between saves, 0 to disable (default 60)\n" +
@@ -1010,6 +1038,11 @@ public sealed class ServerOptions
                     return null;
             }
         }
+
+        if (options.ApplyAssetCompaction && !options.CompactAssets)
+            throw new ArgumentException("--apply-asset-compaction requires --compact-assets");
+        if (options.CompactAssets && (options.PublishCandidatePath is not null || options.PublishCandidatesDirectory is not null))
+            throw new ArgumentException("Asset compaction and publication are separate administrative operations");
 
         if (options.CompanionProfile is { Length: > 0 } profile)
         {

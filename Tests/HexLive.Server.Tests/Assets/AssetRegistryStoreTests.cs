@@ -182,8 +182,7 @@ public sealed class AssetRegistryStoreTests
         Assert.That(attachment.Name, Is.EqualTo("vis"));
         Assert.That(_store.TryGetVerifiedBlob(attachment.Sha256, out _, out var size), Is.True);
         Assert.That(size, Is.EqualTo(attachment.Size));
-        Assert.That(Directory.GetFiles(Path.Combine(
-            _root, "history", "audio", "voice_jana_hungry_0")), Has.Length.EqualTo(1));
+        Assert.That(Directory.Exists(Path.Combine(_root, "history")), Is.False);
     }
 
     [Test]
@@ -279,7 +278,7 @@ public sealed class AssetRegistryStoreTests
     }
 
     [Test]
-    public async Task RollbackUsesNextRevisionAndReusesOldBlob()
+    public async Task RepublishFromSourceUsesNextCursorWithoutKeepingOldPayloads()
     {
         var v1 = Candidate("wear", "skirt.anarchy", "v1", hasIcon: true);
         var first = await _store.PublishAsync(v1);
@@ -289,12 +288,12 @@ public sealed class AssetRegistryStoreTests
         Assert.That(rollback.Record.Revision, Is.EqualTo(3));
         Assert.That(rollback.Record.Variants.Single().Sha256,
             Is.EqualTo(first.Record.Variants.Single().Sha256));
-        Assert.That(_store.ReadHistory("wear", "skirt.anarchy").Select(value => value.Revision),
-            Is.EqualTo(new long[] { 1, 2, 3 }));
+        Assert.That(Directory.Exists(Path.Combine(_root, "history")), Is.False);
+        Assert.That(Directory.GetFiles(Path.Combine(_root, "blobs")), Has.Length.EqualTo(1));
     }
 
     [Test]
-    public async Task OldRuntimeProfileGetsNewestCompatibleHistoryRevision()
+    public async Task CurrentRecordKeepsOneVariantForEachSupportedProfile()
     {
         var oldProfile = Candidate("wear", "skirt.anarchy", "old-profile", hasIcon: true);
         await _store.PublishAsync(oldProfile);
@@ -307,7 +306,7 @@ public sealed class AssetRegistryStoreTests
         var newPlayer = _store.Resolve(
             "wear", "skirt.anarchy", "StandaloneOSX", "unity6000-content2");
 
-        Assert.That(oldPlayer!.Revision, Is.EqualTo(1));
+        Assert.That(oldPlayer!.Revision, Is.EqualTo(2));
         Assert.That(newPlayer!.Revision, Is.EqualTo(2));
     }
 
@@ -322,7 +321,8 @@ public sealed class AssetRegistryStoreTests
         Assert.That(results.Select(value => value.Record.Revision).OrderBy(value => value),
             Is.EqualTo(new long[] { 1, 2 }));
         Assert.That(_store.RegistryRevision, Is.EqualTo(2));
-        Assert.That(_store.ReadHistory("wear", "skirt.anarchy"), Has.Count.EqualTo(2));
+        Assert.That(Directory.Exists(Path.Combine(_root, "history")), Is.False);
+        Assert.That(Directory.GetFiles(Path.Combine(_root, "blobs")), Has.Length.EqualTo(1));
     }
 
     [Test]
@@ -610,10 +610,9 @@ public sealed class AssetRegistryStoreTests
     }
 
     [Test]
-    public async Task PlatformGapDoesNotHideBehindAnOlderProfileFallback()
+    public async Task CoverageCountsRetainedCurrentProfilesWithoutHistoricalFallback()
     {
-        // §152.1 lets an old profile keep loading a history revision. That
-        // fallback is coverage, and must not be counted as a gap.
+        // Each supported profile now lives in the single current record.
         var first = BothPlatforms("wear", "skirt.anarchy", "skirt-v1");
         await _store.PublishAsync(first);
         var second = BothPlatforms("wear", "skirt.anarchy", "skirt-v2");
@@ -628,20 +627,131 @@ public sealed class AssetRegistryStoreTests
         var report = _store.AuditCoverage();
 
         Assert.That(oldProfile.PlatformMissing, Is.Empty);
-        Assert.That(oldProfile.Objects.Single().Revision, Is.EqualTo(1));
+        Assert.That(oldProfile.Objects.Single().Revision, Is.EqualTo(2));
 
-        // The audit lists what the registry publishes NOW, so a profile that
-        // only survives through history is not one of its pairs. The per-request
-        // index above is the answer for such a client, and it says "covered".
         Assert.That(report.Platforms.Select(value => value.Platform + "/" + value.RuntimeProfile),
             Is.EqualTo(new[]
             {
+                "StandaloneOSX/unity6000-content1",
                 "StandaloneOSX/unity6000-content2",
+                "StandaloneWindows64/unity6000-content1",
                 "StandaloneWindows64/unity6000-content2",
             }));
         Assert.That(report.Platforms
-            .Single(value => value.Platform == "StandaloneWindows64").Covered,
+            .Single(value => value.Platform == "StandaloneWindows64" && value.RuntimeProfile == "unity6000-content1").Covered,
             Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task SupersededPayloadIsDeletedOnlyAfterItsLastCurrentOwnerChanges()
+    {
+        var first = await _store.PublishAsync(Candidate("object", "shared.a", "shared", true));
+        await _store.PublishAsync(Candidate("object", "shared.b", "shared", true));
+        var sha = first.Record.Variants[0].Sha256;
+        await _store.PublishAsync(Candidate("object", "shared.a", "new-a", true));
+        Assert.That(_store.TryGetVerifiedBlob(sha, out _, out _), Is.True);
+        await _store.PublishAsync(Candidate("object", "shared.b", "new-b", true));
+        Assert.That(_store.TryGetVerifiedBlob(sha, out _, out _), Is.False);
+        Assert.That(_store.Resolve("object", "shared.a", "StandaloneOSX", "unity6000-content1"), Is.Not.Null);
+    }
+
+    [Test]
+    public async Task ReplacingVoiceRemovesOldAudioAndSidecarTogether()
+    {
+        var old = Candidate("audio", "voice.single", "audio-old", false);
+        old.Variants[0].Attachments.Add(Attachment("vis", "vis-old"));
+        await _store.PublishAsync(old);
+        var replacement = Candidate("audio", "voice.single", "audio-new", false);
+        replacement.Variants[0].Attachments.Add(Attachment("vis", "vis-new"));
+        await _store.PublishAsync(replacement);
+        Assert.That(_store.TryGetVerifiedBlob(old.Variants[0].Sha256, out _, out _), Is.False);
+        Assert.That(_store.TryGetVerifiedBlob(old.Variants[0].Attachments[0].Sha256, out _, out _), Is.False);
+        Assert.That(_store.TryGetVerifiedBlob(replacement.Variants[0].Attachments[0].Sha256, out _, out _), Is.True);
+    }
+
+    [Test]
+    public async Task LegacyCompactionPreservesLatestNativeMetadataAndRetiredSavePayload()
+    {
+        var (native, web) = await LegacyHistoryFixture();
+        var before = File.ReadAllBytes(Path.Combine(_root, "records", "wear", "skirt.anarchy.json"));
+        var preview = _store.CompactStorage();
+        Assert.That(preview.Applied, Is.False);
+        Assert.That(preview.PromotedVariants, Is.EqualTo(1));
+        Assert.That(File.ReadAllBytes(Path.Combine(_root, "records", "wear", "skirt.anarchy.json")), Is.EqualTo(before));
+        Assert.Throws<InvalidDataException>(() => _store.RequireCompactedStorage());
+
+        var applied = _store.CompactStorage(apply: true);
+        var mac = _store.Resolve("wear", "skirt.anarchy", "StandaloneOSX", "unity6000-content1")!;
+        var browser = _store.Resolve("wear", "skirt.anarchy", "WebGL", "unity6000-content1")!;
+        Assert.That(applied.Applied, Is.True);
+        Assert.That(mac.Variant!.Sha256, Is.EqualTo(native.Variants[0].Sha256));
+        Assert.That(mac.Metadata["displayName"].GetString(), Is.EqualTo("native metadata"));
+        Assert.That(browser.Variant!.Sha256, Is.EqualTo(web.Variants[0].Sha256));
+        Assert.That(browser.Metadata["displayName"].GetString(), Is.EqualTo("web metadata"));
+        Assert.That(mac.Revision, Is.EqualTo(browser.Revision));
+        Assert.That(Directory.Exists(Path.Combine(_root, "history")), Is.False);
+        Assert.That(_store.GetIndex("StandaloneOSX", "unity6000-content1").PlatformMissing, Is.Empty);
+        Assert.That(_store.CompactStorage(apply: true).PromotedVariants, Is.Zero);
+        Assert.That(_store.CompactStorage().HistoryRecords, Is.Zero);
+        Assert.DoesNotThrow(() => _store.RequireCompactedStorage());
+
+        var record = _store.ReadCurrentRecord("wear", "skirt.anarchy")!;
+        await _store.UpdateRecordAsync(record.Type, record.Id, record.Revision, "retired", record.Metadata);
+        var legacy = _store.ResolveMany(new AssetResolveRequest { Platform = "StandaloneOSX", RuntimeProfile = "unity6000-content1",
+            Objects = new List<AssetObjectKey> { new() { Type = record.Type, Id = record.Id } } });
+        Assert.That(legacy.Objects.Single().State, Is.EqualTo("legacy"));
+        Assert.That(legacy.Objects.Single().Variant!.Sha256, Is.EqualTo(native.Variants[0].Sha256));
+    }
+
+    [Test]
+    public async Task CorruptRetainedPayloadRefusesCompactionBeforeAnyPointerChanges()
+    {
+        var (native, _) = await LegacyHistoryFixture();
+        var current = Path.Combine(_root, "records", "wear", "skirt.anarchy.json");
+        var before = File.ReadAllBytes(current);
+        File.AppendAllText(Path.Combine(_root, "blobs", native.Variants[0].Sha256), "bad");
+        Assert.Throws<InvalidDataException>(() => _store.CompactStorage(apply: true));
+        Assert.That(File.ReadAllBytes(current), Is.EqualTo(before));
+        Assert.That(Directory.Exists(Path.Combine(_root, "history")), Is.True);
+    }
+
+    [Test]
+    public async Task CompactionRemovesOrphansAndHistoryOnlyIdsWithoutResurrectingThem()
+    {
+        var (native, _) = await LegacyHistoryFixture();
+        var orphan = Candidate("object", "removed.item", "not-current", true);
+        File.Copy(orphan.Variants[0].StagedPath, Path.Combine(_root, "blobs", orphan.Variants[0].Sha256));
+        var history = Path.Combine(_root, "history", "object", "removed.item");
+        Directory.CreateDirectory(history);
+        var old = new ContentObjectRecord { Type = orphan.Type, Id = orphan.Id, Revision = 1,
+            Variants = new List<ContentObjectVariant> { new() { Platform = "StandaloneOSX", RuntimeProfile = "unity6000-content1",
+                Sha256 = orphan.Variants[0].Sha256, Size = orphan.Variants[0].Size } } };
+        File.WriteAllText(Path.Combine(history, "1.json"), JsonSerializer.Serialize(old));
+        var applied = _store.CompactStorage(apply: true);
+        Assert.That(applied.RemovedBlobs, Is.EqualTo(1));
+        Assert.That(_store.ReadCurrentRecord(orphan.Type, orphan.Id), Is.Null);
+        Assert.That(_store.TryGetVerifiedBlob(orphan.Variants[0].Sha256, out _, out _), Is.False);
+        Assert.That(_store.TryGetVerifiedBlob(native.Variants[0].Sha256, out _, out _), Is.True);
+    }
+
+    private async Task<(ContentPublishCandidate Native, ContentPublishCandidate Web)> LegacyHistoryFixture()
+    {
+        var native = Candidate("wear", "skirt.anarchy", "native", true);
+        native.Metadata = Metadata("native metadata");
+        var old = (await _store.PublishAsync(native)).Record;
+        var web = Candidate("wear", "skirt.anarchy", "web", true);
+        web.Variants[0].Platform = "WebGL";
+        web.Metadata = Metadata("web metadata");
+        var current = new ContentObjectRecord { Type = web.Type, Id = web.Id, Revision = 2, Metadata = web.Metadata,
+            Variants = new List<ContentObjectVariant> { new() { Platform = "WebGL", RuntimeProfile = "unity6000-content1",
+                Sha256 = web.Variants[0].Sha256, Size = web.Variants[0].Size, IconAsset = "icon" } } };
+        File.Copy(web.Variants[0].StagedPath, Path.Combine(_root, "blobs", web.Variants[0].Sha256));
+        File.WriteAllText(Path.Combine(_root, "records", "wear", "skirt.anarchy.json"), JsonSerializer.Serialize(current));
+        var history = Path.Combine(_root, "history", "wear", "skirt.anarchy");
+        Directory.CreateDirectory(history);
+        File.WriteAllText(Path.Combine(history, "1.json"), JsonSerializer.Serialize(old));
+        File.WriteAllText(Path.Combine(history, "2.json"), JsonSerializer.Serialize(current));
+        return (native, web);
     }
 
     private ContentPublishCandidate BothPlatforms(string type, string id, string payload)

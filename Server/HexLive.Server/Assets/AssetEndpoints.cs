@@ -73,8 +73,10 @@ public static class AssetEndpoints
             {
                 try
                 {
-                    var history = store.ReadHistory(type, id);
-                    return history.Count == 0 ? Results.NotFound() : Results.Json(history);
+                    if (!ContentIdentity.IsType(type) || !ContentIdentity.IsId(id))
+                        return Results.BadRequest(new { error = "Invalid content identity." });
+                    return Results.Json(new { error = "Object history has been removed; only current content is stored." },
+                        statusCode: StatusCodes.Status410Gone);
                 }
                 catch (ArgumentException ex)
                 {

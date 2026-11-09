@@ -198,7 +198,7 @@ public static class AdminEndpoints
                 }
                 var wear = type == "wear" ? assetCatalog.ReadWear(id) : null;
                 return Html(AdminPages.CatalogRecord(
-                    record, assetRegistry.ReadHistory(type, id), wear,
+                    record, wear,
                     assetRegistry.RegistryRevision, worlds.CatalogRegistryRevision,
                     context.Request.Query["notice"]));
             }

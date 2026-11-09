@@ -467,7 +467,7 @@ onsubmit=""return confirm('Shut the server down? The world is saved first, and n
     }
 
     public static string CatalogRecord(ContentObjectRecord record,
-        IReadOnlyList<ContentObjectRecord> history, GarmentCatalogEntry? wear,
+        GarmentCatalogEntry? wear,
         long liveRevision, long pinnedRevision, string? notice)
     {
         var body = new StringBuilder();
@@ -532,16 +532,6 @@ onsubmit=""return confirm('Shut the server down? The world is saved first, and n
         }
         body.Append("</tbody></table></div></div>");
 
-        body.Append("<h2>Revision history</h2><div class='card'><div class='scroll'><table><thead><tr>")
-            .Append("<th>Revision</th><th>State</th><th>Published UTC</th><th>Variants</th></tr></thead><tbody>");
-        foreach (var item in history.OrderByDescending(value => value.Revision))
-        {
-            body.Append("<tr><td>").Append(item.Revision).Append("</td><td>")
-                .Append(Escape(item.State)).Append("</td><td>")
-                .Append(Escape(item.PublishedAtUtc.ToString("u"))).Append("</td><td>")
-                .Append(item.Variants.Count).Append("</td></tr>");
-        }
-        body.Append("</tbody></table></div></div>");
         return Page(record.Type + "/" + record.Id, body.ToString());
     }
 

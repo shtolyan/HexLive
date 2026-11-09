@@ -55,11 +55,6 @@ public sealed partial class AdminVoicePanel : MonoBehaviour
         doc.rootVisualElement.pickingMode = PickingMode.Ignore;
         _root = new VisualElement { pickingMode = PickingMode.Ignore }; _root.AddToClassList("admin-root"); doc.rootVisualElement.Add(_root);
         var style = Resources.Load<StyleSheet>("HexLive/UI/AdminVoice"); if (style != null) _root.styleSheets.Add(style);
-        var toggle = new Button(Microphone) { tooltip = L("title") }; toggle.AddToClassList("admin-toggle");
-        var icon = new VectorIcon(VectorIcon.Kind.Microphone, new Color(.86f, .69f, .37f)) { pickingMode = PickingMode.Ignore };
-        icon.AddToClassList("admin-toggle-icon"); toggle.Add(icon); _root.Add(toggle);
-        toggle.RegisterCallback<PointerEnterEvent>(_ => NpcSelection.PointerOverUi = true);
-        toggle.RegisterCallback<PointerLeaveEvent>(_ => NpcSelection.PointerOverUi = false);
         _modal = new VisualElement(); _modal.AddToClassList("admin-modal"); _modal.AddToClassList("admin-hidden"); _root.Add(_modal);
         var card = new VisualElement(); card.AddToClassList("admin-card"); _modal.Add(card);
         _windowModal = new RuntimeWindow(_root, card, () => SetOpen(false), "admin", _modal);

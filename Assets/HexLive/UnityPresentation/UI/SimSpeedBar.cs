@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Localization;
 using HexLive.UnityPresentation.Platform;
+using HexLive.UnityPresentation.Input;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -33,6 +34,11 @@ namespace HexLive.UnityPresentation.UI
         private bool _inHtml;
         private string _lastHudJson;
         private (int, LinkState, int, bool, int, bool, bool, bool, bool?, int, int, int, int, int, int, string)? _lastHudKey;
+        private (bool, int, int, string, bool)? _lastReportHudKey;
+        private VisualElement _reportHud;
+        private Label _reportCounts, _reportToast;
+        private Button _reportRetry, _reportMic;
+        private float _nextReportHud;
 
         // Weather widget (top-left): temperature, rain/clear, clock + phase.
         private VectorIcon _sunIcon;
@@ -110,6 +116,7 @@ namespace HexLive.UnityPresentation.UI
             Refresh();
             RefreshWeather();
             RefreshLink();
+            RefreshReportHud();
         }
 
         private void Build()
@@ -177,6 +184,45 @@ namespace HexLive.UnityPresentation.UI
             }
 
             BuildWeatherWidget(root);
+            BuildReportHud(root);
+        }
+
+        private void BuildReportHud(VisualElement root)
+        {
+            _reportHud = new VisualElement(); _reportHud.style.flexDirection = FlexDirection.Row;
+            _reportHud.style.alignItems = Align.Center; _reportHud.style.marginTop = 6;
+            _reportHud.style.paddingLeft = 6; _reportHud.style.paddingRight = 8;
+            _reportHud.style.backgroundColor = Panel; SetRadius(_reportHud, 10); root.Add(_reportHud);
+            _reportHud.RegisterCallback<PointerEnterEvent>(_ => NpcSelection.PointerOverUi = true);
+            _reportHud.RegisterCallback<PointerLeaveEvent>(_ => NpcSelection.PointerOverUi = false);
+            var mic = _reportMic = new Button(() => { RuntimeWindow.SuppressGesture(); DebugControlsPanel.OpenBugReport(); });
+            mic.tooltip = Loc.Get("bugs.voice.record"); mic.style.width = 42; mic.style.height = 38;
+            var icon = new VectorIcon(VectorIcon.Kind.Microphone, Gold); icon.style.width = 25; icon.style.height = 25;
+            mic.Add(icon); _reportHud.Add(mic);
+            _reportCounts = new Label(); _reportCounts.style.color = Gold; _reportCounts.style.marginLeft = 6;
+            _reportHud.Add(_reportCounts);
+            _reportRetry = new Button(() => { RuntimeWindow.SuppressGesture(); DebugControlsPanel.OpenFailedBugReport(); });
+            _reportRetry.style.color = new Color(.95f, .58f, .42f); _reportRetry.style.marginLeft = 6;
+            _reportHud.Add(_reportRetry);
+            _reportToast = new Label(); _reportToast.style.marginLeft = 6; _reportHud.Add(_reportToast);
+        }
+
+        private void RefreshReportHud()
+        {
+            if (_reportHud == null || Time.unscaledTime < _nextReportHud) return;
+            _nextReportHud = Time.unscaledTime + .1f;
+            _reportHud.style.display = _runner != null && _runner.IsReady && !LoadingScreen.IsActive ? DisplayStyle.Flex : DisplayStyle.None;
+            var sender = BugReportSender.Ensure(); int pending = BugReportSender.Pending, sent = BugReportSender.Completed;
+            _reportMic.tooltip = Loc.Get("bugs.voice.record");
+            var spin = "◐◓◑◒"[(int)(Time.unscaledTime * 8) % 4].ToString();
+            _reportCounts.text = (pending > 0 ? spin + " " + pending : "") + (sent > 0 ? "  ✓ " + sent : "");
+            _reportCounts.tooltip = string.Format(Loc.Get("bugs.queue.progress"), sent, pending);
+            _reportRetry.style.display = BugReportSender.Failed > 0 || sender.ToastWarning ? DisplayStyle.Flex : DisplayStyle.None;
+            _reportRetry.text = "! " + Loc.Get("bugs.queue.error_short") + (BugReportSender.Failed > 1 ? $" ({BugReportSender.Failed})" : "");
+            _reportRetry.tooltip = Loc.Get(sender.Error.Length > 0 ? sender.Error : "bugs.queue.failed");
+            bool success = sender.Toast == "bugs.queue.sent";
+            _reportToast.text = sender.ToastWarning || sender.Toast.Length == 0 ? "" : Loc.Get(success ? "bugs.queue.sent_short" : "bugs.queue.waiting");
+            _reportToast.style.color = success ? new Color(.40f, .85f, .55f) : Text;
         }
 
         // Top-left: 24°C · ☔/☀ Rain/Clear · 14:20 (day).
@@ -370,6 +416,8 @@ namespace HexLive.UnityPresentation.UI
             }
 
             var keyLink = _runner.Link;
+            var reporter = BugReportSender.Ensure();
+            var reportKey = (reporter.IsRecording, Mathf.RoundToInt(reporter.Level * 20), BugReportSender.Completed, reporter.Error, reporter.ToastWarning);
             var key = (keySnapshot.Tick, keyLink.State,
                 keyLink.PingMilliseconds >= 0 ? keyLink.PingMilliseconds / 10 : -1,
                 _runner.IsPaused, NearestPreset(_runner.SpeedMultiplier), keyLink.IsRemote,
@@ -377,12 +425,13 @@ namespace HexLive.UnityPresentation.UI
                 DebugControlsPanel.HtmlOpen, DebugControlsPanel.ReadyForTest, AdminVoicePanel.HtmlMicState,
                 CharacterPanel.HtmlBalanceVersion, Loc.Current == HexLive.UnityPresentation.Localization.Language.Russian ? 1 : 0,
                 BugReportSender.Pending, BugReportSender.Failed, BugReportSender.Ensure().Toast);
-            if (_lastHudJson != null && _lastHudKey == key)
+            if (_lastHudJson != null && _lastHudKey == key && _lastReportHudKey == reportKey)
             {
                 return;
             }
 
             _lastHudKey = key;
+            _lastReportHudKey = reportKey;
             var model = HudModel();
             if (model == null)
             {
@@ -446,12 +495,15 @@ namespace HexLive.UnityPresentation.UI
                 {
                     ["ready"] = DebugControlsPanel.ReadyForTest, ["canReport"] = DebugControlsPanel.CanReportBugs,
                     ["pending"] = BugReportSender.Pending, ["failed"] = BugReportSender.Failed,
+                    ["completed"] = BugReportSender.Completed, ["recording"] = BugReportSender.Ensure().IsRecording,
+                    ["level"] = Mathf.Round(BugReportSender.Ensure().Level * 20) / 20,
+                    ["warning"] = BugReportSender.Ensure().ToastWarning,
+                    ["error"] = BugReportSender.Ensure().Error.Length == 0 ? "" : Loc.Get(BugReportSender.Ensure().Error),
+                    ["toastSuccess"] = BugReportSender.Ensure().Toast == "bugs.queue.sent",
                     ["toast"] = BugReportSender.Ensure().Toast is var toast && toast.Length > 0
-                        ? string.Format(Loc.Get(toast), BugReportSender.Ensure().LastReportId) : "",
+                        ? Loc.Get(toast == "bugs.queue.sent" ? "bugs.queue.sent_short" : toast) : "",
                 },
                 ["debug"] = DebugControlsPanel.HtmlOpen is { } debugOpen ? new JObject { ["open"] = debugOpen } : null,
-                // §161: the admin microphone, only on a server that has the voice admin.
-                ["admin"] = AdminVoicePanel.HtmlMicState is var mic && mic >= 0 ? new JObject { ["recording"] = mic == 1 } : null,
                 // The account's balance as «10.07 🪙»; the breakdown is the chip's tooltip.
                 ["balance"] = CharacterPanel.HtmlBalanceAmount != null || CharacterPanel.HtmlBalanceUnavailable
                     ? new JObject
@@ -484,10 +536,6 @@ namespace HexLive.UnityPresentation.UI
                     break;
                 case "bugErrors":
                     DebugControlsPanel.OpenFailedBugReport();
-                    break;
-                case "admin":
-                    AdminVoicePanel.HtmlMicrophone();
-                    _lastHudKey = null;
                     break;
                 case "debug":
                     DebugControlsPanel.ToggleHtml();

@@ -7,13 +7,12 @@
 //   link: null | { state: 'live' | 'stalled' | 'reconnecting' | 'failed' | 'connecting', ping },
 //   paused, speed: 1 | 2 | 4 | 50 | 'max' (nearest preset), remote,
 //   build: null | { open },                  // §120.7 build mode, when it can be used
-//   bugs: null | { ready, canReport },       // §114: report a bug; ready = waiting for your test
+//   bugs: { canReport, recording, level, pending, failed, completed, toast },
 //   debug: null | { open },                  // the developer tools drawer
-//   admin: null | { recording },             // §161 admin voice: only on a server that has it
 //   balance: null | { amount: '10.07' | null (unavailable), details } } // the account, as «10.07 🪙»
 // Commands: pause (toggle), speed { value }, build (toggle the build tray), bug (the quick
-// bug report), debug (toggle the drawer), admin (the admin microphone:
-// opens the window until access is granted, then records / stops). On a shared world (remote) the
+// recording), bugErrors (retry a failed delivery), debug (toggle the drawer).
+// The administrator microphone is inside DEBUG. On a shared world (remote) the
 // server owns the clock: pause and >1× stay visible but disabled (§83).
 import { html, useEffect, useState } from '../html.js';
 import { tip } from '../tooltip.js';
@@ -75,20 +74,21 @@ function Build({ model, send }) {
   </div>`;
 }
 
-// The bug report is the player's tool in every test round: its own button,
-// with the number of fixes waiting for their check. DEBUG opens the dev tools.
+// The player's microphone and delivery status stay under the clock.
 function Tools({ model, send }) {
-  if (!model.bugs && !model.debug && !model.admin) return null;
-  return html`<div class="hx-pill hx-surface">
-    ${model.bugs && html`<button class="hx-seg hx-seg--wide" type="button" disabled=${!model.bugs.canReport}
-      title=${t('debug.report')} onClick=${() => send('bug')}>${icons.bug()}
-      ${model.bugs.pending > 0 && html`<b class="hx-hud__badge" title=${t('bugs.queue.waiting')}>↻ ${model.bugs.pending}</b>`}
-      ${model.bugs.ready > 0 && html`<b class="hx-hud__badge" title=${t('bugs.debug.ready', { 0: model.bugs.ready })}>${model.bugs.ready}</b>`}</button>`}
-    ${model.bugs?.failed > 0 && html`<button class="hx-seg hx-warn" type="button" aria-label=${t('bugs.queue.review')}
-      onClick=${() => send('bugErrors')}>! ${model.bugs.failed}</button>`}
-    ${model.bugs?.toast && html`<span class="hx-hud__report-toast" role="status">${model.bugs.toast}</span>`}
-    ${model.admin && html`<button class=${`hx-seg${model.admin.recording ? ' is-recording' : ''}`} type="button" aria-pressed=${!!model.admin.recording}
-      title=${t('admin.voice.title')} aria-label=${t('admin.voice.title')} onClick=${() => send('admin')}>${icons.mic()}</button>`}
+  if (!model.bugs && !model.debug) return null;
+  return html`<div class="hx-pill hx-surface hx-hud-tools">
+    ${model.bugs && html`<button class=${`hx-seg hx-bug-mic${model.bugs.recording ? ' is-recording' : ''}`} type="button" disabled=${!model.bugs.canReport}
+      title=${t('bugs.voice.record')} aria-label=${t('bugs.voice.record')} style=${{ '--voice-level': model.bugs.level || 0 }} onClick=${() => send('bug')}>${icons.mic()}</button>`}
+    ${model.bugs && (model.bugs.pending > 0 || model.bugs.completed > 0) && html`<span class="hx-bug-delivery" role="status"
+      title=${t('bugs.queue.progress', { 0: model.bugs.completed || 0, 1: model.bugs.pending || 0 })}>
+      ${model.bugs.pending > 0 && html`<span class="hx-bug-delivery__pending"><i class="hx-bug-spin" aria-hidden="true">↻</i> ${model.bugs.pending}</span>`}
+      ${model.bugs.completed > 0 && html`<span class="hx-bug-delivery__sent">✓ ${model.bugs.completed}</span>`}
+    </span>`}
+    ${model.bugs && (model.bugs.failed > 0 || model.bugs.warning) && html`<button class="hx-seg hx-bug-retry" type="button"
+      title=${model.bugs.error || t('bugs.queue.failed')} aria-label=${t('bugs.queue.error_short')} onClick=${() => send('bugErrors')}>
+      ! ${t('bugs.queue.error_short')}${model.bugs.failed > 1 ? ` (${model.bugs.failed})` : ''}</button>`}
+    ${model.bugs?.toast && !model.bugs.warning && html`<span class=${`hx-hud__report-toast${model.bugs.toastSuccess ? ' is-sent' : ''}`} role="status">${model.bugs.toast}</span>`}
     ${model.debug && html`<button class="hx-seg" type="button" aria-pressed=${!!model.debug.open} title="DEBUG" onClick=${() => send('debug')}>DEBUG</button>`}
   </div>`;
 }
@@ -125,6 +125,6 @@ function Corner({ model }) {
 
 export function Hud({ model, send }) {
   return html`<div class="hx-hud-top"><${Weather} model=${model} />
-    <div class="hx-hud-centre"><${Speed} model=${model} send=${send} /><${Build} model=${model} send=${send} /><${Tools} model=${model} send=${send} /></div>
+    <div class="hx-hud-centre"><div class="hx-hud-primary"><${Speed} model=${model} send=${send} /><${Build} model=${model} send=${send} /></div><${Tools} model=${model} send=${send} /></div>
     <${Corner} model=${model} /></div>`;
 }

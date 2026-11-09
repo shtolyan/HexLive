@@ -43,7 +43,8 @@ namespace HexLive.UnityPresentation.UI
         }
 
         public static bool CanReportBugs => true;
-        public static void OpenFailedBugReport() => _instance?._bugReportPanel?.OpenFailedReport();
+        public static void OpenFailedBugReport()
+        { if (!BugReportSender.Ensure().RetryFirstFailed()) OpenBugReport(); }
 
         /// <summary>Fixes waiting for the player's test; 0 until the tracker was loaded once.</summary>
         public static int ReadyForTest =>
@@ -135,8 +136,7 @@ namespace HexLive.UnityPresentation.UI
                 case "trace": ToggleTrace(); break;
                 case "hexInspector": ToggleHexInspector(); break;
                 case "adminVoice":
-                    if (_runner == null) _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
-                    _runner?.GetComponent<AdminVoicePanel>()?.OpenDebug();
+                    AdminVoicePanel.HtmlMicrophone();
                     break;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 case "console": _runtimeConsole?.Toggle(); break;

@@ -10,8 +10,7 @@ using UnityEngine.UIElements;
 namespace HexLive.UnityPresentation.UI
 {
     /// <summary>
-    /// Two deliberately separate surfaces over BUGS.json: a small quick-report
-    /// dialog and a large tabbed manager. The store remains the source of truth.
+    /// Voice capture hands reports to a background queue; the manager uses Flashback.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public sealed partial class BugReportPanel : MonoBehaviour
@@ -140,7 +139,7 @@ namespace HexLive.UnityPresentation.UI
             }
         }
 
-        // Compatibility: the original debug button now opens the quick form.
+        // Both HUD and debug entry points start voice capture immediately.
         public void Toggle() => ToggleQuick();
         public void ToggleQuick() => SetQuickVisible(!_quickVisible);
         public void ToggleManager() => SetManagerVisible(!_managerVisible);
@@ -156,7 +155,7 @@ namespace HexLive.UnityPresentation.UI
             {
                 _managerVisible = false;
                 BugReportStore.CheckExternalChange();
-                _quickInput?.Focus();
+                if (_reviewJob != null) _quickInput?.Focus();
             }
 
             ApplyVisible();
@@ -248,38 +247,43 @@ namespace HexLive.UnityPresentation.UI
         private void BuildQuickWindow()
         {
             _quickWindow.Add(BuildHeader(Loc.Get("bugs.quick.title"), () => SetQuickVisible(false)));
+            _reportRecording = new VisualElement();
+            _quickWindow.Add(_reportRecording);
+            BuildVoiceRecordingCard();
+            _reportReview = new VisualElement();
+            _quickWindow.Add(_reportReview);
             var hint = new Label(Loc.Get("bugs.quick.hint"));
             hint.style.color = Dim;
             hint.style.fontSize = 11;
             hint.style.whiteSpace = WhiteSpace.Normal;
             hint.style.marginBottom = 8f;
-            _quickWindow.Add(hint);
+            _reportReview.Add(hint);
 
             _reportPreview = new Image { scaleMode = ScaleMode.ScaleToFit };
             _reportPreview.style.height = 160f;
             _reportPreview.image = _reportTexture;
-            _quickWindow.Add(_reportPreview);
+            _reportReview.Add(_reportPreview);
             _reportStatus = new Label(); _reportStatus.style.whiteSpace = WhiteSpace.Normal;
             _reportStatus.style.marginTop = 6f; _reportStatus.style.marginBottom = 6f;
-            _quickWindow.Add(_reportStatus);
+            _reportReview.Add(_reportStatus);
             _recordReportButton = new Button(ToggleReportRecording) { text = Loc.Get("bugs.voice.record") };
             _recordReportButton.style.height = 32f;
-            _quickWindow.Add(_recordReportButton);
+            _reportReview.Add(_recordReportButton);
 
             _quickInput = new TextField { multiline = true, maxLength = 12000 };
             _quickInput.style.fontSize = 13;
             _quickInput.style.minHeight = 110f;
             _quickInput.style.whiteSpace = WhiteSpace.Normal;
-            _quickWindow.Add(_quickInput);
+            _reportReview.Add(_quickInput);
 
             var actions = MakeActionRow();
             actions.style.marginTop = 10f;
             if (!ClosedTestAccess.Enabled || ClosedTestAccess.Can("bugs.read"))
                 actions.Add(MakeButton(Loc.Get("bugs.open_manager"), Raised, () => SetManagerVisible(true)));
             actions.Add(MakeButton(Loc.Get("bugs.submit"), Accent, Submit));
-            _quickWindow.Add(actions);
+            _reportReview.Add(actions);
             _reportJobs = new ScrollView(); _reportJobs.style.maxHeight = 180f;
-            _quickWindow.Add(_reportJobs);
+            _reportReview.Add(_reportJobs);
             RefreshQuickReporter();
         }
 

@@ -7,7 +7,7 @@ namespace HexLive.UnityPresentation.UI
 {
 /// <summary>
 /// §174.7: the admin voice window as the page's «adminVoice», its microphone
-/// as a HUD button. The UI Toolkit root never shows on the web; the window's
+/// under DEBUG. The UI Toolkit root never shows on the web; the window's
 /// open state, its RuntimeWindow (world gate) and every request stay here.
 /// The page has its own text fields, so it hands over the text with the
 /// command; confirming is two buttons that answer «да» / «отмена», exactly
@@ -21,11 +21,11 @@ public sealed partial class AdminVoicePanel
     private bool _htmlAvailable;
     private (bool, string, string, bool, bool, bool, string, bool, bool)? _lastHtmlKey;
 
-    /// <summary>The HUD microphone: -1 none on this server, 0 idle, 1 recording.</summary>
+    /// <summary>The debug microphone: -1 none on this server, 0 idle, 1 recording.</summary>
     public static int HtmlMicState =>
         _instance == null || !_instance._htmlAvailable ? -1 : _instance._capture.IsRecording ? 1 : 0;
 
-    /// <summary>The HUD microphone: the window until access is granted, then record / stop.</summary>
+    /// <summary>The debug microphone: the window until access is granted, then record / stop.</summary>
     public static void HtmlMicrophone()
     {
         if (_instance != null && _instance._htmlAvailable) _instance.Microphone();

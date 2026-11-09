@@ -1,5 +1,5 @@
 // §174.7: the bug tracker in the game (§114, BugReportPanel + BugReportStore).
-// Two screens, as in §114.1: the small centred quick form («bugReport») and
+// Two screens: immediate voice capture («bugReport»; editor only for explicit failed review) and
 // the big manager («bugManager»): tabs, status filters, a list on the left
 // and the chosen report's card on the right (the §114.3B card over the list).
 // C# talks to Flashback; the page only shows and edits text.
@@ -21,6 +21,7 @@ import { t } from '../i18n.js';
 import { icons } from '../icons.js';
 import { Button, ModalWindow } from '../components.js';
 import { asset } from '../bridge.js';
+import { VoiceCapture } from './voice.js';
 
 const STATUSES = ['created', 'in_progress', 'ready_for_test', 'rework', 'fixed'];
 
@@ -46,6 +47,11 @@ export function BugReport({ model, send }) {
   const area = useRef(null);
   useEffect(() => { setText(model.text || ''); area.current?.focus(); }, [model.draftId]);
   const update = (value) => { setText(value); send('draft', { text: value }); };
+  if (!model.reviewing) return html`<${VoiceCapture} model=${{
+    title: t('bugs.voice.record'), report: true, level: model.level || 0,
+    ready: !!model.ready, seconds: model.seconds || 0, error: model.error,
+    capturedVoice: !!model.capturedVoice,
+  }} send=${(command) => send(command === 'done' ? 'record' : 'close')} />`;
   return html`
     <${ModalWindow} id="bug-quick" title=${t('bugs.quick.title')} size="wide" onClose=${() => send('close')}>
       <p class="hx-muted">${t('bugs.capture.attached')}</p>

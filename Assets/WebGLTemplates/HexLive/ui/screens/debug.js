@@ -14,6 +14,7 @@
 import { html } from '../html.js';
 import { t } from '../i18n.js';
 import { icons } from '../icons.js';
+import { icons } from '../icons.js';
 
 const GROUPS = [
   ['health', [['wound', 'danger'], ['bruise'], ['clearWounds']]],
@@ -45,7 +46,7 @@ export function Debug({ model, send }) {
                   disabled=${BODY.has(group) && !model.mutable && id !== 'clothesHidden'}
                   aria-pressed=${toggle ? !!on[id] : undefined} onClick=${() => send('act', { id })}>
                   ${toggle && html`<i class="hx-debug__check" aria-hidden="true">${on[id] ? '✓' : ''}</i>`}
-                  <span>${id === 'shade' ? t('debug.shade', { 0: model.shade }) : t(`debug.${id}`)}</span>
+                  <span>${id === 'adminVoice' && icons.mic()}${id === 'shade' ? t('debug.shade', { 0: model.shade }) : t(`debug.${id}`)}</span>
                 </button>`)}
             </div>
           </div>`)}

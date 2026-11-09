@@ -81,6 +81,27 @@ const BARS = 18;
 
 export function VoiceCapture({ model, send }) {
   const lit = Math.round(Math.max(0, Math.min(1, model.level || 0)) * BARS);
+  if (model.report) {
+    const level = Math.max(0, Math.min(1, model.level || 0));
+    const seconds = Math.floor(model.seconds || 0);
+    return html`<div class="hx-backdrop hx-surface hx-capture">
+      <section class="hx-capture__card hx-bug-voice" role="dialog" aria-modal="true" aria-label=${model.title}>
+        <span class="hx-capture__icon hx-bug-voice__mic" style=${{ transform: `scale(${1 + level * .16})`, '--voice-level': level }}>${icons.mic()}</span>
+        <h2>${model.ready ? model.title : t('bugs.voice.permission')}</h2>
+        <div class=${`hx-bug-voice__wave${level > .02 ? ' is-speaking' : ''}`} aria-hidden="true">
+          ${Array.from({ length: 41 }, (_, i) => html`<i key=${i} style=${{
+            height: `${6 + Math.pow(level, .7) * (18 + Math.abs(Math.sin(i * 1.63)) * 76)}px`,
+            animationDelay: `${-i * .08}s`, animationDuration: `${.65 + (i % 7) * .06}s`,
+          }}></i>`)}
+        </div>
+        <p class="hx-muted hx-bug-voice__time">${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')} / 1:30</p>
+        <p class=${model.error ? 'hx-warn' : 'hx-muted'} role="status">${t(model.error || 'bugs.voice.hint')}</p>
+        <button type="button" class="hx-capture__done" disabled=${!model.ready && !model.capturedVoice} onClick=${() => send('done')}>
+          ✓ ${t(model.error && model.capturedVoice ? 'bugs.queue.retry' : 'bugs.voice.done')}</button>
+        <button type="button" class="hx-capture__cancel" onClick=${() => send('cancel')}>${t('bugs.cancel')}</button>
+      </section>
+    </div>`;
+  }
   return html`
     <div class="hx-backdrop hx-surface hx-capture">
       <section class="hx-capture__card" role="dialog" aria-modal="true" aria-label=${model.title}>

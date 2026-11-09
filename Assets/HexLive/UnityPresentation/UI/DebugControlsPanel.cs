@@ -205,7 +205,7 @@ namespace HexLive.UnityPresentation.UI
             box.Add(MakeButton(Loc.Get("admin.voice.debug"), Raised, () =>
             {
                 if (_runner == null) _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
-                _runner?.GetComponent<AdminVoicePanel>()?.OpenDebug();
+                AdminVoicePanel.HtmlMicrophone();
             }));
             box.Add(MakeButton("+ Random wound", Wound, AddRandomWound));
             box.Add(MakeButton("+ Random bruise", Raised, AddRandomBruise));

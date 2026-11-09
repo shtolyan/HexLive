@@ -31328,8 +31328,8 @@ MonoBehaviour:
       TermType: 0
       Description:
       Languages:
-      - 'Done — send in background'
-      - 'Готово — отправить в фоне'
+      - 'Done'
+      - 'Готово'
       Flags: 0101
       Languages_Touch: []
     - Term: 'bugs.voice.recording'
@@ -31352,24 +31352,24 @@ MonoBehaviour:
       TermType: 0
       Description:
       Languages:
-      - 'Microphone unavailable or in use. Allow microphone access or type a description.'
-      - 'Микрофон недоступен или занят. Разрешите доступ к микрофону или напишите описание.'
+      - 'Microphone unavailable or in use. Allow microphone access and try again.'
+      - 'Микрофон недоступен или занят. Разрешите доступ и попробуйте снова.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'bugs.voice.interrupted'
       TermType: 0
       Description:
       Languages:
-      - 'Recording stopped when the app lost focus. Record again or type your report.'
-      - 'Запись остановлена при уходе из приложения. Запишите ещё раз или напишите описание.'
+      - 'Recording stopped when the app lost focus. Tap the microphone to record again.'
+      - 'Запись прервалась при уходе из приложения. Нажмите микрофон и запишите снова.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'bugs.voice.empty'
       TermType: 0
       Description:
       Languages:
-      - 'No speech or description yet. Record again or type your report.'
-      - 'Пока нет речи или описания. Запишите ещё раз или напишите текст.'
+      - 'No speech recorded. Tap the microphone to try again.'
+      - 'Речь не записана. Нажмите микрофон и попробуйте снова.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'bugs.voice.failed'
@@ -31392,16 +31392,16 @@ MonoBehaviour:
       TermType: 0
       Description:
       Languages:
-      - 'Reporting is not configured in this build. Your draft remains here.'
-      - 'Отправка репортов не настроена в этой сборке. Черновик остаётся в окне.'
+      - 'Reporting is not configured in this build.'
+      - 'Отправка репортов не настроена в этой сборке.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'bugs.queue.full'
       TermType: 0
       Description:
       Languages:
-      - 'The report queue is full. Wait for a delivery or remove a failed report; your draft stays here.'
-      - 'Очередь репортов заполнена. Дождитесь отправки или удалите неудачный репорт. Черновик остаётся в окне.'
+      - 'The report queue is full. Wait for a delivery or retry a failed report.'
+      - 'Очередь заполнена. Дождитесь отправки или повторите неудачный репорт.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'bugs.queue.accepted'
@@ -31498,6 +31498,46 @@ MonoBehaviour:
       Languages:
       - 'The server refused this report. Review it and try again.'
       - 'Сервер отклонил репорт. Проверьте его и повторите попытку.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.voice.permission'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Allow microphone access'
+      - 'Разрешите доступ к микрофону'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.voice.hint'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Press Done and keep playing — your report sends in the background.'
+      - 'Нажмите «Готово» и играйте дальше — баг отправится в фоне.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.queue.progress'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Sent: {0} · In queue: {1}'
+      - 'Отправлено: {0} · В очереди: {1}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.queue.error_short'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Error · Retry'
+      - 'Ошибка · Повторить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'bugs.queue.sent_short'
+      TermType: 0
+      Description:
+      Languages:
+      - 'OK · Report sent'
+      - 'OK · Баг отправлен'
       Flags: 0101
       Languages_Touch: []
     CaseInsensitiveTerms: 0

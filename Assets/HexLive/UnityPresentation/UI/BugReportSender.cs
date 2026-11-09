@@ -27,13 +27,16 @@ namespace HexLive.UnityPresentation.UI
         }
         public static int Pending => _instance != null ? _instance.Queue.PendingCount : 0;
         public static int Failed => _instance != null ? _instance.Queue.FailedCount : 0;
+        public static int Completed => _instance != null ? _instance.Queue.CompletedCount : 0;
         public readonly BugReportQueue Queue = new();
         public event Action Changed;
         public bool IsRecording => _microphone?.IsRecording == true;
+        public bool MicrophoneReady => _microphone?.IsReady == true;
         public float Level => _microphone?.Level ?? 0;
-        public float RecordingSeconds => IsRecording ? Time.realtimeSinceStartup - _recordingStart : 0;
+        public float RecordingSeconds => IsRecording && _recordingReady ? Time.realtimeSinceStartup - _recordingStart : 0;
         public string Error { get; private set; } = "";
         public string ToastKey { get; private set; } = "";
+        public bool ToastWarning { get; private set; }
         public int LastReportId { get; private set; }
         public string Toast => Time.realtimeSinceStartup < _toastUntil ? ToastKey : "";
         private Connection _connection;
@@ -41,6 +44,8 @@ namespace HexLive.UnityPresentation.UI
         private UnityWebRequest _request;
         private float _recordingStart, _toastUntil;
         private byte[] _completedRecording;
+        private bool _recordingReady;
+        private const long VoiceReservation = 4 * 1024 * 1024 + 90 * 16000 * 2 + 44 + 128 * 1024 + BugReportQueue.MaxEntries * 24000;
         public bool Configured => _connection != null && _connection.project == "hexlive" &&
             !string.IsNullOrWhiteSpace(_connection.token) && BugReportConnectionPolicy.IsApi(_connection.api);
         private void Awake()
@@ -52,6 +57,8 @@ namespace HexLive.UnityPresentation.UI
         }
         private void Update()
         {
+            if (IsRecording && MicrophoneReady && !_recordingReady)
+            { _recordingReady = true; _recordingStart = Time.realtimeSinceStartup; }
             if (IsRecording && _microphone.Tick(Time.unscaledDeltaTime)) FinishRecording();
             var job = Queue.BeginNext(Time.realtimeSinceStartup);
             if (job != null) StartCoroutine(Deliver(job));
@@ -59,7 +66,8 @@ namespace HexLive.UnityPresentation.UI
         public bool StartRecording()
         {
             Error = ""; _completedRecording = null;
-            if (!_microphone.Start(out _)) { Error = "bugs.voice.unavailable"; Notify(); return false; }
+            _recordingReady = false;
+            if (!_microphone.Start(out _)) { ShowError("bugs.voice.unavailable"); return false; }
             _recordingStart = Time.realtimeSinceStartup; Notify(); return true;
         }
         public void FinishRecording()
@@ -67,13 +75,29 @@ namespace HexLive.UnityPresentation.UI
             if (!IsRecording) return;
             var raw = _microphone.Stop(out _);
             try { _completedRecording = BugReportWav.Prepare(raw); Error = ""; }
-            catch { Error = "bugs.voice.empty"; _completedRecording = null; }
+            catch { Error = "bugs.voice.empty"; _completedRecording = null; SetToast(Error, true); }
             Notify();
         }
         public byte[] TakeRecording()
         { var value = _completedRecording; _completedRecording = null; return value; }
         public bool HasRecording => _completedRecording != null;
-        public void ClearError() => Error = "";
+        public void ClearError() { Error = ""; if (ToastWarning) ToastKey = ""; ToastWarning = false; }
+        public bool PrepareVoiceReport()
+        {
+            ClearError();
+            if (!Configured) { ShowError("bugs.report.not_configured"); return false; }
+            if (!Queue.CanFit(VoiceReservation)) { ShowError("bugs.queue.full"); return false; }
+            return true;
+        }
+        public bool RetryFirstFailed()
+        {
+            var job = Queue.Jobs.FirstOrDefault(j => j.State == BugReportQueue.Delivery.Failed);
+            if (job == null) return false;
+            ClearError(); return Retry(job, job.Text);
+        }
+        private void SetToast(string key, bool warning = false)
+        { ToastKey = key; ToastWarning = warning; _toastUntil = Time.realtimeSinceStartup + (warning ? 6 : 4); }
+        private void ShowError(string key) { Error = key; SetToast(key, true); Notify(); }
         public void CancelRecording()
         { _microphone?.Cancel(); _completedRecording = null; Notify(); }
         public bool Enqueue(string context, byte[] image, byte[] wav, string text)
@@ -84,7 +108,7 @@ namespace HexLive.UnityPresentation.UI
             { Error = "bugs.voice.empty"; Notify(); return false; }
             if (!Queue.Enqueue(new BugReportQueue.Job(context, image, wav, Bound(text, 12000))))
             { Error = "bugs.queue.full"; Notify(); return false; }
-            ToastKey = "bugs.queue.accepted"; _toastUntil = Time.realtimeSinceStartup + 5; Notify(); return true;
+            SetToast("bugs.queue.accepted"); Notify(); return true;
         }
         public bool Retry(BugReportQueue.Job job, string text)
         {
@@ -104,6 +128,7 @@ namespace HexLive.UnityPresentation.UI
             {
                 if (Queue.Working == job)
                     Queue.Fail(job, "bugs.send.failed");
+                if (job.State == BugReportQueue.Delivery.Failed) SetToast(job.Error, true);
                 Notify();
             }
         }
@@ -153,7 +178,7 @@ namespace HexLive.UnityPresentation.UI
                 var receipt = Read<Receipt>(call.downloadHandler.text);
                 if (receipt == null || receipt.id <= 0) { Queue.RetryNetwork(job, Time.realtimeSinceStartup, "bugs.send.failed"); yield break; }
                 LastReportId = receipt.id; Queue.Finish(job);
-                ToastKey = "bugs.queue.sent"; _toastUntil = Time.realtimeSinceStartup + 6; Notify();
+                SetToast("bugs.queue.sent"); Notify();
             }
         }
         private bool Succeeded(BugReportQueue.Job job, UnityWebRequest call)
@@ -179,7 +204,7 @@ namespace HexLive.UnityPresentation.UI
         private void InterruptRecording()
         {
             if (!IsRecording) return;
-            _microphone.Cancel(); _completedRecording = null; Error = "bugs.voice.interrupted"; Notify();
+            _microphone.Cancel(); _completedRecording = null; ShowError("bugs.voice.interrupted");
         }
         private void OnApplicationFocus(bool focus) { if (!focus) InterruptRecording(); }
         private void OnApplicationPause(bool paused) { if (paused) InterruptRecording(); }

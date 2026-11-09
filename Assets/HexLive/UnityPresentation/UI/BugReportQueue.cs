@@ -31,13 +31,15 @@ namespace HexLive.UnityPresentation.UI
         private readonly List<Job> _jobs = new();
         public IReadOnlyList<Job> Jobs => _jobs;
         public Job Working { get; private set; }
+        public int CompletedCount { get; private set; }
         public int PendingCount => _jobs.Count(j => j.State != Delivery.Failed);
         public int FailedCount => _jobs.Count(j => j.State == Delivery.Failed);
-        public bool HasSlot => _jobs.Count < MaxEntries && _jobs.Sum(j => j.Bytes) < MaxBytes;
+        public bool HasSlot => CanFit(1);
+        public bool CanFit(long bytes) => bytes >= 0 && bytes <= MaxBytes &&
+            _jobs.Count < MaxEntries && _jobs.Sum(j => j.Bytes) <= MaxBytes - bytes;
         public bool Enqueue(Job job)
         {
-            if (job == null || _jobs.Contains(job) || _jobs.Count >= MaxEntries ||
-                job.Bytes + _jobs.Sum(j => j.Bytes) > MaxBytes) return false;
+            if (job == null || _jobs.Contains(job) || !CanFit(job.Bytes)) return false;
             _jobs.Add(job); return true;
         }
         public Job BeginNext(float now)
@@ -46,7 +48,7 @@ namespace HexLive.UnityPresentation.UI
             return Working = _jobs.FirstOrDefault(j => j.State == Delivery.Waiting && j.RetryAt <= now);
         }
         public void Finish(Job job)
-        { _jobs.Remove(job); if (Working == job) Working = null; }
+        { if (_jobs.Remove(job)) CompletedCount++; if (Working == job) Working = null; }
         public void Release(Job job)
         { if (Working == job) Working = null; }
         public void Fail(Job job, string error)

@@ -12,6 +12,44 @@ namespace HexLive.Simulation.Tests.Behavior;
 public sealed class BugReporterQueueTests
 {
     [Test]
+    public void HudSentCounterCountsAcknowledgedOwnedReportsOnlyOnce()
+    {
+        var queue = new BugReportQueue();
+        var first = new BugReportQueue.Job("tick=1", null, null, "first");
+        var second = new BugReportQueue.Job("tick=2", null, new byte[] { 1 }, "");
+        queue.Enqueue(first); queue.Enqueue(second);
+        queue.Finish(new BugReportQueue.Job("", null, null, "foreign"));
+        Assert.That(queue.CompletedCount, Is.Zero);
+        queue.Finish(first); queue.Finish(first);
+        Assert.That(queue.CompletedCount, Is.EqualTo(1));
+        queue.Fail(second, "network");
+        Assert.That(queue.PendingCount, Is.Zero);
+        Assert.That(queue.FailedCount, Is.EqualTo(1));
+        Assert.That(queue.Resubmit(second, second.Text), Is.True);
+        Assert.That(queue.PendingCount, Is.EqualTo(1));
+        Assert.That(queue.CompletedCount, Is.EqualTo(1), "Retrying is not an acknowledgement.");
+        queue.Finish(second);
+        Assert.That(queue.CompletedCount, Is.EqualTo(2));
+        Assert.That(queue.PendingCount, Is.Zero);
+    }
+
+    [Test]
+    public void VoiceCapacityIsCheckedBeforeRecordingWithoutDroppingQueuedPayloads()
+    {
+        var queue = new BugReportQueue();
+        const int reservation = 7 * 1024 * 1024;
+        var existing = new BugReportQueue.Job("", new byte[BugReportQueue.MaxBytes - reservation + 1], null, "");
+        Assert.That(queue.Enqueue(existing), Is.True);
+        Assert.That(queue.HasSlot, Is.True, "A tiny report fits, a full recording does not.");
+        Assert.That(queue.CanFit(reservation), Is.False);
+        Assert.That(queue.CanFit(-1), Is.False);
+        Assert.That(queue.CanFit(long.MaxValue), Is.False);
+        Assert.That(queue.Jobs.Single(), Is.SameAs(existing));
+        queue.Finish(existing);
+        Assert.That(queue.CanFit(reservation), Is.True);
+    }
+
+    [Test]
     public void FailedHeadDoesNotBlockAnotherReportAndRetryRetainsItsFrozenPayload()
     {
         var queue = new BugReportQueue();

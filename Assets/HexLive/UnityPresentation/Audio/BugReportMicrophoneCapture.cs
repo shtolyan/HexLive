@@ -16,6 +16,7 @@ namespace HexLive.UnityPresentation.Audio
         private bool _recording, _ownsMute, _previousMute;
         private FMOD.ChannelGroup _master;
         public bool IsRecording => _recording;
+        public bool IsReady => _recording && HexLiveBugMicState() == 2;
         public float Level => _recording ? HexLiveBugMicLevel() : 0;
         public bool Start(out string error)
         {
@@ -64,6 +65,7 @@ namespace HexLive.UnityPresentation.Audio
 #else
         private readonly FmodMicrophoneCapture _native = new(90f, finishOnSilence: false);
         public bool IsRecording => _native.IsRecording;
+        public bool IsReady => _native.IsRecording;
         public float Level => _native.Level;
         public bool Start(out string error) => _native.Start(out error);
         public bool Tick(float delta) => _native.Tick(delta);

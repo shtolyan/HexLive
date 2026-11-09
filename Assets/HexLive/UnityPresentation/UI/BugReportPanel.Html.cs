@@ -54,7 +54,7 @@ namespace HexLive.UnityPresentation.UI
 
         private JObject QuickReporterModel()
         {
-            if (_capturedPng != null && !HtmlUi.HasAsset(ReportImageKey))
+            if (_reviewJob != null && _capturedPng != null && !HtmlUi.HasAsset(ReportImageKey))
                 HtmlUi.Asset(ReportImageKey, "data:image/png;base64," + Convert.ToBase64String(_capturedPng));
             var queue = new JArray();
             foreach (var job in _sender.Queue.Jobs)
@@ -62,8 +62,9 @@ namespace HexLive.UnityPresentation.UI
                     ["text"] = job.Text.Length > 100 ? job.Text.Substring(0, 100) : job.Text });
             var error = !string.IsNullOrEmpty(_sender.Error) ? _sender.Error : _reportError;
             return new JObject { ["draftId"] = _captureSession, ["text"] = _quickInput.value,
-                ["image"] = _capturedPng == null ? null : ReportImageKey, ["context"] = "",
+                ["image"] = _reviewJob == null || _capturedPng == null ? null : ReportImageKey, ["context"] = "",
                 ["error"] = error, ["recording"] = _sender.IsRecording,
+                ["ready"] = _sender.MicrophoneReady, ["capturedVoice"] = _voiceWav != null,
                 ["seconds"] = Mathf.FloorToInt(_sender.RecordingSeconds), ["level"] = _sender.Level,
                 ["pending"] = BugReportSender.Pending, ["failed"] = BugReportSender.Failed,
                 ["reviewing"] = _reviewJob != null, ["queue"] = queue,

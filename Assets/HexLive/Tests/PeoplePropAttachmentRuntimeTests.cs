@@ -138,7 +138,11 @@ public sealed class PeoplePropAttachmentRuntimeTests
                         {
                             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>((string)r["main"]);
                             if (HexLive.Simulation.Content.GroundPileCatalog.TryGet(id, false, out var profile) && profile.TargetSize <= 0f)
-                                Assert.That(prop.transform.localScale, Is.EqualTo(prefab.transform.localScale), id + " native resource scale");
+                            {
+                                ObjectFit.TryMeasuredSize(prefab, id, out var nativeSize);
+                                ObjectFit.TryMeasuredSize(prop, id, out var carriedNativeSize);
+                                Assert.That(carriedNativeSize, Is.EqualTo(nativeSize).Within(.001f), id + " native world size");
+                            }
                             else
                             {
                                 ObjectFit.TryMeasuredSize(prop, id, out var resourceSize);

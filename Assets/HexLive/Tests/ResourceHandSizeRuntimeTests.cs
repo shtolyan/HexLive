@@ -21,6 +21,8 @@ namespace HexLive.Tests
         [TestCase("resource.herb_seed", true)]
         [TestCase("resource.stick", false)]
         [TestCase("resource.fiber", true)]
+        [TestCase("resource.palm_crown", false)]
+        [TestCase("resource.palm_crown_small", true)]
         public void RealResourceUsesGroundSizeUnderScaledRotatedHand(string id, bool left)
         {
             const BindingFlags flags = BindingFlags.Static | BindingFlags.NonPublic;
@@ -44,7 +46,12 @@ namespace HexLive.Tests
                 prop = (GameObject)type.GetMethod("Create", BindingFlags.Static | BindingFlags.Public).Invoke(null, new object[] { id, hand.transform, left });
                 Assert.That(prop, Is.Not.Null);
                 Assert.That(ObjectFit.TryMeasuredSize(prop, id, out var actual), Is.True);
-                Assert.That(actual, Is.EqualTo(ObjectFit.TargetWorldSize(id)).Within(.0001f));
+                var expected = ObjectFit.TargetWorldSize(id);
+                if (HexLive.Simulation.Content.GroundPileCatalog.TryGet(id, false, out var profile) && profile.TargetSize <= 0f)
+                {
+                    Assert.That(ObjectFit.TryMeasuredSize(source,id,out expected),Is.True);
+                }
+                Assert.That(actual, Is.EqualTo(expected).Within(.0001f));
             }
             finally
             {

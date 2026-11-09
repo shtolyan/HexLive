@@ -19,7 +19,9 @@ public sealed class WeaponFitOrderContractTests
         var method = source[methodStart..methodEnd];
         var authoredStart = method.IndexOf(
             "if (Config.GearLibrary.TryGetHandPose", StringComparison.Ordinal);
-        var authoredEnd = method.IndexOf("// §54.12", authoredStart, StringComparison.Ordinal);
+        var authoredEnd = method.IndexOf("if (itemId.StartsWith(\"resource.\",", authoredStart, StringComparison.Ordinal);
+        Assert.That(authoredEnd, Is.GreaterThan(authoredStart),
+            "The resource placement branch must follow the authored gear pose.");
         var authored = method[authoredStart..authoredEnd];
 
         var rotation = authored.IndexOf("prop.transform.localRotation =", StringComparison.Ordinal);

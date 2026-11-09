@@ -92,6 +92,11 @@ internal static class HandPropVisual
             if (!Simulation.Content.GroundPileCatalog.TryGet(itemId, false, out var profile) ||
                 profile.TargetSize > 0f)
                 ApplyObjectFitScale(prop, itemId, prefabLocalScale, Vector3.one);
+            else if (ObjectFit.TryMeasuredSize(model, itemId, out var nativeSize) &&
+                ObjectFit.TryMeasuredSize(prop, itemId, out var carriedSize) && carriedSize > .0001f)
+                // Native-size ground owners still need compensation for the
+                // actor/bone scale. 1:1 means world metres, not localScale.
+                prop.transform.localScale *= nativeSize / carriedSize;
             return prop;
         }
 

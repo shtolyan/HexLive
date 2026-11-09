@@ -43,8 +43,11 @@ public sealed class CampStickStockTests
         for (var i=0; i<40; i++) foreign.Inventory.Items.Add(new ItemInstance(ContentIds.Stick));
         Assert.That(CampStickStock.CanProduce(world, npc, 4), Is.True);
     }
-    [Test]
-    public void AnEarlierAuctionWinnerReservesItsYieldBeforeThePlanningPass()
+    [TestCase(PlanStatus.None)]
+    [TestCase(PlanStatus.Completed)]
+    [TestCase(PlanStatus.Failed)]
+    [TestCase(PlanStatus.Invalid)]
+    public void AnEarlierAuctionWinnerReservesItsYieldBeforeThePlanningPass(PlanStatus previous)
     {
         var world=TestWorld.CreateWorld();
         var npc=world.Entities.Npcs.Values.First(n=>n.Faction==Faction.Colony);
@@ -54,7 +57,7 @@ public sealed class CampStickStockTests
         for(var i=0;i<36;i++) npc.Inventory.Items.Add(new ItemInstance(ContentIds.Stick));
         var earlier=world.Entities.Npcs.Values.First(n=>n.Faction==npc.Faction && n.Id!=npc.Id);
         earlier.Mind.CurrentGoal=GoalType.SplitLog;
-        earlier.Plan.Status=PlanStatus.None;
+        earlier.Plan.Status=previous;
         Assert.That(CampStickStock.CanProduce(world,npc,4),Is.False,
             "Decision chooses all goals before Planning installs their active plans.");
     }

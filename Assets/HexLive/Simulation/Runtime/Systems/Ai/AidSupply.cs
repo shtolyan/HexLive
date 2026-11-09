@@ -158,7 +158,7 @@ internal static class AidSupply
         spend = new Spend(string.Empty, Spec53.HydrateRelief, false);
         var item = Selected(world, npc, AidKind.Hydrate);
         if (item is null) return false;
-        if (item.DefinitionId == ContentIds.Bottle)
+        if (WaterVesselCatalog.IsPortable(item.DefinitionId))
         {
             if (!BottleInventoryMath.ConsumeOne(item, out _)) return false;
         }

@@ -8,12 +8,12 @@ namespace HexLive.Simulation.Runtime
 public static class BottleVisualMath
 {
     public static float Fill(ItemInstance bottle) =>
-        bottle is not null && bottle.DefinitionId == ContentIds.Bottle
-            ? Fill(bottle.ResourceAmount, false) : 0f;
+        bottle is not null && WaterVesselCatalog.IsPortable(bottle.DefinitionId)
+            ? Fill(bottle.ResourceAmount, false, bottle.DefinitionId) : 0f;
 
-    public static float Fill(float amount, bool parked) =>
+    public static float Fill(float amount, bool parked, string definitionId = ContentIds.Bottle) =>
         float.IsNaN(amount) || float.IsInfinity(amount)
-            ? 0f : Math.Clamp(amount / (parked ? 1f : SimBalance.BottleCapacity), 0f, 1f);
+            ? 0f : Math.Clamp(amount / (parked ? 1f : WaterVesselCatalog.Capacity(definitionId)), 0f, 1f);
 
     public static WaterKind Appearance(ItemInstance bottle) =>
         bottle is null || Fill(bottle) <= 0f ? WaterKind.None

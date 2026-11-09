@@ -40,7 +40,8 @@ public sealed class PopulationArrivalTests
                 Assert.That(Count(world, Faction.Colony), Is.EqualTo(4));
                 Assert.That(first.Faction, Is.EqualTo(Faction.Colony));
                 Assert.That(first.Sex, Is.EqualTo(HexLive.Simulation.Content.GarmentSex.Female));
-                Assert.That(first.Inventory.Items.Any(i => i.DefinitionId == GearCatalog.Bottle), Is.True);
+                Assert.That(first.Inventory.Items.Any(i => i.DefinitionId == ContentIds.LeatherFlask), Is.True);
+                Assert.That(first.Inventory.Items.Any(i => i.DefinitionId == ContentIds.Bottle), Is.False);
                 Assert.That(first.CurrentJunction, Is.Not.Null,
                     "Прибытие должно владеть реальной свободной точкой, а не телепортом в центр предмета.");
             });

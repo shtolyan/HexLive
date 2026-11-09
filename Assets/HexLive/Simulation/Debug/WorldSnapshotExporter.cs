@@ -915,10 +915,10 @@ public static class WorldSnapshotExporter
             npcSnapshot.InventoryWetness.Add($"{item.DefinitionId}\t{Num(item.Wetness)}");
             npcSnapshot.InventoryDirtiness.Add($"{item.DefinitionId}\t{Num(item.Dirtiness)}");
             npcSnapshot.InventoryBloodiness.Add($"{item.DefinitionId}\t{Num(item.Bloodiness)}");
-            if (item.DefinitionId == "tool.bottle")
+            if (WaterVesselCatalog.IsPortable(item.DefinitionId))
             {
                 npcSnapshot.InventoryWater.Add(
-                    $"{sourceIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)}\t{item.DefinitionId}\t{BottleInventoryMath.Charges(item).ToString(System.Globalization.CultureInfo.InvariantCulture)}\t{Runtime.SimBalance.BottleCapacity.ToString(System.Globalization.CultureInfo.InvariantCulture)}\t{((int)item.WaterKind).ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+                    $"{sourceIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)}\t{item.DefinitionId}\t{BottleInventoryMath.Charges(item).ToString(System.Globalization.CultureInfo.InvariantCulture)}\t{WaterVesselCatalog.Capacity(item.DefinitionId).ToString(System.Globalization.CultureInfo.InvariantCulture)}\t{((int)item.WaterKind).ToString(System.Globalization.CultureInfo.InvariantCulture)}");
             }
             else if (item.DefinitionId == "food.coconut_pierced")
             {

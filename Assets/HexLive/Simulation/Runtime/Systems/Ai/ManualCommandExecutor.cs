@@ -2385,7 +2385,7 @@ internal static partial class ManualCommandExecutor
 
         // Приёмник — только бутылка: у инстанса кокоса нет вида воды, и перелив
         // «в кокос» отмывал бы сырую воду от риска болезни (VesselTransferMath).
-        if (command.Item.ExpectedDefinitionId != Content.ContentIds.Bottle)
+        if (!Content.WaterVesselCatalog.IsPortable(command.Item.ExpectedDefinitionId))
         {
             Reject(world, npc.Id, "FillVessel", "NotAVessel", admission);
             return;
@@ -2408,7 +2408,7 @@ internal static partial class ManualCommandExecutor
         ClearAttackOrder(world, npc);
 
         npc.Plan.Goal = GoalType.PlayerOrder;
-        npc.Plan.TargetItemDefinitionId = Content.ContentIds.Bottle;
+        npc.Plan.TargetItemDefinitionId = command.Item.ExpectedDefinitionId;
         npc.Execution.TargetInventoryItem = selectedBottle;
         npc.Plan.Steps.Add(new PlanStep
         {

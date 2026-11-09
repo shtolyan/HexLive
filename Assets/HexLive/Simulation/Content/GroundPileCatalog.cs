@@ -159,7 +159,7 @@ public static class GroundPileCatalog
         // three local axis extents to <=T. Orthogonal base rotation therefore
         // bounds each world extent by sqrt(3)*T. Presentation recenters XZ and
         // seats Y before applying slots; source pivots cannot escape this cube.
-        foreach(var id in new[] {"food.coconut_open","food.meat_raw","food.meat_cooked","item.bandage","item.pill","item.plaster","med.splint","resource.arrow","resource.board","resource.cloth","resource.fiber","resource.herb_leaf","resource.herb_seed","resource.hide","resource.log","resource.mechanical_part","resource.rope","resource.stone","resource.yucca_seed","food.coconut","food.coconut_pierced","tool.axe_stone","tool.bottle","tool.bow","tool.hammer","tool.knife","tool.lighter","tool.machete","tool.pickaxe_stone","tool.saw","tool.sharp_stone","tool.spear",ContentIds.Flint,ContentIds.CrudeSaw,ContentIds.Firestarter,ContentIds.Torch})
+        foreach(var id in new[] {"food.coconut_open","food.meat_raw","food.meat_cooked","item.bandage","item.pill","item.plaster","med.splint","resource.arrow","resource.board","resource.cloth","resource.fiber","resource.herb_leaf","resource.herb_seed","resource.hide","resource.log","resource.mechanical_part","resource.rope","resource.stone","resource.yucca_seed","food.coconut","food.coconut_pierced","tool.axe_stone","tool.bottle",ContentIds.LeatherFlask,"tool.bow","tool.hammer","tool.knife","tool.lighter","tool.machete","tool.pickaxe_stone","tool.saw","tool.sharp_stone","tool.spear",ContentIds.Flint,ContentIds.CrudeSaw,ContentIds.Firestarter,ContentIds.Torch})
         {
             var target=TargetWorldSize(id);var extent=(float)Math.Sqrt(3d)*target;
             var layout=id==ContentIds.HerbSeed||id==ContentIds.YuccaSeed?10:
@@ -3407,6 +3407,7 @@ public static class GroundPileCatalog
             if (definitionId == ContentIds.Firestarter) return r * 0.12f;
             // A one-litre bottle is shorter than a hand tool. Keep this in the
             // shared fit table so the ground and hand cannot drift apart again.
+            if (definitionId == ContentIds.LeatherFlask) return r * 0.16f;
             if (definitionId == "tool.bottle") return r * 0.18f;
             // Tools & resources: 0.216 = the standard hand/ground tool size
             // (was 0.18; +20% after in-hand testing, applied to BOTH paths).

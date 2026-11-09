@@ -487,7 +487,7 @@ public static class AbuseMath
                     return false;
                 }
                 abuser.Inventory.Items.Add(sourceBottle);
-                taken = ContentIds.Bottle;
+                taken = sourceBottle.DefinitionId;
                 return true;
             }
         }
@@ -508,7 +508,7 @@ public static class AbuseMath
             // Never let a future data-authored Drink interaction make an empty
             // equal bottle win this generic consumable scan.
             if (interaction == InteractionType.Drink &&
-                item.DefinitionId == ContentIds.Bottle)
+                WaterVesselCatalog.IsPortable(item.DefinitionId))
             {
                 continue;
             }

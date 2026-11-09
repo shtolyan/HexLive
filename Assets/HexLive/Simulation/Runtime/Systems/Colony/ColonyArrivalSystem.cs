@@ -172,8 +172,8 @@ public sealed class ColonyArrivalSystem : ISimulationSystem
         TraitMath.Roll(npc, world.Seed, id.Value);
 
         // The same castaway baseline as the authored women: a personal empty
-        // bottle and light female clothes drawn from the live garment catalog.
-        npc.Inventory.Items.Add(new ItemInstance(GearCatalog.Bottle));
+        // leather flask and light female clothes drawn from the live garment catalog.
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.LeatherFlask));
         RaidSpawnWardrobe.EquipFemale(world, npc);
         if (character != null)
         {

@@ -68,6 +68,7 @@ public static class ContentIds
     public const string Spear = "tool.spear";
     public const string Bow = "tool.bow";
     public const string Bottle = "tool.bottle";
+    public const string LeatherFlask = "tool.flask_leather";
     public const string Hammer = "tool.hammer";
 
     public const string Bandage = "item.bandage";

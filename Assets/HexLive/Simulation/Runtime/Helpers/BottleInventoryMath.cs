@@ -11,23 +11,24 @@ namespace HexLive.Simulation.Runtime
 public static class BottleInventoryMath
 {
     public static bool IsBottle(ItemInstance item) =>
-        item is not null && item.DefinitionId == ContentIds.Bottle;
+        item is not null && WaterVesselCatalog.IsPortable(item.DefinitionId);
 
+    public static int Capacity(ItemInstance item) => item is null ? 0 : WaterVesselCatalog.Capacity(item.DefinitionId);
     public static int Charges(ItemInstance item) =>
-        IsBottle(item) ? Charges(item.ResourceAmount, item.WaterKind) : 0;
+        IsBottle(item) ? Charges(item.ResourceAmount, item.WaterKind, item.DefinitionId) : 0;
 
     /// <summary>Shared physical-vessel rule for simulation and snapshot-based menus.</summary>
-    public static int Charges(float amount, WaterKind kind)
+    public static int Charges(float amount, WaterKind kind, string definitionId = ContentIds.Bottle)
     {
         if (kind == WaterKind.None || (float.IsNaN(amount) || float.IsInfinity(amount)) || amount <= 0f) return 0;
         return System.Math.Max(0, (int)System.MathF.Floor(
-            System.MathF.Min(SimBalance.BottleCapacity, amount) + 1e-4f));
+            System.MathF.Min(WaterVesselCatalog.Capacity(definitionId), amount) + 1e-4f));
     }
 
     public static float Amount(ItemInstance item) =>
         IsBottle(item) && item.WaterKind != WaterKind.None &&
         !float.IsNaN(item.ResourceAmount) && !float.IsInfinity(item.ResourceAmount)
-            ? System.Math.Clamp(item.ResourceAmount, 0f, SimBalance.BottleCapacity) : 0f;
+            ? System.Math.Clamp(item.ResourceAmount, 0f, Capacity(item)) : 0f;
 
     public static void SetContents(ItemInstance bottle, WaterKind kind, int charges) =>
         SetContents(bottle, kind, (float)charges);
@@ -36,7 +37,7 @@ public static class BottleInventoryMath
     {
         if (!IsBottle(bottle)) return;
         var clamped = float.IsNaN(amount) || float.IsInfinity(amount) ? 0f
-            : System.Math.Clamp(amount, 0f, SimBalance.BottleCapacity);
+            : System.Math.Clamp(amount, 0f, Capacity(bottle));
         bottle.ResourceAmount = clamped;
         bottle.WaterKind = clamped > 0f && kind != WaterKind.None ? kind : WaterKind.None;
         if (bottle.WaterKind == WaterKind.None) bottle.ResourceAmount = 0f;
@@ -84,7 +85,7 @@ public static class BottleInventoryMath
             {
                 empty ??= item;
             }
-            else if (amount + 1f <= SimBalance.BottleCapacity + 1e-4f && item.WaterKind == kind)
+            else if (amount + 1f <= Capacity(item) + 1e-4f && item.WaterKind == kind)
             {
                 return item;
             }
@@ -100,7 +101,7 @@ public static class BottleInventoryMath
         if (!IsBottle(bottle) || charges <= 0) return 0;
         var before = Amount(bottle);
         if (before > 0f && bottle.WaterKind != kind) return 0;
-        var room = System.Math.Max(0, (int)System.MathF.Floor(SimBalance.BottleCapacity - before + 1e-4f));
+        var room = System.Math.Max(0, (int)System.MathF.Floor(Capacity(bottle) - before + 1e-4f));
         var moved = System.Math.Min(charges, room);
         if (moved <= 0) return 0;
         SetContents(bottle, before == 0 ? kind : bottle.WaterKind, before + moved);

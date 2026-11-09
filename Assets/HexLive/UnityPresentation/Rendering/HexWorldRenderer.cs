@@ -4967,7 +4967,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // another mesh or a procedural primitive.
             if (ObjectFit.HasRenderableGeometry(instance))
             {
-                var parkedBottle = worldObject.DefinitionId == "tool.bottle" &&
+                var parkedBottle = WaterVesselCatalog.IsPortable(worldObject.DefinitionId) &&
                     worldObject.Junctions.Count > 0 &&
                     _collectorJunctions.Contains(worldObject.Junctions[0]);
                 var plantedTorch = worldObject.DefinitionId == ContentIds.Torch &&
@@ -7474,7 +7474,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // rotation with yaw stood dropped leaves on edge and made their pose
         // depend on whichever source/fallback happened to load. Preserve the
         // exact imported pose and scatter only around world up.
-        if (definitionId == "resource.palm_leaf" || definitionId == "tool.bottle")
+        if (definitionId == "resource.palm_leaf" || WaterVesselCatalog.IsPortable(definitionId))
         {
             return Quaternion.Euler(0f, yaw, 0f) * authoredRotation;
         }
@@ -7487,7 +7487,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // upright.
     private static bool LiesFlatOnGround(string definitionId)
     {
-        return definitionId.StartsWith("tool.") && definitionId != "tool.bottle";
+        return definitionId.StartsWith("tool.") && !WaterVesselCatalog.IsPortable(definitionId);
     }
 
     // Ground the model: bottom of its renderer bounds sits on the tile top

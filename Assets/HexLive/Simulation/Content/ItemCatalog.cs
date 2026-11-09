@@ -162,7 +162,7 @@ namespace HexLive.Simulation.Content
                 : ClassifyById(definitionId));
 
         public static bool IsWaterContainerId(string definitionId) =>
-            definitionId == "tool.bottle" ||
+            WaterVesselCatalog.IsPortable(definitionId) ||
             definitionId == "food.coconut_pierced";
 
         public static bool IsWaterSourceId(string definitionId) =>
@@ -826,6 +826,11 @@ namespace HexLive.Simulation.Content
                 // CarryWater/Dressing make the ex-personal items GOAP-fetchable:
                 // a girl WITHOUT a bottle walks over for a dropped one, a girl
                 // with one ignores duplicates (AddsValueOver).
+                [ContentIds.LeatherFlask] = new GearStats
+                {
+                    Id = ContentIds.LeatherFlask, Damage = 0.15f, MeleePriority = 0,
+                    Capabilities = GearCapability.CarryWater,
+                },
                 [Bottle] = new GearStats
                 {
                     Id = Bottle, Damage = 0.15f, MeleePriority = 0,

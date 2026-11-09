@@ -348,9 +348,13 @@ public sealed class BottleInstanceRegressionTests
         Assert.That(coconut.ResourceAmount,Is.EqualTo(4f));
     }
 
-    [TestCase(false)]
-    [TestCase(true)]
-    public void TakeVesselKeepsTheExactCollectorQuantity(bool pourIntoOwnBottle)
+    [TestCase(false, ContentIds.Bottle, ContentIds.Bottle, .42f)]
+    [TestCase(true, ContentIds.Bottle, ContentIds.Bottle, .42f)]
+    [TestCase(false, ContentIds.LeatherFlask, ContentIds.LeatherFlask, .42f)]
+    [TestCase(true, ContentIds.LeatherFlask, ContentIds.LeatherFlask, .42f)]
+    [TestCase(true, ContentIds.Bottle, ContentIds.LeatherFlask, 1f)]
+    [TestCase(true, ContentIds.LeatherFlask, ContentIds.Bottle, 1f)]
+    public void TakeVesselKeepsTheExactCollectorQuantity(bool pourIntoOwnBottle, string sourceId, string targetId, float fraction)
     {
         var engine = TestWorld.CreateEngine(63403);
         var world = engine.World;
@@ -360,24 +364,27 @@ public sealed class BottleInstanceRegressionTests
         npc.Needs.Thirst = 0f;
         npc.Inventory.Items.Clear();
         npc.Inventory.Capacity = 8;
-        if (pourIntoOwnBottle) npc.Inventory.Items.Add(new ItemInstance(ContentIds.Bottle));
+        if (pourIntoOwnBottle) npc.Inventory.Items.Add(new ItemInstance(targetId));
         PlaceAtOpenJunction(world,npc);
         var neighbor = SpatialQueries.GetPassableNeighbors(world,npc.CurrentJunction.Value).First();
         var tile = world.Junctions.Items[neighbor].Tiles[0];
         var collector = WorldObjectMutations.SpawnObject(world,ContentIds.WaterCollector,npc.Fragment,tile,neighbor);
-        var vessel = WorldObjectMutations.SpawnObject(world,ContentIds.Bottle,npc.Fragment,tile,neighbor);
-        vessel.ResourceAmount = .42f;
+        var vessel = WorldObjectMutations.SpawnObject(world,sourceId,npc.Fragment,tile,neighbor);
+        vessel.ResourceAmount = fraction;
         vessel.WaterKind = WaterKind.Rain;
         vessel.LastAddedWaterKind = WaterKind.Coconut;
         vessel.Owner = npc.Id;
         var admission = ManualCommandExecutor.Apply(world,new InteractCommand(npc.Id,collector.Id,InteractionType.TakeVessel));
         Assert.That(admission.Status,Is.EqualTo(ManualCommandAdmissionStatus.Accepted),admission.Reason);
-        for (var i=0;i<1000 && !npc.Inventory.Items.Any(item => item.DefinitionId==ContentIds.Bottle && item.ResourceAmount > 0f);i++) engine.Step();
-        var result = npc.Inventory.Items.Single(item => item.DefinitionId==ContentIds.Bottle);
-        Assert.That(result.ResourceAmount,Is.EqualTo(4.2f).Within(1e-5));
+        var resultId = pourIntoOwnBottle ? targetId : sourceId;
+        for (var i=0;i<1000 && !npc.Inventory.Items.Any(item => item.DefinitionId==resultId && item.ResourceAmount > 0f);i++) engine.Step();
+        var result = npc.Inventory.Items.Single(item => item.DefinitionId==resultId);
+        var initialAmount = fraction * WaterVesselCatalog.Capacity(sourceId);
+        var expected = System.Math.Min(initialAmount, WaterVesselCatalog.Capacity(resultId));
+        Assert.That(result.ResourceAmount,Is.EqualTo(expected).Within(1e-5));
         Assert.That(result.WaterKind,Is.EqualTo(WaterKind.Rain));
         Assert.That(result.LastAddedWaterKind,Is.EqualTo(WaterKind.Coconut));
-        if(pourIntoOwnBottle) Assert.That(vessel.ResourceAmount,Is.Zero);
+        if(pourIntoOwnBottle) Assert.That(WaterCollectorMath.AmountIn(vessel),Is.EqualTo(initialAmount-expected).Within(1e-5));
         else Assert.That(world.Entities.Objects.ContainsKey(vessel.Id),Is.False);
     }
 
@@ -496,6 +503,56 @@ public sealed class BottleInstanceRegressionTests
             Assert.That(objectSnapshot.LastAddedWaterKind, Is.EqualTo(WaterKind.Rain));
             Assert.That(objectSnapshot.ResourceAmount, Is.EqualTo(5f));
         });
+    }
+
+    [Test]
+    public void LeatherFlaskSaveWireAndInventoryMetadataKeepItsOwnCapacityAndIdentity()
+    {
+        var world=TestWorld.CreateWorld(65011);var npc=Girl(world);
+        npc.Inventory.Items.Clear();
+        var flask=new ItemInstance(ContentIds.LeatherFlask) { Durability=.63f, Wetness=.2f };
+        BottleInventoryMath.SetContents(flask,WaterKind.Raw,7.25f);flask.LastAddedWaterKind=WaterKind.Coconut;
+        npc.Inventory.Items.Add(flask);
+        var plastic=new ItemInstance(ContentIds.Bottle);BottleInventoryMath.SetContents(plastic,WaterKind.Rain,9);
+        npc.Inventory.Items.Add(plastic);
+        var loaded=RoundTrip(world,WorldSaveSerializer.BlobVersion);var saved=loaded.Entities.Npcs[npc.Id];
+        Assert.That(saved.Inventory.Items.Select(i=>i.DefinitionId),Is.EqualTo(new[]{ContentIds.LeatherFlask,ContentIds.Bottle}));
+        var restored=saved.Inventory.Items[0];Assert.That(restored.ResourceAmount,Is.EqualTo(7.25f));
+        Assert.That(restored.WaterKind,Is.EqualTo(WaterKind.Raw));Assert.That(restored.LastAddedWaterKind,Is.EqualTo(WaterKind.Coconut));
+        Assert.That(restored.Durability,Is.EqualTo(.63f));
+        var snapshot=RoundTrip(WorldSnapshotExporter.Export(loaded));var actor=snapshot.Npcs.Single(n=>n.Id==npc.Id);
+        var encoded=actor.InventoryWater.Single(row=>row.Split('\t')[1]==ContentIds.LeatherFlask).Split('\t');
+        Assert.That(encoded[3],Is.EqualTo("8"));
+        Assert.That(ManualMenuTargets.CanDrinkFromPack(actor,_=>false),Is.True);
+        Assert.That(BottleVisualMath.Fill(restored),Is.EqualTo(7.25f/8).Within(1e-5));
+    }
+
+    [Test]
+    public void ParkedLeatherFlaskKeepsItsIdAndRainCollectionConservesPhysicalRate()
+    {
+        var engine=TestWorld.CreateEngine(65012);var world=engine.World;var npc=Girl(world);
+        npc.Mind.ManualControl=true;npc.Needs.Hunger=npc.Needs.Thirst=0;
+        npc.Inventory.Items.Clear();npc.Inventory.Items.Add(new ItemInstance(ContentIds.LeatherFlask){Durability=.42f});
+        PlaceAtOpenJunction(world,npc);
+        var anchor=SpatialQueries.GetPassableNeighbors(world,npc.CurrentJunction.Value).First();
+        var tile=world.Junctions.Items[anchor].Tiles[0];
+        var collector=WorldObjectMutations.SpawnObject(world,ContentIds.WaterCollector,npc.Fragment,tile,anchor);
+        var admission=ManualCommandExecutor.Apply(world,new InteractCommand(npc.Id,collector.Id,InteractionType.PlaceVessel));
+        Assert.That(admission.Status,Is.EqualTo(ManualCommandAdmissionStatus.Accepted),admission.Reason);
+        for(int i=0;i<300&&WaterCollectorMath.FindVessel(world,collector)==null;i++)engine.Step();
+        var flask=WaterCollectorMath.FindVessel(world,collector);Assert.That(flask,Is.Not.Null);
+        Assert.That(flask.DefinitionId,Is.EqualTo(ContentIds.LeatherFlask));
+        Assert.That(flask.Durability,Is.EqualTo(.42f));Assert.That(npc.Inventory.Items.Any(i=>i.DefinitionId==ContentIds.LeatherFlask),Is.False);
+        var other=world.Tiles.Items[tile].Junctions.First(j=>j!=anchor&&SpatialQueries.IsJunctionFree(world,j));
+        var control=WorldObjectMutations.SpawnObject(world,ContentIds.WaterCollector,npc.Fragment,tile,other);
+        var bottle=WorldObjectMutations.SpawnObject(world,ContentIds.Bottle,npc.Fragment,tile,other);
+        bottle.ResourceAmount=0;bottle.WaterKind=WaterKind.None;
+        var before=WaterCollectorMath.AmountIn(flask);world.Environment.IsRaining=true;world.Tick+=world.SlowIntervalTicks;
+        new WaterCollectorSystem().Run(world);
+        var delta=WaterCollectorMath.AmountIn(flask)-before;
+        Assert.That(delta,Is.GreaterThan(0));
+        Assert.That(delta,Is.EqualTo(WaterCollectorMath.AmountIn(bottle)).Within(1e-5),"same rain catches same physical quantity");
+        Assert.That(flask.ResourceAmount,Is.GreaterThan(bottle.ResourceAmount),"smaller flask fills a greater fraction");
     }
 
     private static WorldState RoundTrip(WorldState source, int version)

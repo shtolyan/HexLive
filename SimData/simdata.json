@@ -717,6 +717,7 @@
     {"id": "dog", "maxHealth": 1.71, "attackDamage": 0.085, "cutFraction": 0.9, "bloodLossMultiplier": 1.2, "attackWindupSeconds": 0.5, "attackCooldownSeconds": 0.8, "aggroRadiusTiles": 2, "roamChance": 0.2, "chaseStepsPerTick": 3, "glideSegmentSeconds": 1, "glideSnapDistance": 6, "meleeHoldDistance": 0.9, "attackMediums": "Land", "raidChancePerDay": 0.08, "raidPackSize": 3}
   ],
   "gear": [
+    {"id": "tool.flask_leather", "damage": 0.15, "cutFraction": 0, "bloodLossMultiplier": 0, "hitDelaySeconds": 1.1, "attackDurationSeconds": 1.5, "cooldownSeconds": 1.5, "attackSpeed": 1, "meleePriority": 0, "twoHanded": false, "harvestSpeedMult": 1, "capabilities": ["CarryWater"], "strikes": []},
     {"id": "", "damage": 0.048, "cutFraction": 0, "bloodLossMultiplier": 0, "hitDelaySeconds": 1.1, "attackDurationSeconds": 1.5, "cooldownSeconds": 1.5, "attackSpeed": 1, "meleePriority": 0, "twoHanded": false, "harvestSpeedMult": 1, "capabilities": [], "strikes": [{"hitDelaySeconds": 0.5, "attackDurationSeconds": 1.48, "cooldownSeconds": 1.52}, {"hitDelaySeconds": 0.5, "attackDurationSeconds": 1.74, "cooldownSeconds": 1.26}, {"hitDelaySeconds": 0.5, "attackDurationSeconds": 1.33, "cooldownSeconds": 1.67}, {"hitDelaySeconds": 0.5, "attackDurationSeconds": 1.19, "cooldownSeconds": 1.81}]},
     {"id": "item.bandage", "damage": 0.15, "cutFraction": 0, "bloodLossMultiplier": 0, "hitDelaySeconds": 1.1, "attackDurationSeconds": 1.5, "cooldownSeconds": 1.5, "attackSpeed": 1, "meleePriority": 0, "twoHanded": false, "harvestSpeedMult": 1, "capabilities": ["Dressing"], "strikes": []},
     {"id": "tool.axe_stone", "damage": 0.28125, "cutFraction": 0.7, "bloodLossMultiplier": 0.9, "hitDelaySeconds": 0.75, "attackDurationSeconds": 1.86, "cooldownSeconds": 1.14, "attackSpeed": 0.8, "meleePriority": 20, "twoHanded": false, "harvestSpeedMult": 1, "capabilities": ["Cut", "ChopWood", "OpenCoconut", "RemoveStump"], "strikes": []},
@@ -1434,6 +1435,7 @@
     {"id": "underwear.top_vapor_12", "sex": "Female", "displayName": "Sheer Top (12)", "layer": "Underwear", "warmth": 0.06, "armor": 0.01, "thermalDelta": 0, "dressDurationTicks": 8, "capacity": 2, "prototypeId": "underwear.top_vapor", "covers": ["Torso"]}
   ],
   "worldObjects": [
+    {"id": "tool.flask_leather", "displayName": "Leather flask", "tags": ["Tool"], "storage": [], "interactions": [{"id": "pickup.flask_leather", "type": "PickUp", "requiredCapabilities": [], "durationTicks": 4, "yields": []}]},
     {"id": "FAO Harness Male", "displayName": "Portupeya", "tags": ["Clothing", "Armor"], "storage": [], "interactions": [{"id": "dress.FAO Harness Male", "type": "Dress", "requiredCapabilities": [], "durationTicks": 8, "effects": {"thermal": -0.06, "warmth": 0.1, "armor": 0.4}, "yields": []}, {"id": "pickup.FAO Harness Male", "type": "PickUp", "requiredCapabilities": [], "durationTicks": 4, "yields": []}]},
     {"id": "FCO Belt Male", "displayName": "Poyas boitsa", "tags": ["Clothing", "Armor"], "storage": [], "interactions": [{"id": "dress.FCO Belt Male", "type": "Dress", "requiredCapabilities": [], "durationTicks": 8, "effects": {"warmth": 0.04, "armor": 0.15}, "yields": []}, {"id": "pickup.FCO Belt Male", "type": "PickUp", "requiredCapabilities": [], "durationTicks": 4, "yields": []}]},
     {"id": "FCO Boots Male", "displayName": "Sapogi boitsa", "tags": ["Clothing", "Armor"], "storage": [], "interactions": [{"id": "dress.FCO Boots Male", "type": "Dress", "requiredCapabilities": [], "durationTicks": 8, "effects": {"warmth": 0.16, "armor": 0.2}, "yields": []}, {"id": "pickup.FCO Boots Male", "type": "PickUp", "requiredCapabilities": [], "durationTicks": 4, "yields": []}]},
@@ -2235,6 +2237,7 @@
     {"id": "tool.torch", "displayName": "tool.torch", "tags": ["Tool", "HandBuilt"], "storage": [], "interactions": [{"id": "pickup.tool.torch", "type": "PickUp", "requiredCapabilities": [], "durationTicks": 4, "yields": []}]}
   ],
   "recipes": [
+    {"output": "tool.flask_leather", "needsLitFire": false, "station": "Workbench", "baseWorkTicks": 24, "inputs": [{"id": "resource.hide", "count": 1}, {"id": "resource.rope", "count": 1}]},
     {"output": "food.meat_cooked", "needsLitFire": true, "station": "Campfire", "baseWorkTicks": 24, "inputs": [{"id": "food.meat_raw", "count": 1}]},
     {"output": "item.bandage", "needsLitFire": false, "station": "", "baseWorkTicks": 24, "inputs": [{"id": "resource.herb_leaf", "count": 2}, {"id": "resource.cloth", "count": 1}]},
     {"output": "med.splint", "needsLitFire": false, "station": "", "baseWorkTicks": 24, "inputs": [{"id": "resource.stick", "count": 2}, {"id": "resource.rope", "count": 1}]},

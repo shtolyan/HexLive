@@ -133,7 +133,7 @@ public static class MashaCompanionProfile
         npc.Needs.Social = 0.35f;
         npc.Needs.ThermalDiscomfort = 0.15f;
         npc.Inventory.Items.Clear();
-        npc.Inventory.Items.Add(new ItemInstance(Content.GearCatalog.Bottle));
+        npc.Inventory.Items.Add(new ItemInstance(Content.ContentIds.LeatherFlask));
         npc.Inventory.Items.Add(MedicalSupplyMath.CreateBandage(herbal: false));
     }
 

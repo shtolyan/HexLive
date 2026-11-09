@@ -757,14 +757,14 @@ public sealed class NPCState
         {
             var bottle = FirstBottle();
             return bottle is not null && bottle.WaterKind != WaterKind.None
-                ? System.Math.Max(0, (int)System.MathF.Floor(bottle.ResourceAmount + 1e-4f))
+                ? System.Math.Max(0, (int)System.MathF.Floor(System.MathF.Min(bottle.ResourceAmount, Content.WaterVesselCatalog.Capacity(bottle.DefinitionId)) + 1e-4f))
                 : 0;
         }
         set
         {
-            var clamped = System.Math.Max(0, value);
             var bottle = FirstBottle();
             if (bottle is null) return;
+            var clamped = System.Math.Clamp(value, 0, Content.WaterVesselCatalog.Capacity(bottle.DefinitionId));
             bottle.ResourceAmount = clamped;
             if (clamped <= 0)
             {
@@ -781,7 +781,7 @@ public sealed class NPCState
     {
         foreach (var item in Inventory.Items)
         {
-            if (item.DefinitionId == "tool.bottle") return item;
+            if (Content.WaterVesselCatalog.IsPortable(item.DefinitionId)) return item;
         }
 
         return null;

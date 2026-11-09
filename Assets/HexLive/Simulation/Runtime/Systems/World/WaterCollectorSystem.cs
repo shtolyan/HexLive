@@ -60,7 +60,8 @@ public sealed class WaterCollectorSystem : ISimulationSystem
             vessel.ResourceAmount = System.Math.Min(
                 1f,
                 vessel.ResourceAmount +
-                rainSlowTicks * slow / (float)SimBalance.WaterCollectorFillTicks);
+                rainSlowTicks * slow / (float)SimBalance.WaterCollectorFillTicks *
+                SimBalance.BottleCapacity / WaterVesselCatalog.Capacity(vessel.DefinitionId));
             if (vessel.ResourceAmount > 0f)
             {
                 vessel.WaterKind = WaterKind.Rain;

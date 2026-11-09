@@ -964,6 +964,12 @@ public static class PrototypeContentCatalog
             },
             // Spec 29H / §52: every bottle is a physical vessel. Its fill and
             // provenance live on ItemInstance, so carrying several is valid.
+            [ContentIds.LeatherFlask] = new ObjectDefinition
+            {
+                Id = ContentIds.LeatherFlask, DisplayName = "Leather flask",
+                Tags = { "Tool" },
+                Interactions = { new InteractionDefinition { Id = "pickup.flask_leather", Type = InteractionType.PickUp, DurationTicks = 4 } }
+            },
             ["tool.bottle"] = new ObjectDefinition
             {
                 Id = "tool.bottle",

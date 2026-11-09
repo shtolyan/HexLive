@@ -61,6 +61,33 @@ public sealed class ManualCraftingTests
     }
 
     [Test]
+    public void LeatherFlaskUsesRealHideAndRopeBillAtWorkbenchAndCompletesOnce()
+    {
+        var engine=TestWorld.CreateEngine(65001);var world=engine.World;var npc=PrepareManual(world);
+        Strip(world,ContentIds.Hide,ContentIds.Rope,ContentIds.LeatherFlask);
+        Add(npc,ContentIds.Hide,1);Add(npc,ContentIds.Rope,1);
+        var recipe=RecipeCatalog.ByOutput[ContentIds.LeatherFlask];
+        Assert.That(recipe.Station,Is.EqualTo("Workbench"));
+        Assert.That(recipe.Inputs.Select(i=>(i.Id,i.Count)),Is.EquivalentTo(new[]{(ContentIds.Hide,1),(ContentIds.Rope,1)}));
+        var station=WorldObjectMutations.SpawnObject(world,ContentIds.Workbench,npc.Fragment,npc.Tile,npc.CurrentJunction.Value);
+        station.CraftJunction=StructurePlacement.WorkbenchJunction(world,station.Tile,station.Junctions[0],0f);
+        Assert.That(station.CraftJunction.HasValue,Is.True);
+        var workpoint=world.Junctions.Items[station.CraftJunction.Value];
+        if(npc.CurrentJunction is { } previous) SpatialMutations.FreeJunction(world,previous,npc.Id);
+        var previousTile=npc.Tile;npc.CurrentJunction=workpoint.Id;npc.Position=workpoint.WorldPosition;
+        npc.Tile=workpoint.Tiles[0];npc.Fragment=workpoint.Fragment;
+        SpatialMutations.MoveEntityToTile(world,npc.Id,previousTile,npc.Tile);
+        SpatialMutations.OccupyJunction(world,workpoint.Id,npc.Id);
+        var flaskOption=CraftingOptions.Resolve(world,npc,ContentIds.LeatherFlask);
+        Assert.That(flaskOption.CanCraft,Is.True,flaskOption.BlockReason.ToString());
+        Assert.That(engine.ApplyManualCommand(new CraftByOutputCommand(npc.Id,ContentIds.LeatherFlask)).Accepted,Is.True);
+        StepUntil(engine,()=>npc.Plan.Status==PlanStatus.Completed,600);
+        Assert.That(npc.Inventory.Items.Count(i=>i.DefinitionId==ContentIds.LeatherFlask)+
+            world.Entities.Objects.Values.Count(o=>o.DefinitionId==ContentIds.LeatherFlask&&!o.IsCraftProject),Is.EqualTo(1));
+        Assert.That(npc.Inventory.Items.Any(i=>i.DefinitionId==ContentIds.Hide||i.DefinitionId==ContentIds.Rope),Is.False);
+    }
+
+    [Test]
     public void ExistingHammerCanBeCraftedInPlaceFromItsPhysicalBill()
     {
         var engine = TestWorld.CreateEngine(44901);

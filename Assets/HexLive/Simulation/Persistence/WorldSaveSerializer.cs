@@ -3295,7 +3295,7 @@ public static class WorldSaveSerializer
                 item.CampfireFuelRole = CampfireFuelRole.Wood;
                 item.ResourceAmount = 0f;
             }
-            if (item.WaterKind == WaterKind.None && item.DefinitionId == ContentIds.Bottle)
+            if (item.WaterKind == WaterKind.None && WaterVesselCatalog.IsPortable(item.DefinitionId))
             {
                 // Before v68 ResourceAmount on a bottle was not water; fresh
                 // bootstrap objects commonly carried the generic value 1.

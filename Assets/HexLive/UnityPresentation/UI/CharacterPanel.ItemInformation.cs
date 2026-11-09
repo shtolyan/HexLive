@@ -50,7 +50,7 @@ namespace HexLive.UnityPresentation.UI
             var water = owner == null ? new Dictionary<int, WaterContainerState>() : ParseWaterKv(owner.InventoryWater);
             if (containerSlot != null && IsWaterContainerId(id))
                 water[sourceIndex] = new WaterContainerState { ItemId = id, Amount = containerSlot.ResourceAmount,
-                    Capacity = id == ContentIds.Bottle ? SimBalance.BottleCapacity : SimBalance.CoconutWaterCapacity,
+                    Capacity = WaterVesselCatalog.IsPortable(id) ? WaterVesselCatalog.Capacity(id) : SimBalance.CoconutWaterCapacity,
                     Kind = containerSlot.WaterKind };
             var owners = owner == null ? null : worn ? owner.WornOwnerIds : owner.InventoryOwnerIds;
             var ownerId = owner == null ? int.MaxValue : owners != null && sourceIndex >= 0 && sourceIndex < owners.Count ? owners[sourceIndex] : 0;

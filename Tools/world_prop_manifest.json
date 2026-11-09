@@ -1,6 +1,7 @@
 {
     "schemaVersion": 2,
     "entries": [
+        {"id":"tool.flask_leather","source":"Tools/make_leather_flask.py","native":"tool.flask_leather.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["FlaskLeather","FlaskThread","FlaskCork"],"alpha":"opaque"},
         {"id":"food.human_arm_cooked","source":"Tools/Art/slice_human_parts.py","native":"food.human_arm_cooked.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["HumanCookedSkin","HumanCookedCut"],"alpha":"opaque"},
         {"id":"food.human_arm_raw","source":"Tools/Art/slice_human_parts.py","native":"food.human_arm_raw.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["HumanRawSkin","HumanRawCut"],"alpha":"opaque"},
         {"id":"food.human_leg_cooked","source":"Tools/Art/slice_human_parts.py","native":"food.human_leg_cooked.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["HumanCookedSkin","HumanCookedCut"],"alpha":"opaque"},

@@ -316,7 +316,7 @@ public sealed class RaidWaveSystem : ISimulationSystem
         npc.Traits.Add(Agents.TraitKind.Slob);
 
         ApplyWaveAttributes(npc, wave);
-        npc.Inventory.Items.Add(new ItemInstance(GearCatalog.Bottle));
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.LeatherFlask));
         npc.Inventory.Items.Add(new ItemInstance(WeaponForWave(wave)));
 
         // §116: one deterministic late-wave loot roll. A runtime wave has one

@@ -140,7 +140,7 @@ internal static class ContainerLootMath
     private static bool AcceptsExternalObject(
         WorldObjectState container, ObjectDefinition definition, string itemId) =>
         container.DefinitionId == ContentIds.WaterCollector
-            ? itemId == ContentIds.Bottle
+            ? WaterVesselCatalog.IsPortable(itemId)
             : definition.Layer is not null;
 
     private static bool IsStoredItem(
@@ -529,7 +529,7 @@ internal static class ContainerLootMath
             if (!world.Content.ObjectDefinitions.TryGetValue(
                     item.DefinitionId, out var definition) ||
                 (isRack && definition.Layer is null) ||
-                (isCollector && item.DefinitionId != ContentIds.Bottle))
+                (isCollector && !WaterVesselCatalog.IsPortable(item.DefinitionId)))
             {
                 return false;
             }
@@ -647,7 +647,7 @@ internal static class ContainerLootMath
                 stored.Bloodiness = item.Bloodiness;
                 stored.ResourceAmount = obj.DefinitionId == ContentIds.WaterCollector
                     ? System.Math.Clamp(
-                        item.ResourceAmount / SimBalance.BottleCapacity, 0f, 1f)
+                        item.ResourceAmount / BottleInventoryMath.Capacity(item), 0f, 1f)
                     : item.ResourceAmount;
                 stored.WaterKind = item.WaterKind;
                 stored.LastAddedWaterKind = item.LastAddedWaterKind;

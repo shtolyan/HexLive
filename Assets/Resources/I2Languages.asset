@@ -17,6 +17,22 @@ MonoBehaviour:
     UserAgreesToHaveItInsideThePluginsFolder: 0
     GoogleLiveSyncIsUptoDate: 1
     mTerms:
+    - Term: item.tool_flask_leather.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Leather flask"
+      - "Кожаная фляга"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.tool_flask_leather.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A stitched hide flask holding 0.6 L, or two coconuts of water. Craft at a workbench with one hide and one rope; refill at a rain collector."
+      - "Сшитая из шкуры фляга на 0,6 л — два кокоса воды. Делается на верстаке из одной шкуры и одной верёвки; наполняется у водосборника."
+      Flags: 0101
+      Languages_Touch: []
     - Term: menu.choose_target
       TermType: 0
       Description:

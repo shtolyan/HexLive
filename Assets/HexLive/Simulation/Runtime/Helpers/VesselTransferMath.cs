@@ -41,7 +41,7 @@ public static class VesselTransferMath
 
     public static int BottleRoom(ItemInstance bottle) =>
         bottle is not null
-            ? System.Math.Max(0, (int)System.MathF.Floor(SimBalance.BottleCapacity - BottleInventoryMath.Amount(bottle) + 1e-4f))
+            ? System.Math.Max(0, (int)System.MathF.Floor(BottleInventoryMath.Capacity(bottle) - BottleInventoryMath.Amount(bottle) + 1e-4f))
             : 0;
 
     /// <summary>Один предикат на автономный шаг плана и ручную команду:
@@ -114,7 +114,7 @@ public static class VesselTransferMath
     {
         if (!npc.Body.CanUseTwoHanded || !BottleInventoryMath.IsBottle(bottle) ||
             !InventoryMath.ContainsReference(npc.Inventory.Items, bottle) ||
-            SourceSips(bottle) >= SimBalance.BottleCapacity) return false;
+            SourceSips(bottle) >= BottleInventoryMath.Capacity(bottle)) return false;
         foreach (var source in npc.Inventory.Items)
             if (!ReferenceEquals(source, bottle) && SourceSips(source) > 0f) return true;
         return false;
@@ -131,7 +131,7 @@ public static class VesselTransferMath
         {
             if (ReferenceEquals(source, bottle)) continue;
             var available = SourceSips(source);
-            var take = System.MathF.Min(SimBalance.BottleCapacity - amount, available);
+            var take = System.MathF.Min(BottleInventoryMath.Capacity(bottle) - amount, available);
             if (take <= 0f) continue;
             var sourceKind = BottleInventoryMath.IsBottle(source) ? source.WaterKind : WaterKind.Coconut;
             // Adding raw water contaminates the mixture; safe water cannot launder it.
@@ -145,7 +145,7 @@ public static class VesselTransferMath
             }
             amount += take;
             bottle.LastAddedWaterKind = sourceKind;
-            if (amount >= SimBalance.BottleCapacity) break;
+            if (amount >= BottleInventoryMath.Capacity(bottle)) break;
         }
         if (amount > before)
         {

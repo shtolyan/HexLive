@@ -40,9 +40,10 @@ public sealed class VesselTransferTests
 
     private static void KeepOnlyVessels(NPCState npc)
     {
-        npc.Inventory.Items.RemoveAll(i => i.DefinitionId != ContentIds.Bottle);
-        Assert.That(npc.Inventory.Items.Count, Is.EqualTo(1),
-            "У колонистки прототипа должна быть ровно одна личная бутылка.");
+        // #650: new NPCs start with leather flasks. These legacy plastic-bottle
+        // regressions deliberately create their own old vessel, independent of spawn kits.
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.Bottle));
     }
 
     private static void DrinkOneBottleSip(

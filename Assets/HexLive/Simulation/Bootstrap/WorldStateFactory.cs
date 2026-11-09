@@ -1557,8 +1557,8 @@ public sealed class WorldStateFactory
             Runtime.FactionRelations.IsColonyKind(bootstrap.Faction);
         if (!nakedHugeStarter)
         {
-            // Spec 29H: everyone carries a personal empty water bottle.
-            npc.Inventory.Items.Add(new Agents.ItemInstance("tool.bottle"));
+            // §55.6: new characters carry an empty leather flask; saved plastic bottles are unchanged.
+            npc.Inventory.Items.Add(new Agents.ItemInstance(ContentIds.LeatherFlask));
 
             // §40.3 / §44 / §139.5: eight bandages and two pills.
             for (var i = 0; i < 4; i++)
@@ -1577,10 +1577,10 @@ public sealed class WorldStateFactory
         else
         {
             // §55.4 (bug #317): стартовая колонистка большого острова выходит
-            // с ПУСТОЙ личной бутылкой — ровно как прибывающая новенькая
+            // с ПУСТОЙ кожаной флягой — ровно как прибывающая новенькая
             // (ColonyArrivalSystem). Остальной запас (бинты, таблетки,
             // инструменты) остаётся мировым лутом §146.9.
-            npc.Inventory.Items.Add(new Agents.ItemInstance("tool.bottle"));
+            npc.Inventory.Items.Add(new Agents.ItemInstance(ContentIds.LeatherFlask));
 
             if (world.Mode == GameMode.Islands)
             {

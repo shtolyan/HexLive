@@ -4339,7 +4339,7 @@ namespace HexLive.UnityPresentation.UI
             string id, bool worn, Dictionary<int, WaterContainerState> water,
             int sourceIndex)
         {
-            if (worn || id != GearCatalog.Bottle)
+            if (worn || !WaterVesselCatalog.IsPortable(id))
             {
                 return false;
             }
@@ -4350,7 +4350,7 @@ namespace HexLive.UnityPresentation.UI
             {
                 var state = pair.Value;
                 if (pair.Key != sourceIndex && state.Amount > 0f &&
-                    (state.ItemId == GearCatalog.Bottle || state.ItemId == "food.coconut_pierced")) return true;
+                    (WaterVesselCatalog.IsPortable(state.ItemId) || state.ItemId == "food.coconut_pierced")) return true;
             }
 
             return false;
@@ -5256,7 +5256,8 @@ namespace HexLive.UnityPresentation.UI
 
         private static float DisplayCapacityLiters(string id, float gulpCapacity)
         {
-            return id == "tool.bottle" ? 1f : gulpCapacity * DisplayLitersPerGulp;
+            return id == ContentIds.LeatherFlask ? .6f :
+                id == "tool.bottle" ? 1f : gulpCapacity * DisplayLitersPerGulp;
         }
 
         private static string FormatVolume(float liters, bool millilitres)

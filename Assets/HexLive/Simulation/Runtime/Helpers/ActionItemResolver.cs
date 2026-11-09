@@ -77,11 +77,11 @@ public static class ActionItemResolver
                     return drink;
                 }
 
-                return InventoryContains(npc, "tool.bottle") ? "tool.bottle" : string.Empty;
+                return HeldBottle(npc)?.DefinitionId ?? string.Empty;
             }
 
             case InteractionType.FillBottle:
-                return InventoryContains(npc, "tool.bottle") ? "tool.bottle" : string.Empty;
+                return HeldBottle(npc)?.DefinitionId ?? string.Empty;
 
             // §55.4 (bug #317): перелив — бутылка в рабочей руке, кокос-источник
             // едет отдельным полем OffhandItemId (ResolveOffhandItem).
@@ -327,7 +327,7 @@ public static class ActionItemResolver
             return Supply(world, npc);
         if (npc.Execution.CurrentInteraction is InteractionType.Harvest or InteractionType.Process or InteractionType.Butcher or InteractionType.Craft)
             return WorkTool(world, npc);
-        if (id == ContentIds.Bottle) return HeldBottle(npc);
+        if (WaterVesselCatalog.IsPortable(id)) return HeldBottle(npc);
         return npc.Inventory.Items.Find(item => item.DefinitionId == id);
     }
 }

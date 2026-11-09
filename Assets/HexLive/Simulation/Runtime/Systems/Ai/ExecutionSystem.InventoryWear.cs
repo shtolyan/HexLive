@@ -992,7 +992,7 @@ public sealed partial class ExecutionSystem
         }
 
         var targetPresent = targetBottle is not null &&
-            targetBottle.DefinitionId == ContentIds.Bottle &&
+            WaterVesselCatalog.IsPortable(targetBottle.DefinitionId) &&
             InventoryMath.ContainsReference(npc.Inventory.Items, targetBottle);
         if ((starting && hasPhysicalSelection && !targetPresent) ||
             (!starting && npc.Execution.Status == ExecutionStatus.InProgress && !targetPresent))
@@ -1025,7 +1025,7 @@ public sealed partial class ExecutionSystem
             npc.Execution.Status = ExecutionStatus.InProgress;
             npc.Execution.CurrentInteraction = InteractionType.FillVessel;
             npc.Execution.VesselSources.Clear();
-            var remainingRoom = SimBalance.BottleCapacity - VesselTransferMath.SourceSips(targetBottle);
+            var remainingRoom = BottleInventoryMath.Capacity(targetBottle) - VesselTransferMath.SourceSips(targetBottle);
             foreach (var source in npc.Inventory.Items)
             {
                 if (ReferenceEquals(source, targetBottle) || VesselTransferMath.SourceSips(source) <= 0f ||
@@ -1081,7 +1081,7 @@ public sealed partial class ExecutionSystem
         {
             // Диагностика, не хроника: рядовой быт (как VesselPlaced/Taken).
             Trace.Debug(world, npc.Id, "VesselFilled",
-                $"Poured {moved} sips into tool.bottle " +
+                $"Poured {moved} sips into {targetBottle.DefinitionId} " +
                 $"{targetBottle?.WaterKind} x{BottleInventoryMath.Charges(targetBottle)}");
         }
 
@@ -1121,7 +1121,7 @@ public sealed partial class ExecutionSystem
             ? BottleInventoryMath.FirstDrinkable(npc)
             : npc.Execution.TargetInventoryItem;
         var bottlePresent = bottle is not null &&
-            bottle.DefinitionId == ContentIds.Bottle &&
+            WaterVesselCatalog.IsPortable(bottle.DefinitionId) &&
             BottleInventoryMath.Charges(bottle) > 0 &&
             InventoryMath.ContainsReference(npc.Inventory.Items, bottle);
         if (!bottlePresent)

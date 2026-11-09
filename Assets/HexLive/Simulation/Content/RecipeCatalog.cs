@@ -89,6 +89,9 @@ public static class RecipeCatalog
                 foreach (var recipe in ByGoal.Values)
                     if (!string.IsNullOrEmpty(recipe.OutputDefinitionId))
                         _byOutput.Add(recipe.OutputDefinitionId, recipe);
+                _byOutput.Add(ContentIds.LeatherFlask, new Recipe(GoalType.CraftItem,
+                    new[] { new RecipeIngredient(ContentIds.Hide, 1), new RecipeIngredient(ContentIds.Rope, 1) },
+                    station: "Workbench", baseWorkTicks: 24, outputDefinitionId: ContentIds.LeatherFlask));
                 _byOutput.Add(ContentIds.CrudeSaw, new Recipe(GoalType.CraftItem,
                     new[] { new RecipeIngredient(ContentIds.Stick, 1), new RecipeIngredient(ContentIds.SharpStone, 2),
                         new RecipeIngredient(ContentIds.Rope, 1) }, station: "", baseWorkTicks: 48,

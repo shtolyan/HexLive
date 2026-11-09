@@ -410,7 +410,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     if (SimTrace.Enabled)
                     {
                         Trace.Debug(world, npc.Id, "PlanBuilt",
-                            $"Goal=Drink Item=tool.bottle Steps=[DrinkBottle] " +
+                            $"Goal=Drink Item={BottleInventoryMath.FirstDrinkable(npc)?.DefinitionId} Steps=[DrinkBottle] " +
                             $"Charges={BottleInventoryMath.Charges(BottleInventoryMath.FirstDrinkable(npc))}");
                     }
                     continue;

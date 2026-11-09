@@ -1206,7 +1206,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 return false;
             }
             var kind = definition.HasTag("RawWater") ? WaterKind.Raw : WaterKind.Boiled;
-            BottleInventoryMath.SetContents(bottle, kind, SimBalance.BottleCapacity);
+            BottleInventoryMath.SetContents(bottle, kind, BottleInventoryMath.Capacity(bottle));
             Trace.Emit(world, npc.Id, "BottleFilled",
                 $"{kind} x{BottleInventoryMath.Charges(bottle)} from {worldObject.DefinitionId}");
         }
@@ -1723,16 +1723,18 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             return false;
         }
         var vessel = WorldObjectMutations.SpawnObject(
-            world, WaterCollectorMath.VesselId, npc.Fragment,
+            world, bottleItem.DefinitionId, npc.Fragment,
             worldObject.Tile, worldObject.Junctions[0]);
-        vessel.Owner = npc.Id; // remembers whose bottle waits here
+        vessel.Wetness = bottleItem.Wetness; vessel.Durability = bottleItem.Durability;
+        vessel.Dirtiness = bottleItem.Dirtiness; vessel.Bloodiness = bottleItem.Bloodiness;
+        vessel.Owner = npc.Id; // remembers whose physical vessel waits here
         vessel.ResourceAmount = 0f;
         vessel.WaterKind = WaterKind.None;
         vessel.LastAddedWaterKind = WaterKind.None;
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "VesselPlaced",
-                $"tool.bottle parked in collector {worldObject.Id.Value}");
+                $"{bottleItem.DefinitionId} parked in collector {worldObject.Id.Value}");
         }
 
         return true;
@@ -1763,14 +1765,22 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         var pouredOver = bottle is not null;
         if (pouredOver)
         {
-            vessel.ResourceAmount = 0f; // stays parked, keeps collecting
-            vessel.WaterKind = WaterKind.None;
-            vessel.LastAddedWaterKind = WaterKind.None;
+            var moved = System.Math.Min(amount, BottleInventoryMath.Capacity(bottle));
+            vessel.ResourceAmount = (amount - moved) / WaterVesselCatalog.Capacity(vessel.DefinitionId);
+            if (vessel.ResourceAmount <= 0f)
+            {
+                vessel.WaterKind = WaterKind.None;
+                vessel.LastAddedWaterKind = WaterKind.None;
+            }
+            amount = moved;
         }
         else
         {
             WorldObjectMutations.DespawnObject(world, vessel.Id);
-            bottle = new ItemInstance(WaterCollectorMath.VesselId);
+            bottle = new ItemInstance(vessel.DefinitionId) {
+                Wetness = vessel.Wetness, Durability = vessel.Durability,
+                Dirtiness = vessel.Dirtiness, Bloodiness = vessel.Bloodiness,
+                OwnerId = vessel.Owner?.Value ?? 0 };
             npc.Inventory.Items.Add(bottle);
         }
 
@@ -1870,7 +1880,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 Durability = worldObject.Durability,
                 ResourceAmount = parkedBottle
                     ? WaterCollectorMath.AmountIn(worldObject)
-                    : worldObject.DefinitionId == ContentIds.Bottle && worldObject.WaterKind == WaterKind.None
+                    : WaterVesselCatalog.IsPortable(worldObject.DefinitionId) && worldObject.WaterKind == WaterKind.None
                         ? 0f : worldObject.ResourceAmount,
                 WaterKind = parkedBottle && worldObject.ResourceAmount > 0f &&
                     worldObject.WaterKind == WaterKind.None ? WaterKind.Rain : worldObject.WaterKind,

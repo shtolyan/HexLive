@@ -1000,7 +1000,8 @@ public sealed class MovementSystem : ISimulationSystem
             var manualMoveOrder = npc.Mind.ManualControl &&
                 npc.Mind.CurrentGoal == GoalType.PlayerOrder &&
                 npc.Plan.Goal == GoalType.PlayerOrder;
-            var manualRun = manualMoveOrder && npc.Plan.RunRequested;
+            var manualRun = npc.Mind.ManualControl &&
+                npc.Plan.Status == PlanStatus.Active && npc.Plan.RunRequested;
 
             var urgency = 1f;
             // §121.1: the player's click owns the pace of a manual move.

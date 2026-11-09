@@ -557,7 +557,7 @@ internal static class ManualCommandExecutor
         AgentCommandLedger.Observe(world, npc);
         AgentCommandLedger.Finish(world, npc, "failed", "PlanInterrupted.PlayerCommand");
         npc.Plan.Steps.Clear();
-        npc.Plan.RunRequested = false;
+        npc.Plan.RunRequested = npc.Mind.RunByDefault;
         npc.Plan.CraftProjectTargetId = null;
         npc.Plan.RequestedTalkTopic = null;
         npc.Mind.GoalLock = null;
@@ -649,8 +649,7 @@ internal static class ManualCommandExecutor
         }
 
         npc.Mind.RunByDefault = command.Run;
-        if (npc.Mind.ManualControl && npc.Mind.CurrentGoal == GoalType.PlayerOrder &&
-            npc.Plan.Goal == GoalType.PlayerOrder)
+        if (npc.Mind.ManualControl && npc.Plan.Status == PlanStatus.Active)
         {
             npc.Plan.RunRequested = command.Run;
         }

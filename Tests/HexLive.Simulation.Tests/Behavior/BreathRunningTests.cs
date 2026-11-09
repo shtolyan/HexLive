@@ -279,6 +279,57 @@ public sealed class BreathRunningTests
         });
     }
 
+    [TestCase(GoalType.Socialize)]
+    [TestCase(GoalType.CraftItem)]
+    [TestCase(GoalType.Aid)]
+    public void ManualActionApproach_UsesRequestedRunAndFiniteBreath(GoalType goal)
+    {
+        var (world, npc, start, neighbor, far) = RoutineWalker();
+        npc.Mind.ManualControl = true;
+        npc.Mind.CurrentGoal = goal;
+        npc.Plan.Goal = goal;
+        npc.Plan.RunRequested = true;
+        npc.Needs.Breath = 0.5f;
+        ArmRoute(world, npc, start, neighbor, far);
+
+        new MovementSystem().Run(world);
+
+        Assert.That(npc.Mind.IsRunning, Is.True,
+            "The native goal of an explicit action must not discard its requested pace.");
+        Assert.That(npc.Needs.Breath, Is.LessThan(0.5f));
+
+        npc.Needs.Breath = 0f;
+        ArmRoute(world, npc, start, neighbor, far);
+        new MovementSystem().Run(world);
+        Assert.That(npc.Mind.IsRunning, Is.False,
+            "An action approach still walks when the physical breath reserve is empty.");
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public void ManualPickUp_InheritsCharacterPace(bool run)
+    {
+        var engine = TestWorld.CreateEngine();
+        engine.Step();
+        var world = engine.World;
+        var npc = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        npc.Mind.ManualControl = true;
+        npc.Mind.RunByDefault = run;
+        npc.Needs.Hunger = npc.Needs.Thirst = 0f;
+        var neighbor = SpatialQueries.GetPassableNeighbors(world, npc.CurrentJunction!.Value)
+            .First(j => SpatialQueries.IsJunctionFree(world, j));
+        var junction = world.Junctions.Items[neighbor];
+        var coconut = WorldObjectMutations.SpawnObject(world, "food.coconut",
+            junction.Fragment, junction.Tiles[0], neighbor);
+
+        var result = ManualCommandExecutor.Apply(world,
+            new InteractCommand(npc.Id, coconut.Id, HexLive.Simulation.Content.InteractionType.PickUp));
+
+        Assert.That(result.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted), result.Reason);
+        Assert.That(npc.Plan.RunRequested, Is.EqualTo(run),
+            "Object orders must inherit the same pace setting as an ordinary move click.");
+    }
+
     private static (WorldState World, NPCState Npc, JunctionId Start,
         JunctionId Neighbor, JunctionId Far) RoutineWalker()
     {

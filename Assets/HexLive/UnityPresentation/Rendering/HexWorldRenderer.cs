@@ -7464,7 +7464,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             // Authored handle-+Y (TOOL_GENERATION_SPEC); 90° about X tips that long
             // axis onto the ground, then the yaw scatters which way it points.
-            return Quaternion.Euler(90f, yaw, 0f);
+            return Quaternion.Euler(90f, yaw, 0f) * authoredRotation;
         }
 
         // The approved palm frond FBX carries the Blender-to-Unity correction

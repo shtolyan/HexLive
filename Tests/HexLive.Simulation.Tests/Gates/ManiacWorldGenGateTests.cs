@@ -89,9 +89,10 @@ public sealed class ManiacWorldGenGateTests
         {
             Assert.Multiple(() =>
             {
-                // §55.4 (bug #317): минимальный комплект = личная пустая бутылка.
+                // §55.6 / #650: минимальный комплект = личная пустая кожаная фляга.
                 Assert.That(npc.Inventory.Items.Select(i => i.DefinitionId),
-                    Is.EqualTo(new[] { GearCatalog.Bottle }), $"NPC {npc.Id.Value}");
+                    Is.EqualTo(new[] { ContentIds.LeatherFlask }), $"NPC {npc.Id.Value}");
+                StarterWaterVesselAssertions.HasOneEmptyLeatherFlask(npc, "Maniac other camps");
                 Assert.That(npc.WornItems, Has.Count.EqualTo(3), $"NPC {npc.Id.Value}");
                 Assert.That(npc.WornItems.Count(item => Garment(item.DefinitionId).Layer ==
                     WearLayer.Underwear), Is.EqualTo(2), $"NPC {npc.Id.Value}");

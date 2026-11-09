@@ -154,23 +154,19 @@ public sealed class BigIslandWorldGenGateTests
         }
     }
 
-    [Test]
-    public void EveryStarterCarriesAnEmptyBottle()
+    private static IEnumerable<GameMode> StarterModes => System.Enum.GetValues<GameMode>();
+
+    [TestCaseSource(nameof(StarterModes))]
+    public void EveryStarterCarriesAnEmptyLeatherFlask(GameMode mode)
     {
-        // §55.4 (bug #317): стартовый комплект выровнен с прибывающей новенькой
-        // (ColonyArrivalSystem): личная ПУСТАЯ бутылка есть у каждой, и в
-        // «голом» старте HugeIsland тоже — остальной запас остаётся лутом.
-        foreach (var mode in new[] { GameMode.BigIsland, GameMode.HugeIsland })
+        // §55.6 / #650: каждый новый старт получает личную пустую кожаную
+        // флягу. Пластиковые бутылки остаются мировым лутом и в старых сейвах.
+        var world = new WorldStateFactory().Create(
+            PrototypeWorldDefinitionFactory.Create(12345, mode));
+        Assert.That(world.Entities.Npcs.Values, Is.Not.Empty, mode.ToString());
+        foreach (var npc in world.Entities.Npcs.Values)
         {
-            var world = new WorldStateFactory().Create(
-                PrototypeWorldDefinitionFactory.Create(12345, mode));
-            foreach (var npc in world.Entities.Npcs.Values)
-            {
-                Assert.That(npc.Inventory.Items.Contains(new ItemInstance("tool.bottle")),
-                    $"{mode}: NPC{npc.Id.Value} без личной бутылки (§55.4)");
-                Assert.That(npc.BottleCharges, Is.EqualTo(0),
-                    $"{mode}: NPC{npc.Id.Value} стартует с непустой бутылкой");
-            }
+            StarterWaterVesselAssertions.HasOneEmptyLeatherFlask(npc, mode.ToString());
         }
     }
 

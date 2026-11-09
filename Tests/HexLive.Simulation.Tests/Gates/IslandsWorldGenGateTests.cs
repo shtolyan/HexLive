@@ -177,9 +177,9 @@ public sealed class IslandsWorldGenGateTests
         }
     }
 
-    /// <summary>§157.8: трусы, лифчик, рюкзак, пустая бутылка, пять бинтов — и ничего сверх.</summary>
+    /// <summary>§157.8 / §55.6: трусы, лифчик, рюкзак, пустая кожаная фляга, пять бинтов — и ничего сверх.</summary>
     [Test]
-    public void StartersWearUnderwearAndBackpackAndCarryBottleWithFiveBandages()
+    public void StartersWearUnderwearAndBackpackAndCarryEmptyLeatherFlaskWithFiveBandages()
     {
         foreach (var seed in Seeds)
         {
@@ -187,9 +187,7 @@ public sealed class IslandsWorldGenGateTests
             foreach (var girl in world.Entities.Npcs.Values)
             {
                 var carried = girl.Inventory.Items.Select(i => i.DefinitionId).ToList();
-                Assert.That(carried.Count(id => id == ContentIds.Bottle), Is.EqualTo(1),
-                    $"seed {seed}: NPC{girl.Id.Value} — одна бутылка");
-                Assert.That(girl.BottleCharges, Is.Zero, $"seed {seed}: бутылка пустая");
+                StarterWaterVesselAssertions.HasOneEmptyLeatherFlask(girl, $"Islands seed {seed}");
                 Assert.That(carried.Count(id => id == ContentIds.Bandage), Is.EqualTo(5),
                     $"seed {seed}: NPC{girl.Id.Value} — пять бинтов");
                 Assert.That(girl.Inventory.Items.Where(i => i.DefinitionId == ContentIds.Bandage)

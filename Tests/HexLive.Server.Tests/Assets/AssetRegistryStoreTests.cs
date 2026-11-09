@@ -138,6 +138,12 @@ public sealed class AssetRegistryStoreTests
         Assert.That(collars.All(g => g["capacity"]!.GetValue<int>() == 1), Is.True);
         var dresses = garments.Where(g => g["id"]!.GetValue<string>().StartsWith("clothing.dress_primal", StringComparison.Ordinal)).ToArray();
         Assert.That(dresses.All(g => g["capacity"]!.GetValue<int>() == 2), Is.True);
+        Assert.That(dresses.Length, Is.EqualTo(14));
+        Assert.That(dresses.All(g => g["armor"]!.GetValue<float>() == 0.10f), Is.True,
+            "Every fur dress colour and both body fits protect their covered parts by ten percent.");
+        var headbands = garments.Where(g => g["id"]!.GetValue<string>().StartsWith("clothing.headband_primal", StringComparison.Ordinal)).ToArray();
+        Assert.That(headbands.Length, Is.EqualTo(8));
+        Assert.That(headbands.All(g => g["armor"]!.GetValue<float>() == 0.05f), Is.True);
         var skirts = garments.Where(g => g["id"]!.GetValue<string>().StartsWith("clothing.skirt_primal", StringComparison.Ordinal)).ToArray();
         Assert.That(skirts.All(g => g["capacity"]!.GetValue<int>() == 2), Is.True);
         foreach (var recipe in json["recipes"]!.AsArray().OfType<JsonObject>()
@@ -147,7 +153,15 @@ public sealed class AssetRegistryStoreTests
                 .SingleOrDefault(input => input["id"]!.GetValue<string>() == "resource.cloth");
             Assert.That(cloth, Is.Not.Null,
                 $"{recipe["output"]} must consume the shared cloth material.");
-            Assert.That(cloth!["count"]!.GetValue<int>(), Is.EqualTo(1));
+            var dressRecipe = recipe["output"]!.GetValue<string>().StartsWith("clothing.dress_primal", StringComparison.Ordinal);
+            Assert.That(cloth!["count"]!.GetValue<int>(), Is.EqualTo(dressRecipe ? 2 : 1));
+            if (dressRecipe)
+            {
+                var inputs = recipe["inputs"]!.AsArray().OfType<JsonObject>()
+                    .ToDictionary(i => i["id"]!.GetValue<string>(), i => i["count"]!.GetValue<int>());
+                Assert.That(inputs["resource.hide"], Is.EqualTo(6));
+                Assert.That(inputs["resource.rope"], Is.EqualTo(2));
+            }
         }
     }
 

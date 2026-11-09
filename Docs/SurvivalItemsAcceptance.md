@@ -50,3 +50,24 @@ Player; существующие FBX/PNG и atomic bundles здесь не из�
 emoji fallback без повторных запросов на каждом обновлении интерфейса.
 Результаты: `Build/Diagnostics/survival-item-rework/icons-{before,healthy}-tests.xml`.
 Изменения загрузчика также требуют нового Player; свет факела не менялся.
+
+
+## Повторный отчёт #625 и цель из #619
+
+Карточка #625 снята 09.11.2026 в клиенте 0.1.113 (buildGuid
+897bc9e2a918419ab9722e33707a02ee), который предшествует исправлению
+I2-списка в cb717c4184abe23ccd090979c8c9e6e3475e072b. Текущие термины
+уже внутри mSource.mTerms, повторно менять переводы не требуется.
+
+Проверены пути: CharacterPanel.ItemName/ItemDesc используются обычным
+инвентарём, крафтом и HTML ItemModel/CraftModel; CraftProjectDetailsPanel
+и LootTransferPanel также читают Loc перед fallback каталога. Название цели
+в desktop берёт Loc.Goal; HTML character.js берёт t(`goal.${npc.goal}`), а
+HtmlUi.SendStrings экспортирует весь список реально импортированных I2 terms.
+
+ItemLocalizationTests дополнен точными RU/EN ожиданиями четырёх названий и
+TendGarden/CraftHammer, проверкой реального CharacterPanel fallback-пути,
+описания и присутствия ключей в GetTermsList (путь экспорта HTML).
+В этой карточке не менялись I2-термины, модели, иконки или свет. Новые Unity
+runtime assertions должны пройти в общем прогоне координатора; наличие теста
+в исходнике само по себе не является результатом его выполнения.

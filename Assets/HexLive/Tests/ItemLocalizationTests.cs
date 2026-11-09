@@ -1,5 +1,7 @@
 #if UNITY_EDITOR
 using System.Linq;
+using System.Reflection;
+using HexLive.UnityPresentation.UI;
 using System.Text.RegularExpressions;
 using HexLive.Simulation.Content;
 using HexLive.UnityPresentation.Localization;
@@ -34,6 +36,52 @@ public sealed class ItemLocalizationTests
                         Assert.That(Loc.Get(key), Does.Match("[А-Яа-яЁё]"), key);
                 }
             }
+        }
+        finally { Loc.Current = original; }
+    }
+
+    [TestCase(ContentIds.Flint, "Flint", "Кремень")]
+    [TestCase(ContentIds.CrudeSaw, "Crude saw", "Самодельная пила")]
+    [TestCase(ContentIds.Firestarter, "Firestarter", "Огниво")]
+    [TestCase(ContentIds.Torch, "Torch", "Факел")]
+    public void SurvivalUiReadsImportedNamesBeforeCatalogEnglishFallback(string id, string english, string russian)
+    {
+        var original = Loc.Current;
+        var definition = new ObjectDefinition { Id = id, DisplayName = "UNLOCALIZED CATALOG FALLBACK" };
+        var info = ItemCatalog.Resolve(definition);
+        var name = typeof(CharacterPanel).GetMethod("ItemName", BindingFlags.NonPublic | BindingFlags.Static);
+        var description = typeof(CharacterPanel).GetMethod("ItemDesc", BindingFlags.NonPublic | BindingFlags.Static);
+        try
+        {
+            foreach (var language in new[] { Language.English, Language.Russian })
+            {
+                Loc.Current = language;
+                var expected = language == Language.Russian ? russian : english;
+                Assert.That(Loc.Get(info.NameKey), Is.EqualTo(expected));
+                Assert.That(name.Invoke(null, new object[] { definition, info }), Is.EqualTo(expected),
+                    "Crafting, inventory and HTML ItemModel share CharacterPanel.ItemName.");
+                Assert.That(description.Invoke(null, new object[] { definition, info }),
+                    Is.EqualTo(Loc.Get(info.DescKey)));
+                Assert.That(CraftProjectDetailsPanel.ItemName(null, id), Is.EqualTo(expected));
+                Assert.That(I2.Loc.LocalizationManager.GetTermsList(), Does.Contain(info.NameKey),
+                    "HtmlUi.SendStrings exports imported I2 terms, not raw YAML text.");
+            }
+        }
+        finally { Loc.Current = original; }
+    }
+
+    [TestCase("TendGarden", "Tending the garden", "Ухаживает за грядкой")]
+    [TestCase("CraftHammer", "Making a hammer", "Делает молоток")]
+    public void SurvivalGoalsResolveFromImportedTermsForDesktopAndHtml(string goal, string english, string russian)
+    {
+        var original = Loc.Current;
+        try
+        {
+            Loc.Current = Language.Russian;
+            Assert.That(Loc.Goal(goal), Is.EqualTo(russian));
+            Assert.That(I2.Loc.LocalizationManager.GetTermsList(), Does.Contain("goal." + goal));
+            Loc.Current = Language.English;
+            Assert.That(Loc.Goal(goal), Is.EqualTo(english));
         }
         finally { Loc.Current = original; }
     }

@@ -74,7 +74,7 @@ internal static class ManualBuildSession
     public static int Progress(WorldObjectState site)
     {
         var total = 0;
-        foreach (var material in BuildSiteMath.AllMaterials)
+        foreach (var material in BuildSiteMath.MaterialsFor(site))
         {
             total += BuildSiteMath.Delivered(site, material) +
                 BuildSiteMath.Installed(site, material);
@@ -143,7 +143,7 @@ internal static class ManualBuildSession
         var packFull = false;
         WorldObjectState? fetch = null;
         var fetchDistance = float.MaxValue;
-        foreach (var material in BuildSiteMath.AllMaterials)
+        foreach (var material in BuildSiteMath.MaterialsFor(site))
         {
             var shortfall = BuildSiteMath.Remaining(site, material) -
                 DecisionSystem.CountInventory(npc, material);
@@ -176,7 +176,7 @@ internal static class ManualBuildSession
         // 2. Работа на площадке. Принесённое сдаётся без молотка; поставить
         // деталь или поднять собранное — только с ним (тот же гейт, что у
         // приёма приказа и у ExecutionSystem).
-        foreach (var material in BuildSiteMath.AllMaterials)
+        foreach (var material in BuildSiteMath.MaterialsFor(site))
         {
             if (BuildSiteMath.AcceptsDelivery(site, material) &&
                 DecisionSystem.CountInventory(npc, material) > 0)
@@ -201,7 +201,7 @@ internal static class ManualBuildSession
             return new Step(StepKind.PackFull);
         }
 
-        foreach (var material in BuildSiteMath.AllMaterials)
+        foreach (var material in BuildSiteMath.MaterialsFor(site))
         {
             if (BuildSiteMath.Remaining(site, material) > 0)
             {

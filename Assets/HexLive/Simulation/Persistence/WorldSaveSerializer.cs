@@ -187,7 +187,8 @@ public static class WorldSaveSerializer
     // The payload layout stays v86; the version records the completed migration.
     // v88 (§151.4 / #620): explicit campfire fuel role appended to each item.
     // Old negative wood markers migrate to Wood/0; water and leaf state stay independent.
-    public const int BlobVersion = 88;
+    // v89 (#627): persist object placement Variant after the v85 material tail.
+    public const int BlobVersion = 89;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1510,6 +1511,7 @@ public static class WorldSaveSerializer
                 foreach (var count in obj.InstalledBuildMaterials) w.Write(count);
             }
         }
+        if (version >= 89) w.Write(obj.Variant ?? string.Empty);
     }
 
     private static WorldObjectState ReadObject(BinaryReader r, int version)
@@ -1659,6 +1661,7 @@ public static class WorldSaveSerializer
             obj.RotationDegrees = StructurePlacement.QuantizeHexYaw(obj.RotationDegrees);
         }
 
+        if (version >= 89) obj.Variant = r.ReadString();
         return obj;
     }
 

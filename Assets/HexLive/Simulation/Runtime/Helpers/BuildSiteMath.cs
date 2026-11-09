@@ -32,6 +32,16 @@ internal static class BuildSiteMath
         MaterialLogs, MaterialStones, MaterialLeaves, MaterialSticks, MaterialRope, MaterialBoards
     };
 
+    private static readonly string[] TorchMaterials =
+    {
+        MaterialLogs, MaterialStones, MaterialLeaves, MaterialSticks, MaterialRope, MaterialBoards, ContentIds.Cloth
+    };
+
+    // The six installed-work counters remain save-compatible. Torch cloth is
+    // a binding consumed by the final raise, not a seventh structural stage.
+    public static System.Collections.Generic.IReadOnlyList<string> MaterialsFor(WorldObjectState site) =>
+        site.BuildProduct == ContentIds.Torch ? TorchMaterials : AllMaterials;
+
     /// <summary>
     /// §120: a site whose product is raised as INDEPENDENT MODULES (the
     /// BuildingRules grammar) rather than as ordered furniture stages. The
@@ -273,8 +283,16 @@ internal static class BuildSiteMath
         MaterialSticks => site.BillSticks,
         MaterialRope => site.BillRope,
         MaterialBoards => site.BillBoards,
+        ContentIds.Cloth when site.BuildProduct == ContentIds.Torch => TorchClothBill(),
         _ => 0
     };
+
+    private static int TorchClothBill()
+    {
+        foreach (var input in RecipeCatalog.ByOutput[ContentIds.Torch].Inputs)
+            if (input.Id == ContentIds.Cloth) return input.Count;
+        return 0;
+    }
 
     // The CURRENT stage's shortfall of a material — 0 for anything the active
     // stage doesn't call for (staged sites) or the plain bill shortfall
@@ -352,7 +370,7 @@ internal static class BuildSiteMath
     {
         if (IsDemolitionSite(site)) return true;
 
-        foreach (var mat in AllMaterials)
+        foreach (var mat in MaterialsFor(site))
         {
             if (TotalRemaining(site, mat) > 0)
             {
@@ -449,10 +467,11 @@ public static class BuildSiteView
     public static (string DefinitionId, int Required, int Delivered, int Remaining, int CurrentStageRemaining)[]
         Materials(WorldObjectState site)
     {
-        var rows = new (string, int, int, int, int)[BuildSiteMath.AllMaterials.Length];
+        var materials = BuildSiteMath.MaterialsFor(site);
+        var rows = new (string, int, int, int, int)[materials.Count];
         for (var i = 0; i < rows.Length; i++)
         {
-            var id = BuildSiteMath.AllMaterials[i];
+            var id = materials[i];
             rows[i] = (id, BuildSiteMath.Bill(site, id), BuildSiteMath.Delivered(site, id),
                 BuildSiteMath.TotalRemaining(site, id), BuildSiteMath.Remaining(site, id));
         }

@@ -1790,7 +1790,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _groundPileDefinitions.Clear(); _groundPileLegacy.Clear();
         foreach (var worldObject in snapshot.Objects)
         {
-            if (worldObject.Junctions.Count > 0 && GroundPileCatalog.TryGet(worldObject.DefinitionId, false, out _))
+            if (worldObject.Junctions.Count > 0 &&
+                !(worldObject.DefinitionId == ContentIds.Torch && worldObject.Variant == InventoryPlacementMath.PlantedTorchVariant) &&
+                GroundPileCatalog.TryGet(worldObject.DefinitionId, false, out _))
                 _groundPileScratch.Add(worldObject);
             if (worldObject.DefinitionId == "station.drying_rack" && worldObject.Junctions.Count > 0)
             {
@@ -4966,12 +4968,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 var parkedBottle = worldObject.DefinitionId == "tool.bottle" &&
                     worldObject.Junctions.Count > 0 &&
                     _collectorJunctions.Contains(worldObject.Junctions[0]);
-                var groundPile = worldObject.CraftWorkRequired <= 0 && !parkedBottle && _groundPileRank.ContainsKey(worldObject.Id.Value) &&
+                var plantedTorch = worldObject.DefinitionId == ContentIds.Torch &&
+                    worldObject.Variant == InventoryPlacementMath.PlantedTorchVariant;
+                var groundPile = worldObject.CraftWorkRequired <= 0 && !parkedBottle && !plantedTorch && _groundPileRank.ContainsKey(worldObject.Id.Value) &&
                     GroundPileCatalog.TryGet(worldObject.DefinitionId,false,out _);
                 // Body portions reserve separate ground anchors, never tidy stacks.
                 if (HumanMeatCatalog.IsHumanPart(worldObject.DefinitionId)) groundPile = false;
                 FitObjectPrefab(instance, worldObject.DefinitionId, worldObject.Id.Value,
-                    scatter: worldObject.CraftWorkRequired <= 0 && !groundPile && !parkedBottle && worldObject.RotationDegrees == 0f, pile: groundPile);
+                    scatter: worldObject.CraftWorkRequired <= 0 && !groundPile && !parkedBottle && !plantedTorch && worldObject.RotationDegrees == 0f, pile: groundPile);
                 if (groundPile) AttachGroundPile(prefabRoot,instance,worldObject);
                 if (parkedBottle)
                 {

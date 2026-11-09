@@ -25,7 +25,8 @@ public sealed class PlantingPlacementUiContractTests
         Assert.Multiple(() =>
         {
             Assert.That(panel, Does.Contain("Loc.Get(\"inv.action.plant\")"));
-            Assert.That(panel, Does.Contain("PlantGrowthCatalog.TryGetBySeed(id, out _)"));
+            Assert.That(panel, Does.Contain("InventoryPlacementMath.CanPlace(id)"));
+            Assert.That(panel, Does.Contain("\"inv.action.place\""));
             Assert.That(panel, Does.Contain("input.BeginPlantingPlacement("));
             Assert.That(input, Does.Contain("new PlantInventorySeedCommand("));
             Assert.That(input, Does.Contain("new InventoryItemRef("));

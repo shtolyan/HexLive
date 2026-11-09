@@ -4304,7 +4304,7 @@ namespace HexLive.UnityPresentation.UI
                 (worn || wearable) && !outfitChangeBlocked
                 ? DisplayStyle.Flex : DisplayStyle.None;
             _invPlantAction.style.display = _inventoryMutable && !worn &&
-                PlantGrowthCatalog.TryGetBySeed(id, out _)
+                InventoryPlacementMath.CanPlace(id)
                 ? DisplayStyle.Flex : DisplayStyle.None;
             _invDropAction.style.display = _inventoryMutable && !(_outfitLockedNow && worn)
                 ? DisplayStyle.Flex : DisplayStyle.None;
@@ -4320,7 +4320,7 @@ namespace HexLive.UnityPresentation.UI
                 ? DisplayStyle.Flex : DisplayStyle.None;
             _invPrimaryActionLabel.text = Loc.Get(worn
                 ? "inv.action.stow" : "inv.action.wear");
-            _invPlantActionLabel.text = Loc.Get("inv.action.plant");
+            _invPlantActionLabel.text = Loc.Get(_invSelectedId == ContentIds.Torch ? "inv.action.place" : "inv.action.plant");
             _invDropActionLabel.text = Loc.Get("inv.action.drop");
             _invReadOnlyLabel.text = Loc.Get(outfitChangeBlocked
                 ? "inv.outfit_locked" : "inv.readonly");
@@ -4376,7 +4376,7 @@ namespace HexLive.UnityPresentation.UI
         {
             if (!_inventoryMutable || _runner == null || _invSelectedId == null ||
                 _inventoryActorId < 0 || _invSelectedWorn ||
-                !PlantGrowthCatalog.TryGetBySeed(_invSelectedId, out _))
+                !InventoryPlacementMath.CanPlace(_invSelectedId))
             {
                 return;
             }
@@ -8052,7 +8052,7 @@ namespace HexLive.UnityPresentation.UI
                 _outsiderRosterHeader.text = Loc.Get("roster.outsiders");
             if (_invDropActionLabel != null) _invDropActionLabel.text = Loc.Get("inv.action.drop");
             if (_invFillActionLabel != null) _invFillActionLabel.text = Loc.Get("inv.action.fill");
-            if (_invPlantActionLabel != null) _invPlantActionLabel.text = Loc.Get("inv.action.plant");
+            if (_invPlantActionLabel != null) _invPlantActionLabel.text = Loc.Get(_invSelectedId == ContentIds.Torch ? "inv.action.place" : "inv.action.plant");
             if (_invReadOnlyLabel != null) _invReadOnlyLabel.text = Loc.Get("inv.readonly");
             if (_invPrimaryActionLabel != null && _invSelectedId != null)
                 _invPrimaryActionLabel.text = Loc.Get(_invSelectedWorn

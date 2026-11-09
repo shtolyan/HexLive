@@ -2803,10 +2803,8 @@ internal static class ManualCommandExecutor
         }
 
         var seed = npc.Inventory.Items[command.Item.Index];
-        if (!PlantGrowthCatalog.TryGetBySeed(seed.DefinitionId, out _) ||
-            !world.Content.ObjectDefinitions.TryGetValue(seed.DefinitionId, out var seedDefinition) ||
-            !seedDefinition.Interactions.Any(candidate =>
-                candidate.Type == InteractionType.Plant))
+        if (!InventoryPlacementMath.CanPlace(seed.DefinitionId) ||
+            InventoryPlacementMath.InteractionFor(world, seed.DefinitionId) == null)
         {
             Reject(world, npc.Id, "PlantSeed", "NotASeed", admission);
             return;
@@ -2843,6 +2841,7 @@ internal static class ManualCommandExecutor
         npc.Plan.TargetJunctionId = command.TargetJunction;
         npc.Plan.TargetTile = command.TargetTile;
         npc.Plan.TargetItemDefinitionId = seed.DefinitionId;
+        npc.Plan.TargetObjectId = null;
         npc.Plan.Steps.Add(new PlanStep
         {
             Type = PlanStepType.MoveToJunction,

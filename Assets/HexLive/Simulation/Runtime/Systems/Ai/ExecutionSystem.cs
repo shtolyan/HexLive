@@ -2670,7 +2670,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         return null;
     }
 
-    private static WorldObjectState SpawnDroppedItem(WorldState world,NPCState npc,ItemInstance item,
+    internal static WorldObjectState SpawnDroppedItem(WorldState world,NPCState npc,ItemInstance item,
         TileCoord dropTile,JunctionId dropJunction)
     {
         var dropped = WorldObjectMutations.SpawnObject(

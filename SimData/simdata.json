@@ -2232,7 +2232,7 @@
     {"id": "resource.flint", "displayName": "resource.flint", "tags": ["Resource"], "storage": [], "interactions": [{"id": "pickup.resource.flint", "type": "PickUp", "requiredCapabilities": [], "durationTicks": 4, "yields": []}]},
     {"id": "tool.saw_crude", "displayName": "tool.saw_crude", "tags": ["Tool", "Saw"], "storage": [], "interactions": [{"id": "pickup.tool.saw_crude", "type": "PickUp", "requiredCapabilities": [], "durationTicks": 4, "yields": []}]},
     {"id": "tool.firestarter", "displayName": "tool.firestarter", "tags": ["Tool"], "storage": [], "interactions": [{"id": "pickup.tool.firestarter", "type": "PickUp", "requiredCapabilities": [], "durationTicks": 4, "yields": []}]},
-    {"id": "tool.torch", "displayName": "tool.torch", "tags": ["Tool"], "storage": [], "interactions": [{"id": "pickup.tool.torch", "type": "PickUp", "requiredCapabilities": [], "durationTicks": 4, "yields": []}]}
+    {"id": "tool.torch", "displayName": "tool.torch", "tags": ["Tool", "HandBuilt"], "storage": [], "interactions": [{"id": "pickup.tool.torch", "type": "PickUp", "requiredCapabilities": [], "durationTicks": 4, "yields": []}]}
   ],
   "recipes": [
     {"output": "food.meat_cooked", "needsLitFire": true, "station": "Campfire", "baseWorkTicks": 24, "inputs": [{"id": "food.meat_raw", "count": 1}]},

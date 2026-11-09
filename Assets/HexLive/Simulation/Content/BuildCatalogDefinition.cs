@@ -151,6 +151,9 @@ namespace HexLive.Simulation.Content
             new(ContentIds.DryingRack, BuildCatalogMode.Furniture,
                 BuildCatalogCategories.Outdoor, BuildCatalogPlacementKind.Furniture,
                 "blueprint.catalog.drying_rack.name", "blueprint.catalog.drying_rack.description", "╥", 210),
+            new(ContentIds.Torch, BuildCatalogMode.Furniture,
+                BuildCatalogCategories.Outdoor, BuildCatalogPlacementKind.Furniture,
+                "item.tool_torch.name", "item.tool_torch.desc", "♨", 230),
             new(ContentIds.WaterCollector, BuildCatalogMode.Furniture,
                 BuildCatalogCategories.Outdoor, BuildCatalogPlacementKind.Furniture,
                 "blueprint.catalog.water_collector.name", "blueprint.catalog.water_collector.description", "▽", 220)

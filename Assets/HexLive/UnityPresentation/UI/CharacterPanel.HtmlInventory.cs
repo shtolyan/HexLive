@@ -272,7 +272,8 @@ namespace HexLive.UnityPresentation.UI
             var outfitBlocked = _outfitLockedNow && (worn || wearable);
             var actions = new JArray();
             if (_inventoryMutable && (worn || wearable) && !outfitBlocked) actions.Add(worn ? "stow" : "wear");
-            if (_inventoryMutable && !worn && PlantGrowthCatalog.TryGetBySeed(id, out _)) actions.Add("plant");
+            if (_inventoryMutable && !worn && InventoryPlacementMath.CanPlace(id))
+                actions.Add(id == ContentIds.Torch ? "place" : "plant");
             if (_inventoryMutable && CanFillVessel(id, worn, water, sourceIndex) && _inventoryHasTwoHands) actions.Add("fill");
             if (_inventoryMutable && !(_outfitLockedNow && worn)) actions.Add("drop");
 
@@ -386,7 +387,8 @@ namespace HexLive.UnityPresentation.UI
                         case "stow": EnqueueInventoryAction(InventoryAction.Stow); break;
                         case "drop": EnqueueInventoryAction(InventoryAction.Drop, count); break;
                         case "fill": EnqueueFillVessel(); break;
-                        case "plant": BeginSelectedSeedPlacement(); break;
+                        case "plant":
+                        case "place": BeginSelectedSeedPlacement(); break;
                     }
                     return;
             }

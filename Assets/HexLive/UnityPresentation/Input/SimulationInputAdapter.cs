@@ -114,7 +114,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             candidate.Id.Value == actorId);
         if (actor == null || !_runner!.CanControlNpc(actor.Id) ||
             !HasCarriedSeedAtSource(actor, sourceIndex, seedDefinitionId) ||
-            !PlantGrowthCatalog.TryGetBySeed(seedDefinitionId, out _))
+            !InventoryPlacementMath.CanPlace(seedDefinitionId))
         {
             return false;
         }

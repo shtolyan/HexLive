@@ -27,7 +27,7 @@ public sealed partial class ExecutionSystem
     private static int DepositAtFurnitureSite(WorldState world, NPCState npc, WorldObjectState site)
     {
         var moved = 0;
-        foreach (var mat in BuildSiteMath.AllMaterials)
+        foreach (var mat in BuildSiteMath.MaterialsFor(site))
         {
             while (BuildSiteMath.AcceptsDelivery(site, mat))
             {

@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="490" viewBox="0 0 940 490">
+<rect width="940" height="490" fill="#101924"/>
+<style>text{font-family:Segoe UI,Arial,sans-serif;fill:#e0e9f3;font-size:14px}.title{font-size:21px;font-weight:600}.small{font-size:12px;fill:#acbdce}</style>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="#58c5e8"/></marker></defs>
+<text x="28" y="36" class="title">Поставить факел: точный свободный узел, прежний предмет</text>
+<polygon points="368.00,241.00 299.00,360.51 161.00,360.51 92.00,241.00 161.00,121.49 299.00,121.49" fill="#182638" stroke="#4c6178"/>
+<text x="108" y="78">Выбор места и подход</text>
+<circle cx="230.00" cy="344.50" r="3.1" fill="#52677f"/>
+<circle cx="259.88" cy="327.25" r="3.1" fill="#52677f"/>
+<circle cx="289.76" cy="310.00" r="3.1" fill="#52677f"/>
+<circle cx="319.63" cy="292.75" r="3.1" fill="#52677f"/>
+<circle cx="200.12" cy="327.25" r="3.1" fill="#52677f"/>
+<circle cx="230.00" cy="310.00" r="3.1" fill="#52677f"/>
+<circle cx="259.88" cy="292.75" r="3.1" fill="#52677f"/>
+<circle cx="289.76" cy="275.50" r="3.1" fill="#52677f"/>
+<circle cx="319.63" cy="258.25" r="3.1" fill="#52677f"/>
+<circle cx="170.24" cy="310.00" r="3.1" fill="#52677f"/>
+<circle cx="200.12" cy="292.75" r="3.1" fill="#52677f"/>
+<circle cx="230.00" cy="275.50" r="3.1" fill="#52677f"/>
+<circle cx="259.88" cy="258.25" r="6" fill="#e8b75d"/>
+<circle cx="289.76" cy="241.00" r="3.1" fill="#52677f"/>
+<circle cx="319.63" cy="223.75" r="3.1" fill="#52677f"/>
+<circle cx="140.37" cy="292.75" r="3.1" fill="#52677f"/>
+<circle cx="170.24" cy="275.50" r="3.1" fill="#52677f"/>
+<circle cx="200.12" cy="258.25" r="3.1" fill="#52677f"/>
+<circle cx="230.00" cy="241.00" r="8" fill="#58c5e8"/>
+<circle cx="259.88" cy="223.75" r="3.1" fill="#52677f"/>
+<circle cx="289.76" cy="206.50" r="3.1" fill="#52677f"/>
+<circle cx="319.63" cy="189.25" r="3.1" fill="#52677f"/>
+<circle cx="140.37" cy="258.25" r="3.1" fill="#52677f"/>
+<circle cx="170.24" cy="241.00" r="6" fill="#ea6777"/>
+<circle cx="200.12" cy="223.75" r="3.1" fill="#52677f"/>
+<circle cx="230.00" cy="206.50" r="3.1" fill="#52677f"/>
+<circle cx="259.88" cy="189.25" r="3.1" fill="#52677f"/>
+<circle cx="289.76" cy="172.00" r="3.1" fill="#52677f"/>
+<circle cx="140.37" cy="223.75" r="3.1" fill="#52677f"/>
+<circle cx="170.24" cy="206.50" r="3.1" fill="#52677f"/>
+<circle cx="200.12" cy="189.25" r="3.1" fill="#52677f"/>
+<circle cx="230.00" cy="172.00" r="3.1" fill="#52677f"/>
+<circle cx="259.88" cy="154.75" r="3.1" fill="#52677f"/>
+<circle cx="140.37" cy="189.25" r="3.1" fill="#52677f"/>
+<circle cx="170.24" cy="172.00" r="3.1" fill="#52677f"/>
+<circle cx="200.12" cy="154.75" r="3.1" fill="#52677f"/>
+<circle cx="230.00" cy="137.50" r="3.1" fill="#52677f"/>
+<text x="95" y="403" class="small">R гекса = 1.5 wu • 37 внутренних узлов</text>
+<text x="95" y="422" class="small">Соседние узлы: 0.375 wu (HexPointLayout)</text>
+<polyline points="200.12,223.75 200.12,258.25 230.00,241.00" fill="none" stroke="#58c5e8" stroke-width="3" marker-end="url(#arrow)"/>
+<text x="250" y="231">Свободная точка</text>
+<polygon points="818.00,241.00 749.00,360.51 611.00,360.51 542.00,241.00 611.00,121.49 749.00,121.49" fill="#182638" stroke="#4c6178"/>
+<text x="558" y="78">После жеста посадки</text>
+<circle cx="680.00" cy="344.50" r="3.1" fill="#52677f"/>
+<circle cx="709.88" cy="327.25" r="3.1" fill="#52677f"/>
+<circle cx="739.76" cy="310.00" r="3.1" fill="#52677f"/>
+<circle cx="769.63" cy="292.75" r="3.1" fill="#52677f"/>
+<circle cx="650.12" cy="327.25" r="3.1" fill="#52677f"/>
+<circle cx="680.00" cy="310.00" r="3.1" fill="#52677f"/>
+<circle cx="709.88" cy="292.75" r="3.1" fill="#52677f"/>
+<circle cx="739.76" cy="275.50" r="3.1" fill="#52677f"/>
+<circle cx="769.63" cy="258.25" r="3.1" fill="#52677f"/>
+<circle cx="620.24" cy="310.00" r="3.1" fill="#52677f"/>
+<circle cx="650.12" cy="292.75" r="3.1" fill="#52677f"/>
+<circle cx="680.00" cy="275.50" r="3.1" fill="#52677f"/>
+<circle cx="709.88" cy="258.25" r="6" fill="#e8b75d"/>
+<circle cx="739.76" cy="241.00" r="3.1" fill="#52677f"/>
+<circle cx="769.63" cy="223.75" r="3.1" fill="#52677f"/>
+<circle cx="590.37" cy="292.75" r="3.1" fill="#52677f"/>
+<circle cx="620.24" cy="275.50" r="3.1" fill="#52677f"/>
+<circle cx="650.12" cy="258.25" r="3.1" fill="#52677f"/>
+<circle cx="680.00" cy="241.00" r="8" fill="#e8b75d"/>
+<circle cx="709.88" cy="223.75" r="3.1" fill="#52677f"/>
+<circle cx="739.76" cy="206.50" r="3.1" fill="#52677f"/>
+<circle cx="769.63" cy="189.25" r="3.1" fill="#52677f"/>
+<circle cx="590.37" cy="258.25" r="3.1" fill="#52677f"/>
+<circle cx="620.24" cy="241.00" r="6" fill="#ea6777"/>
+<circle cx="650.12" cy="223.75" r="3.1" fill="#52677f"/>
+<circle cx="680.00" cy="206.50" r="3.1" fill="#52677f"/>
+<circle cx="709.88" cy="189.25" r="3.1" fill="#52677f"/>
+<circle cx="739.76" cy="172.00" r="3.1" fill="#52677f"/>
+<circle cx="590.37" cy="223.75" r="3.1" fill="#52677f"/>
+<circle cx="620.24" cy="206.50" r="3.1" fill="#52677f"/>
+<circle cx="650.12" cy="189.25" r="3.1" fill="#52677f"/>
+<circle cx="680.00" cy="172.00" r="3.1" fill="#52677f"/>
+<circle cx="709.88" cy="154.75" r="3.1" fill="#52677f"/>
+<circle cx="590.37" cy="189.25" r="3.1" fill="#52677f"/>
+<circle cx="620.24" cy="172.00" r="3.1" fill="#52677f"/>
+<circle cx="650.12" cy="154.75" r="3.1" fill="#52677f"/>
+<circle cx="680.00" cy="137.50" r="3.1" fill="#52677f"/>
+<text x="545" y="403" class="small">R гекса = 1.5 wu • 37 внутренних узлов</text>
+<text x="545" y="422" class="small">Соседние узлы: 0.375 wu (HexPointLayout)</text>
+<path d="M680,241 v-52" stroke="#b99267" stroke-width="7"/>
+<path d="M671,188 q-7,-15 8,-32 q-2,14 10,19 q3,11 -8,17 Z" fill="#efb562"/>
+<text x="702" y="233">Тот же tool.torch</text>
+<text x="702" y="255" class="small">Остаток горения сохранён</text>
+<circle cx="30" cy="466" r="5" fill="#ea6777"/><text x="44" y="471" class="small">Занято другим NPC</text>
+<circle cx="244" cy="466" r="5" fill="#e8b75d"/><text x="258" y="471" class="small">Резерв / предмет: новое размещение запрещено</text>
+<circle cx="673" cy="466" r="5" fill="#58c5e8"/><text x="687" y="471" class="small">Разрешённая точка и маршрут</text>
+</svg>

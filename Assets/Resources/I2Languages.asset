@@ -21796,6 +21796,14 @@ MonoBehaviour:
       - "\u0412\u044B\u0431\u0440\u043E\u0441\u0438\u0442\u044C"
       Flags: 0101
       Languages_Touch: []
+    - Term: inv.action.place
+      TermType: 0
+      Description:
+      Languages:
+      - Place
+      - "\u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
     - Term: inv.action.plant
       TermType: 0
       Description:

@@ -1331,7 +1331,7 @@ public static class PrototypeContentCatalog
         AddPickupItem(ContentIds.Flint, "Flint", "Resource");
         AddPickupItem(ContentIds.CrudeSaw, "Crude saw", "Tool", "Saw");
         AddPickupItem(ContentIds.Firestarter, "Firestarter", "Tool");
-        AddPickupItem(ContentIds.Torch, "Torch", "Tool");
+        AddPickupItem(ContentIds.Torch, "Torch", "Tool", ObjectTags.HandBuilt);
         AddPickupItem(ContentIds.Splint, "Splint", "Medicine", "Splint");
         AddPickupItem(ContentIds.WoodenArm, "Wooden arm", "Medicine", "Prosthetic");
         AddPickupItem(ContentIds.WoodenLeg, "Wooden leg", "Medicine", "Prosthetic");

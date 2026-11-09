@@ -263,7 +263,7 @@ public sealed partial class DecisionSystem
     /// «можно ли её закрыть» задавать незачем.</summary>
     private static bool SiteShortOfAnything(WorldObjectState site)
     {
-        foreach (var material in BuildSiteMath.AllMaterials)
+        foreach (var material in BuildSiteMath.MaterialsFor(site))
         {
             if (BuildSiteMath.Remaining(site, material) > 0)
             {
@@ -281,7 +281,7 @@ public sealed partial class DecisionSystem
     private static bool SiteStockableNow(
         WorldObjectState site, in MaterialSources sources, NPCState npc)
     {
-        foreach (var material in BuildSiteMath.AllMaterials)
+        foreach (var material in BuildSiteMath.MaterialsFor(site))
         {
             if (BuildSiteMath.Remaining(site, material) <= 0)
             {
@@ -474,7 +474,7 @@ public sealed partial class DecisionSystem
 
     internal static bool CarriesSiteMaterial(NPCState npc, WorldObjectState site)
     {
-        foreach (var mat in BuildSiteMath.AllMaterials)
+        foreach (var mat in BuildSiteMath.MaterialsFor(site))
         {
             if (BuildSiteMath.AcceptsDelivery(site, mat) && npc.Inventory.Items.Contains(mat))
             {

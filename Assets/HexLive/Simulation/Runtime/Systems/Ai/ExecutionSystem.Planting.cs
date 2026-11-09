@@ -55,7 +55,7 @@ public sealed partial class ExecutionSystem
         }
 
         if (seed is null || seed.DefinitionId != seedDefinitionId ||
-            !PlantGrowthCatalog.TryGetBySeed(seedDefinitionId, out _))
+            !InventoryPlacementMath.CanPlace(seedDefinitionId))
         {
             FailInventoryPlanting(world, npc, "PlantSeed: selected seed disappeared");
             return;
@@ -85,8 +85,7 @@ public sealed partial class ExecutionSystem
                 return;
             }
 
-            var interaction = definition.Interactions.FirstOrDefault(candidate =>
-                candidate.Type == InteractionType.Plant);
+            var interaction = InventoryPlacementMath.InteractionFor(world, seedDefinitionId);
             if (interaction is null)
             {
                 FailInventoryPlanting(world, npc, "PlantSeed: planting action missing");
@@ -123,8 +122,9 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        var planted = PlantGrowthSystem.TryPlantAt(
-            world, seedDefinitionId, target, tile, npc.Id);
+        var planted = seedDefinitionId == ContentIds.Torch
+            ? InventoryPlacementMath.PlaceTorch(world, npc, seed, target, tile)
+            : PlantGrowthSystem.TryPlantAt(world, seedDefinitionId, target, tile, npc.Id);
         if (planted is null)
         {
             // The site was validated immediately above; retain ownership if a

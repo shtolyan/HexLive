@@ -2295,7 +2295,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
             (spearRopeTarget > 0 && carriedRope < spearRopeTarget) ||
             (!hasBow && hideCount >= 1 && carriedRope == 0);
         var wantCloth = (bedDeficit && carriedCloth == 0) ||
-            bandageClothNeeded;
+            bandageClothNeeded || (buildSite != null && buildWindow &&
+                BuildSiteMath.Remaining(buildSite, ContentIds.Cloth) > carriedCloth);
         // §54.13: gather fiber for the WHOLE rope shortfall, not one rope's
         // worth — the old cost-of-one made a girl cut a yucca (4 fibers
         // scatter), pick up ONE, craft one rope, deliver it, and walk all

@@ -1161,6 +1161,14 @@ public static class BuildingBootstrap
                 site.BillSticks = SimBalance.RackBillSticks;
                 site.BillRope = SimBalance.RackBillRope;
                 break;
+            case ContentIds.Torch:
+                foreach (var input in RecipeCatalog.ByOutput[ContentIds.Torch].Inputs)
+                {
+                    if (input.Id == ContentIds.Stick) site.BillSticks = input.Count;
+                    if (input.Id == ContentIds.Rope) site.BillRope = input.Count;
+                }
+                site.Variant = InventoryPlacementMath.PlantedTorchVariant;
+                break;
             case ContentIds.WaterCollector:
                 site.BillSticks = SimBalance.WaterCollectorBillSticks;
                 site.BillStones = SimBalance.WaterCollectorBillStones;

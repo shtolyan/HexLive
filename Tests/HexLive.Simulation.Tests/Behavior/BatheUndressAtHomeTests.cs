@@ -605,7 +605,9 @@ public sealed class BatheUndressAtHomeTests
             // v84 (§54/#469): physical leaf drying clocks; v83 still readable.
             // v86 (§127.13): lover mark in every relationship record.
             // v87 (§175.2): one-time natural flint migration, preserving the v86 layout.
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(87));
+            // v88 (#620): explicit fuel roles; v89 (#627): physical object placement Variant.
+            // TorchPlacementTests covers reading the actual v87/v88/v89 layouts.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(89));
         });
     }
 

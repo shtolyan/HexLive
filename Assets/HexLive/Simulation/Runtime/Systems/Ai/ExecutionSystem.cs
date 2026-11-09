@@ -1170,7 +1170,22 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     // циклу ПО NPC: молча пропускало начисление навыка и весь сброс цикла в
     // сорока строках отсюда. Узнать об этом можно было, только проследив
     // метод целиком. Теперь это написано в сигнатуре.
-    private static bool ApplyInteractionCompletion(
+    internal static bool ApplyInteractionCompletion(
+        WorldState world, NPCState npc, WorldObjectState worldObject,
+        ObjectDefinition definition, InteractionDefinition completedInteraction,
+        string needsBefore)
+    {
+        // Dress and pickup also have direct adapters; their local receipt owns
+        // those paths so the outer dispatcher never emits a duplicate event.
+        var receipt = new TheftMath.UseReceipt(world, npc, worldObject);
+        var completed = ApplyInteractionCompletionCore(world, npc, worldObject,
+            definition, completedInteraction, needsBefore);
+        if (completedInteraction.Type is not InteractionType.Dress and not InteractionType.PickUp)
+            receipt.Complete(world, npc, completed, completedInteraction.Type);
+        return completed;
+    }
+
+    private static bool ApplyInteractionCompletionCore(
         WorldState world, NPCState npc, WorldObjectState worldObject,
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
@@ -1738,6 +1753,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             return false;
         }
 
+        var vesselTheft = !TheftMath.IsTheft(world, npc, worldObject) && TheftMath.IsTheft(world, npc, vessel);
         var amount = WaterCollectorMath.AmountIn(vessel);
         var collectedKind = vessel.WaterKind == WaterKind.None
             ? WaterKind.Rain
@@ -1759,6 +1775,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
 
         BottleInventoryMath.SetContents(bottle, collectedKind, amount);
+        if (vesselTheft) TheftMath.OnStolen(world, npc, vessel);
         bottle.LastAddedWaterKind = collectedAppearance;
         if (SimTrace.Enabled)
         {
@@ -1771,6 +1788,17 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     }
 
     private static bool CompletePickUp(
+        WorldState world, NPCState npc, WorldObjectState worldObject,
+        ObjectDefinition definition, InteractionDefinition completedInteraction,
+        string needsBefore)
+    {
+        var receipt = new TheftMath.UseReceipt(world, npc, worldObject);
+        var completed = CompletePickUpCore(world, npc, worldObject, definition, completedInteraction, needsBefore);
+        receipt.Complete(world, npc, completed, InteractionType.PickUp);
+        return completed;
+    }
+
+    private static bool CompletePickUpCore(
         WorldState world, NPCState npc, WorldObjectState worldObject,
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
@@ -1827,11 +1855,6 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
         else
         {
-            // Bug #312: взять чужое на приватной земле чужого лагеря — кража:
-            // событие + удар по отношению свидетельниц. Считается ДО деспавна,
-            // пока вещь ещё несёт тайл и владельца.
-            var theft = TheftMath.IsTheft(world, npc, worldObject);
-
             // Item moves from world to inventory; the world object is gone,
             // so occupancy flags die with it (spec 29B.2).
             var parkedBottle = WaterCollectorMath.IsParked(world, worldObject);
@@ -1858,11 +1881,6 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     : 0
             };
             npc.Inventory.Items.Add(picked);
-            if (theft)
-            {
-                TheftMath.OnStolen(world, npc, worldObject);
-            }
-
             WorldObjectMutations.DespawnObject(world, worldObject.Id);
             if (SimTrace.Enabled)
             {

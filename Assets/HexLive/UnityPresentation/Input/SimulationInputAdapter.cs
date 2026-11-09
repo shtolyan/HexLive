@@ -1130,8 +1130,7 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             // Bug #312: взять чужое на приватной земле чужого лагеря — это
             // «Украсть», красным. Предикат тот же, что применит симуляция
             // (TheftMath), посчитан по снапшоту: якоря лагерей + владелец.
-            var theft = (type == InteractionType.PickUp || type == InteractionType.Dress) &&
-                IsTheftTarget(snapshot, clicked, actingNpc, type);
+            var theft = IsTheftTarget(snapshot, clicked, actingNpc, type);
             _entries.Add(new ContextMenuEntry(
                 emptyDrink ? Loc.Get("menu.drink_empty") : theft && type == InteractionType.PickUp ? Loc.Get("menu.steal") : InteractionVerb(interaction),
                 () => EnqueueOrder(actorId,
@@ -1247,7 +1246,9 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         {
             var containerId = view.ContextObjectId;
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.loot_person"),
-                () => LootTransferPanel.OpenContainer(actorId, containerId)));
+                () => LootTransferPanel.OpenContainer(actorId, containerId))
+            { Danger = IsTheftTarget(snapshot, clicked,
+                snapshot?.Npcs.Find(n => n.Id.Value == actorId), InteractionType.Loot) });
         }
 
         if (snapshot != null)
@@ -1539,7 +1540,7 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             if (lying)
             {
                 _entries.Add(new ContextMenuEntry(Loc.Get("menu.loot_person"),
-                    () => LootTransferPanel.Open(carrier.Id.Value, npcId)));
+                    () => LootTransferPanel.Open(carrier.Id.Value, npcId)) { Danger = !dead });
             }
         }
         // §118.4 r2 (#166): СВОИХ берут на руки всегда — спят они или нет, здоровы

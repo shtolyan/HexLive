@@ -593,6 +593,10 @@ internal static class ContainerLootMath
         WorldState world, WorldObjectState obj, NPCState looter,
         IReadOnlyList<ItemInstance> moving, IReadOnlyList<ObjectId> groundSources)
     {
+        var theft = TheftMath.IsTakingTheft(world, looter, obj, moving);
+        foreach (var id in groundSources)
+            if (world.Entities.Objects.TryGetValue(id, out var external) && TheftMath.IsTheft(world, looter, external))
+                theft = true;
         foreach (var item in moving)
         {
             // A row can be a reference from Contents or a materialized copy of
@@ -615,6 +619,7 @@ internal static class ContainerLootMath
         {
             WorldObjectMutations.DespawnObject(world, id);
         }
+        if (theft && moving.Count > 0) TheftMath.OnStolen(world, looter, obj);
     }
 
     public static void GiveToContainer(

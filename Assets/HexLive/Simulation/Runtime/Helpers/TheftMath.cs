@@ -81,14 +81,78 @@ public static class TheftMath
             foreignGround);
     }
 
+    internal readonly struct UseReceipt
+    {
+        private readonly WorldObjectState source;
+        private readonly bool theft;
+        private readonly float amount;
+        private readonly int contents, inventory;
+        private readonly System.Collections.Generic.List<ItemInstance> protectedContents;
+
+        internal UseReceipt(WorldState world, NPCState actor, WorldObjectState source)
+        {
+            this.source = source;
+            theft = IsTheft(world, actor, source);
+            amount = source.ResourceAmount; contents = source.Contents.Count;
+            inventory = actor.Inventory.Items.Count;
+            protectedContents = null;
+            if (!theft)
+                foreach (var item in source.Contents)
+                    if (ClothingOwnership.OwnerAlive(world, item.OwnerId) && item.OwnerId != actor.Id.Value)
+                        (protectedContents ??= new System.Collections.Generic.List<ItemInstance>()).Add(item);
+        }
+
+        internal void Complete(WorldState world, NPCState actor, bool completed, InteractionType type)
+        {
+            var stolen = theft;
+            if (protectedContents != null)
+                foreach (var item in protectedContents)
+                    if (InventoryMath.IndexOfReference(actor.Inventory.Items, item) >= 0 &&
+                        InventoryMath.IndexOfReference(source.Contents, item) < 0) stolen = true;
+            var transferred = !world.Entities.Objects.ContainsKey(source.Id) ||
+                amount != source.ResourceAmount || contents != source.Contents.Count ||
+                inventory != actor.Inventory.Items.Count;
+            var acquisition = type is InteractionType.PickUp or InteractionType.Loot or InteractionType.TakeVessel;
+            // A continuing coconut plan returns false after a committed sip.
+            if (stolen && (completed && (!acquisition || transferred) ||
+                type == InteractionType.Drink && amount != source.ResourceAmount))
+                OnStolen(world, actor, source);
+        }
+    }
+
+    public static bool IsTakingTheft(WorldState world, NPCState actor, WorldObjectState container,
+        System.Collections.Generic.IReadOnlyList<ItemInstance> moving)
+    {
+        foreach (var item in moving)
+        {
+            if (ClothingOwnership.OwnerAlive(world, item.OwnerId))
+            {
+                if (item.OwnerId != actor.Id.Value) return true;
+            }
+            else if (IsTheft(world, actor, container)) return true;
+        }
+        return false;
+    }
+
+    public static bool IsTakingTheft(WorldState world, NPCState actor, NPCState source,
+        ItemInstance item) => source.Health > 0f && IsUnauthorizedUse(actor.Id.Value, actor.Faction,
+            ClothingOwnership.OwnerAlive(world, item.OwnerId) ? item.OwnerId : source.Id.Value,
+            null, false, false);
+
+    public static void OnStolen(WorldState world, NPCState thief, NPCState victim, ItemInstance item) =>
+        OnStolen(world, thief, item.DefinitionId, victim.Tile, null, victim.Id);
+
     /// <summary>Кража состоялась: событие в хронику + удар по отношению
     /// каждой свидетельницы НЕсоюзной фракции, которая видит воровку.</summary>
     public static void OnStolen(WorldState world, NPCState thief, WorldObjectState obj)
+        => OnStolen(world, thief, obj.DefinitionId, obj.Tile, obj, obj.Owner);
+
+    private static void OnStolen(WorldState world, NPCState thief, string item,
+        TileCoord tile, WorldObjectState source, EntityId? victim)
     {
-        AgentIncidentNotifications.Theft(world, thief, obj.DefinitionId, source: obj);
+        AgentIncidentNotifications.Theft(world, thief, item, victim, source);
         Trace.Emit(world, thief.Id, "ItemStolen",
-            $"NPC{thief.Id.Value} Def={obj.DefinitionId} " +
-            $"Tile={obj.Tile.Q},{obj.Tile.R}");
+            $"NPC{thief.Id.Value} Def={item} Tile={tile.Q},{tile.R}");
 
         foreach (var witness in world.Entities.Npcs.Values)
         {

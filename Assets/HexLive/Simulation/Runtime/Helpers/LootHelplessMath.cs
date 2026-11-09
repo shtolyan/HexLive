@@ -224,8 +224,10 @@ public static class LootHelplessMath
                 return false;
             }
 
+            var theft = TheftMath.IsTakingTheft(world, looter, victim, spoil);
             victim.Inventory.Items.RemoveAt(index);
             looter.Inventory.Items.Add(spoil);
+            if (theft) TheftMath.OnStolen(world, looter, victim, spoil);
             takenId = spoil.DefinitionId;
             return true;
         }
@@ -240,6 +242,7 @@ public static class LootHelplessMath
             return false;
         }
 
+        var garmentTheft = TheftMath.IsTakingTheft(world, looter, victim, garment);
         InventoryMath.RemoveReference(victim.WornItems, garment);
         // Одежда задаёт защиту и ёмкость карманов жертвы. Потеря куртки может
         // вытолкнуть лишние вещи на землю, поэтому порядок обязателен: сперва
@@ -251,6 +254,7 @@ public static class LootHelplessMath
         garment.OwnerId = looter.Id.Value;
         looter.Inventory.Items.Add(garment);
         takenId = garment.DefinitionId;
+        if (garmentTheft) TheftMath.OnStolen(world, looter, victim, garment);
         return true;
     }
 

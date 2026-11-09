@@ -119,8 +119,10 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        var theft = take && TheftMath.IsTakingTheft(world, looter, source, selected);
         PlayerInventoryTransferMath.MoveResolved(
             world, source, destination, itemRef, moving, contents, wear);
+        if (theft) TheftMath.OnStolen(world, looter, source, selected);
 
         if (take && world.Entities.Npcs.ContainsKey(other.Id) &&
             looter.Faction != other.Faction)

@@ -313,9 +313,12 @@ public static class InventoryLayoutBuilder
         HashSet<string> claimedHolsterIds)
     {
         var ordinal = 0;
-        for (var wornIndex = 0; wornIndex < npc.WornItems.Count; wornIndex++)
+        var laundry = EquipmentMath.CarriedLaundryGarment(npc);
+        var holderCount = npc.WornItems.Count + (laundry is null ? 0 : 1);
+        for (var wornIndex = 0; wornIndex < holderCount; wornIndex++)
         {
-            var worn = npc.WornItems[wornIndex];
+            var heldForWashing = wornIndex == npc.WornItems.Count;
+            var worn = heldForWashing ? laundry : npc.WornItems[wornIndex];
             var acceptedIds = HolsterCatalog.SlotsFor(worn.DefinitionId);
             if (acceptedIds.Count == 0)
             {
@@ -329,7 +332,9 @@ public static class InventoryLayoutBuilder
                 worn.DefinitionId,
                 AnchorFor(worn.DefinitionId, definition),
                 acceptedIds.Count);
-            container.OwnerSourceIndex = wornIndex;
+            // The held holster is still the storage owner, but is absent from
+            // WornItems until restored. Never alias it to a different worn row.
+            container.OwnerSourceIndex = heldForWashing ? -1 : wornIndex;
 
             for (var i = 0; i < acceptedIds.Count; i++)
             {

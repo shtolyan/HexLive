@@ -107,6 +107,44 @@ public sealed class InventoryLayoutTests
     }
 
     [Test]
+    public void LaundryHolsterKeepsItsTypedVirtualPocketsAndPhysicalSourceIndices()
+    {
+        var (world, npc) = CleanNpc();
+        var holster = new ItemInstance("legHolster_2204");
+        npc.WornItems.Add(holster);
+        var knife = new ItemInstance(ContentIds.Knife);
+        npc.Inventory.Items.Add(knife);
+        EquipmentMath.RecalculateCapacity(world,npc);
+        for(var i=0;i<npc.Inventory.Capacity;i++) npc.Inventory.Items.Add(new ItemInstance(ContentIds.Bottle));
+        var knifeIndex = npc.Inventory.Items.FindIndex(item => ReferenceEquals(item,knife));
+        npc.WornItems.Clear();
+        npc.Execution.HeldGarment = holster;
+        npc.Mind.CurrentGoal = GoalType.WashClothes;
+        npc.Plan.Steps.Clear();
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.WashClothes, LaundryFromInventory = false });
+        npc.Plan.CurrentStepIndex = 0;
+        EquipmentMath.RecalculateCapacity(world,npc);
+        var layout = InventoryLayoutBuilder.Build(world,npc);
+        var pockets = layout.Containers.Single(container => container.Kind == InventoryContainerKind.Holster);
+        Assert.That(pockets.OwnerItemDefinitionId,Is.EqualTo(holster.DefinitionId));
+        Assert.That(pockets.OwnerSourceIndex,Is.EqualTo(-1));
+        var slot = pockets.Slots.Single(item => item.AcceptedItemDefinitionId == ContentIds.Knife);
+        Assert.That(slot.SourceIndex,Is.EqualTo(knifeIndex));
+        Assert.That(slot.ItemDefinitionId,Is.EqualTo(ContentIds.Knife));
+        Assert.That(layout.Containers.Any(container => container.Kind == InventoryContainerKind.Overflow),Is.False);
+        InventoryMath.SpillOverflow(world,npc);
+        Assert.That(npc.Inventory.Items.Count,Is.EqualTo(npc.Inventory.Capacity+1));
+        npc.WornItems.Add(holster);
+        npc.Execution.HeldGarment = null;
+        EquipmentMath.RecalculateCapacity(world,npc);
+        layout = InventoryLayoutBuilder.Build(world,npc);
+        pockets = layout.Containers.Single(container => container.Kind == InventoryContainerKind.Holster);
+        Assert.That(pockets.OwnerSourceIndex,Is.EqualTo(0));
+        Assert.That(pockets.Slots.Single(item => item.AcceptedItemDefinitionId == ContentIds.Knife).SourceIndex,Is.EqualTo(knifeIndex));
+        Assert.That(npc.Inventory.Items[knifeIndex],Is.SameAs(knife));
+    }
+
+    [Test]
     public void Holster_TakesOnlyItsTypedFirstTool()
     {
         var (world, npc) = CleanNpc();

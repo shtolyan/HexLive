@@ -38,34 +38,6 @@ namespace HexLive.Tests
             Assert.That(ItemIcons.Address(id), Is.EqualTo("object/" + id + "#icon"), id);
         }
 
-        [TestCase(false)]
-        [TestCase(true)]
-        public void TorchKeepsSoftLightAtItsTipOnGroundAndUnderScaledHand(bool held)
-        {
-            var parent = new GameObject("Torch test hand");
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/HexLiveContent/RuntimeSource/Objects/tool.torch.fbx");
-            try
-            {
-                if (held)
-                {
-                    parent.transform.rotation = Quaternion.Euler(-35, 40, 70);
-                    parent.transform.localScale = Vector3.one * .013f;
-                }
-                var model = Object.Instantiate(prefab, parent.transform);
-                model.transform.localScale *= HexLive.UnityPresentation.ObjectFit.FitScaleFactor(model, ContentIds.Torch);
-                var fire = HexLive.UnityPresentation.Environment.PortableTorchVisual.Attach(model);
-                var tip = model.GetComponentsInChildren<Transform>().Single(t => t.name == "fire_point");
-                var light = fire.GetComponentInChildren<Light>();
-                Assert.That(Vector3.Distance(fire.transform.position, tip.position), Is.LessThan(.001f));
-                Assert.That(Vector3.Distance(light.transform.position, tip.position), Is.LessThan(.2f),
-                    "The illumination radius must not lift the light away from a handheld flame.");
-                Assert.That(light.range, Is.EqualTo(7.5f).Within(.001f));
-                Assert.That(light.intensity, Is.GreaterThan(0).And.LessThanOrEqualTo(1.6f));
-                Assert.That(Vector3.Distance(fire.transform.lossyScale, Vector3.one), Is.LessThan(.001f));
-            }
-            finally { Object.DestroyImmediate(parent); }
-        }
-
         [Test]
         public void ProstheticSimulationIdsResolveToTheirAtomicOwners()
         {

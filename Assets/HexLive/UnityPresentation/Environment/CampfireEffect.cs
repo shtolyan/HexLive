@@ -19,11 +19,11 @@ namespace HexLive.UnityPresentation.Environment
         private bool _lit;
         private bool _playCrackle = true;
 
-        public void Construct(float hexRadius, float lightRadius = 0f, bool playCrackle = true, float lightIntensity = 3.2f)
+        public void Construct(float hexRadius, float lightRadius = 0f, bool playCrackle = true)
         {
             _playCrackle = playCrackle;
             _seed = (GetInstanceID() % 997) * 0.131f;
-            BuildLight(lightRadius > 0f ? lightRadius : hexRadius, hexRadius, lightIntensity);
+            BuildLight(lightRadius > 0f ? lightRadius : hexRadius);
             _flame = BuildFlame(hexRadius);
             _embers = BuildEmbers(hexRadius);
             // Campfires start cold (spec 29E.3); RenderSnapshot lights them
@@ -119,18 +119,18 @@ namespace HexLive.UnityPresentation.Environment
                 (Mathf.PerlinNoise(Time.time * 6f, _seed + 9f) - 0.5f) * 0.08f);
         }
 
-        private void BuildLight(float r, float flameRadius, float intensity)
+        private void BuildLight(float r)
         {
             var go = new GameObject("FireLight");
             go.transform.SetParent(transform, false);
-            _lightBasePos = new Vector3(0f, flameRadius * 0.3f, 0f);
+            _lightBasePos = new Vector3(0f, r * 0.3f, 0f);
             go.transform.localPosition = _lightBasePos;
 
             _light = go.AddComponent<Light>();
             _light.type = LightType.Point;
             _light.color = new Color(1f, 0.6f, 0.25f);
             _light.range = r * 5f;
-            _baseIntensity = Mathf.Max(0f, intensity);
+            _baseIntensity = 3.2f;
             _light.intensity = _baseIntensity;
             _light.shadows = LightShadows.None;
         }

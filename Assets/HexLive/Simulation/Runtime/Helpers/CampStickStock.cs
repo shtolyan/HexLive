@@ -42,7 +42,9 @@ internal static class CampStickStock
         var promised = 0;
         foreach (var worker in world.Entities.Npcs.Values)
             if (worker.Id != npc.Id && worker.Faction == npc.Faction &&
-                worker.Plan.Status == PlanStatus.Active && worker.Plan.Goal == GoalType.SplitLog &&
+                ((worker.Plan.Status == PlanStatus.Active && worker.Plan.Goal == GoalType.SplitLog) ||
+                 (worker.Mind.CurrentGoal == GoalType.SplitLog && worker.Plan.Status is
+                    PlanStatus.None or PlanStatus.Invalid)) &&
                 !(GearCatalog.HasCapability(worker.Inventory.Items, GearCapability.Saw) &&
                   DecisionSystem.WoodenProstheticBoardShortfall(world, worker) > 0))
                 promised += yield;

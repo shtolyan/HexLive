@@ -43,6 +43,22 @@ public sealed class CampStickStockTests
         for (var i=0; i<40; i++) foreign.Inventory.Items.Add(new ItemInstance(ContentIds.Stick));
         Assert.That(CampStickStock.CanProduce(world, npc, 4), Is.True);
     }
+    [Test]
+    public void AnEarlierAuctionWinnerReservesItsYieldBeforeThePlanningPass()
+    {
+        var world=TestWorld.CreateWorld();
+        var npc=world.Entities.Npcs.Values.First(n=>n.Faction==Faction.Colony);
+        foreach(var resident in world.Entities.Npcs.Values) resident.Inventory.Items.Clear();
+        foreach(var stick in world.Entities.Objects.Values.Where(o=>o.DefinitionId==ContentIds.Stick).ToArray())
+            WorldObjectMutations.DespawnObject(world,stick.Id);
+        for(var i=0;i<36;i++) npc.Inventory.Items.Add(new ItemInstance(ContentIds.Stick));
+        var earlier=world.Entities.Npcs.Values.First(n=>n.Faction==npc.Faction && n.Id!=npc.Id);
+        earlier.Mind.CurrentGoal=GoalType.SplitLog;
+        earlier.Plan.Status=PlanStatus.None;
+        Assert.That(CampStickStock.CanProduce(world,npc,4),Is.False,
+            "Decision chooses all goals before Planning installs their active plans.");
+    }
+
     [TestCase(36, true)]
     [TestCase(40, false)]
     public void TheRealDecisionAuctionStopsSplittingWhenCampAlreadyHasEnough(int stock, bool allowed)

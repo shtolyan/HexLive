@@ -1554,7 +1554,8 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             if (lying)
             {
                 _entries.Add(new ContextMenuEntry(Loc.Get("menu.loot_person"),
-                    () => LootTransferPanel.Open(carrier.Id.Value, npcId)) { Danger = !dead });
+                    () => LootTransferPanel.Open(carrier.Id.Value, npcId))
+                { Danger = !dead || TheftMath.IsForeignPrivateGround(snapshot, carrier.Faction, target.Tile) });
             }
         }
         // §118.4 r2 (#166): СВОИХ берут на руки всегда — спят они или нет, здоровы
@@ -1589,7 +1590,8 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
                     : Loc.Get("menu.select_one_character");
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.loot_person"),
                 () => LootTransferPanel.Open(carrier!.Id.Value, npcId),
-                canLoot, canLoot ? null : blockedReason));
+                canLoot, canLoot ? null : blockedReason)
+            { Danger = !dead || carrier != null && TheftMath.IsForeignPrivateGround(snapshot, carrier.Faction, target.Tile) });
         }
         // «Выбрать» — потому что в ручном режиме простой клик по человеку
         // открывает меню, а не переключает выбор: атака по неосторожному

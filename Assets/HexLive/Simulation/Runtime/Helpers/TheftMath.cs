@@ -66,15 +66,19 @@ public static class TheftMath
             authorized, IsForeignPrivateGround(world, actor.Faction, obj.Tile));
     }
 
+    public static bool IsForeignPrivateGround(Debug.WorldSnapshot snapshot, Faction actorFaction, TileCoord tile)
+    {
+        foreach (var home in snapshot.CampHomes)
+            if (!FactionRelations.AreAllies(actorFaction, home.Faction) &&
+                HexSpatialMath.HexDistance(tile, home.Tile) <= PrivateGroundRadiusTiles) return true;
+        return false;
+    }
+
     public static bool IsTheft(Debug.WorldSnapshot snapshot, Debug.NpcSnapshot actor,
         Debug.ObjectSnapshot obj, InteractionType interaction = InteractionType.PickUp)
     {
         if (snapshot is null || actor is null || obj is null) return false;
-        var foreignGround = false;
-        foreach (var home in snapshot.CampHomes)
-            if (!FactionRelations.AreAllies(actor.Faction, home.Faction) &&
-                HexSpatialMath.HexDistance(obj.Tile, home.Tile) <= PrivateGroundRadiusTiles)
-                foreignGround = true;
+        var foreignGround = IsForeignPrivateGround(snapshot, actor.Faction, obj.Tile);
         return IsUnauthorizedUse(actor.Id.Value, actor.Faction, obj.PropertyOwnerNpcId,
             obj.PropertyOwnerFaction,
             interaction == InteractionType.Dress && actor.WearGrantObjectIds.Contains(obj.Id.Value),

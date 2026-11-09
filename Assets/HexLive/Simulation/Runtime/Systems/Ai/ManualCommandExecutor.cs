@@ -2347,7 +2347,7 @@ internal static class ManualCommandExecutor
         }
 
         var selectedBottle = items[command.Item.Index];
-        if (!VesselTransferMath.CanFillBottle(npc, selectedBottle))
+        if (!VesselTransferMath.CanConsolidateBottle(npc, selectedBottle))
         {
             Reject(world, npc.Id, "FillVessel", "NothingToPour", admission);
             return;

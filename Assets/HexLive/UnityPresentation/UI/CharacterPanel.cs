@@ -4342,16 +4342,13 @@ namespace HexLive.UnityPresentation.UI
                 return false;
             }
 
-            var hasRoom = !water.TryGetValue(sourceIndex, out var bottle) ||
-                (bottle.Amount < bottle.Capacity &&
-                 (bottle.Amount <= 0f || bottle.Kind == WaterKind.Coconut));
+            var hasRoom = !water.TryGetValue(sourceIndex, out var bottle) || bottle.Amount < bottle.Capacity;
             if (!hasRoom) return false;
-            foreach (var state in water.Values)
+            foreach (var pair in water)
             {
-                if (state.ItemId == "food.coconut_pierced" && state.Amount > 0f)
-                {
-                    return true;
-                }
+                var state = pair.Value;
+                if (pair.Key != sourceIndex && state.Amount > 0f &&
+                    (state.ItemId == GearCatalog.Bottle || state.ItemId == "food.coconut_pierced")) return true;
             }
 
             return false;

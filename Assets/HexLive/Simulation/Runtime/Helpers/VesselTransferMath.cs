@@ -104,6 +104,57 @@ public static class VesselTransferMath
         return moved;
     }
 
+    /// <summary>Manual consolidation preserves exact amounts, including collector fractions.</summary>
+    public static float SourceSips(ItemInstance item) =>
+        item is null ? 0f : BottleInventoryMath.IsBottle(item)
+            ? item.WaterKind == WaterKind.None ? 0f : System.Math.Clamp(item.ResourceAmount, 0f, SimBalance.BottleCapacity)
+            : item.DefinitionId == ContentIds.CoconutPierced ? System.MathF.Max(0f, item.ResourceAmount) : 0f;
+
+    public static bool CanConsolidateBottle(NPCState npc, ItemInstance bottle)
+    {
+        if (!npc.Body.CanUseTwoHanded || !BottleInventoryMath.IsBottle(bottle) ||
+            !InventoryMath.ContainsReference(npc.Inventory.Items, bottle) ||
+            SourceSips(bottle) >= SimBalance.BottleCapacity) return false;
+        foreach (var source in npc.Inventory.Items)
+            if (!ReferenceEquals(source, bottle) && SourceSips(source) > 0f) return true;
+        return false;
+    }
+
+    internal static float ConsolidateBottleFromSources(ItemInstance bottle,
+        System.Collections.Generic.IEnumerable<ItemInstance> sources)
+    {
+        if (!BottleInventoryMath.IsBottle(bottle)) return 0f;
+        var before = SourceSips(bottle);
+        var amount = before;
+        var kind = amount > 0f ? bottle.WaterKind : WaterKind.None;
+        foreach (var source in sources)
+        {
+            if (ReferenceEquals(source, bottle)) continue;
+            var available = SourceSips(source);
+            var take = System.MathF.Min(SimBalance.BottleCapacity - amount, available);
+            if (take <= 0f) continue;
+            var sourceKind = BottleInventoryMath.IsBottle(source) ? source.WaterKind : WaterKind.Coconut;
+            // Adding raw water contaminates the mixture; safe water cannot launder it.
+            kind = kind == WaterKind.Raw || sourceKind == WaterKind.Raw ? WaterKind.Raw
+                : kind == WaterKind.None ? sourceKind : kind;
+            source.ResourceAmount = System.MathF.Max(0f, available - take);
+            if (BottleInventoryMath.IsBottle(source) && source.ResourceAmount <= 0f)
+            {
+                source.WaterKind = WaterKind.None;
+                source.LastAddedWaterKind = WaterKind.None;
+            }
+            amount += take;
+            bottle.LastAddedWaterKind = sourceKind;
+            if (amount >= SimBalance.BottleCapacity) break;
+        }
+        if (amount > before)
+        {
+            bottle.ResourceAmount = amount;
+            bottle.WaterKind = kind;
+        }
+        return amount - before;
+    }
+
     /// <summary>Что лежит во «второй руке» во время перелива — id ёмкости-
     /// источника для OffhandItemId снапшота (§55.4).</summary>
     public static string PourSourceId(NPCState npc) =>

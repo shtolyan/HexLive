@@ -645,6 +645,68 @@ public sealed class VesselTransferTests
     }
 
     [Test]
+    public void ManualConsolidationPreservesMixedVesselAmountsAndRawRisk()
+    {
+        var world = TestWorld.CreateWorld(635);
+        var npc = Girl(world);
+        npc.Inventory.Items.Clear();
+        var target = new ItemInstance(ContentIds.Bottle);
+        var rain = new ItemInstance(ContentIds.Bottle) { ResourceAmount = 1.2f, WaterKind = WaterKind.Rain };
+        var raw = new ItemInstance(ContentIds.Bottle) { ResourceAmount = 2.3f, WaterKind = WaterKind.Raw };
+        var coconut = new ItemInstance(ContentIds.CoconutPierced) { ResourceAmount = 1f };
+        npc.Inventory.Items.AddRange(new[] { target, rain, raw, coconut });
+        Assert.That(VesselTransferMath.CanConsolidateBottle(npc,target), Is.True);
+        var moved = VesselTransferMath.ConsolidateBottleFromSources(target,npc.Inventory.Items);
+        Assert.That(moved, Is.EqualTo(4.5f).Within(1e-5));
+        Assert.That(target.ResourceAmount, Is.EqualTo(4.5f).Within(1e-5));
+        Assert.That(target.WaterKind, Is.EqualTo(WaterKind.Raw));
+        Assert.That(target.LastAddedWaterKind, Is.EqualTo(WaterKind.Coconut));
+        Assert.That(rain.ResourceAmount + raw.ResourceAmount + coconut.ResourceAmount, Is.Zero);
+        Assert.That(raw.WaterKind, Is.EqualTo(WaterKind.None));
+    }
+
+    [Test]
+    public void ManualConsolidationCapsDestinationAndLeavesExactRemainder()
+    {
+        var world = TestWorld.CreateWorld(636);
+        var npc = Girl(world);
+        npc.Inventory.Items.Clear();
+        var target = new ItemInstance(ContentIds.Bottle) { ResourceAmount = 9.4f, WaterKind = WaterKind.Boiled };
+        var source = new ItemInstance(ContentIds.Bottle) { ResourceAmount = 1.3f, WaterKind = WaterKind.Raw };
+        npc.Inventory.Items.AddRange(new[] { target, source });
+        VesselTransferMath.ConsolidateBottleFromSources(target,npc.Inventory.Items);
+        Assert.That(target.ResourceAmount, Is.EqualTo(SimBalance.BottleCapacity));
+        Assert.That(source.ResourceAmount, Is.EqualTo(.7f).Within(1e-5));
+        Assert.That(target.ResourceAmount + source.ResourceAmount, Is.EqualTo(10.7f).Within(1e-5));
+        Assert.That(target.WaterKind, Is.EqualTo(WaterKind.Raw));
+        Assert.That(source.WaterKind, Is.EqualTo(WaterKind.Raw));
+    }
+
+    [Test]
+    public void ManualBottleSourceRunsThroughBoundDelayedAction()
+    {
+        var world = TestWorld.CreateWorld(637);
+        var npc = Girl(world);
+        npc.Mind.ManualControl = true;
+        npc.Inventory.Items.Clear();
+        var target = new ItemInstance(ContentIds.Bottle);
+        var source = new ItemInstance(ContentIds.Bottle) { ResourceAmount = 3f, WaterKind = WaterKind.Rain };
+        npc.Inventory.Items.AddRange(new[] { target, source });
+        var result = ManualCommandExecutor.Apply(world,new FillVesselCommand(npc.Id,
+            new InventoryItemRef(InventoryItemSource.Carried,0,ContentIds.Bottle)));
+        Assert.That(result.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted),result.Reason);
+        var execution = new ExecutionSystem();
+        execution.Run(world);
+        Assert.That(npc.Execution.ActionSupply, Is.SameAs(source));
+        Assert.That(target.ResourceAmount, Is.Zero);
+        world.Tick = npc.Execution.EndTick;
+        execution.Run(world);
+        Assert.That(target.ResourceAmount, Is.EqualTo(3f));
+        Assert.That(source.ResourceAmount, Is.Zero);
+        Assert.That(npc.Plan.Steps, Is.Empty);
+    }
+
+    [Test]
     public void EmptyGroundCoconutRejectsDrinkWithoutInstallingPlan()
     {
         var world = TestWorld.CreateWorld(621);

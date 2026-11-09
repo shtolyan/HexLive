@@ -995,7 +995,8 @@ public sealed partial class ExecutionSystem
 
         if (starting)
         {
-            if (!VesselTransferMath.CanFillBottle(npc, targetBottle))
+            if (!(hasPhysicalSelection ? VesselTransferMath.CanConsolidateBottle(npc, targetBottle)
+                : VesselTransferMath.CanFillBottle(npc, targetBottle)))
             {
                 npc.Plan.Status = PlanStatus.Failed;
                 if (SimTrace.Enabled)
@@ -1009,12 +1010,13 @@ public sealed partial class ExecutionSystem
             npc.Execution.Status = ExecutionStatus.InProgress;
             npc.Execution.CurrentInteraction = InteractionType.FillVessel;
             npc.Execution.VesselSources.Clear();
-            var remainingRoom = VesselTransferMath.BottleRoom(targetBottle);
+            var remainingRoom = SimBalance.BottleCapacity - VesselTransferMath.SourceSips(targetBottle);
             foreach (var source in npc.Inventory.Items)
             {
-                if (source.DefinitionId != ContentIds.CoconutPierced || source.ResourceAmount < 1f) continue;
+                if (ReferenceEquals(source, targetBottle) || VesselTransferMath.SourceSips(source) <= 0f ||
+                    (!hasPhysicalSelection && source.DefinitionId != ContentIds.CoconutPierced)) continue;
                 npc.Execution.VesselSources.Add(source);
-                remainingRoom -= (int)source.ResourceAmount;
+                remainingRoom -= VesselTransferMath.SourceSips(source);
                 if (remainingRoom <= 0) break;
             }
             npc.Execution.ActionSupply = npc.Execution.VesselSources[0];
@@ -1040,7 +1042,7 @@ public sealed partial class ExecutionSystem
 
         if (!npc.Body.CanUseTwoHanded || npc.Execution.VesselSources.Count == 0 ||
             npc.Execution.VesselSources.Exists(source =>
-                !InventoryMath.ContainsReference(npc.Inventory.Items, source) || source.ResourceAmount < 1f))
+                !InventoryMath.ContainsReference(npc.Inventory.Items, source) || VesselTransferMath.SourceSips(source) <= 0f))
         {
             PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                 "FillVessel: source vessel or second hand unavailable");
@@ -1057,7 +1059,9 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        var moved = VesselTransferMath.FillBottleFromSources(targetBottle, npc.Execution.VesselSources);
+        var moved = hasPhysicalSelection
+            ? VesselTransferMath.ConsolidateBottleFromSources(targetBottle, npc.Execution.VesselSources)
+            : VesselTransferMath.FillBottleFromSources(targetBottle, npc.Execution.VesselSources);
         if (moved > 0 && SimTrace.Enabled)
         {
             // Диагностика, не хроника: рядовой быт (как VesselPlaced/Taken).

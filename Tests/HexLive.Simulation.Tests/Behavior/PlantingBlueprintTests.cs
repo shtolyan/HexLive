@@ -13,6 +13,45 @@ using NUnit.Framework;
 namespace HexLive.Simulation.Tests.Behavior;
 public sealed class PlantingBlueprintTests
 {
+    [Test]
+    public void MultiplePlantingBlueprintsShareOneHexAtTheirExactOffCentrePoints()
+    {
+        var (engine,npc,centreSite) = Place(ContentIds.YuccaSeed);
+        var world = engine.World;
+        var points = world.Tiles.Items[centreSite.Tile].Junctions
+            .Where(j => !centreSite.Junctions.Contains(j) && PlantGrowthSystem.CanPlantAt(world,j,centreSite.Tile))
+            .Take(3).ToArray();
+        Assert.That(points.Length, Is.EqualTo(3));
+        foreach (var point in points)
+        {
+            var accepted = engine.ApplyManualCommand(new PlacePlantingSiteCommand(ContentIds.HerbSeed, centreSite.Tile, point));
+            Assert.That(accepted.Accepted, Is.True, accepted.Reason);
+            Assert.That(world.Entities.Objects.Values.Any(o => o.BuildProduct == ContentIds.HerbSeed && o.Junctions.Contains(point)), Is.True);
+        }
+        var count = world.Entities.Objects.Count;
+        var duplicate = engine.ApplyManualCommand(new PlacePlantingSiteCommand(ContentIds.HerbSeed, centreSite.Tile, points[0]));
+        Assert.That(duplicate.Accepted, Is.False);
+        Assert.That(world.Entities.Objects.Count, Is.EqualTo(count));
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.HerbSeed));
+        var site = world.Entities.Objects.Values.Single(o => o.BuildProduct == ContentIds.HerbSeed && o.Junctions.Contains(points[0]));
+        Assert.That(engine.ApplyManualCommand(new InteractCommand(npc.Id,site.Id,InteractionType.Build)).Accepted, Is.True);
+        for (var tick = 0; tick < 1000 && world.Entities.Objects.ContainsKey(site.Id); tick++) engine.Step();
+        Assert.That(world.Entities.Objects.ContainsKey(site.Id), Is.False);
+        Assert.That(world.Entities.Objects.Values.Any(o => o.DefinitionId == ContentIds.HerbSprout && o.Junctions.Contains(points[0])), Is.True);
+    }
+
+    [Test]
+    public void PointPlantingRejectsInvalidTileAndNonSeedCatalogWithoutMutation()
+    {
+        var (engine,npc,site) = Place(ContentIds.YuccaSeed);
+        var before = engine.World.Entities.Objects.Count;
+        foreach (var command in new[] {
+            new PlacePlantingSiteCommand(ContentIds.HerbSeed, new TileCoord(999,999), site.Junctions[0]),
+            new PlacePlantingSiteCommand(ContentIds.BedBasic, site.Tile, site.Junctions[0]) })
+            Assert.That(engine.ApplyManualCommand(command).Accepted, Is.False);
+        Assert.That(engine.World.Entities.Objects.Count, Is.EqualTo(before));
+    }
+
     private static (SimulationEngine engine, NPCState npc, WorldObjectState site) Place(string seed)
     {
         var engine = TestWorld.CreateEngine(); engine.Step();

@@ -62,7 +62,7 @@ namespace HexLive.UnityPresentation.UI
             void Card(string id, string nameTerm, string descriptionTerm, string glyph) => cards.Add(new JObject
             {
                 ["id"] = id, ["name"] = Loc.Get(nameTerm), ["desc"] = Loc.Get(descriptionTerm),
-                ["icon"] = builder?.HtmlIcon(id), ["glyph"] = glyph,
+                ["icon"] = builder?.HtmlIcon(CatalogIconId(id)), ["glyph"] = glyph,
             });
 
             // The same catalogue RebuildCatalogUi lays out.

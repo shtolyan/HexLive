@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="520" viewBox="0 0 1000 520">
+<rect width="1000" height="520" fill="#14242c"/>
+<style>text{fill:#edf5f6;font:17px sans-serif}.small{font-size:14px}</style>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0L0,6L8,3z" fill="#67bded"/></marker></defs>
+<text x="24" y="34">#638 — посадки выбирают точку, мебель сохраняет свой гекс</text>
+<text x="55" y="78">Было: одна посадка в центре</text>
+<polygon points="386.40,343.75 250.00,422.50 113.60,343.75 113.60,186.25 250.00,107.50 386.40,186.25" fill="#235a77" fill-opacity=".22" stroke="#67bded"/>
+<circle cx="113.60" cy="186.25" r="4" fill="#ac8153"/>
+<circle cx="113.60" cy="225.62" r="4" fill="#ac8153"/>
+<circle cx="113.60" cy="265.00" r="4" fill="#ac8153"/>
+<circle cx="113.60" cy="304.38" r="4" fill="#ac8153"/>
+<circle cx="113.60" cy="343.75" r="4" fill="#ac8153"/>
+<circle cx="147.70" cy="166.56" r="4" fill="#ac8153"/>
+<circle cx="147.70" cy="205.94" r="4" fill="#4f7787"/>
+<circle cx="147.70" cy="245.31" r="4" fill="#4f7787"/>
+<circle cx="147.70" cy="284.69" r="4" fill="#4f7787"/>
+<circle cx="147.70" cy="324.06" r="4" fill="#4f7787"/>
+<circle cx="147.70" cy="363.44" r="4" fill="#ac8153"/>
+<circle cx="181.80" cy="146.88" r="4" fill="#ac8153"/>
+<circle cx="181.80" cy="186.25" r="4" fill="#4f7787"/>
+<circle cx="181.80" cy="225.62" r="4" fill="#4f7787"/>
+<circle cx="181.80" cy="265.00" r="4" fill="#4f7787"/>
+<circle cx="181.80" cy="304.38" r="4" fill="#4f7787"/>
+<circle cx="181.80" cy="343.75" r="4" fill="#4f7787"/>
+<circle cx="181.80" cy="383.12" r="4" fill="#ac8153"/>
+<circle cx="215.90" cy="127.19" r="4" fill="#ac8153"/>
+<circle cx="215.90" cy="166.56" r="4" fill="#4f7787"/>
+<circle cx="215.90" cy="205.94" r="4" fill="#4f7787"/>
+<circle cx="215.90" cy="245.31" r="4" fill="#4f7787"/>
+<circle cx="215.90" cy="284.69" r="4" fill="#4f7787"/>
+<circle cx="215.90" cy="324.06" r="4" fill="#4f7787"/>
+<circle cx="215.90" cy="363.44" r="4" fill="#4f7787"/>
+<circle cx="215.90" cy="402.81" r="4" fill="#ac8153"/>
+<circle cx="250.00" cy="107.50" r="4" fill="#ac8153"/>
+<circle cx="250.00" cy="146.88" r="4" fill="#4f7787"/>
+<circle cx="250.00" cy="186.25" r="4" fill="#4f7787"/>
+<circle cx="250.00" cy="225.62" r="4" fill="#4f7787"/>
+<circle cx="250.00" cy="265.00" r="8" fill="#eeb35a"/>
+<circle cx="250.00" cy="304.38" r="4" fill="#4f7787"/>
+<circle cx="250.00" cy="343.75" r="4" fill="#4f7787"/>
+<circle cx="250.00" cy="383.12" r="4" fill="#4f7787"/>
+<circle cx="250.00" cy="422.50" r="4" fill="#ac8153"/>
+<circle cx="284.10" cy="127.19" r="4" fill="#ac8153"/>
+<circle cx="284.10" cy="166.56" r="4" fill="#4f7787"/>
+<circle cx="284.10" cy="205.94" r="4" fill="#4f7787"/>
+<circle cx="284.10" cy="245.31" r="4" fill="#4f7787"/>
+<circle cx="284.10" cy="284.69" r="4" fill="#4f7787"/>
+<circle cx="284.10" cy="324.06" r="4" fill="#4f7787"/>
+<circle cx="284.10" cy="363.44" r="4" fill="#4f7787"/>
+<circle cx="284.10" cy="402.81" r="4" fill="#ac8153"/>
+<circle cx="318.20" cy="146.88" r="4" fill="#ac8153"/>
+<circle cx="318.20" cy="186.25" r="4" fill="#4f7787"/>
+<circle cx="318.20" cy="225.62" r="4" fill="#4f7787"/>
+<circle cx="318.20" cy="265.00" r="4" fill="#4f7787"/>
+<circle cx="318.20" cy="304.38" r="4" fill="#4f7787"/>
+<circle cx="318.20" cy="343.75" r="4" fill="#4f7787"/>
+<circle cx="318.20" cy="383.12" r="4" fill="#ac8153"/>
+<circle cx="352.30" cy="166.56" r="4" fill="#ac8153"/>
+<circle cx="352.30" cy="205.94" r="4" fill="#4f7787"/>
+<circle cx="352.30" cy="245.31" r="4" fill="#4f7787"/>
+<circle cx="352.30" cy="284.69" r="4" fill="#4f7787"/>
+<circle cx="352.30" cy="324.06" r="4" fill="#4f7787"/>
+<circle cx="352.30" cy="363.44" r="4" fill="#ac8153"/>
+<circle cx="386.40" cy="186.25" r="4" fill="#ac8153"/>
+<circle cx="386.40" cy="225.62" r="4" fill="#ac8153"/>
+<circle cx="386.40" cy="265.00" r="4" fill="#ac8153"/>
+<circle cx="386.40" cy="304.38" r="4" fill="#ac8153"/>
+<circle cx="386.40" cy="343.75" r="4" fill="#ac8153"/>
+<text x="555" y="78">Стало: несколько точных посадок</text>
+<polygon points="886.40,343.75 750.00,422.50 613.60,343.75 613.60,186.25 750.00,107.50 886.40,186.25" fill="#235a77" fill-opacity=".22" stroke="#67bded"/>
+<circle cx="613.60" cy="186.25" r="4" fill="#ac8153"/>
+<circle cx="613.60" cy="225.62" r="4" fill="#ac8153"/>
+<circle cx="613.60" cy="265.00" r="4" fill="#ac8153"/>
+<circle cx="613.60" cy="304.38" r="4" fill="#ac8153"/>
+<circle cx="613.60" cy="343.75" r="4" fill="#ac8153"/>
+<circle cx="647.70" cy="166.56" r="4" fill="#ac8153"/>
+<circle cx="647.70" cy="205.94" r="4" fill="#4f7787"/>
+<circle cx="647.70" cy="245.31" r="4" fill="#4f7787"/>
+<circle cx="647.70" cy="284.69" r="4" fill="#4f7787"/>
+<circle cx="647.70" cy="324.06" r="4" fill="#4f7787"/>
+<circle cx="647.70" cy="363.44" r="4" fill="#ac8153"/>
+<circle cx="681.80" cy="146.88" r="4" fill="#ac8153"/>
+<circle cx="681.80" cy="186.25" r="4" fill="#4f7787"/>
+<circle cx="681.80" cy="225.62" r="8" fill="#eeb35a"/>
+<circle cx="681.80" cy="265.00" r="4" fill="#4f7787"/>
+<circle cx="681.80" cy="304.38" r="4" fill="#4f7787"/>
+<circle cx="681.80" cy="343.75" r="4" fill="#4f7787"/>
+<circle cx="681.80" cy="383.12" r="4" fill="#ac8153"/>
+<circle cx="715.90" cy="127.19" r="4" fill="#ac8153"/>
+<circle cx="715.90" cy="166.56" r="4" fill="#4f7787"/>
+<circle cx="715.90" cy="205.94" r="4" fill="#4f7787"/>
+<circle cx="715.90" cy="245.31" r="4" fill="#4f7787"/>
+<circle cx="715.90" cy="284.69" r="4" fill="#4f7787"/>
+<circle cx="715.90" cy="324.06" r="4" fill="#4f7787"/>
+<circle cx="715.90" cy="363.44" r="4" fill="#4f7787"/>
+<circle cx="715.90" cy="402.81" r="4" fill="#ac8153"/>
+<circle cx="750.00" cy="107.50" r="4" fill="#ac8153"/>
+<circle cx="750.00" cy="146.88" r="4" fill="#4f7787"/>
+<circle cx="750.00" cy="186.25" r="4" fill="#e98770"/>
+<circle cx="750.00" cy="225.62" r="4" fill="#4f7787"/>
+<circle cx="750.00" cy="265.00" r="4" fill="#4f7787"/>
+<circle cx="750.00" cy="304.38" r="8" fill="#eeb35a"/>
+<circle cx="750.00" cy="343.75" r="4" fill="#4f7787"/>
+<circle cx="750.00" cy="383.12" r="4" fill="#4f7787"/>
+<circle cx="750.00" cy="422.50" r="4" fill="#ac8153"/>
+<circle cx="784.10" cy="127.19" r="4" fill="#ac8153"/>
+<circle cx="784.10" cy="166.56" r="4" fill="#4f7787"/>
+<circle cx="784.10" cy="205.94" r="4" fill="#4f7787"/>
+<circle cx="784.10" cy="245.31" r="4" fill="#4f7787"/>
+<circle cx="784.10" cy="284.69" r="4" fill="#4f7787"/>
+<circle cx="784.10" cy="324.06" r="4" fill="#4f7787"/>
+<circle cx="784.10" cy="363.44" r="4" fill="#4f7787"/>
+<circle cx="784.10" cy="402.81" r="4" fill="#ac8153"/>
+<circle cx="818.20" cy="146.88" r="4" fill="#ac8153"/>
+<circle cx="818.20" cy="186.25" r="4" fill="#4f7787"/>
+<circle cx="818.20" cy="225.62" r="4" fill="#4f7787"/>
+<circle cx="818.20" cy="265.00" r="8" fill="#eeb35a"/>
+<circle cx="818.20" cy="304.38" r="4" fill="#4f7787"/>
+<circle cx="818.20" cy="343.75" r="4" fill="#4f7787"/>
+<circle cx="818.20" cy="383.12" r="4" fill="#ac8153"/>
+<circle cx="852.30" cy="166.56" r="4" fill="#ac8153"/>
+<circle cx="852.30" cy="205.94" r="4" fill="#4f7787"/>
+<circle cx="852.30" cy="245.31" r="4" fill="#4f7787"/>
+<circle cx="852.30" cy="284.69" r="4" fill="#4f7787"/>
+<circle cx="852.30" cy="324.06" r="4" fill="#4f7787"/>
+<circle cx="852.30" cy="363.44" r="4" fill="#ac8153"/>
+<circle cx="886.40" cy="186.25" r="4" fill="#ac8153"/>
+<circle cx="886.40" cy="225.62" r="4" fill="#ac8153"/>
+<circle cx="886.40" cy="265.00" r="4" fill="#ac8153"/>
+<circle cx="886.40" cy="304.38" r="4" fill="#ac8153"/>
+<circle cx="886.40" cy="343.75" r="4" fill="#ac8153"/>
+<path d="M865,383 L754,310.375" stroke="#67bded" stroke-width="3" marker-end="url(#arrow)"/>
+<text x="786" y="408" class="small">Курсор → ближайший узел</text>
+<text x="24" y="450">R=1.5 wu · шаг=0.375 wu · 37 внутренних + 24 граничных узла</text>
+<text x="24" y="480" class="small">Синий: сухой гекс · Оранжевый: занятая точка/общая граница · Красный: блокировка</text>
+<text x="24" y="507" class="small">Посадки не исключают целый гекс. Занятую точку, воду, чужой участок и препятствие сервер отклонит.</text>
+</svg>

@@ -28,6 +28,18 @@ namespace HexLive.Simulation.Tests.Gates
 /// </summary>
 public sealed class CommandCodecCoverageGateTests
 {
+    [Test]
+    public void LegacyFurnitureOpcodeAndPayloadRemainByteExactAfterPointPlanting()
+    {
+        using var actual = new MemoryStream();
+        using (var writer = new BinaryWriter(actual, System.Text.Encoding.UTF8, true))
+            SimulationCommandCodec.Write(writer, new PlaceFurnitureSiteCommand(ContentIds.YuccaSeed, new TileCoord(7,-9), 120f));
+        using var expected = new MemoryStream();
+        using (var writer = new BinaryWriter(expected, System.Text.Encoding.UTF8, true))
+        { writer.Write((ushort)26); writer.Write(ContentIds.YuccaSeed); writer.Write(7); writer.Write(-9); writer.Write(120f); }
+        Assert.That(actual.ToArray(), Is.EqualTo(expected.ToArray()));
+    }
+
     // Каждому конкретному типу — образец с НЕ-дефолтными и попарно РАЗНЫМИ
     // значениями полей (чтобы reader, перепутавший Npc и Target, не прошёл).
     private static readonly ISimulationCommand[] Stamped =
@@ -40,6 +52,7 @@ public sealed class CommandCodecCoverageGateTests
         new RecordAgentSocialCommand(
             new EntityId(902), "agent-turn-160", CompanionReaction.Tense),
         new SetManualControlCommand(new EntityId(11), true),
+        new PlacePlantingSiteCommand(ContentIds.YuccaSeed, new TileCoord(4, -7), new JunctionId(638)),
         new SetOutfitLockCommand(new EntityId(111), true),
         new SetRunByDefaultCommand(new EntityId(114), true),
         new MoveToCommand(new EntityId(12), new Float2(3.5f, -7.25f), run: true),

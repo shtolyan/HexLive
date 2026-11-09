@@ -28,7 +28,7 @@ namespace HexLive.Simulation.Runtime
 //    месте всё равно проверит ExecutionSystem, когда она дойдёт.
 // 3. Отказ — это ТРАССА, а не тишина: ManualOrderRejected с Reason=. Молчащий
 //    приказ читается игроком как «игра сломалась».
-internal static class ManualCommandExecutor
+internal static partial class ManualCommandExecutor
 {
     public static ManualCommandAdmission Apply(WorldState world, ISimulationCommand command, string requestOwner = "",
         IReadOnlyCollection<int> assignedNpcIds = null)
@@ -194,6 +194,9 @@ internal static class ManualCommandExecutor
             case PlaceFurnitureSiteCommand placeFurniture:
                 ApplyPlaceFurnitureSite(world, placeFurniture, admission);
                 break;
+            case PlacePlantingSiteCommand planting:
+                ApplyPlacePlantingSite(world, planting, admission);
+                break;
             case PlaceBuildingBlueprintCommand placeBlueprint:
                 ApplyPlaceBuildingBlueprint(world, placeBlueprint, admission);
                 break;
@@ -288,6 +291,7 @@ internal static class ManualCommandExecutor
         TransferContainerCommand => "TransferContainer",
         PlaceBuildingPlanCommand => "PlaceBuildingPlan",
         PlaceFurnitureSiteCommand => "PlaceFurnitureSite",
+        PlacePlantingSiteCommand => "PlacePlantingSite",
         PlaceBuildingBlueprintCommand => "PlaceBuildingBlueprint",
         UpdateBuildingBlueprintCommand => "UpdateBuildingBlueprint",
         ApplyFreeArchitectureCommand => "ApplyFreeArchitecture",

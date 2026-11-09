@@ -2,6 +2,10 @@
 using HexLive.Simulation.Content;
 using HexLive.UnityPresentation.Environment;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.UI;
+using HexLive.UnityPresentation.Wearing.Garments;
+using System.Reflection;
+using UnityEditor;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -9,6 +13,20 @@ namespace HexLive.Tests
 {
 public sealed class PlantingBlueprintRuntimeTests
 {
+    [TestCase(ContentIds.Coconut,ContentIds.Palm)]
+    [TestCase(ContentIds.YuccaSeed,ContentIds.Yucca)]
+    [TestCase(ContentIds.HerbSeed,ContentIds.HerbBush)]
+    public void PlantingCardLoadsTheMaturePlantAtomicIcon(string seed,string plant)
+    {
+        var select = typeof(BuildModePanel).GetMethod("CatalogIconId",BindingFlags.Static|BindingFlags.NonPublic);
+        Assert.That(select,Is.Not.Null);
+        Assert.That(select.Invoke(null,new object[]{seed}),Is.EqualTo(plant));
+        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/HexLiveContent/Icons/"+plant+".png");
+        Assert.That(sprite,Is.Not.Null,plant);
+        Assert.That(sprite.rect.size,Is.EqualTo(new Vector2(512,512)));
+        Assert.That(ItemIcons.Address(plant),Is.EqualTo("object/"+plant+"#icon"));
+    }
+
     [TestCase(ContentIds.Coconut)]
     [TestCase(ContentIds.YuccaSeed)]
     [TestCase(ContentIds.HerbSeed)]

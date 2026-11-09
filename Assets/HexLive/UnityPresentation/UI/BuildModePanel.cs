@@ -110,6 +110,8 @@ namespace HexLive.UnityPresentation.UI
         private LineRenderer? _ghostOutline;
         private int _ghostYawSteps;
         private TileCoord? _ghostTile;
+        private JunctionSnapshot? _ghostPlantingAnchor;
+        private bool IsPlantingCard => PlantGrowthCatalog.TryGetBySeed(_activeCardId, out _);
         private bool _ghostValid;
 
         // «Полностью построено» поверх размеченных площадок.
@@ -122,9 +124,13 @@ namespace HexLive.UnityPresentation.UI
         private float _nextSnapshotRefresh;
         private readonly Dictionary<TileCoord, TileSnapshot> _tiles = new();
         private readonly HashSet<TileCoord> _occupiedHexes = new();
+        private readonly Dictionary<TileCoord, List<JunctionSnapshot>> _plantingPointsByTile = new();
+        private readonly HashSet<JunctionId> _plantingOccupiedPoints = new();
+        private List<JunctionSnapshot>? _indexedPlantingJunctions;
 
         // Проверка «площадка не появилась» → честный «здесь нельзя строить».
         private TileCoord? _pendingTile;
+        private JunctionId? _pendingPlantingAnchor;
         private float _pendingDeadline;
 
         private int _worldRejectionRevision;
@@ -458,7 +464,7 @@ namespace HexLive.UnityPresentation.UI
             image.pickingMode = PickingMode.Ignore;
             image.style.display = DisplayStyle.None;
             thumb.Add(image);
-            var icon = ItemIcons.Load(cardId);
+            var icon = ItemIcons.Load(CatalogIconId(cardId));
             if (icon != null)
             {
                 image.sprite = icon;
@@ -502,6 +508,7 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
             _activeCardId = cardId;
+            _nextSnapshotRefresh = 0f;
             _ghostYawSteps = 0;
             BuildGhost();
             RebuildCatalogUi();
@@ -742,12 +749,17 @@ namespace HexLive.UnityPresentation.UI
             {
                 _runner!.EnqueueCommand(new PlaceBuildingPlanCommand(tile, yaw));
             }
+            else if (IsPlantingCard && _ghostPlantingAnchor is { } plantingAnchor)
+            {
+                _runner!.EnqueueCommand(new PlacePlantingSiteCommand(_activeCardId, tile, plantingAnchor.Id));
+            }
             else
             {
                 _runner!.EnqueueCommand(new PlaceFurnitureSiteCommand(_activeCardId, tile, yaw));
             }
 
             _pendingTile = tile;
+            _pendingPlantingAnchor = IsPlantingCard ? _ghostPlantingAnchor?.Id : null;
             _pendingDeadline = Time.unscaledTime + 1.5f;
             _nextSnapshotRefresh = 0f;
             _nextOverlayRefresh = 0f;
@@ -774,7 +786,8 @@ namespace HexLive.UnityPresentation.UI
             if (_snapshot == null) return;
             foreach (var obj in _snapshot.Objects)
             {
-                if (obj.Tile.Equals(tile) && !string.IsNullOrEmpty(obj.BuildProduct)) return;
+                if (obj.Tile.Equals(tile) && !string.IsNullOrEmpty(obj.BuildProduct) &&
+                    (_pendingPlantingAnchor is not { } point || obj.Junctions.Contains(point))) return;
             }
 
             SetStatus("build.mode.blocked");
@@ -1038,7 +1051,22 @@ namespace HexLive.UnityPresentation.UI
             RefreshBuildPermissions();
             _tiles.Clear();
             _occupiedHexes.Clear();
+            _plantingOccupiedPoints.Clear();
             if (_snapshot == null) return;
+            // Topology snapshot records are reused and their flags refresh in
+            // place. Build the tile index once per topology, never per frame.
+            if (IsPlantingCard && !ReferenceEquals(_indexedPlantingJunctions, _snapshot.Junctions))
+            {
+                _indexedPlantingJunctions = _snapshot.Junctions;
+                _plantingPointsByTile.Clear();
+                foreach (var point in _snapshot.Junctions)
+                foreach (var coord in point.Tiles)
+                {
+                    if (!_plantingPointsByTile.TryGetValue(coord, out var points))
+                        _plantingPointsByTile[coord] = points = new List<JunctionSnapshot>();
+                    points.Add(point);
+                }
+            }
             foreach (var tile in _snapshot.Tiles)
             {
                 _tiles[tile.Coord] = tile;
@@ -1046,6 +1074,8 @@ namespace HexLive.UnityPresentation.UI
 
             foreach (var obj in _snapshot.Objects)
             {
+                if (IsPlantingCard)
+                    foreach (var point in obj.Junctions) _plantingOccupiedPoints.Add(point);
                 // §66: гекс занят стройкой или любым объектом с физическим
                 // футпринтом (пальма, валун, станция); россыпь ресурсов гекс
                 // не запирает — правду всё равно решит HexFreeForBuild.
@@ -1086,6 +1116,12 @@ namespace HexLive.UnityPresentation.UI
 
         private bool EvaluateGhostValidity(TileCoord tile)
         {
+            if (IsPlantingCard)
+                return _ghostPlantingAnchor is { } anchor &&
+                    _tiles.TryGetValue(tile, out var ground) && ground.Walkable && !ground.Water && !ground.Blocked &&
+                    !anchor.Blocked && !anchor.IsSwimmable &&
+                    !PlantingPointHasLiveOccupant(anchor.WorldPosition) &&
+                    !_plantingOccupiedPoints.Contains(anchor.Id) && CanEditTile(tile);
             if (_activeCardId != HutCardId) return TileBuildable(tile);
             var footprint = Simulation.Bootstrap.BuildingBootstrap.FootprintTiles(
                 ContentIds.HutPlan, tile, _ghostYawSteps * 60f);
@@ -1203,16 +1239,32 @@ namespace HexLive.UnityPresentation.UI
             var mouse = Mouse.current;
             if (mouse == null || _camera == null) return;
             var screen = mouse.position.ReadValue();
-            if (PointerOverPanel(screen) || !TryPickTile(screen, out var tile))
+            if (PointerOverPanel(screen) || !TryPickTile(screen, out var tile, out var groundPoint))
             {
                 _ghostRoot.SetActive(false);
                 _ghostTile = null;
+                _ghostPlantingAnchor = null;
+                PlantingPlacementMarker.Hide();
                 return;
             }
 
+            _ghostPlantingAnchor = null;
+            if (IsPlantingCard && _plantingPointsByTile.TryGetValue(tile, out var candidates))
+            {
+                var nearestDistance = float.MaxValue;
+                foreach (var candidate in candidates)
+                {
+                    var dx = candidate.WorldPosition.X - groundPoint.X;
+                    var dy = candidate.WorldPosition.Y - groundPoint.Y;
+                    var distance = dx * dx + dy * dy;
+                    if (distance < nearestDistance || (distance == nearestDistance &&
+                        (_ghostPlantingAnchor == null || candidate.Id.Value < _ghostPlantingAnchor.Id.Value)))
+                    { _ghostPlantingAnchor = candidate; nearestDistance = distance; }
+                }
+            }
             var changed = _ghostTile is not { } current || !current.Equals(tile);
             _ghostTile = tile;
-            if (changed || !_ghostRoot.activeSelf)
+            if (IsPlantingCard || changed || !_ghostRoot.activeSelf)
             {
                 _ghostRoot.SetActive(true);
                 ApplyGhostTransform();
@@ -1223,12 +1275,19 @@ namespace HexLive.UnityPresentation.UI
         {
             if (_ghostRoot == null || _worldRenderer == null || _ghostTile is not { } tile) return;
             var groundY = _worldRenderer.GroundTopY(tile);
-            _ghostRoot.transform.position = SimulationUnityMapper.ToUnityTilePosition(tile, groundY);
+            _ghostRoot.transform.position = IsPlantingCard && _ghostPlantingAnchor is { } anchor
+                ? SimulationUnityMapper.ToUnityPosition(anchor.WorldPosition, groundY)
+                : SimulationUnityMapper.ToUnityTilePosition(tile, groundY);
             var yaw = _ghostYawSteps * 60f;
             _ghostRoot.transform.rotation = Quaternion.Euler(0f, GhostUnityYaw(yaw), 0f);
 
             _ghostValid = EvaluateGhostValidity(tile);
-            DrawFootprintOutline(tile, groundY);
+            if (IsPlantingCard)
+            {
+                if (_ghostOutline != null) _ghostOutline.positionCount = 0;
+                PlantingPlacementMarker.Show(_ghostRoot.transform.position, _ghostValid);
+            }
+            else DrawFootprintOutline(tile, groundY);
             RefreshSelectionCard();
         }
 
@@ -1430,6 +1489,8 @@ namespace HexLive.UnityPresentation.UI
 
         private void ClearGhost()
         {
+            PlantingPlacementMarker.Hide();
+            _ghostPlantingAnchor = null;
             if (_ghostRoot != null) Destroy(_ghostRoot);
             _ghostRoot = null;
             _ghostOutline = null;
@@ -1464,6 +1525,7 @@ namespace HexLive.UnityPresentation.UI
         private void BuildGridDots()
         {
             ClearGridDots();
+            if (IsPlantingCard) return;
             _gridRoot = new GameObject("Build grid dots");
             foreach (var pair in _tiles)
             {
@@ -1672,9 +1734,29 @@ namespace HexLive.UnityPresentation.UI
         /// <summary>Тайл под курсором — то же «пересечение с плоскостью верха
         /// каждого тайла», что у ручного приказа §121: коллайдеров у земли нет,
         /// высоты у тайлов разные.</summary>
-        private bool TryPickTile(Vector2 screen, out TileCoord tile)
+        private static string CatalogIconId(string id) =>
+            PlantGrowthCatalog.TryGetBySeed(id, out var plant) ? plant.MatureDefinitionId : id;
+
+        // Occupied/Reserved junction flags are debug-only snapshots. Actual
+        // body positions are live in production; final reservations stay authoritative server-side.
+        private bool PlantingPointHasLiveOccupant(Float2 point)
+        {
+            if (_snapshot == null) return true;
+            static bool At(Float2 a, Float2 b) =>
+                (a.X-b.X)*(a.X-b.X) + (a.Y-b.Y)*(a.Y-b.Y) <= 0.04f;
+            foreach (var npc in _snapshot.Npcs)
+                if (npc.Health > 0f && At(npc.Position,point)) return true;
+            foreach (var mob in _snapshot.Mobs)
+                if (mob.Health > 0f && At(mob.Position,point)) return true;
+            return false;
+        }
+
+        private bool TryPickTile(Vector2 screen, out TileCoord tile) => TryPickTile(screen, out tile, out _);
+
+        private bool TryPickTile(Vector2 screen, out TileCoord tile, out Float2 groundPoint)
         {
             tile = default;
+            groundPoint = default;
             if (_camera == null || _tiles.Count == 0) return false;
             var ray = _camera.ScreenPointToRay(screen);
             if (Mathf.Abs(ray.direction.y) < 0.0001f) return false;
@@ -1690,6 +1772,7 @@ namespace HexLive.UnityPresentation.UI
                 if (!PointInsideHex(hit.x, hit.z, pair.Key)) continue;
                 bestT = t;
                 tile = pair.Key;
+                groundPoint = new Float2(hit.x, hit.z);
                 found = true;
             }
 

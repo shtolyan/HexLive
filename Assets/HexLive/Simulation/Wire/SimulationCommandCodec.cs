@@ -96,6 +96,7 @@ public static class SimulationCommandCodec
         ButcherPerson = 47,
         CraftByOutput = 48, // §138.6 append-only
         PlantInventorySeed = 49, // §173.2 append-only
+        PlacePlantingSite = 56, // #638; 50-55 reserved for party/door/gift commands.
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -355,6 +356,13 @@ public static class SimulationCommandCodec
                 w.Write(c.Tile.R);
                 w.Write(c.RotationDegrees);
                 break;
+            case PlacePlantingSiteCommand c:
+                w.Write((ushort)CommandType.PlacePlantingSite);
+                WireIo.WriteString(w, c.CatalogId);
+                w.Write(c.Tile.Q);
+                w.Write(c.Tile.R);
+                w.Write(c.Anchor.Value);
+                break;
             case RotateBuildSiteCommand c:
                 w.Write((ushort)CommandType.RotateBuildSite);
                 w.Write(c.Site.Value);
@@ -546,6 +554,9 @@ public static class SimulationCommandCodec
             case CommandType.RotateBuildSite:
                 return new RotateBuildSiteCommand(
                     new ObjectId(r.ReadInt32()), r.ReadSingle());
+            case CommandType.PlacePlantingSite:
+                return new PlacePlantingSiteCommand(r.ReadString(),
+                    new TileCoord(r.ReadInt32(), r.ReadInt32()), new JunctionId(r.ReadInt32()));
             case CommandType.CancelBuildSite:
                 return new CancelBuildSiteCommand(new ObjectId(r.ReadInt32()));
             case CommandType.PlaceBuildingBlueprint:

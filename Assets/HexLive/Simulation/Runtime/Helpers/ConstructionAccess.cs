@@ -19,7 +19,7 @@ public static class ConstructionAccess
     public const string ForeignReason = "ForeignConstruction";
 
     public static bool IsConstructionCommand(ISimulationCommand command) => command is
-        PlaceBuildingPlanCommand or PlaceFurnitureSiteCommand or PlaceBuildingBlueprintCommand or
+        PlaceBuildingPlanCommand or PlaceFurnitureSiteCommand or PlacePlantingSiteCommand or PlaceBuildingBlueprintCommand or
         UpdateBuildingBlueprintCommand or ApplyFreeArchitectureCommand or
         RotateBuildSiteCommand or CancelBuildSiteCommand;
 
@@ -72,6 +72,9 @@ public static class ConstructionAccess
         {
             case PlaceFurnitureSiteCommand furniture:
                 tiles = new[] { furniture.Tile };
+                break;
+            case PlacePlantingSiteCommand planting:
+                tiles = new[] { planting.Tile };
                 break;
             case PlaceBuildingPlanCommand hut:
                 tiles = PlanTiles(CommittedBuildingPlans.PlayerHut, hut.Tile, hut.RotationDegrees);

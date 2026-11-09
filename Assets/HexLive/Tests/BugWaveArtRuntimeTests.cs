@@ -61,10 +61,10 @@ public class BugWaveArtRuntimeFixture
         caches.Clear();
     }
     protected GameObject Keep(GameObject o) { Assert.That(o, Is.Not.Null); roots.Add(o); return o; }
-    protected void Capture(Vector3 look, string file)
+    protected void Capture(Vector3 look, string file, float viewScale = 1f)
     {
         var c = Keep(new GameObject("Art acceptance camera")).AddComponent<Camera>();
-        c.transform.position = look + new Vector3(2.1f, 1.1f, -2.4f); c.transform.LookAt(look);
+        c.transform.position = look + new Vector3(2.1f, 1.1f, -2.4f) * viewScale; c.transform.LookAt(look);
         c.clearFlags = CameraClearFlags.SolidColor; c.backgroundColor = new Color(.16f,.20f,.24f);
         c.nearClipPlane = .01f; c.farClipPlane = 20f; c.fieldOfView = 36;
         var rt = new RenderTexture(1200, 1000, 24); var old = RenderTexture.active;

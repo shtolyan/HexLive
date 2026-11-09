@@ -246,12 +246,12 @@ public sealed class PlantGrowthSystem : ISimulationSystem
         string seedDefinitionId,
         JunctionId anchor,
         TileCoord tile,
-        EntityId planter)
+        EntityId planter, ObjectId? ignoredObject = null)
     {
         if (!PlantGrowthCatalog.TryGetBySeed(seedDefinitionId, out var profile) ||
             profile.StageDefinitionIds.Length == 0 ||
             !world.Content.ObjectDefinitions.ContainsKey(profile.StageDefinitionIds[0]) ||
-            !CanPlantAt(world, anchor, tile, planter) ||
+            !CanPlantAt(world, anchor, tile, planter, ignoredObject) ||
             !world.Junctions.Items.TryGetValue(anchor, out var junction))
         {
             return null;

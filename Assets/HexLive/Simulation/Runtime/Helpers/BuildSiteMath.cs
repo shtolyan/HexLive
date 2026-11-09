@@ -107,6 +107,10 @@ internal static class BuildSiteMath
         return true;
     }
 
+    public static bool IsPlantingSite(WorldObjectState site) =>
+        site.DefinitionId == ContentIds.BuildSite &&
+        PlantGrowthCatalog.TryGetBySeed(site.BuildProduct, out _);
+
     // Old saves keep their visible progress; only subsequent work becomes
     // explicit. New sites start with a zero array at placement time.
     public static void TrackWork(WorldObjectState site)

@@ -47,7 +47,8 @@ internal static class ManualBuildSession
     /// <summary>Площадка, которую «Строить» ведёт до конца. Демонтаж — один
     /// взмах топора, ему очередь не нужна.</summary>
     public static bool Eligible(WorldObjectState site) =>
-        BuildSiteMath.IsSite(site) && !BuildSiteMath.IsDemolitionSite(site);
+        BuildSiteMath.IsSite(site) && !BuildSiteMath.IsDemolitionSite(site) &&
+        !BuildSiteMath.IsPlantingSite(site);
 
     public static bool IsActive(NPCMind mind) => mind.BuildAllSiteId is not null;
 

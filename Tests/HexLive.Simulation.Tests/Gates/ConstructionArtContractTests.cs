@@ -24,6 +24,13 @@ public sealed class ConstructionArtContractTests
         foreach (var entry in BuildCatalogDefinition.All)
         {
             if (entry.DefinitionId == "architecture.floor.open") continue; // tool, not another model
+            // Planting cards use the existing seed + three authored plant stages,
+            // not an assembled furniture model with a board/stick construction bill.
+            if (PlantGrowthCatalog.TryGetBySeed(entry.DefinitionId, out var crop))
+            {
+                Assert.That(crop.StageDefinitionIds, Has.Length.EqualTo(3));
+                continue;
+            }
             Assert.That(ids, Does.Contain(entry.DefinitionId), entry.DefinitionId);
         }
     }

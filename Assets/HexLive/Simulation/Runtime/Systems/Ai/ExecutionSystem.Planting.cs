@@ -2,6 +2,7 @@ using System.Linq;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Content;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Spatial;
@@ -67,7 +68,19 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        if (!PlantGrowthSystem.CanPlantAt(world, target, tile, npc.Id))
+        ObjectId? plantingSite = null;
+        if (npc.Plan.TargetObjectId is { } siteId)
+        {
+            if (!world.Entities.Objects.TryGetValue(siteId, out var site) ||
+                !BuildSiteMath.IsPlantingSite(site) || site.BuildProduct != seedDefinitionId ||
+                !site.Junctions.Contains(target))
+            {
+                FailInventoryPlanting(world, npc, "PlantSeed: blueprint disappeared");
+                return;
+            }
+            plantingSite = siteId;
+        }
+        if (!PlantGrowthSystem.CanPlantAt(world, target, tile, npc.Id, plantingSite))
         {
             FailInventoryPlanting(world, npc, "PlantSeed: planting spot became occupied");
             return;
@@ -124,7 +137,7 @@ public sealed partial class ExecutionSystem
 
         var planted = seedDefinitionId == ContentIds.Torch
             ? InventoryPlacementMath.PlaceTorch(world, npc, seed, target, tile)
-            : PlantGrowthSystem.TryPlantAt(world, seedDefinitionId, target, tile, npc.Id);
+            : PlantGrowthSystem.TryPlantAt(world, seedDefinitionId, target, tile, npc.Id, plantingSite);
         if (planted is null)
         {
             // The site was validated immediately above; retain ownership if a
@@ -133,6 +146,9 @@ public sealed partial class ExecutionSystem
             FailInventoryPlanting(world, npc, "PlantSeed: final placement failed");
             return;
         }
+
+        if (plantingSite is { } completedSite) WorldObjectMutations.DespawnObject(world, completedSite);
+        npc.Plan.TargetObjectId = null;
 
         var duration = npc.Execution.EndTick - npc.Execution.StartTick;
         SkillTrace.Award(world, npc, InteractionType.Plant, duration);

@@ -1159,6 +1159,7 @@ namespace HexLive.UnityPresentation.UI
         /// рендерера мира; никакой ghost-геометрии, которой нет в игре.</summary>
         private static GameObject? GhostModel(string catalogId)
         {
+            if (PlantGrowthCatalog.TryGetBySeed(catalogId, out _)) return PlantingBlueprintMarker.Create();
             if (catalogId == "furniture.hearth") return HutFurnitureFactory.BuildHearth();
             if (catalogId == ContentIds.Wardrobe) return WardrobeAssembly.BuildFinished();
             return BedAssembly.IsAssembled(catalogId) ? BedAssembly.BuildFinished(catalogId) : null;

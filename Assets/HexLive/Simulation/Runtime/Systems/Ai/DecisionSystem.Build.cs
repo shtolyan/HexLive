@@ -127,7 +127,7 @@ public sealed partial class DecisionSystem
         {
             if (!obj.IsReachable ||
                 !world.Entities.Objects.TryGetValue(obj.Id, out var site) ||
-                !BuildSiteMath.IsSite(site) ||
+                !BuildSiteMath.IsSite(site) || BuildSiteMath.IsPlantingSite(site) ||
                 !IsOurSite(world, npc, site))
             {
                 continue;

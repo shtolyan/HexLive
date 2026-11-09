@@ -2766,7 +2766,7 @@ internal static class ManualCommandExecutor
     private static void ApplyPlantInventorySeed(
         WorldState world,
         PlantInventorySeedCommand command,
-        AdmissionTracker admission)
+        AdmissionTracker admission, ObjectId? plantingSite = null)
     {
         if (!TryTakeOrder(
                 world, command.Npc, "PlantSeed", requireManual: true,
@@ -2811,7 +2811,7 @@ internal static class ManualCommandExecutor
         }
 
         if (!PlantGrowthSystem.CanPlantAt(
-                world, command.TargetJunction, command.TargetTile, npc.Id))
+                world, command.TargetJunction, command.TargetTile, npc.Id, plantingSite))
         {
             Reject(world, npc.Id, "PlantSeed", "PlantingSpotOccupied", admission);
             return;
@@ -2841,7 +2841,7 @@ internal static class ManualCommandExecutor
         npc.Plan.TargetJunctionId = command.TargetJunction;
         npc.Plan.TargetTile = command.TargetTile;
         npc.Plan.TargetItemDefinitionId = seed.DefinitionId;
-        npc.Plan.TargetObjectId = null;
+        npc.Plan.TargetObjectId = plantingSite;
         npc.Plan.Steps.Add(new PlanStep
         {
             Type = PlanStepType.MoveToJunction,
@@ -2898,6 +2898,20 @@ internal static class ManualCommandExecutor
         {
             Reject(world, npc.Id, verb, ConstructionAccess.ForeignReason, admission);
             return false;
+        }
+
+        if (interactionType == InteractionType.Build && BuildSiteMath.IsPlantingSite(worldObject))
+        {
+            var index = npc.Inventory.Items.FindIndex(i => i.DefinitionId == worldObject.BuildProduct);
+            if (index < 0 || worldObject.Junctions.Count == 0)
+            {
+                Reject(world, npc.Id, verb, "NoMaterials", admission);
+                return false;
+            }
+            ApplyPlantInventorySeed(world, new PlantInventorySeedCommand(npc.Id,
+                new InventoryItemRef(InventoryItemSource.Carried, index, worldObject.BuildProduct),
+                worldObject.Junctions[0], worldObject.Tile), admission, worldObject.Id);
+            return npc.Plan.Status == PlanStatus.Active && npc.Plan.TargetObjectId == worldObject.Id;
         }
 
         if (!world.Content.ObjectDefinitions.TryGetValue(worldObject.DefinitionId, out var definition))
@@ -3848,6 +3862,20 @@ internal static class ManualCommandExecutor
         if (StructurePlacement.CenterJunction(world, command.Tile) is not { } anchor)
         {
             RejectWorld("PlacementBlocked");
+            return;
+        }
+
+        if (PlantGrowthCatalog.TryGetBySeed(product, out _))
+        {
+            if (!PlantGrowthSystem.CanPlantAt(world, anchor, command.Tile))
+            {
+                RejectWorld("PlacementBlocked");
+                return;
+            }
+            var planting = Core.WorldObjectMutations.SpawnObject(world, ContentIds.BuildSite,
+                world.Junctions.Items[anchor].Fragment, command.Tile, anchor);
+            planting.BuildProduct = product;
+            planting.OwnerFaction = ConstructionAccess.Builder(world, admission.BuildFactions, command.Tile);
             return;
         }
 

@@ -170,7 +170,13 @@ namespace HexLive.UnityPresentation.Environment
             var groundY = _worldRenderer!.ObjectGroundTopY(site);
             var anchor = _worldRenderer.ObjectAnchorPosition(site);
             var demolition = FreeArchitectureRules.IsDemolitionSite(site);
-            foreach (var point in StakePoints(site, anchor, modules))
+            if (PlantGrowthCatalog.TryGetBySeed(site.BuildProduct, out _))
+            {
+                var mound = PlantingBlueprintMarker.Create();
+                mound.transform.SetParent(root.transform, false);
+                mound.transform.position = new Vector3(anchor.X, groundY, anchor.Y);
+            }
+            else foreach (var point in StakePoints(site, anchor, modules))
             {
                 AddStake(root.transform, new Vector3(point.X, groundY, point.Y), demolition);
             }

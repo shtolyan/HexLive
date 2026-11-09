@@ -31644,6 +31644,54 @@ MonoBehaviour:
       - "Сосуд пуст."
       Flags: 0101
       Languages_Touch: []
+    - Term: blueprint.catalog.plant_palm.name
+      TermType: 0
+      Description: 
+      Languages:
+      - "Palm planting"
+      - "\u041f\u043e\u0441\u0430\u0434\u043a\u0430 \u043f\u0430\u043b\u044c\u043c\u044b"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: blueprint.catalog.plant_palm.description
+      TermType: 0
+      Description: 
+      Languages:
+      - "Mark a planting spot; a colonist brings one whole coconut and plants it."
+      - "\u041d\u0430\u043c\u0435\u0442\u044c\u0442\u0435 \u043c\u0435\u0441\u0442\u043e: \u0436\u0438\u0442\u0435\u043b\u044c \u043f\u0440\u0438\u043d\u0435\u0441\u0451\u0442 \u0446\u0435\u043b\u044b\u0439 \u043a\u043e\u043a\u043e\u0441 \u0438 \u043f\u043e\u0441\u0430\u0434\u0438\u0442 \u043f\u0430\u043b\u044c\u043c\u0443."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: blueprint.catalog.plant_yucca.name
+      TermType: 0
+      Description: 
+      Languages:
+      - "Yucca planting"
+      - "\u041f\u043e\u0441\u0430\u0434\u043a\u0430 \u044e\u043a\u043a\u0438"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: blueprint.catalog.plant_yucca.description
+      TermType: 0
+      Description: 
+      Languages:
+      - "Mark a planting spot; a colonist brings one yucca seed and plants it."
+      - "\u041d\u0430\u043c\u0435\u0442\u044c\u0442\u0435 \u043c\u0435\u0441\u0442\u043e: \u0436\u0438\u0442\u0435\u043b\u044c \u043f\u0440\u0438\u043d\u0435\u0441\u0451\u0442 \u043e\u0434\u043d\u043e \u0441\u0435\u043c\u044f \u044e\u043a\u043a\u0438 \u0438 \u043f\u043e\u0441\u0430\u0434\u0438\u0442 \u0435\u0433\u043e."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: blueprint.catalog.plant_herb.name
+      TermType: 0
+      Description: 
+      Languages:
+      - "Medicinal herb planting"
+      - "\u041f\u043e\u0441\u0430\u0434\u043a\u0430 \u043b\u0435\u0447\u0435\u0431\u043d\u043e\u0439 \u0442\u0440\u0430\u0432\u044b"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: blueprint.catalog.plant_herb.description
+      TermType: 0
+      Description: 
+      Languages:
+      - "Mark a planting spot; a colonist brings one herb seed and plants it."
+      - "\u041d\u0430\u043c\u0435\u0442\u044c\u0442\u0435 \u043c\u0435\u0441\u0442\u043e: \u0436\u0438\u0442\u0435\u043b\u044c \u043f\u0440\u0438\u043d\u0435\u0441\u0451\u0442 \u043e\u0434\u043d\u043e \u0441\u0435\u043c\u044f \u043b\u0435\u0447\u0435\u0431\u043d\u043e\u0439 \u0442\u0440\u0430\u0432\u044b \u0438 \u043f\u043e\u0441\u0430\u0434\u0438\u0442 \u0435\u0433\u043e."
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

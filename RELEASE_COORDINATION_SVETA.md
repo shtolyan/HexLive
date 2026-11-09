@@ -1,5 +1,64 @@
 # Singapore release coordination — Sveta
 
+## MSI — current-only content prepared, Singapore storage reclaimed, 2026-11-09
+
+Tolya requested removing object version archives, retaining current objects and
+recovering about 20 GB. The storage cleanup below is complete; the subsequent
+game-server update is prepared and verified, **not activated**. The previous
+dual-server deployment authorization is not reused for another binary rollout.
+
+- Removed only the unused `/var/lib/hexlive/assets` catalogue in Singapore:
+  7170 blobs / 22,641,757,048 payload bytes, 22,843,477,844 bytes with metadata.
+  It was used by neither running game nor staging; all blobs had one hardlink,
+  no running process referenced the root and no open file pointed inside it.
+  Game uses `assets-webgl`, staging `/var/lib/hexlive-staging/assets`.
+  Free bytes immediately before/after: 8,126,287,872 -> 31,045,988,352.
+  No service restart or world/account/save-backup changes. Deletion manifest:
+  `/var/lib/hexlive/ops/msi-single-version-assets-20261109/unused-native-catalogue-deletion-manifest.json`.
+- Server implementation source `053fb723be0a740e5f393e44a334c2426a636366`:
+  only current records/platform variants, no historical fallback or history
+  storage, `/history` 410, no admin history panel, GC for unreferenced payloads
+  and attachments. Technical cache/concurrency counters and SHA remain.
+  Migration preserves currently resolved platform metadata when it differs.
+  Successful CLI transport staging is also removed, without deleting authored
+  payloads; failed staging remains for diagnosis. Operator guide:
+  `Docs/CurrentOnlyContent.md`, spec §§152/154.
+- Checks passed: Server 520; Simulation 2065 / 6 existing skips; focused 34;
+  Python transport-cleanup tests 4. Exact isolated source checked before/after;
+  366 historical raw Git binaries now covered by LFS attributes cause fresh
+  index false positives, so their full Git blob hashes were verified rather
+  than changing/hiding them. Real LFS checkout completed, all 8209 payloads
+  present. No Unity Editor or competing art build used.
+- Self-contained Linux net9 server archive: 49,691,750 bytes, SHA256
+  `3847d5c23d1820cbbab611f0235f42e1995c49f1262c8e012f13ad61eae3dedf`.
+  Tests ran with the established process-only .NET10 roll-forward; production
+  package includes net9 runtime. Probe assemblies match the canonical package.
+- Both hosts have separate migrated candidate roots and a staged binary at
+  `/var/lib/hexlive/ops/msi-single-version-assets-20261109/candidate-server`.
+  Candidates: Singapore `assets-webgl.candidate-single-version-053fb723b`,
+  New York `assets.candidate-single-version-053fb723b` under `/var/lib/hexlive`.
+  All retained SHA/size checks and complete API metadata/payload parity passed.
+  Singapore: 263 objects unchanged, 1103 history records removed in the COPY,
+  758 unreachable blobs / 1,250,440,293 bytes removed from that copy.
+  New York: 2840 valid current records, 345 platform variants promoted into
+  183 current records, registry 6432 -> 6615; 6432 history records and
+  1766 unreachable blobs / 7,532,845,189 bytes removed from the COPY.
+  OSX 2739, Windows 1597 and WebGL 263 resolved objects match the old API;
+  existing platform gaps remain unchanged. Repeat migration previews are no-op.
+- Production still serves `0b6903f5c8ac6766d3e6af08ab8b860dbb72f313` with
+  Player `811056cca`, original processes Singapore 3022492 / New York 1841163,
+  running original worlds. Zero restarts during preparation. Active public
+  indexes unchanged; blob ownership/modes preserved even where owners differ
+  from their parent directory. Client protocol27/save87 unchanged, no Player
+  or bundle rebuild needed. Do not activate without exact server authorization.
+
+Next authorized rollout would switch server + verified content root with one
+`hexlive.service` stop/start per named host and a fresh stopped-state backup.
+Only after public parity/health succeeds may obsolete content-root snapshots be
+removed; otherwise their hardlinks keep obsolete bytes alive. After that purge,
+model rollback requires rebuilding from Git. World/account backups stay separate.
+Local evidence: `Build/MSIRelease/20261109-single-version-assets/`.
+
 ## MSI — Singapore and New York published, 2026-11-09 07:08Z
 
 Tolya explicitly requested updating **both Singapore and New York** in this

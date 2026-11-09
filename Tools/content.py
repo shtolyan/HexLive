@@ -496,7 +496,12 @@ def publish_local(candidate: dict, args: argparse.Namespace) -> int:
         ]
     if args.retain_current_variants:
         command.append("--retain-current-asset-variants")
-    return subprocess.run(command, cwd=REPO, check=False).returncode
+    result = subprocess.run(command, cwd=REPO, check=False)
+    if result.returncode == 0:
+        # The blobs are installed in the registry; staging must not become a
+        # second archive of every historical payload.
+        shutil.rmtree(stage)
+    return result.returncode
 
 
 def publish_remote(candidate: dict, args: argparse.Namespace) -> int:
@@ -525,7 +530,10 @@ def publish_remote(candidate: dict, args: argparse.Namespace) -> int:
     ]
     if args.retain_current_variants:
         command.append("--retain-current-asset-variants")
-    return subprocess.run(command, check=False).returncode
+    result = subprocess.run(command, check=False)
+    if result.returncode == 0:
+        run_checked(["ssh", args.host, "rm", "-rf", "--", remote_stage])
+    return result.returncode
 
 
 def publish_all_remote(candidates: list[dict], args: argparse.Namespace) -> int:

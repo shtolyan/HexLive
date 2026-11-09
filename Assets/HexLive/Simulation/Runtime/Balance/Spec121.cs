@@ -20,6 +20,10 @@ public static class Spec121
     // не применяются, все карв-ауты в боевых системах спят.
     public static bool ManualControlEnabled = true;
 
+    // §121.6 / #652: Hunger is depletion (0 = full). Only satiety <10%
+    // permits unrequested eating/processing of the player's carried food.
+    public const float ManualAutoEatHungerThreshold = 0.90f;
+
     // Сколько тиков держится резервация узла, взятая приказом. Ровно столько
     // же берёт планировщик под свои подходы — приказ не привилегированнее
     // обычного плана, он просто приходит от игрока.

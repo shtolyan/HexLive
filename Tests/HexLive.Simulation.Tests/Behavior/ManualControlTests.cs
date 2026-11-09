@@ -122,6 +122,30 @@ public sealed class ManualControlTests
             "Планировщик построил план ручной колонистке.");
     }
 
+    [TestCase(0.41f)]
+    [TestCase(0.90f)]
+    public void ManualNpcPreservesPiercedCoconutUntilSatietyBelowTenPercent(float hunger)
+    {
+        var engine = TestWorld.CreateEngine();
+        var npc = Colonist(engine.World);
+        TakeControl(engine, npc);
+        npc.Inventory.Items.Clear();
+        var coconut = new ItemInstance(ContentIds.CoconutPierced);
+        npc.Inventory.Items.Add(coconut);
+        npc.Inventory.Items.Add(new ItemInstance(GearCatalog.Axe));
+        // Direct decision passes keep the exact boundary stable: NeedsSystem
+        // would legitimately move 0.90 past it while waiting.
+        var decision = new DecisionSystem();
+        for (var i = 0; i < 8; i++)
+        {
+            npc.Needs.Hunger = hunger;
+            npc.Needs.Thirst = 0f;
+            decision.Run(engine.World);
+            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+        }
+        Assert.That(npc.Inventory.Items.Any(item => ReferenceEquals(item, coconut)), Is.True);
+    }
+
     [Test]
     public void HungryManualNpcAutoEatsButTakesNothingElse()
     {
@@ -327,7 +351,7 @@ public sealed class ManualControlTests
         var ate = false;
         for (var i = 0; i < MediumTicks * 12 && !ate; i++)
         {
-            HoldNeeds(npc, 0.9f, 0f);
+            HoldNeeds(npc, 0.95f, 0f);
             engine.Step();
             ate |= npc.Mind.CurrentGoal == GoalType.Eat;
         }

@@ -96,10 +96,11 @@ public sealed partial class DecisionSystem
 
     private static GoalType PickManualNeed(WorldState world, NPCState npc)
     {
-        // 3. Пороги — те же, что у ИИ. Доступность — СТРОГО инвентарная:
+        // 3. #652: сытость строго ниже 10%; питьё сохраняет свой порог.
+        //    Доступность — СТРОГО инвентарная:
         //    ⭐ ни `npc.Perception`, ни памяти о продюсерах, ни водосборников.
         //    Это и есть весь слайс: голод не даёт ручной права уйти с места.
-        var hungry = npc.Needs.Hunger >= SimBalance.GetFoodHungerThreshold;
+        var hungry = npc.Needs.Hunger > Spec121.ManualAutoEatHungerThreshold;
         var thirsty = npc.Needs.Thirst >= AiBalance.DrinkThirstThreshold;
         if (!hungry && !thirsty)
         {

@@ -206,7 +206,28 @@ public static class CraftingOptions
         var scan = new GroundScan(world, npc);
         foreach (var pair in recipes)
         {
+            var fitted = GarmentLibrary.FitDefinitionId(npc.Sex, pair.Key);
+            if (fitted != null && fitted != pair.Key &&
+                RecipeCatalog.ByOutput.TryGetValue(fitted, out var fittedRecipe) &&
+                SameCraftBill(pair.Value, fittedRecipe))
+                continue;
             into.Add(Resolve(world, npc, pair.Value, scan));
+        }
+        return true;
+    }
+
+    private static bool SameCraftBill(Recipe first, Recipe second)
+    {
+        if (first.Goal != second.Goal || first.Station != second.Station ||
+            first.NeedsLitFire != second.NeedsLitFire || first.BaseWorkTicks != second.BaseWorkTicks ||
+            first.RequiresNoRack != second.RequiresNoRack || first.Inputs.Count != second.Inputs.Count)
+            return false;
+        foreach (var input in first.Inputs)
+        {
+            var found = false;
+            foreach (var other in second.Inputs)
+                if (input.Id == other.Id && input.Count == other.Count) { found = true; break; }
+            if (!found) return false;
         }
         return true;
     }

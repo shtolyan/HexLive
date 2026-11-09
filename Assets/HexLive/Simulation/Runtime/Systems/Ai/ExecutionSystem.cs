@@ -2210,25 +2210,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         var wetWorn = FindWettestWornItem(npc);
         if (wetWorn is not null && worldObject.Junctions.Count > 0)
         {
-            InventoryMath.RemoveReference(npc.WornItems, wetWorn);
-            EquipmentMath.Recalculate(world, npc);
-            var hung = WorldObjectMutations.SpawnObject(
-                world, wetWorn.DefinitionId, npc.Fragment,
-                worldObject.Tile, worldObject.Junctions[0]);
-            // §66: the rack stands at a yaw, and its hanger slots turn
-            // with it — a garment hung on it must take the same yaw or
-            // it floats beside the rails instead of on them.
-            hung.RotationDegrees = worldObject.RotationDegrees;
-            hung.Wetness = wetWorn.Wetness;
-            hung.Durability = wetWorn.Durability;
-            hung.Dirtiness = wetWorn.Dirtiness;
-            hung.Bloodiness = wetWorn.Bloodiness;
-            // §133: своя одежда на сушилке/в гардеробе остаётся своей —
-            // сушится не «общественная», а конкретно её вещь.
-            hung.Owner = wetWorn.OwnerId != 0
-                ? new EntityId(wetWorn.OwnerId)
-                : npc.Id;
-            OutfitMaintenanceMath.TrackGroundPiece(world, npc, wetWorn, hung);
+            var hung = StowWornGarmentWithContents(world, npc, wetWorn, worldObject.Id);
+            if (hung is null) return false;
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "ItemHung",

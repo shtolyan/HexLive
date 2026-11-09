@@ -397,6 +397,26 @@ public sealed partial class ExecutionSystem
         return hung;
     }
 
+    // Commit the worn garment and its exact derived pocket cells together.
+    // Until placement succeeds both stores remain authoritative and save-safe.
+    internal static WorldObjectState StowWornGarmentWithContents(
+        WorldState world, NPCState npc, ItemInstance garment, ObjectId? station)
+    {
+        var wornIndex = InventoryMath.IndexOfReference(npc.WornItems, garment);
+        if (!InventoryLayoutBuilder.TryCollectOwnedContents(world, npc, wornIndex, out var pockets))
+            return null;
+        var laid = StowGarmentWithContents(world, npc, garment, station);
+        if (laid is null) return null;
+        InventoryMath.RemoveReference(npc.WornItems, garment);
+        foreach (var pocket in pockets)
+        {
+            if (!InventoryMath.RemoveReference(npc.Inventory.Items, pocket)) continue;
+            laid.Contents.Add(pocket);
+        }
+        EquipmentMath.Recalculate(world, npc);
+        return laid;
+    }
+
     private static readonly System.Collections.Generic.List<ItemInstance> _garmentSpillScratch = new();
 
     private static readonly System.Collections.Generic.List<ItemInstance> _dressPourScratch = new();
@@ -577,9 +597,8 @@ public sealed partial class ExecutionSystem
 
         if (npc.Execution.Status == ExecutionStatus.InProgress)
         {
-            // §Wardrobe-anim beat 1 -> 2: at the handoff the piece comes OFF the
-            // body and INTO the hand — warmth/armor drop here — but it isn't laid
-            // on the floor until the gather beat finishes (see below).
+            // The hand prop changes at the animation handoff. Physical worn
+            // ownership and pockets commit only after successful placement.
             var total = npc.Execution.EndTick - npc.Execution.StartTick;
             var elapsed = world.Tick - npc.Execution.StartTick;
             var progress = total > 0 ? (float)elapsed / total : 1f;
@@ -589,8 +608,8 @@ public sealed partial class ExecutionSystem
             {
                 var doffed = npc.WornItems.Find(i => i.DefinitionId == itemId) ??
                     new ItemInstance(itemId);
-                InventoryMath.RemoveReference(npc.WornItems, doffed);
-                EquipmentMath.Recalculate(world, npc);
+                // Visual handoff only, as in PlayerInventory. Capacity and all
+                // physical instances stay owned until the final atomic stow.
                 npc.Execution.HeldGarment = doffed;
                 if (SimTrace.Enabled)
                 {
@@ -610,23 +629,19 @@ public sealed partial class ExecutionSystem
             var wornItem = npc.Execution.HeldGarment ??
                 npc.WornItems.Find(i => i.DefinitionId == itemId) ??
                 new ItemInstance(itemId);
-            InventoryMath.RemoveReference(npc.WornItems, wornItem);
-            npc.Execution.HeldGarment = null;
-            EquipmentMath.Recalculate(world, npc);
-            // Spec §52: the garment carries down whatever pocket items no longer
-            // fit — they wait inside it on the ground, retrievable later.
+            // Spec §52: the exact pocket instances ride inside the garment.
             // §133: дошла до гардероба/сушилки — вещь вешается туда, а не
             // остаётся лежать под ногами.
-            var laid = StowGarmentWithContents(world, npc, wornItem, step.TargetObject);
+            var laid = StowWornGarmentWithContents(world, npc, wornItem, step.TargetObject);
             if (laid is null)
             {
-                InventoryMath.RetainOwnedItem(npc, wornItem);
                 PlanningSystem.SetGoalCooldown(world, npc, GoalType.Undress);
                 PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Undress: no garment placement");
                 npc.Mind.CurrentGoal = GoalType.None;
                 return;
             }
 
+            npc.Execution.HeldGarment = null;
             npc.Execution.Status = ExecutionStatus.None;
             npc.Execution.CurrentInteraction = null;
             npc.Execution.StartTick = 0;

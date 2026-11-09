@@ -714,7 +714,6 @@ public sealed partial class ExecutionSystem
             // props. Keep the authoritative item worn until the doff beat is
             // complete; a save/interrupt before that point therefore resumes
             // with the item still owned, never in a non-serialized limbo.
-            InventoryMath.RemoveReference(npc.WornItems, garment);
             // §133: если раздевается у гардероба/сушилки — вещь вешается на неё,
             // а не падает под ноги. Станция переполнилась (вторая купальщица
             // успела раньше) — тогда честная куча на полу, это всё равно дома.
@@ -729,7 +728,7 @@ public sealed partial class ExecutionSystem
                 stowTarget = StowMath.StationBesideNpc(world, npc);
             }
 
-            var doffed = StowGarmentWithContents(world, npc, garment, stowTarget);
+            var doffed = StowWornGarmentWithContents(world, npc, garment, stowTarget);
             if (doffed is null)
             {
                 // Keep the exact item and personal-care transaction. Retrying

@@ -322,9 +322,9 @@ public static class PlanInterruption
                 restoredLaundry = true;
             }
 
-            var stillOwned = restoredLaundry || npc.Mind.CurrentGoal == GoalType.PlayerInventory &&
-                (npc.Inventory.Items.Exists(item => ReferenceEquals(item, held)) ||
-                 npc.WornItems.Exists(item => ReferenceEquals(item, held)));
+            var stillOwned = restoredLaundry ||
+                npc.Inventory.Items.Exists(item => ReferenceEquals(item, held)) ||
+                npc.WornItems.Exists(item => ReferenceEquals(item, held));
             var dropped = stillOwned ? null : ExecutionSystem.DropOrRetain(world, npc, held);
             if (dropped != null && npc.Execution.HeldGarmentContents.Count > 0)
             {

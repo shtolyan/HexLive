@@ -31628,6 +31628,14 @@ MonoBehaviour:
       - "Выпить (пусто)"
       Flags: 0101
       Languages_Touch: []
+    - Term: toast.order_rejected.EmptyVessel
+      TermType: 0
+      Description:
+      Languages:
+      - "The vessel is empty."
+      - "Сосуд пуст."
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

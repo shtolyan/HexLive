@@ -101,6 +101,7 @@ public static class AtomicContentBatchBuild
             if (def == null) throw new InvalidOperationException("Missing people garment: " + id);
             result.DisplayName = def.displayName; result.ArtId = def.ArtId;
             result.Category = def.category.ToString(); result.IsWear = true;
+            result.State = def.retired ? "retired" : "active";
             result.Layer = def.layer.ToString(); result.Covers = def.covers.Select(p => p.ToString()).ToArray();
             result.Slots = meta["slots"].Values<string>().ToArray();
             result.Warmth = def.warmth; result.Armor = def.armor; result.ThermalDelta = def.thermalDelta;
@@ -159,6 +160,7 @@ public static class AtomicContentBatchBuild
     private sealed class BuildInputs
     {
         public string Main = string.Empty;
+        public string State = "active";
         public string Metadata = string.Empty;
         public string Icon;
         public string DisplayName = string.Empty;
@@ -1314,6 +1316,7 @@ public static class AtomicContentBatchBuild
         {
             Main = prefabs[0],
             Metadata = definitionPath,
+            State = definition.retired ? "retired" : "active",
             Icon = icon,
             DisplayName = string.IsNullOrEmpty(definition.displayName) ? id : definition.displayName,
             ArtId = definition.ArtId,
@@ -1596,7 +1599,7 @@ public static class AtomicContentBatchBuild
         text.Append("{\n");
         text.Append("  \"type\": ").Append(Quote(type)).Append(",\n");
         text.Append("  \"id\": ").Append(Quote(id)).Append(",\n");
-        text.Append("  \"state\": \"active\",\n");
+        text.Append("  \"state\": ").Append(Quote(inputs.State)).Append(",\n");
         text.Append("  \"metadata\": {\n");
         text.Append("    \"displayName\": ").Append(Quote(inputs.DisplayName)).Append(",\n");
         text.Append("    \"hasIcon\": ").Append(string.IsNullOrEmpty(inputs.Icon) ? "false" : "true");

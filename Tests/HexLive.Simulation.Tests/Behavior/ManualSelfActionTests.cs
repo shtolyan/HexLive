@@ -151,6 +151,56 @@ public sealed class ManualSelfActionTests
             "план строит штатный планировщик (§121.6 inventory-only).");
     }
 
+    [TestCase(0f)]
+    [TestCase(.05f)]
+    [TestCase(.4f)]
+    [TestCase(.9f)]
+    public void ExplicitFoodOrderSurvivesDecisionBeforePlanningAndConsumesTheRealMeal(float hunger)
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonists(world)[0];
+        TakeControl(engine, npc);
+        npc.Inventory.Items.Clear();
+        var food = new ItemInstance("food.meat_cooked");
+        npc.Inventory.Items.Add(food);
+        npc.Needs.Hunger = hunger;
+        Assert.That(engine.ApplyManualCommand(new SelfActionCommand(npc.Id,
+            SelfActionKind.EatFromPack)).Accepted, Is.True);
+        Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.None));
+        new DecisionSystem().Run(world);
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.Eat),
+            "Decision runs before Planning: a not-yet-built explicit order is not completed.");
+        for (var i = 0; i < 100 && npc.Inventory.Items.Any(item => ReferenceEquals(item, food)); i++) engine.Step();
+        Assert.That(npc.Inventory.Items.Any(item => ReferenceEquals(item, food)), Is.False,
+            "The real carried meal must be consumed, including when initial hunger is zero.");
+        for (var i = 0; i < 8; i++) engine.Step();
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None),
+            "The completed explicit meal still retires normally.");
+    }
+
+    [Test]
+    public void ExplicitDrinkBelowAutoThresholdAlsoSurvivesDecisionAndUsesOneRealSip()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonists(world)[0];
+        TakeControl(engine, npc);
+        npc.Inventory.Items.Clear();
+        var bottle = new ItemInstance(ContentIds.Bottle) {WaterKind=WaterKind.Rain, ResourceAmount=2f};
+        npc.Inventory.Items.Add(bottle);
+        npc.Needs.Thirst = .05f;
+        Assert.That(engine.ApplyManualCommand(new SelfActionCommand(npc.Id,
+            SelfActionKind.DrinkFromPack)).Accepted, Is.True);
+        new DecisionSystem().Run(world);
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.Drink));
+        for (var i = 0; i < 100 && BottleInventoryMath.Charges(bottle) == 2; i++) engine.Step();
+        Assert.That(BottleInventoryMath.Charges(bottle), Is.EqualTo(1));
+        Assert.That(npc.Inventory.Items.Any(item => ReferenceEquals(item, bottle)), Is.True);
+        for (var i = 0; i < 8; i++) engine.Step();
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+    }
+
     [Test]
     public void EatFromPackWithEmptyPackIsRejected()
     {

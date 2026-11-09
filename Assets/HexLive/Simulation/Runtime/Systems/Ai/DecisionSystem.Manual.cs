@@ -45,8 +45,10 @@ public sealed partial class DecisionSystem
         // 1. Sweep завершённой авто-цели (зеркало ManualOrderSystem.
         //    SweepFinishedOrder): план доигран или сорвался — цель снимается,
         //    она стоит и ждёт (или следующего голода, или приказа).
+        //    None is a pending explicit EatFromPack/DrinkFromPack goal awaiting
+        //    the native planner, not a finished action (#652).
         if (NpcControlPolicy.IsManualInventoryNeed(npc.Mind.CurrentGoal) &&
-            npc.Plan.Status != PlanStatus.Active &&
+            npc.Plan.Status is PlanStatus.Completed or PlanStatus.Failed or PlanStatus.Invalid &&
             npc.Execution.Status != ExecutionStatus.InProgress)
         {
             var outcome = npc.Plan.Status == PlanStatus.Completed ? "Completed" : "Failed";

@@ -5,8 +5,8 @@ namespace HexLive.UnityPresentation.Environment
 {
     /// <summary>
     /// §35.5B: the drying rack's 8 invisible hanger slots — local offsets from
-    /// the identity furniture wrapper. Four garments drape over the top rail,
-    /// four over the lower one. DryingSlot_00…07 from the same native model
+    /// the identity furniture wrapper. Eight garments hang on the upper rail;
+    /// the lower rail braces the frame. DryingSlot_00…07 from the same native model
     /// own these positions; the renderer applies the rack's six-way yaw.
     /// </summary>
     public static class DryingRackHangers
@@ -30,14 +30,14 @@ namespace HexLive.UnityPresentation.Environment
         /// garment by its own half-height so it hangs from the rail top.
         public static readonly Vector3[] Slots =
         {
-            new(-0.33f, TopRailY, 0.10f),
-            new(-0.11f, TopRailY, 0.10f),
-            new(0.11f, TopRailY, 0.10f),
-            new(0.33f, TopRailY, 0.10f),
-            new(-0.33f, LowRailY, -0.08f),
-            new(-0.11f, LowRailY, -0.08f),
-            new(0.11f, LowRailY, -0.08f),
-            new(0.33f, LowRailY, -0.08f)
+            new(0.036f, 1.32f, 0.35f),
+            new(0.036f, 1.32f, 0.25f),
+            new(0.036f, 1.32f, 0.15f),
+            new(0.036f, 1.32f, 0.05f),
+            new(0.036f, 1.32f, -0.05f),
+            new(0.036f, 1.32f, -0.15f),
+            new(0.036f, 1.32f, -0.25f),
+            new(0.036f, 1.32f, -0.35f)
         };
 
         /// Slot for the i-th garment (ranked by object id) — wraps past 8 so an

@@ -5016,7 +5016,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 var hungScale = HexRadius * NpcHeightFactor * 2.4f / ActorSourceHeightMeters;
                 hung.transform.localScale = Vector3.one * hungScale;
                 _rackHangRank.TryGetValue(worldObject.Id.Value, out var slot);
-                var wardrobeSocket = HexLive.UnityPresentation.Environment.WardrobeHangers.Slot(slot);
+                var wardrobeSocket = inWardrobe
+                    ? HexLive.UnityPresentation.Environment.WardrobeHangers.Slot(slot)
+                    : HexLive.UnityPresentation.Environment.DryingRackHangers.Slot(slot);
                 if (footwearOnWardrobeShelf)
                 {
                     wardrobeSocket = HexLive.UnityPresentation.Environment.WardrobeHangers
@@ -5039,9 +5041,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 if (_rackYawByJunction.TryGetValue(
                         worldObject.Junctions[0], out var rackYaw))
                     hungRoot.transform.rotation = Quaternion.Euler(0f, rackYaw, 0f);
-                if (inWardrobe && !footwearOnWardrobeShelf)
+                if (!footwearOnWardrobeShelf)
                 {
-                    var hanger = HexLive.UnityPresentation.Environment.WardrobeHangerFactory.Build();
+                    var hanger = HexLive.UnityPresentation.Environment.WardrobeHangerFactory.Build(
+                        inWardrobe ? null : HexLive.UnityPresentation.Environment.WorldPropResources.Load(ContentIds.DryingRack));
                     if (hanger != null)
                     {
                         hanger.transform.SetParent(hungRoot.transform, false);
@@ -5171,40 +5174,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
         Vector3 wardrobeSocket)
     {
         // §133: authored wardrobe hanger centres.
-        if (inWardrobe)
+        // #628: the outdoor rack uses the same shoulder/hanger placement as
+        // the wardrobe; only its ground clearance differs from the shelf.
+        var wardrobeHalf = 0.15f;
+        var wardrobeRenderers = hung.GetComponentsInChildren<Renderer>();
+        if (wardrobeRenderers.Length > 0)
         {
-            var wardrobeHalf = 0.15f;
-            var wardrobeRenderers = hung.GetComponentsInChildren<Renderer>();
-            if (wardrobeRenderers.Length > 0)
-            {
-                var wardrobeBounds = wardrobeRenderers[0].bounds;
-                for (var i = 1; i < wardrobeRenderers.Length; i++)
-                    wardrobeBounds.Encapsulate(wardrobeRenderers[i].bounds);
-                wardrobeHalf = Mathf.Max(0.02f, wardrobeBounds.extents.y);
-            }
-            return new Vector3(wardrobeSocket.x,
-                Mathf.Max(0.18f + wardrobeHalf,
-                    wardrobeSocket.y - wardrobeHalf - WardrobeGarmentShoulderDrop),
-                wardrobeSocket.z);
+            var wardrobeBounds = wardrobeRenderers[0].bounds;
+            for (var i = 1; i < wardrobeRenderers.Length; i++)
+                wardrobeBounds.Encapsulate(wardrobeRenderers[i].bounds);
+            wardrobeHalf = Mathf.Max(0.02f, wardrobeBounds.extents.y);
         }
-
-        var attach = HexLive.UnityPresentation.Environment.DryingRackHangers.Slot(slot);
-        var half = 0.15f;
-        var renderers = hung.GetComponentsInChildren<Renderer>();
-        if (renderers.Length > 0)
-        {
-            var bounds = renderers[0].bounds;
-            for (var i = 1; i < renderers.Length; i++)
-            {
-                bounds.Encapsulate(renderers[i].bounds);
-            }
-
-            half = Mathf.Max(0.02f, bounds.extents.y);
-        }
-
-        var y = attach.y + HexLive.UnityPresentation.Environment.DryingRackHangers.DrapeOverlap - half;
-        y = Mathf.Max(y, HexLive.UnityPresentation.Environment.DryingRackHangers.GroundClearance + half);
-        return new Vector3(attach.x, y, attach.z);
+        return new Vector3(wardrobeSocket.x,
+            Mathf.Max((inWardrobe ? 0.18f : 0.04f) + wardrobeHalf,
+                wardrobeSocket.y - wardrobeHalf - WardrobeGarmentShoulderDrop),
+            wardrobeSocket.z);
     }
 
     // Spec 20.16: the campfire actually burns — flame particles + a warm,

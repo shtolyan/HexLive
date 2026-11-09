@@ -320,12 +320,12 @@
     },
     {
       "id": "station.drying_rack",
-      "requiredNodes": ["DryingSlot_00", "DryingSlot_01", "DryingSlot_02", "DryingSlot_03", "DryingSlot_04", "DryingSlot_05", "DryingSlot_06", "DryingSlot_07"],
+      "requiredNodes": ["DryingSlot_00", "DryingSlot_01", "DryingSlot_02", "DryingSlot_03", "DryingSlot_04", "DryingSlot_05", "DryingSlot_06", "DryingSlot_07", "HangerTemplate"],
       "source": "_ArtSource/Construction/hexlive_construction_stages.blend",
       "sourceRoot": "station.drying_rack",
       "export": "Assets/HexLiveContent/RuntimeSource/Objects/station.drying_rack.fbx",
       "exporter": "Tools/blender/export_construction_stage_workspace.py",
-      "notes": "Normalized +Y rail axis; two planted uprights with corner stays, two rails, four fitted lashings. All eight garment sockets export with the model.",
+      "notes": "#628: normalized +Y axis; two uprights, upper hanger rail at1.32wu, bottom brace at0.18wu, four lashings. Eight sockets at0.10wu pitch and the wardrobe hanger template. Same4sticks+4rope.",
       "stages": [
         {
           "index": 1,

@@ -23,14 +23,17 @@ svg = ['<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="490" viewBo
  '<rect width="1000" height="490" fill="#141c25"/><g font-family="Segoe UI, sans-serif" fill="#edf3f7">']
 def text(x,y,t,size=15):svg.append(f'<text x="{x}" y="{y}" font-size="{size}">{t}</text>')
 def circle(x,y,r,color):svg.append(f'<circle cx="{x:.3f}" cy="{y:.3f}" r="{r}" fill="{color}"/>')
-text(28,34,'Сушилка: восстановление авторских точек, без изменения модели',23)
-text(30,81,'До: FBX захватил невычисленные матрицы',15)
-circle(152,350,17,'#ee6c66');text(185,355,'8 × (0, 0, 0)')
-text(340,81,'После: 4 места на каждой перекладине',17)
+text(28,34,'#628: уличная вешалка, тот же бюджет 4 палки + 4 верёвки',21)
+text(30,81,'До: одежда на двух перекладинах',15)
+for i in range(8):
+ y=-.33+(i%4)*.22;z=1.14 if i<4 else .73
+ circle(140+y*200,350-z*190,6,'#ee6c66')
+text(30,388,'Высоты: 1,14 / 0,73 wu',14)
+text(340,81,'После: 8 плечиков на верхней перекладине',16)
 for i,(name,(x,y,z)) in enumerate(slots):
- px=476+y*280;py=350-z*190;color='#9fe870' if i<4 else '#68b9ff'
+ px=476+y*280;py=350-z*190;color='#9fe870'
  circle(px,py,7,color);text(px-9,py-14,name[-2:],12)
-text(340,388,'Высоты: 1,14 / 0,73 wu; шаг вдоль: 0,22 wu')
+text(340,388,f'Высота: {slots[0][1][2]:.2f} wu; шаг: {abs(slots[1][1][1]-slots[0][1][1]):.2f} wu')
 text(340,413,'Показаны линии слотов, не размеры досок.',13)
 text(714,81,'Контекст: гекс и 37 узлов r=3',16)
 cx,cy,scale=842,236,83

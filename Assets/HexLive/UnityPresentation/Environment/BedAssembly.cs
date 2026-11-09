@@ -392,7 +392,7 @@ namespace HexLive.UnityPresentation.Environment
             }
             if (product == ContentIds.BedBasic)
                 go.transform.localScale = new Vector3(BedWidthScale, 1f, BedLengthScale);
-            if (product == ContentIds.Wardrobe)
+            if (product == ContentIds.Wardrobe || product == ContentIds.DryingRack)
             {
                 // This is a clone source for occupied slots, not construction
                 // geometry. The finished WardrobeAssembly applies the same rule.

@@ -380,6 +380,7 @@ internal static class PopulationArrivalMath
     public static void AddToWorld(WorldState world, NPCState npc, JunctionId junction)
     {
         world.Entities.Npcs[npc.Id] = npc;
+        FactionRelations.SeedOutsiderRelationships(world, npc);
         if (world.CreationConfig?.Owns(npc) == true) world.PlayerControlledNpcs.Add(npc.Id.Value);
 
         if (!world.Occupancy.EntitiesInTile.TryGetValue(npc.Tile, out var occupied))

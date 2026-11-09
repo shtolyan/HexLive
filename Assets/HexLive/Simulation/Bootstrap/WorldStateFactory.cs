@@ -259,6 +259,8 @@ public sealed class WorldStateFactory
         // правда, и производные карты обязаны собраться с него, а не с того
         // промежуточного состояния, на котором их спросили впервые.
         WorldCreation.Apply(world, bootstrap.CreationConfig);
+        foreach (var npc in world.Entities.Npcs.Values)
+            FactionRelations.SeedOutsiderRelationships(world, npc);
         WorldTopology.InvalidateAll(world);
         return world;
     }

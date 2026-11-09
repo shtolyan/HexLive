@@ -16,6 +16,27 @@ namespace HexLive.Simulation.Runtime
 // start neutral there, while personal hate can make one direction hostile.
 public static class FactionRelations
 {
+    /// <summary>§72 / #654: a first encounter with a raider starts at -50,
+    /// not the UI's neutral midpoint. Existing relationships remain earned.</summary>
+    internal static void SeedOutsiderRelationships(WorldState world, NPCState newcomer)
+    {
+        foreach (var other in world.Entities.Npcs.Values)
+        {
+            if (other.Id.Equals(newcomer.Id) ||
+                newcomer.Faction == other.Faction ||
+                (newcomer.Faction != Faction.Outsiders && other.Faction != Faction.Outsiders))
+                continue;
+            Seed(newcomer, other);
+            Seed(other, newcomer);
+        }
+
+        static void Seed(NPCState from, NPCState to)
+        {
+            if (!from.Social.Relationships.ContainsKey(to.Id))
+                from.Social.GetOrCreate(to.Id).Affinity = CampDiplomacyMath.HatredAffinityThreshold;
+        }
+    }
+
     public static bool AreAllies(Faction a, Faction b)
     {
         // Kill-switch: with §72 off the island is one big family again, so every

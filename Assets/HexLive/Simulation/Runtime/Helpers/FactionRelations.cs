@@ -37,6 +37,26 @@ public static class FactionRelations
         }
     }
 
+    // #654: a fully untouched legacy zero record is a default sentinel.
+    // A contact timestamp or any earned relationship field preserves history.
+    internal static void MigrateUntouchedOutsiderRelationships(WorldState world)
+    {
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            SeedOutsiderRelationships(world, npc);
+            foreach (var pair in npc.Social.Relationships)
+            {
+                if (!world.Entities.Npcs.TryGetValue(pair.Key, out var other) ||
+                    npc.Faction == other.Faction ||
+                    (npc.Faction != Faction.Outsiders && other.Faction != Faction.Outsiders)) continue;
+                var rel = pair.Value;
+                if (rel.Affinity == 0f && rel.Trust == 0f && rel.Familiarity == 0f &&
+                    rel.Authority == 0f && rel.LastInteractionTick == 0 && !rel.IsLover)
+                    rel.Affinity = CampDiplomacyMath.HatredAffinityThreshold;
+            }
+        }
+    }
+
     public static bool AreAllies(Faction a, Faction b)
     {
         // Kill-switch: with §72 off the island is one big family again, so every

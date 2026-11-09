@@ -776,6 +776,8 @@ public static class WorldSaveSerializer
             world.Entities.Npcs[npc.Id] = npc;
         }
 
+        Runtime.FactionRelations.MigrateUntouchedOutsiderRelationships(world);
+
         // §28.15C v3: тела. У сейва до v20 список пуст — там мёртвых не было как
         // сущностей вовсе, они истлевали в объект и исчезали.
         world.Entities.Corpses.Clear();

@@ -49,7 +49,7 @@ public sealed class RaidWaveSystem : ISimulationSystem
 
         // §157.7: в «Островах» стоянки чужаков нет — по одному с моря на
         // каждый остров, и только пока предыдущий мёртв.
-        if (world.Mode == Bootstrap.GameMode.Islands)
+        if (world.Mode == Bootstrap.GameMode.Islands || world.CreationConfig?.PlayersOnly == true)
         {
             RunIslands(world);
             return;
@@ -136,7 +136,15 @@ public sealed class RaidWaveSystem : ISimulationSystem
         foreach (var faction in _islandScratch)
         {
             var home = world.FactionHomes[faction];
-            world.IslandOutsiderWavesByFaction.TryGetValue(faction, out var processed);
+            var hasCursor = world.IslandOutsiderWavesByFaction.TryGetValue(faction, out var processed);
+            if (!hasCursor && world.Mode != Bootstrap.GameMode.Islands &&
+                world.CreationConfig?.PlayersOnly == true)
+            {
+                // The legacy shared camp cursor is already consumed history.
+                // A late migration gets only the current due wave, never hundreds
+                // of old arrivals or a day-three enemy on day three hundred.
+                processed = System.Math.Max(world.RaidWavesSpawned, wavesDue - 1);
+            }
             while (processed < wavesDue)
             {
                 var wave = processed + 1;
@@ -202,12 +210,14 @@ public sealed class RaidWaveSystem : ISimulationSystem
             return true;
         }
 
-        if (!PopulationArrivalMath.TryPickShoreLanding(
+        PopulationArrivalMath.Landing landing;
+        var landed = world.Mode == Bootstrap.GameMode.Islands
+            ? PopulationArrivalMath.TryPickShoreLanding(
                 world, home, IslandShoreMinDistanceTiles, IslandShoreMaxDistanceTiles,
-                sequence: wave * 10 + (int)island, salt: 15801, out var landing))
-        {
-            return false;
-        }
+                sequence: wave * 10 + (int)island, salt: 15801, out landing)
+            : PopulationArrivalMath.TryPickCampApproach(
+                world, home, wave * 10 + (int)island, out landing);
+        if (!landed) return false;
 
         BuildRaider(world, id, wave, lootSequence: wave * 10 + (int)island, landing);
         if (SimTrace.Enabled)

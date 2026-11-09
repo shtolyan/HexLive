@@ -5,6 +5,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Spatial;
 using HexLive.Simulation.Wildlife;
+using HexLive.Simulation.Navigation;
 
 namespace HexLive.Simulation.Runtime
 {
@@ -305,6 +306,51 @@ internal static class PopulationArrivalMath
         var pool = candidates.FindAll(candidate => candidate.distance <= nearest + ShoreBandTiles);
         var pick = (int)(MathUtil.Hash01(world.Seed, sequence, pool.Count, salt) * pool.Count);
         landing = pool[System.Math.Min(pool.Count - 1, pick)].landing;
+        return true;
+    }
+
+    // #629: a shared landmass needs an approach to the inhabited camp,
+    // not a spawn at the unrelated, remote Outsiders settlement.
+    internal static bool TryPickCampApproach(
+        WorldState world, TileCoord home, int sequence, out Landing landing)
+    {
+        var points = new List<Junction>();
+        var minimum = Spec72.MaxCampRadiusTiles;
+        LocalSearch.CollectWithinTiles(world, home, minimum + 2, points);
+        var unsafeTiles = UnsafeHumanLandingTiles(world);
+        var candidates = new List<Landing>();
+        foreach (var point in points)
+        {
+            if (point.Blocked || !SpatialQueries.IsJunctionFree(world, point.Id) ||
+                SpatialQueries.IsAllWaterJunction(world, point.Id)) continue;
+            foreach (var coord in point.Tiles)
+            {
+                var distance = HexSpatialMath.HexDistance(home, coord);
+                if (distance < minimum || distance > minimum + 2 || unsafeTiles.Contains(coord) ||
+                    !world.Tiles.Items.TryGetValue(coord, out var tile) ||
+                    !tile.Flags.HasFlag(TileFlags.Walkable) ||
+                    tile.Flags.HasFlag(TileFlags.Water) || tile.Flags.HasFlag(TileFlags.Blocked)) continue;
+                var closest = true;
+                foreach (var other in world.FactionHomes)
+                    if (FactionRelations.IsGirlCamp(other.Key) && !other.Value.Equals(home) &&
+                        HexSpatialMath.HexDistance(coord, other.Value) < distance)
+                    { closest = false; break; }
+                if (!closest) continue;
+                var canReachResidents = false;
+                foreach (var resident in world.Entities.Npcs.Values)
+                    if (world.FactionHomes.TryGetValue(resident.Faction, out var residentHome) &&
+                        residentHome.Equals(home) && resident.CurrentJunction is { } occupied &&
+                        Connectivity.Reachable(world, point.Id, occupied, true))
+                    { canReachResidents = true; break; }
+                if (!canReachResidents) continue;
+                candidates.Add(new Landing(coord, point.Id, point.Fragment, point.WorldPosition));
+                break;
+            }
+        }
+        if (candidates.Count == 0) { landing = default; return false; }
+        candidates.Sort((a,b) => a.Junction.Value.CompareTo(b.Junction.Value));
+        var pick = (int)(MathUtil.Hash01(world.Seed, sequence, 629, 15801) * candidates.Count);
+        landing = candidates[System.Math.Min(candidates.Count-1, pick)];
         return true;
     }
 

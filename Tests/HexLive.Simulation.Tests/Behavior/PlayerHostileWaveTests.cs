@@ -137,6 +137,41 @@ public sealed class PlayerHostileWaveTests
         Assert.That(world.Entities.Npcs.ContainsKey(RaidWaveSystem.IslandRaiderId(Faction.Colony, 2)), Is.False);
     }
 
+    [Test]
+    public void HugePlayerWorldSpawnsNearItsInhabitedCampAndConsumesMissedBoundaries()
+    {
+        var engine = TestWorld.CreateEngine(); engine.Step();
+        var world = engine.World;
+        world.Mode = GameMode.HugeIsland;
+        world.CreationConfig = WorldCreation.Defaults(world);
+        world.CreationConfig.PlayersOnly = true;
+        foreach (var npc in world.Entities.Npcs.Values.Where(n => n.Faction == Faction.Outsiders).ToArray())
+            world.Entities.Npcs.Remove(npc.Id);
+        world.Mobs.Clear(); world.MobSpawnSlots.Clear();
+        world.Tick = 377 * EnvironmentSystem.DayLengthTicks;
+        world.RaidWavesSpawned = 1;
+        var due = EnvironmentSystem.CalendarDay(world.Tick) / 3;
+        var system = new RaidWaveSystem(); system.Run(world);
+        var id = RaidWaveSystem.IslandRaiderId(Faction.Colony, due);
+        Assert.That(world.Entities.Npcs.ContainsKey(id), Is.True);
+        var arrived = world.Entities.Npcs[id];
+        Assert.That(HexSpatialMath.HexDistance(arrived.Tile, world.FactionHomes[Faction.Colony]),
+            Is.InRange(Spec72.MaxCampRadiusTiles, Spec72.MaxCampRadiusTiles + 2));
+        Assert.That(arrived.Traits.Has(TraitKind.Abuser), Is.True);
+        Assert.That(arrived.Inventory.Items.Any(i => i.DefinitionId == RaidWaveSystem.WeaponForWave(due)), Is.True);
+        system.Run(world);
+        Assert.That(world.Entities.Npcs.Values.Count(n => n.Faction == Faction.Outsiders), Is.EqualTo(1));
+        world.Tick += 3 * EnvironmentSystem.DayLengthTicks;
+        system.Run(world);
+        world.Entities.Npcs.Remove(id);
+        system.Run(world);
+        Assert.That(world.Entities.Npcs.Values.Any(n => n.Faction == Faction.Outsiders), Is.False,
+            "A skipped full-camp boundary must not become a replacement queue.");
+        world.Tick += 3 * EnvironmentSystem.DayLengthTicks;
+        system.Run(world);
+        Assert.That(world.Entities.Npcs.ContainsKey(RaidWaveSystem.IslandRaiderId(Faction.Colony, due + 2)), Is.True);
+    }
+
     [TestCase(GarmentSex.Female)]
     [TestCase(GarmentSex.Male)]
     public void RaidKitUsesOnlyPublishedPrimalFitsOwnedByTheRaider(GarmentSex sex)

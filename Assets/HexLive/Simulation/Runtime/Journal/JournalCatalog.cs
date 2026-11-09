@@ -232,6 +232,14 @@ public static class JournalCatalog
         r["Mourned"] = new JournalRule(76, JournalRole.FirstNpc);
         r["Butchered"] = new JournalRule(56, extra: JournalExtra.LeadingWord);
 
+        // #643: a knock is a small social event; a break-in is a major
+        // threat remembered especially by the resident behind that door.
+        r["DoorKnocked"] = new JournalRule(24);
+        r["DoorOpenedForGuest"] = new JournalRule(38, JournalRole.Token, "Target=", mirrorWeight: 46);
+        r["DoorRefusedGuest"] = new JournalRule(32, JournalRole.Token, "Target=", mirrorWeight: 48);
+        r["DoorBreakInStarted"] = new JournalRule(74, JournalRole.Token, "Target=", mirrorWeight: 88);
+        r["DoorBroken"] = new JournalRule(78, JournalRole.Token, "Target=", mirrorWeight: 92);
+
         // ── социальное ──────────────────────────────────────────────────────
         r["RomanceCompleted"] = new JournalRule(
             88, JournalRole.FirstNpc, mirrorWeight: 88);

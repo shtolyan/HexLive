@@ -73,9 +73,16 @@ public static class DoorInteractionMath
         if(accept) Trace.Emit(world,owner.Id,"DoorOpenedForGuest",$"Target=NPC{visitor.Id.Value} Door={door.Id.Value}");
         else Trace.Emit(world,owner.Id,"DoorRefusedGuest",$"Target=NPC{visitor.Id.Value} Door={door.Id.Value}");
     }
+    // The journal needs a real person, never an object id guessed as an NPC.
+    // In an empty house there is no mirror author.
+    internal static string ResidentJournalTarget(WorldState world,NPCState visitor,WorldObjectState door)
+    {
+        var resident=Residents(world,door,visitor).FirstOrDefault();
+        return resident==null?string.Empty:$" Target=NPC{resident.Id.Value}";
+    }
     internal static void BreakAttempt(WorldState world,NPCState visitor,WorldObjectState door)
     {
-        Trace.Emit(world,visitor.Id,"DoorBreakInStarted",$"Door={door.Id.Value}");
+        Trace.Emit(world,visitor.Id,"DoorBreakInStarted",$"Door={door.Id.Value}"+ResidentJournalTarget(world,visitor,door));
         var residents=Residents(world,door,visitor);
         foreach(var owner in residents)
         {

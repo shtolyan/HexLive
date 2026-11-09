@@ -51,7 +51,7 @@ public sealed partial class ExecutionSystem
         {
             door.Durability=0f;
             BuildingDoorRules.TryOpen(world,door.Id);
-            Trace.Emit(world,npc.Id,"DoorBroken",$"Door={door.Id.Value}");
+            Trace.Emit(world,npc.Id,"DoorBroken",$"Door={door.Id.Value}"+DoorInteractionMath.ResidentJournalTarget(world,npc,door));
         }
         else DoorInteractionMath.Knock(world,npc,door);
         CompleteDoorOrder(world,npc,door);

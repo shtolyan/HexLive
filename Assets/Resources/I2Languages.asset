@@ -31964,6 +31964,78 @@ MonoBehaviour:
       - 'Сломанный запор больше не держит дверь.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'journal.DoorKnocked.did.v0'
+      TermType: 0
+      Description:
+      Languages:
+      - 'I knocked on a door. Perhaps someone would let me in.'
+      - 'Я [[s:постучала|постучал]] в дверь. Может быть, меня впустят.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DoorOpenedForGuest.did.v0'
+      TermType: 0
+      Description:
+      Languages:
+      - 'I opened the door for {0}. A little trust makes the island less lonely.'
+      - 'Я [[s:открыла|открыл]] дверь для {0}. От капли доверия на острове не так одиноко.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DoorOpenedForGuest.got.v0'
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} opened the door for me. It felt good to be welcome.'
+      - '{0} [[0:открыла|открыл]] мне дверь. Хорошо, когда тебе рады.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DoorRefusedGuest.did.v0'
+      TermType: 0
+      Description:
+      Languages:
+      - 'I did not open the door for {0}. I was not ready to let them in.'
+      - 'Я не [[s:открыла|открыл]] дверь для {0}. Пока я не [[s:готова|готов]] впустить.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DoorRefusedGuest.got.v0'
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} would not let me in. The door stayed shut.'
+      - '{0} не [[0:впустила|впустил]] меня. Дверь так и осталась закрытой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DoorBreakInStarted.did.v0'
+      TermType: 0
+      Description:
+      Languages:
+      - 'I took an axe to a door. Even stopping now would not undo the fear I caused.'
+      - 'Я [[s:взялась|взялся]] рубить дверь топором. Даже если остановлюсь, чужой испуг уже не отменить.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DoorBreakInStarted.got.v0'
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} started chopping at our door. Every blow made me fear what would happen next.'
+      - '{0} [[0:начала|начал]] рубить нашу дверь. С каждым ударом страшнее думать, что будет дальше.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DoorBroken.did.v0'
+      TermType: 0
+      Description:
+      Languages:
+      - 'I chopped through the door. The broken latch will not keep anyone out now.'
+      - 'Я [[s:сломала|сломал]] дверь. Разбитый запор больше никого не остановит.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DoorBroken.got.v0'
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} broke our door. Home no longer felt safe.'
+      - '{0} [[0:сломала|сломал]] нашу дверь. Дома больше не кажется безопасно.'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

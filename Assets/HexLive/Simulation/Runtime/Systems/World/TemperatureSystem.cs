@@ -191,7 +191,10 @@ public sealed class TemperatureSystem : ISimulationSystem
                 // Tier B: a sleeping body takes the cold/heat HP hit at the same
                 // slowed factor — this is what lets her sleep THROUGH a cold
                 // night (re-arm) without it being a death sentence.
-                var thermalHpHit = SimBalance.ThermalHpHit * (sleeping ? Spec49.ThermalSleepFactor : 1f);
+                // #624: prolonged exposure to cold costs half the previous HP.
+                // Keep heatstroke and the existing sleeping protection independent.
+                var thermalHpHit = SimBalance.ThermalHpHit * (signed < 0f ? 0.5f : 1f) *
+                    (sleeping ? Spec49.ThermalSleepFactor : 1f);
                 foreach (var part in AllTemperatureParts)
                 {
                     // §82 r2: жара и холод не доламывают ВИТАЛЬНУЮ часть — тот

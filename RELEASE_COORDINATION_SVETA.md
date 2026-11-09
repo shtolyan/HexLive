@@ -1,5 +1,70 @@
 # Singapore release coordination — Sveta
 
+## MSI — current-only storage active on both servers, 2026-11-09 09:33Z
+
+The player explicitly selected **update both servers** for the prepared
+`0b6903f5c -> 053fb723b` rollout, verified catalogue switches and removal of
+obsolete content archives. Both targets are complete; this supersedes the
+pending authorization state of the preparation note below for this rollout.
+
+- Active server on each host:
+  `/opt/hexlive/releases/053fb723be0a740e5f393e44a334c2426a636366`.
+  Existing Player `msi-20261109-811056cca` unchanged; no Player/bundle rebuild.
+  Protocol27 and save87 unchanged. Exact self-contained package SHA256
+  `3847d5c23d1820cbbab611f0235f42e1995c49f1262c8e012f13ad61eae3dedf`.
+- One planned `hexlive.service` stop/start on each host, NRestarts0; no Caddy,
+  Flashback, staging or admin-agent restart. Singapore PID3022492 ->3246907,
+  New York1841163 ->1848217. Temporary clock startup overrides removed after
+  health; persistent service arguments/environment unchanged. Speed1/unpaused
+  preserved without game clock/order commands. Singapore staging PID855 retained.
+- Verified fresh private stopped backup on each host at
+  `/var/lib/hexlive/ops/msi-single-version-assets-20261109/activation-backup`:
+  all worlds, root state/accounts/keys, protected host configuration, service
+  arguments/drop-ins and applicable voice state. Directories0700/files0600.
+  Singapore kept both worlds; New York all six. No reset or character creation.
+  Stopped fixture executed no game ticks/LLM/voice; canonical codec roundtrip
+  and public protocol27 dictionaries match (Singapore843 / New York799).
+- Same active worlds/seeds/topology: Singapore
+  `a309de74171d470385412bfab01ffdab`,629209070,0x59DDDCBB; saved tick9275216,
+  resumed9275230. New York `a91b0fbf20314a04b7775de564ecd49c`,760064115,
+  0xEDF30A9D; saved12893316, resumed12893326. World metadata, simdata and
+  assignments unchanged; every stopped-checkpoint character ID retained in the
+  post-start frame, including corpses. No catalogue Apply or balance edits.
+- Live history endpoints return410 and active roots have no history directory.
+  Registry Singapore1103; New York6615. HTTPS verified all263 WebGL blobs plus
+  55 Player/bank/audio/bootstrap files per host and Brotli/WASM headers. All
+  previously resolved native OSX2739 / Windows1597 variants, metadata and
+  existing gaps remain identical; WebGL263 identical. No conversion of legacy
+  native-only wardrobe is claimed. Daemon environment retained Deepgram key;
+  both temporary60s provider grants succeeded and were discarded, without
+  audio submission or authenticated player-session creation. No fatal errors.
+- After public checks, removed ONLY the exact old asset-root pairs on each
+  host: `<active-root>.before-single-version-053fb723b` and
+  `<active-root>.before-msi-20261109-4c540c21f`. Before removal, verified no
+  running process/open file used those roots. All active blob bytes/metadata,
+  ownership/mode/mtime unchanged after unlinking old copies; no service restart.
+  Singapore retains263 current blobs, New York5649 (including attachments).
+  World/account checkpoints retained. Model rollback now requires a Git rebuild.
+- Additional obsolete archive/transport cleanup reclaimed allocated files:
+  Singapore5,005,410,304 bytes (~4.66GiB), New York7,868,686,336 (~7.33GiB).
+  Combined with the unused native catalogue cleanup (22,909,906,944 allocated
+  file bytes), this task reclaimed ~26.00GiB in Singapore and7.33GiB in New York.
+  Final09:39Z free space: Singapore32,654,438,400 (~30.41GiB),
+  New York127,700,205,568 (~118.93GiB). Temporary uploads0. Deletion manifests
+  record exact paths, inode/link accounting and preserved current payloads.
+- Separate population observation: New York had1 living NPC immediately before
+  this rollout and in the public09:30Z frame. Journal then records NPC1178
+  `StarvedToDeath` at tick12894624 and `NpcDied` at12894628. Final census0/0;
+  no reset/respawn was performed. The original IDs still exist as corpses.
+  This is a captured gameplay outcome, not a new AI fix or a claimed diagnosis.
+
+Source tests remain Server520, Simulation2065 /6 existing skips, focused34,
+transport4. No authenticated gameplay/physical microphone or human audio-quality
+acceptance was performed. Public Player receipt still describes the original
+client publication; the separate server activation/cleanup receipts are in the
+host-private ops directory above. Local aggregate:
+`Build/MSIRelease/20261109-single-version-assets/DEPLOYMENT_REPORT.json`.
+
 ## MSI — current-only content prepared, Singapore storage reclaimed, 2026-11-09
 
 Tolya requested removing object version archives, retaining current objects and

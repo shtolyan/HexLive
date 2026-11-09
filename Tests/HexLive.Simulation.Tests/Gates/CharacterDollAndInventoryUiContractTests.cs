@@ -187,22 +187,32 @@ public sealed class CharacterDollAndInventoryUiContractTests
     }
 
     [Test]
-    public void FillButtonMirrorsPerBottleProvenanceRule_Bug355()
+    public void FillButtonAndHtmlRouteTheSelectedPhysicalSlotToConsolidation_Bug635()
     {
         var source = RepoPaths.ReadText(Presentation("UI", "CharacterPanel.cs"));
-        var start = source.IndexOf("private static bool CanFillVessel(",
-            StringComparison.Ordinal);
-        var end = source.IndexOf("private void EnqueueFillVessel", start,
-            StringComparison.Ordinal);
-        Assert.That(start, Is.GreaterThanOrEqualTo(0));
-        Assert.That(end, Is.GreaterThan(start));
-        var predicate = source[start..end];
+        var html = RepoPaths.ReadText(Presentation("UI", "CharacterPanel.HtmlInventory.cs"));
+        var executor = RepoPaths.ReadText(Path.Combine(RepoPaths.Root,
+            "Assets", "HexLive", "Simulation", "Runtime", "Systems", "Ai", "ManualCommandExecutor.cs"));
+        var start = source.IndexOf("private void EnqueueFillVessel",StringComparison.Ordinal);
+        var end = source.IndexOf("private void BeginSelectedSeedPlacement",start,StringComparison.Ordinal);
+        Assert.That(start,Is.GreaterThanOrEqualTo(0));
+        Assert.That(end,Is.GreaterThan(start));
+        var enqueue = source[start..end];
 
+        // This gate guards UI wiring, not a string copy of the availability
+        // predicate. Capacity, self-source exclusion and mixed liquids are
+        // exercised through the actual command in VesselTransferTests.
         Assert.Multiple(() =>
         {
-            Assert.That(predicate, Does.Contain("water.TryGetValue(sourceIndex"));
-            Assert.That(predicate, Does.Contain("bottle.Amount <= 0f || bottle.Kind == WaterKind.Coconut"));
-            Assert.That(predicate, Does.Contain("state.ItemId == \"food.coconut_pierced\""));
+            Assert.That(source,Does.Contain("_invFillAction = InventoryActionButton(EnqueueFillVessel)"));
+            Assert.That(source,Does.Contain("CanFillVessel(id, worn, water, sourceIndex)"));
+            Assert.That(html,Does.Contain("CanFillVessel(id, worn, water, sourceIndex)"));
+            Assert.That(html,Does.Contain("case \"fill\": EnqueueFillVessel()"));
+            Assert.That(enqueue,Does.Contain("_invSelectedSourceIndex"));
+            Assert.That(enqueue,Does.Contain("new FillVesselCommand("));
+            Assert.That(enqueue,Does.Contain("InventoryItemSource.Carried, index, _invSelectedId"));
+            Assert.That(executor,Does.Contain("var selectedBottle = items[command.Item.Index]"));
+            Assert.That(executor,Does.Contain("VesselTransferMath.CanConsolidateBottle(npc, selectedBottle)"));
         });
     }
 

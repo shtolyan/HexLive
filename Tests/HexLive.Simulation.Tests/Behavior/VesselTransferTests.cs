@@ -644,6 +644,59 @@ public sealed class VesselTransferTests
         });
     }
 
+    [TestCase(1f, false, false)]
+    [TestCase(10f, true, false)]
+    [TestCase(1f, true, true)]
+    public void ConsolidationAdmissionUsesCapacityAndAnotherPhysicalSource(float targetAmount,bool withSource,bool accepted)
+    {
+        var world = TestWorld.CreateWorld(63501);
+        var npc = Girl(world);
+        npc.Mind.ManualControl = true;
+        npc.Inventory.Items.Clear();
+        var target = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(target,WaterKind.Raw,targetAmount);
+        npc.Inventory.Items.Add(target);
+        if(withSource)
+        {
+            var source = new ItemInstance(ContentIds.Bottle);
+            BottleInventoryMath.SetContents(source,WaterKind.Rain,2);
+            npc.Inventory.Items.Add(source);
+        }
+        Assert.That(VesselTransferMath.CanConsolidateBottle(npc,target),Is.EqualTo(accepted));
+        var result = ManualCommandExecutor.Apply(world,new FillVesselCommand(npc.Id,
+            new InventoryItemRef(InventoryItemSource.Carried,0,ContentIds.Bottle)));
+        Assert.That(result.Status,Is.EqualTo(accepted ? ManualCommandAdmissionStatus.Accepted : ManualCommandAdmissionStatus.Rejected));
+        if(!accepted) Assert.That(result.Reason,Is.EqualTo("NothingToPour"));
+        Assert.That(target.ResourceAmount,Is.EqualTo(targetAmount),"Admission never moves liquid.");
+    }
+
+    [Test]
+    public void ConsolidationCommandKeepsClickedSourceIndexWhenFirstBottleIsFull()
+    {
+        var world = TestWorld.CreateWorld(63502);
+        var npc = Girl(world);
+        npc.Mind.ManualControl = true;
+        npc.Inventory.Items.Clear();
+        var first = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(first,WaterKind.Raw,SimBalance.BottleCapacity);
+        var clicked = new ItemInstance(ContentIds.Bottle);
+        npc.Inventory.Items.AddRange(new[]{first,clicked});
+        var result = ManualCommandExecutor.Apply(world,new FillVesselCommand(npc.Id,
+            new InventoryItemRef(InventoryItemSource.Carried,1,ContentIds.Bottle)));
+        Assert.That(result.Status,Is.EqualTo(ManualCommandAdmissionStatus.Accepted),result.Reason);
+        var execution = new ExecutionSystem();
+        execution.Run(world);
+        Assert.That(npc.Execution.TargetInventoryItem,Is.SameAs(clicked));
+        Assert.That(npc.Execution.ActionSupply,Is.SameAs(first));
+        Assert.That(clicked.ResourceAmount,Is.Zero);
+        world.Tick = npc.Execution.EndTick;
+        execution.Run(world);
+        Assert.That(clicked.ResourceAmount,Is.EqualTo(SimBalance.BottleCapacity));
+        Assert.That(clicked.WaterKind,Is.EqualTo(WaterKind.Raw));
+        Assert.That(first.ResourceAmount,Is.Zero);
+        Assert.That(first.WaterKind,Is.EqualTo(WaterKind.None));
+    }
+
     [Test]
     public void ManualConsolidationPreservesMixedVesselAmountsAndRawRisk()
     {

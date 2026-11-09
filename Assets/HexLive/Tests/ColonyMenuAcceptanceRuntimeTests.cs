@@ -163,7 +163,8 @@ public sealed class ColonyMenuAcceptanceRuntimeTests
         public readonly SimulationEngine Engine;
         public WorldState World=>Engine.World;
         public readonly NPCState Helper,Target;
-        private readonly GameObject host,panelHost;
+        private readonly GameObject host,panelHost,uiHost;
+        private readonly PanelSettings panelSettings;
         private readonly SimulationInputAdapter adapter;
         private readonly ContextMenuPanel panel;
         private readonly int[] oldSelection=NpcSelection.SelectedIds.ToArray();
@@ -199,7 +200,18 @@ public sealed class ColonyMenuAcceptanceRuntimeTests
             var runner=host.AddComponent<SimulationRunnerBehaviour>(); runner.AutosaveEnabled=false; runner.AutosaveSuppressed=true; Set(runner,"_backend",new LocalEngineBackend(Engine,clock,settings));
             adapter=host.AddComponent<SimulationInputAdapter>(); adapter.SetRunner(runner);
             panelHost=new GameObject("detached production menu presenter"); panelHost.SetActive(false); panel=panelHost.AddComponent<ContextMenuPanel>();
-            foreach(var name in new[]{"_root","_items","_subCard","_subItems"}) Set(panel,name,new VisualElement());
+            // A detached VisualElement has no runtime dispatcher. Keep the
+            // presenter isolated but attach its real MakeItem rows to a real
+            // UIDocument panel, exactly as production delivers UITK events.
+            uiHost=new GameObject("isolated UITK event document");
+            var document=uiHost.AddComponent<UIDocument>();
+            var source=Resources.Load<PanelSettings>("HexLive/DebugPanelSettings");
+            Assert.That(source,Is.Not.Null);
+            panelSettings=Object.Instantiate(source); document.panelSettings=panelSettings;
+            var root=document.rootVisualElement;
+            Set(panel,"_root",root);
+            foreach(var name in new[]{"_items","_subCard","_subItems"})
+            {var element=new VisualElement();root.Add(element);Set(panel,name,element);}
             NpcSelection.Activate(Helper.Id.Value);
         }
         private void Fresh() { World.Tick++; Call(adapter,"RefreshControlSelection"); }
@@ -223,9 +235,14 @@ public sealed class ColonyMenuAcceptanceRuntimeTests
             }
             else
             {
-                var row=(VisualElement)Call(panel,"MakeItem",entry);
+                var root=(VisualElement)typeof(ContextMenuPanel).GetField("_root",Private).GetValue(panel);
+                var items=(VisualElement)typeof(ContextMenuPanel).GetField("_items",Private).GetValue(panel);
+                root.style.display=DisplayStyle.Flex; items.Clear();
+                var row=(VisualElement)Call(panel,"MakeItem",entry); items.Add(row);
+                Assert.That(row.panel,Is.Not.Null,"The actual runtime UITK dispatcher must own the row.");
                 Assert.That(row.Q<Label>().text,Is.EqualTo(entry.Label));
-                using(var press=MouseDownEvent.GetPooled(new Event{type=EventType.MouseDown,button=0})) row.SendEvent(press);
+                using(var press=MouseDownEvent.GetPooled(new Event{type=EventType.MouseDown,button=0}))
+                {press.target=row;row.SendEvent(press);}
             }
         }
         public List<ISimulationCommand> Drain()
@@ -235,6 +252,7 @@ public sealed class ColonyMenuAcceptanceRuntimeTests
         public void Dispose()
         {
             Object.DestroyImmediate(panelHost); Object.DestroyImmediate(host);
+            Object.DestroyImmediate(uiHost); Object.DestroyImmediate(panelSettings);
             foreach(var pair in statics)pair.Key.SetValue(null,pair.Value);
             NpcSelection.ReplaceMany(oldSelection,requestFrame:false); Loc.Current=language;
         }

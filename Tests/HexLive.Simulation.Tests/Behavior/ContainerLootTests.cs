@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.IO;
+using HexLive.Simulation.Persistence;
 using System.Linq;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Agents;
@@ -374,6 +376,90 @@ public sealed class ContainerLootTests
         Assert.That(cells.Count, Is.EqualTo(2));
     }
 
+    [TestCase("resource.yucca_seed")]
+    [TestCase("resource.stone")]
+    [TestCase("tool.bottle")]
+    [TestCase("food.meat_cooked")]
+    [TestCase("clothing.top_primal")]
+    public void ExplicitCampfireDisposalBurnsOneItemAsOneStickWithoutAutonomousWaste(string id)
+    {
+        var world = TestWorld.CreateWorld(620);
+        var npc = Colonist(world);
+        npc.Inventory.Items.Clear();
+        var fire = WorldObjectMutations.SpawnObject(world, ContentIds.Campfire,
+            npc.Fragment, npc.Tile, Junction(world,npc));
+        fire.ResourceAmount = 0f;
+        var item = new ItemInstance(id) { ResourceAmount = 4.2f, WaterKind = WaterKind.Rain };
+        npc.Inventory.Items.Add(item);
+        Assert.That(ContainerLootMath.FindCarriedCampfireFuel(world,npc), Is.Null,
+            "Autonomous fire tending must not select seeds, clothing, or useful items.");
+        Assert.That(ContainerLootMath.CanAccept(world,fire,new[]{item}),Is.True);
+        ContainerLootMath.GiveToContainer(world,fire,npc,new[]{item});
+        Assert.That(ContainerLootMath.HasQueuedCampfireFuel(world,fire),Is.True);
+        Assert.That(fire.ResourceAmount,Is.Zero,"Cold fire must still require ignition.");
+        var cells = new List<(string ItemId,int Count,int SourceIndex)>();
+        ContainerLootMath.BuildCells(world,fire,cells);
+        Assert.That(cells.Single().ItemId,Is.EqualTo(id));
+        Assert.That(BuildSiteMath.HangingMeat(fire,ContentIds.MeatCooked),Is.Zero);
+        ContainerLootMath.TakeFromContainer(world,fire,npc,new[]{item},new ObjectId[0]);
+        Assert.That(item.ResourceAmount,Is.EqualTo(4.2f),"Queued disposal is reversible until consumed.");
+        Assert.That(item.LeafDryingStartTick,Is.EqualTo(-1));
+        ContainerLootMath.GiveToContainer(world,fire,npc,new[]{item});
+        Assert.That(ContainerLootMath.TryConsumeCampfireFuel(world,fire,out var fuel),Is.True);
+        Assert.That(fuel,Is.EqualTo(ContainerLootMath.FuelTicksPerStick));
+        Assert.That(fire.Contents,Is.Empty);
+        Assert.That(npc.Inventory.Items,Is.Empty);
+    }
+
+    [TestCase(87)]
+    [TestCase(88)]
+    public void CampfireRoleSaveMigrationPreservesWaterLeafAgeAndReversibleContents(int version)
+    {
+        var world = TestWorld.CreateWorld(62088);
+        var npc = Colonist(world);
+        var fire = WorldObjectMutations.SpawnObject(world, ContentIds.Campfire,
+            npc.Fragment,npc.Tile,Junction(world,npc));
+        var bottle = new ItemInstance(ContentIds.Bottle) {
+            ResourceAmount = 4.2f, WaterKind = WaterKind.Rain, LastAddedWaterKind = WaterKind.Coconut,
+            LeafDryingStartTick = 17, OwnerId = npc.Id.Value, Wetness = .3f,
+            CampfireFuelRole = version >= 88 ? CampfireFuelRole.Discard : CampfireFuelRole.None };
+        var leaf = new ItemInstance(ContentIds.PalmLeaf) { LeafDryingStartTick = 123,
+            CampfireFuelRole = version >= 88 ? CampfireFuelRole.Discard : CampfireFuelRole.None };
+        var wood = new ItemInstance(ContentIds.Stick) {
+            ResourceAmount = version < 88 ? -151f : 0f,
+            CampfireFuelRole = version >= 88 ? CampfireFuelRole.Wood : CampfireFuelRole.None };
+        fire.Contents.AddRange(new[] { bottle,leaf,wood });
+        using var data = new MemoryStream();
+        using (var writer = new BinaryWriter(data,System.Text.Encoding.UTF8,true))
+            WorldSaveSerializer.WriteAtVersion(world,writer,version);
+        data.Position = 0;
+        var restored = TestWorld.CreateWorld(world.Seed);
+        using (var reader = new BinaryReader(data,System.Text.Encoding.UTF8,true)) WorldSaveSerializer.Read(restored,reader);
+        var restoredFire = restored.Entities.Objects[fire.Id];
+        var storedBottle = restoredFire.Contents.Single(item => item.DefinitionId == ContentIds.Bottle);
+        var storedLeaf = restoredFire.Contents.Single(item => item.DefinitionId == ContentIds.PalmLeaf);
+        var storedWood = restoredFire.Contents.Single(item => item.DefinitionId == ContentIds.Stick);
+        Assert.That(storedBottle.ResourceAmount,Is.EqualTo(4.2f));
+        Assert.That(storedBottle.WaterKind,Is.EqualTo(WaterKind.Rain));
+        Assert.That(storedBottle.LastAddedWaterKind,Is.EqualTo(WaterKind.Coconut));
+        Assert.That(storedBottle.LeafDryingStartTick,Is.EqualTo(17));
+        Assert.That(storedBottle.OwnerId,Is.EqualTo(npc.Id.Value));
+        Assert.That(storedBottle.Wetness,Is.EqualTo(.3f));
+        Assert.That(storedLeaf.LeafDryingStartTick,Is.EqualTo(123));
+        Assert.That(storedLeaf.ResourceAmount,Is.Zero);
+        Assert.That(storedWood.CampfireFuelRole,Is.EqualTo(CampfireFuelRole.Wood));
+        Assert.That(storedWood.ResourceAmount,Is.Zero);
+        Assert.That(storedBottle.CampfireFuelRole,Is.EqualTo(version >= 88 ? CampfireFuelRole.Discard : CampfireFuelRole.None));
+        if (version >= 88)
+        {
+            ContainerLootMath.TakeFromContainer(restored,restoredFire,Colonist(restored),new[]{storedBottle},new ObjectId[0]);
+            Assert.That(storedBottle.CampfireFuelRole,Is.EqualTo(CampfireFuelRole.None));
+            Assert.That(storedBottle.ResourceAmount,Is.EqualTo(4.2f));
+            Assert.That(storedBottle.LeafDryingStartTick,Is.EqualTo(17));
+            Assert.That(storedBottle.WaterKind,Is.EqualTo(WaterKind.Rain));
+        }
+    }
+
     [Test]
     public void BurningCampfireAutomaticallyFeedsNextBufferedWood()
     {
@@ -436,8 +522,8 @@ public sealed class ContainerLootTests
                            ContainerLootMath.CampfireSpitCells));
             Assert.That(ContainerLootMath.CanAccept(world, fire, new[] { rawMeat }), Is.True);
             Assert.That(ContainerLootMath.CanAccept(
-                    world, fire, new[] { new ItemInstance(ContentIds.MeatCooked) }), Is.False,
-                "Готовое мясо обратно на вертел не вешают.");
+                    world, fire, new[] { new ItemInstance(ContentIds.MeatCooked) }), Is.True,
+                "Готовое мясо принимается в очередь утилизации, не на вертел.");
         });
 
         ContainerLootMath.GiveToContainer(world, fire, npc, new[] { rawMeat });

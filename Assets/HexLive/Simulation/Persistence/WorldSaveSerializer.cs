@@ -185,7 +185,9 @@ public static class WorldSaveSerializer
     // v86 (§127.13): lover mark in every relationship record.
     // v87 (§175.2): one-time natural flint seeding for pre-flint islands.
     // The payload layout stays v86; the version records the completed migration.
-    public const int BlobVersion = 87;
+    // v88 (§151.4 / #620): explicit campfire fuel role appended to each item.
+    // Old negative wood markers migrate to Wood/0; water and leaf state stay independent.
+    public const int BlobVersion = 88;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -3237,13 +3239,17 @@ public static class WorldSaveSerializer
             w.Write(item.DefinitionId);
             w.Write(item.Wetness);
             w.Write(item.Durability);
-            w.Write(item.ResourceAmount);
+            if (version < 88 && item.CampfireFuelRole == CampfireFuelRole.Discard)
+                throw new InvalidDataException("Campfire disposal requires save version 88.");
+            w.Write(version < 88 && item.CampfireFuelRole == CampfireFuelRole.Wood
+                ? -151f : item.ResourceAmount);
             w.Write(item.Dirtiness);
             w.Write(item.Bloodiness);
             w.Write(item.OwnerId);
             if (version >= 68) w.Write((int)item.WaterKind);
             if (version >= 79) w.Write((int)item.LastAddedWaterKind);
             if (version >= 84) w.Write(item.LeafDryingStartTick);
+            if (version >= 88) w.Write((byte)item.CampfireFuelRole);
         }
     }
 
@@ -3264,6 +3270,17 @@ public static class WorldSaveSerializer
             item.WaterKind = version >= 68 ? (WaterKind)r.ReadInt32() : WaterKind.None;
             item.LastAddedWaterKind = version >= 79 ? (WaterKind)r.ReadInt32() : item.WaterKind;
             item.LeafDryingStartTick=version >= 84 ? r.ReadInt32() : -1;
+            if (version >= 88)
+            {
+                var role = r.ReadByte();
+                if (role > (byte)CampfireFuelRole.Discard) throw new InvalidDataException("Invalid campfire fuel role.");
+                item.CampfireFuelRole = (CampfireFuelRole)role;
+            }
+            else if (item.ResourceAmount == -151f)
+            {
+                item.CampfireFuelRole = CampfireFuelRole.Wood;
+                item.ResourceAmount = 0f;
+            }
             if (item.WaterKind == WaterKind.None && item.DefinitionId == ContentIds.Bottle)
             {
                 // Before v68 ResourceAmount on a bottle was not water; fresh

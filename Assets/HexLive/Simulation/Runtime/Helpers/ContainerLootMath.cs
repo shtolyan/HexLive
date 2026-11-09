@@ -36,10 +36,10 @@ internal static class ContainerLootMath
 
     public const float FuelTicksPerStick = 1200f;
 
-    // Wood and leaves do not otherwise use their
-    // ResourceAmount, so this persisted negative value is an unambiguous §151
-    // discriminator between queued fuel and the campfire's construction bill.
+    // Read compatibility for v66-v87 wood buffers. New entries use the explicit
+    // CampfireFuelRole and never overwrite amounts, age, or liquid metadata.
     private const float QueuedFuelMarker = -151f;
+    private static bool IsDiscard(ItemInstance item) => item.CampfireFuelRole == CampfireFuelRole.Discard;
 
     /// <summary>Из этого можно доставать и в это можно класть.</summary>
     public static bool IsLootable(WorldState world, WorldObjectState obj)
@@ -152,14 +152,15 @@ internal static class ContainerLootMath
     /// материал, но принадлежит вертелу: окно обыска показывает его ячейкой,
     /// откуда готовый кусок можно снять, а сырой — повесить.</summary>
     public static bool IsSpitMeat(ItemInstance item) =>
-        item is not null &&
+        item is not null && !IsDiscard(item) &&
         (HumanMeatCatalog.IsRaw(item.DefinitionId) ||
          HumanMeatCatalog.IsCooked(item.DefinitionId));
 
     public static bool IsQueuedCampfireFuel(
         WorldObjectState container, ItemInstance item) =>
         container?.DefinitionId == ContentIds.Campfire &&
-        item is not null && item.ResourceAmount == QueuedFuelMarker;
+        item is not null && (item.CampfireFuelRole != CampfireFuelRole.None ||
+            item.ResourceAmount == QueuedFuelMarker);
 
     private static bool IsFuel(WorldState world, ItemInstance item) =>
         LeafDryingMath.IsDry(world,item) ||
@@ -167,7 +168,7 @@ internal static class ContainerLootMath
         definition.HasTag(ObjectTags.Wood);
 
     private static float FuelTicks(ItemInstance item) =>
-        item.DefinitionId == ContentIds.PalmLeaf ? FuelTicksPerStick * .25f : item.DefinitionId == ContentIds.Log
+        IsDiscard(item) ? FuelTicksPerStick : item.DefinitionId == ContentIds.PalmLeaf ? FuelTicksPerStick * .25f : item.DefinitionId == ContentIds.Log
             ? FuelTicksPerStick * 4f
             : FuelTicksPerStick;
 
@@ -228,9 +229,8 @@ internal static class ContainerLootMath
         for (var i = 0; i < fire.Contents.Count; i++)
         {
             var item = fire.Contents[i];
-            if (!IsQueuedCampfireFuel(fire, item) || !IsFuel(world, item)) continue;
+            if (!IsQueuedCampfireFuel(fire, item)) continue;
             fire.Contents.RemoveAt(i);
-            item.ResourceAmount = 0f;
             fuelTicks = FuelTicks(item);
             return true;
         }
@@ -242,7 +242,7 @@ internal static class ContainerLootMath
     {
         foreach (var item in fire.Contents)
         {
-            if (IsQueuedCampfireFuel(fire, item) && IsFuel(world, item)) return true;
+            if (IsQueuedCampfireFuel(fire, item)) return true;
         }
 
         return false;
@@ -580,10 +580,7 @@ internal static class ContainerLootMath
                 continue;
             }
 
-            if (!IsFuel(world,item))
-            {
-                return false;
-            }
+            if (!world.Content.ObjectDefinitions.ContainsKey(item.DefinitionId)) return false;
 
             AddCell(fuelCells, item.DefinitionId, fuelCells.Count);
             if (fuelCells.Count > CampfireFuelCapacity) return false;
@@ -606,10 +603,10 @@ internal static class ContainerLootMath
             // Служебное число снимается вместе с вещью: у топлива это метка
             // очереди, у мяса — прогресс прожарки (§151.3). В кармане ни то,
             // ни другое смысла не имеет.
-            if (IsQueuedCampfireFuel(obj, item) || IsSpitMeat(item))
-            {
+            if (item.ResourceAmount == QueuedFuelMarker ||
+                item.CampfireFuelRole == CampfireFuelRole.None && IsSpitMeat(item))
                 item.ResourceAmount = 0f;
-            }
+            item.CampfireFuelRole = CampfireFuelRole.None;
 
             looter.Inventory.Items.Add(item);
         }
@@ -656,9 +653,8 @@ internal static class ContainerLootMath
                 // §151.3: дерево встаёт в очередь топлива (метка), сырой кусок
                 // — на вертел с нулевым прогрессом прожарки; дальше его крутит
                 // FireSystem ровно так же, как повешенный самой колонисткой.
-                item.ResourceAmount = HumanMeatCatalog.IsRaw(item.DefinitionId)
-                    ? 0f
-                    : QueuedFuelMarker;
+                if (HumanMeatCatalog.IsRaw(item.DefinitionId)) item.ResourceAmount = 0f;
+                else item.CampfireFuelRole = IsFuel(world,item) ? CampfireFuelRole.Wood : CampfireFuelRole.Discard;
                 obj.Contents.Add(item);
             }
             else

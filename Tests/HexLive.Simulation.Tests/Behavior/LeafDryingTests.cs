@@ -65,7 +65,7 @@ public sealed class LeafDryingTests
         npc.Inventory.Items.Add(fresh);
         Assert.That(ContainerLootMath.FindCarriedCampfireFuel(world,npc),Is.Null);
         var fire=new WorldObjectState { DefinitionId=ContentIds.Campfire };
-        Assert.That(ContainerLootMath.CanAccept(world,fire,new[]{fresh}),Is.False);
+        Assert.That(ContainerLootMath.CanAccept(world,fire,new[]{fresh}),Is.True, "Explicit disposal accepts green leaves; autonomous fuel selection still refuses them.");
         var total=0f;
         for(var i=0;i<4;i++)
         {

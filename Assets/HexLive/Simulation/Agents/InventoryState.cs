@@ -4,6 +4,13 @@ using HexLive.Simulation.Content;
 namespace HexLive.Simulation.Agents
 {
 
+public enum CampfireFuelRole : byte
+{
+    None,
+    Wood,
+    Discard
+}
+
 // Spec 35.5: items are instances with runtime state, not bare definition
 // ids. Equality is by DefinitionId on purpose: recipe code written against
 // the old string lists ("consume one firewood") keeps its exact semantics —
@@ -33,6 +40,10 @@ public sealed class ItemInstance : System.IEquatable<ItemInstance>
     // owns its amount: pickup/drop/loot can therefore preserve two bottles
     // with different contents instead of consulting an NPC-global sidecar.
     public float ResourceAmount { get; set; }
+
+    // Authoritative purpose while this instance is held in a campfire buffer.
+    // Kept separate from liquid amounts, leaf age and food processing state.
+    public CampfireFuelRole CampfireFuelRole { get; set; }
 
     // §52 / bug #355: provenance belongs to the same physical vessel as the
     // amount. None + 0 is the canonical empty state. Coconuts use Coconut;

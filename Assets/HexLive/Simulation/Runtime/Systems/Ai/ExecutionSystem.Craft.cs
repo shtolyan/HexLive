@@ -79,7 +79,7 @@ public sealed partial class ExecutionSystem
         for (var i = 0; i < fire.Contents.Count; i++)
         {
             var item = fire.Contents[i];
-            if (!HumanMeatCatalog.IsCooked(item.DefinitionId))
+            if (!HumanMeatCatalog.IsCooked(item.DefinitionId) || ContainerLootMath.IsQueuedCampfireFuel(fire,item))
             {
                 continue;
             }

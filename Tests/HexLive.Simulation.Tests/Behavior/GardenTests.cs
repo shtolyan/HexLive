@@ -50,6 +50,30 @@ public sealed class GardenTests
         Assert.That(world.Entities.Objects.Values.Any(o => o.DefinitionId == sproutId && o.Junctions.Contains(target)), Is.True);
     }
 
+    [TestCase(ExecutionStatus.Completed)]
+    [TestCase(ExecutionStatus.Failed)]
+    public void PlantingStartsAfterAnEarlierInteractionHasFinished(ExecutionStatus previous)
+    {
+        var world = InitializedWorld();
+        var npc = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.YuccaSeed));
+        npc.Needs.Stamina = 1f;
+        npc.Execution.Status = previous;
+        npc.Execution.CurrentInteraction = null;
+        npc.Mind.CurrentGoal = GoalType.TendGarden;
+        new PlanningSystem().Run(world);
+        Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Active));
+        var target = npc.Plan.TargetJunctionId.Value;
+        SpatialMutations.FreeJunction(world, npc.CurrentJunction.Value, npc.Id);
+        npc.CurrentJunction = target;
+        npc.Position = world.Junctions.Items[target].WorldPosition;
+        npc.Movement.IsMoving = false;
+        npc.Movement.SetStatus(MovementStatus.Arrived);
+        new ExecutionSystem().Run(world);
+        Assert.That(npc.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Plant));
+        Assert.That(npc.Execution.Status, Is.EqualTo(ExecutionStatus.InProgress));
+    }
+
     [Test]
     public void GrowingPlantsAndPendingClaimsPreventOverplanting()
     {

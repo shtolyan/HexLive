@@ -73,7 +73,11 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        if (npc.Execution.Status == ExecutionStatus.None)
+        // A completed/failed previous action is not a running planting beat.
+        // Garden plans and orders placed while idle retain that terminal status;
+        // waiting only for None stranded the first planting attempt forever.
+        if (npc.Execution.Status is ExecutionStatus.None or
+            ExecutionStatus.Completed or ExecutionStatus.Failed)
         {
             if (!world.Content.ObjectDefinitions.TryGetValue(seedDefinitionId, out var definition))
             {

@@ -63,8 +63,7 @@ public sealed class ItemLocalizationTests
                 Assert.That(description.Invoke(null, new object[] { definition, info }),
                     Is.EqualTo(Loc.Get(info.DescKey)));
                 Assert.That(CraftProjectDetailsPanel.ItemName(null, id), Is.EqualTo(expected));
-                Assert.That(I2.Loc.LocalizationManager.GetTermsList(), Does.Contain(info.NameKey),
-                    "HtmlUi.SendStrings exports imported I2 terms, not raw YAML text.");
+                AssertImportedTerm(info.NameKey);
             }
         }
         finally { Loc.Current = original; }
@@ -79,11 +78,22 @@ public sealed class ItemLocalizationTests
         {
             Loc.Current = Language.Russian;
             Assert.That(Loc.Goal(goal), Is.EqualTo(russian));
-            Assert.That(I2.Loc.LocalizationManager.GetTermsList(), Does.Contain("goal." + goal));
+            AssertImportedTerm("goal." + goal);
             Loc.Current = Language.English;
             Assert.That(Loc.Goal(goal), Is.EqualTo(english));
         }
         finally { Loc.Current = original; }
+    }
+
+    private static void AssertImportedTerm(string key)
+    {
+        var source = Resources.Load<ScriptableObject>("I2Languages");
+        Assert.That(source, Is.Not.Null);
+        var terms = new SerializedObject(source).FindProperty("mSource.mTerms");
+        var matching = 0;
+        for (var index = 0; index < terms.arraySize; index++)
+            if (terms.GetArrayElementAtIndex(index).FindPropertyRelative("Term").stringValue == key) matching++;
+        Assert.That(matching, Is.EqualTo(1), "The imported source must expose exactly one " + key);
     }
 
     [Test]

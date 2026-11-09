@@ -118,7 +118,11 @@ public sealed class AdminCommandBusTests
         using var stt = new DeepgramTokenBroker("");
         var hub = new AdminAgentHub(_access, _bus, _worlds);
         var protocol = new AdminViewerProtocol(_access, _bus, hub, stt);
-        var device = new string('C', 64);
+        string stored = "";
+        var device = HexLive.UnityPresentation.UI.AdminDeviceCredential.ReadOrCreate(
+            () => stored, value => stored = value);
+        Assert.That(device, Is.EqualTo(stored));
+        Assert.That(_access.Authorized(_client, device), Is.False);
         async System.Threading.Tasks.Task<JsonElement> Call(string kind)
         {
             using var doc = JsonDocument.Parse(await protocol.Handle(_client,
@@ -129,6 +133,9 @@ public sealed class AdminCommandBusTests
         Assert.That(request.GetProperty("state").GetString(), Is.EqualTo("pending"));
         var repeat = (await Call("request_access")).GetProperty("payload");
         Assert.That(repeat.GetProperty("requestId").GetString(), Is.EqualTo(request.GetProperty("requestId").GetString()));
+        Assert.That(request.GetProperty("accepted").GetBoolean(), Is.False);
+        Assert.That(_access.Authorized(_client, device), Is.False);
+        Assert.That(_access.Authorized(_client, "hexlive_player_login_key"), Is.False);
         _access.Decide(request.GetProperty("requestId").GetString()!, true, null);
         var status = (await Call("access_status")).GetProperty("payload");
         Assert.That(status.GetProperty("accepted").GetBoolean(), Is.True);

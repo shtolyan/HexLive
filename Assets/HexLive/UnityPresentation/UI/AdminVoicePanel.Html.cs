@@ -1,5 +1,4 @@
 using HexLive.Simulation.Wire;
-using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Platform;
 using Newtonsoft.Json.Linq;
 
@@ -42,18 +41,18 @@ public sealed partial class AdminVoicePanel
         }
 
         var busy = _busy || _message.Length > 0;
-        var canRequest = _accessState != "pending" && _source.Link.State == LinkState.Live;
+        var canRequest = CanRequestAccess;
         var confirm = _confirmation.Length > 0 ? _confirmationText : null;
         var mic = _sttAvailable && _agentAvailable;
         // Built only when something it shows changed: the window is open for minutes.
-        var key = (true, _accessState, _approved ? _expires : null, ClosedTestAccess.Enabled, canRequest, busy, confirm, mic, _capture.IsRecording);
+        var key = (true, _accessState, _approved ? _expires : null, _approved, canRequest, busy, confirm, mic, _capture.IsRecording);
         if (_lastHtmlKey == key) return;
         _lastHtmlKey = key;
         HtmlUi.Show(HtmlScreen, new JObject
         {
             ["access"] = _accessState,
             ["expires"] = _approved ? _expires : null,
-            ["showRequest"] = !ClosedTestAccess.Enabled,
+            ["showRequest"] = !_approved,
             ["canRequest"] = canRequest,
             ["busy"] = busy,
             ["confirm"] = confirm,
@@ -69,10 +68,7 @@ public sealed partial class AdminVoicePanel
                 SetOpen(false);
                 break;
             case "request":
-                if (_accessState == "pending" || !EnsureSecret()) break;
-                Send("request_access");
-                _accessState = "pending"; // the server's answer replaces it
-                _status.text = L("access.pending");
+                RequestAccess();
                 break;
             case "send":
                 if (!_approved || _busy || _message.Length > 0) break;

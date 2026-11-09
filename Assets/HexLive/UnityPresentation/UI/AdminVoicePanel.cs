@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Threading;
 using HexLive.Simulation.Wire;
 using HexLive.UnityPresentation.Audio;
@@ -64,7 +63,7 @@ public sealed partial class AdminVoicePanel : MonoBehaviour
         var scroll = new ScrollView(); scroll.AddToClassList("admin-content"); card.Add(scroll);
         var body = new VisualElement(); body.AddToClassList("admin-body"); scroll.Add(body);
         _status = new Label(); body.Add(_status);
-        _request = new Button(() => { if (EnsureSecret()) { Send("request_access"); _request.SetEnabled(false); _status.text = L("access.pending"); } }) { text = L("request_access") }; body.Add(_request);
+        _request = new Button(RequestAccess) { text = L("request_access") }; body.Add(_request);
         _debug = new VisualElement(); _debug.AddToClassList("admin-hidden"); body.Add(_debug);
         _input = new TextField(L("command")) { multiline = true, maxLength = 2000 }; _debug.Add(_input);
         _send = new Button(() => { _context = CaptureContext(); Submit(_input.value); }) { text = L("send") }; _debug.Add(_send);
@@ -92,16 +91,10 @@ public sealed partial class AdminVoicePanel : MonoBehaviour
         if (_token.Length > 0) return true;
         try
         {
-            if (HexLive.UnityPresentation.Bootstrap.ClosedTestAccess.Enabled)
-            { _token = HexLive.UnityPresentation.Bootstrap.ClosedTestAccess.ReadKey(); return _token.Length > 0; }
-            var secret = AdminCredentialStore.Read(_server, _source.AdminClientId);
-            if (secret.Length == 0)
-            {
-                var bytes = new byte[32]; using (var rng = RandomNumberGenerator.Create()) rng.GetBytes(bytes);
-                secret = BitConverter.ToString(bytes).Replace("-", "");
-                AdminCredentialStore.Write(_server, _source.AdminClientId, secret);
-            }
-            _token = secret; return true;
+            _token = AdminDeviceCredential.ReadOrCreate(
+                () => AdminCredentialStore.Read(_server, _source.AdminClientId),
+                value => AdminCredentialStore.Write(_server, _source.AdminClientId, value));
+            return true;
         }
         catch (Exception) { Notify(L("credential_error"), false); return false; }
     }
@@ -127,10 +120,22 @@ public sealed partial class AdminVoicePanel : MonoBehaviour
         if (_message.Length > 0 && Time.unscaledTime >= _nextPoll)
         { _nextPoll = Time.unscaledTime + 1; Send("poll", new JObject { ["messageId"] = _message }); }
         if (_busy && Time.unscaledTime > _deadline) { _busy = false; _wav = null; Notify(L("timeout"), false); }
-        _request.EnableInClassList("admin-hidden", _approved || HexLive.UnityPresentation.Bootstrap.ClosedTestAccess.Enabled);
-        _request.SetEnabled(_accessState != "pending" && _source.Link.State == LinkState.Live);
+        _request.EnableInClassList("admin-hidden", _approved);
+        _request.SetEnabled(CanRequestAccess);
         _send.SetEnabled(_approved && !_busy && _message.Length == 0); _sendRaw.SetEnabled(_approved && !_busy && _message.Length == 0);
         UpdateHtml(available);
+    }
+    // §161.1: closed-test admission is not an admin grant. Both UI paths
+    // expose the same explicit request, using the existing protected credential.
+    private bool CanRequestAccess => !_approved && _accessState != "pending" &&
+        _source != null && _source.Link.State == LinkState.Live;
+    private void RequestAccess()
+    {
+        if (!CanRequestAccess || !EnsureSecret()) return;
+        Send("request_access");
+        _accessState = "pending"; // prevent repeated clicks until the authoritative reply
+        _request.SetEnabled(false);
+        _status.text = L("access.pending");
     }
     private void Send(string kind, JObject data = null)
     { data ??= new JObject(); data["kind"] = kind; data["token"] = _token; _source.SendAdmin(data.ToString(Formatting.None)); }

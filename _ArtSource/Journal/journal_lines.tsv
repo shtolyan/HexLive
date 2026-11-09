@@ -173,3 +173,7 @@ journal.DoorBreakInStarted.did.v0	I took an axe to a door. Even stopping now wou
 journal.DoorBreakInStarted.got.v0	{0} started chopping at our door. Every blow made me fear what would happen next.	{0} [[0:начала|начал]] рубить нашу дверь. С каждым ударом страшнее думать, что будет дальше.
 journal.DoorBroken.did.v0	I chopped through the door. The broken latch will not keep anyone out now.	Я [[s:сломала|сломал]] дверь. Разбитый запор больше никого не остановит.
 journal.DoorBroken.got.v0	{0} broke our door. Home no longer felt safe.	{0} [[0:сломала|сломал]] нашу дверь. Дома больше не кажется безопасно.
+
+# #655: a voluntary newcomer, both perspectives
+journal.OutsiderRecruited.did.v0	I invited {0} into our camp. We have one more person to call our own.	Я [[s:пригласила|пригласил]] {0} в наш лагерь. Теперь среди нас ещё один близкий человек.
+journal.OutsiderRecruited.got.v0	{0} invited me into the camp. I finally have a place to call home.	{0} [[0:пригласила|пригласил]] меня в лагерь. Теперь и у меня есть дом.

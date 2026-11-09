@@ -15,6 +15,10 @@ public sealed class ColonyJournalLocalizationRuntimeTests
     public void DoorDiaryUsesImportedFirstPersonTermsAndActualFormatter(string type,int perspective,bool mentionsName) =>
         AssertFormatted(type,perspective,mentionsName);
 
+    [TestCase(0)] [TestCase(1)]
+    public void RecruitedNewcomerHasDistinctImportedPersonalMemories(int perspective) =>
+        AssertFormatted("OutsiderRecruited",perspective,true);
+
     internal static void AssertFormatted(string type,int perspective,bool mentionsName)
     {
         var original=Loc.Current;

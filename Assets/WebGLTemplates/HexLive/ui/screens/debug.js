@@ -14,7 +14,6 @@
 import { html } from '../html.js';
 import { t } from '../i18n.js';
 import { icons } from '../icons.js';
-import { icons } from '../icons.js';
 
 const GROUPS = [
   ['health', [['wound', 'danger'], ['bruise'], ['clearWounds']]],

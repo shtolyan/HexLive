@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="740" height="420" viewBox="0 0 740 420">
+<rect width="740" height="420" fill="#16232d"/><g font-family="sans-serif" fill="#e1ebf2">
+<text x="25" y="32" font-size="21">#626: размер факела и точка хвата</text>
+<text x="95" y="65" font-size="17">До: 0.90 wu</text>
+<rect x="171.95294117647057" y="80.0" width="16.094117647058823" height="270.0" fill="#a77c43"/>
+<rect x="158.8235294117647" y="80.0" width="42.35294117647059" height="68.85" fill="#cfceba"/>
+<circle cx="180" cy="286.47058823529414" r="6" fill="#9fe870"/>
+<path d="M230 80.0V350 M224 80.0h12 M224 350h12" stroke="#7795ab" fill="none"/>
+<text x="100" y="377" font-size="14">Хват: 0.212 wu от торца</text>
+<text x="425" y="65" font-size="17">После: 0.60 wu</text>
+<rect x="504.63529411764705" y="169.99999999999997" width="10.729411764705883" height="180.00000000000003" fill="#a77c43"/>
+<rect x="495.88235294117646" y="169.99999999999997" width="28.23529411764706" height="45.900000000000006" fill="#cfceba"/>
+<circle cx="510" cy="307.6470588235294" r="6" fill="#9fe870"/>
+<path d="M560 169.99999999999997V350 M554 169.99999999999997h12 M554 350h12" stroke="#7795ab" fill="none"/>
+<text x="430" y="377" font-size="14">Хват: 0.141 wu от торца</text>
+<text x="25" y="407" font-size="14">R=1.5 wu; общий ObjectFit для земли и руки. Размер уменьшен в 1.5 раза. Свет прежний.</text>
+</g></svg>

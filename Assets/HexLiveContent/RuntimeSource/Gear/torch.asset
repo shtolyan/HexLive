@@ -39,6 +39,12 @@ MonoBehaviour:
     itemId: resource.rope
     count: 1
   attackClips: []
+  handPoseAuthored: 1
+  handLocalPosition: {x: 0.055, y: -0.0173, z: -0.2327}
+  handLocalEuler: {x: 91.974, y: 0.001007, z: -6.520996}
+  handLocalScale: {x: 1, y: 1, z: 1}
+  preservePrefabRotationInHand: 1
+  handHasLeftOverride: 0
   armedIdle: {fileID: -203655887218126122, guid: 4b1c7d0af5eb04d6e9a1658453475d94, type: 3}
   armedWalk: {fileID: -203655887218126122, guid: 9e708ac3817d44062afa1909114df08c, type: 3}
   workClip: {fileID: 0}

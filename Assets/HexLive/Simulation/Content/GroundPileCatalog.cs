@@ -3387,7 +3387,7 @@ public static class GroundPileCatalog
             // A lighter is a tiny pocket object — 1/3 of the standard tool size,
             // applied to BOTH ground and hand (0.216 / 3).
             if (definitionId == "tool.lighter") return r * 0.072f;
-            if (definitionId == ContentIds.Torch) return r * 0.6f;
+            if (definitionId == ContentIds.Torch) return r * 0.4f;
             if (definitionId == ContentIds.Flint) return r * 0.10f;
             if (definitionId == ContentIds.Firestarter) return r * 0.12f;
             // A one-litre bottle is shorter than a hand tool. Keep this in the

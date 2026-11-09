@@ -162,6 +162,9 @@ public static class WorldSnapshotExporter
             exported.Dirtiness = obj.Dirtiness;
             exported.Bloodiness = obj.Bloodiness;
             exported.OwnerNpcId = obj.CurrentUser?.Value;
+            exported.PropertyOwnerNpcId = obj.Owner is { } propertyOwner &&
+                Runtime.ClothingOwnership.OwnerAlive(world, propertyOwner.Value) ? propertyOwner.Value : null;
+            exported.PropertyOwnerFaction = obj.OwnerFaction;
             exported.Variant = obj.Variant;
             exported.SpawnTick = obj.SpawnTick;
             exported.LeafDryness=Runtime.LeafDryingMath.HasLeaves(obj.DefinitionId)
@@ -928,6 +931,10 @@ public static class WorldSnapshotExporter
             npcSnapshot.InventoryStacks.Add(
                 $"{definitionId}\t{stackCounts[definitionId].ToString(System.Globalization.CultureInfo.InvariantCulture)}");
         }
+
+        foreach (var grant in npc.Mind.WearGrants)
+            if (world.Tick <= grant.ExpiresTick)
+                npcSnapshot.WearGrantObjectIds.Add(grant.Item.Value);
 
         foreach (var item in npc.WornItems)
         {

@@ -345,6 +345,10 @@ public sealed class ObjectSnapshot
     // dead NPC's id in CurrentUser) — lets the view adopt the actor's ragdoll.
     public int? OwnerNpcId { get; set; }
 
+    // Actual live property owner; OwnerNpcId above is exclusively the corpse/current-user link.
+    public int? PropertyOwnerNpcId { get; set; }
+    public Agents.Faction? PropertyOwnerFaction { get; set; }
+
     // Spec §50: object variant tag — for body.limb_severed, the BodyPart name
     // so the view bakes the matching bone chain from the owner's mesh.
     public string Variant { get; set; } = string.Empty;
@@ -961,6 +965,9 @@ public sealed class NpcSnapshot
     // Physical index is identical to WornItems. Kept separate from the display
     // id list so duplicate garments can still show the correct owner.
     public List<int> WornOwnerIds { get; } = new();
+
+    // Active, one-use wear permissions at the snapshot tick.
+    public List<int> WearGrantObjectIds { get; } = new();
 
     // Spec §52.8: tool ids currently parked in a worn holster's typed weapon
     // slots. Presentation pins each to the matching tool.* anchor of the worn

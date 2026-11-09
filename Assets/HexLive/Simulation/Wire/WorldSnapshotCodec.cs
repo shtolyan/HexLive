@@ -422,7 +422,7 @@ public static class WorldSnapshotCodec
     // Same story for the other three: a variant tag, a build product name and an
     // owner exist on a handful of objects and nowhere else.
     [System.Flags]
-    private enum ObjectParts : byte
+    private enum ObjectParts : ushort
     {
         None = 0,
         BuildSite = 1 << 0,   // Bill*/Delivered*/Roasting* — 48 bytes
@@ -433,6 +433,8 @@ public static class WorldSnapshotCodec
         Architecture = 1 << 5,
         ArchitectureOwner = 1 << 6,
         DoorClosed = 1 << 7,
+        PropertyOwner = 1 << 8,
+        PropertyFaction = 1 << 9,
     }
 
     // Definition ids repeat across every object; both ends derive the same table
@@ -508,8 +510,10 @@ public static class WorldSnapshotCodec
         if (o.ArchitectureElements.Count > 0) parts |= ObjectParts.Architecture;
         if (o.ArchitectureOwnerObjectId.HasValue) parts |= ObjectParts.ArchitectureOwner;
         if (!o.IsDoorOpen) parts |= ObjectParts.DoorClosed;
+        if (o.PropertyOwnerNpcId.HasValue) parts |= ObjectParts.PropertyOwner;
+        if (o.PropertyOwnerFaction.HasValue) parts |= ObjectParts.PropertyFaction;
 
-        w.Write((byte)parts);
+        w.Write((ushort)parts);
         w.Write(o.Id.Value);
         WriteDefinitionId(w, o.DefinitionId);
         WireIo.WriteTile(w, o.Tile);
@@ -526,15 +530,11 @@ public static class WorldSnapshotCodec
         w.Write(o.LeafDryness);
         WireIo.WriteJunctions(w, o.Junctions);
         // Usually empty and therefore one byte. It is deliberately outside the
-        // exhausted ObjectParts byte: only architecture owners pay the JSON.
+        // optional object mask: only architecture owners pay the JSON.
         WireIo.WriteString(w, o.BuildingBlueprintJson);
 
-        // §128.5: содержимое вещи. Своего бита в ObjectParts ему не досталось —
-        // байт флагов занят все восемь; расширять его до ushort ради поля,
-        // которое почти всегда пусто, значило бы переписать формат КАЖДОГО
-        // объекта. Поэтому счётчик пишется всегда одним байтом: в дельте
-        // постоянный ноль не стоит ничего (дельта сравнивает байты), а на
-        // ключевом кадре это ~1 КБ на тысячу объектов.
+        // §128.5: Contents keeps its always-present byte count. The v45 property
+        // flags widen ObjectParts to ushort; neither this count nor ordering changes.
         var contentsCount = o.Contents.Count > byte.MaxValue ? byte.MaxValue : o.Contents.Count;
         w.Write((byte)contentsCount);
         for (var i = 0; i < contentsCount; i++)
@@ -558,6 +558,9 @@ public static class WorldSnapshotCodec
         // §151: always present beside Contents for the same reason as its
         // count. Zero is the legacy/unbounded container projection.
         w.Write(o.ContainerCapacity);
+
+        if ((parts & ObjectParts.PropertyOwner) != 0) w.Write(o.PropertyOwnerNpcId.Value);
+        if ((parts & ObjectParts.PropertyFaction) != 0) w.Write((byte)o.PropertyOwnerFaction.Value);
 
         if ((parts & ObjectParts.Owner) != 0)
         {
@@ -655,7 +658,7 @@ public static class WorldSnapshotCodec
     internal static void ReadObjectRecord(BinaryReader r, ObjectSnapshot o)
     {
         {
-            var parts = (ObjectParts)r.ReadByte();
+            var parts = (ObjectParts)r.ReadUInt16();
 
             o.Id = new ObjectId(r.ReadInt32());
             o.DefinitionId = ReadDefinitionId(r);
@@ -697,6 +700,8 @@ public static class WorldSnapshotCodec
             // Absent parts must be CLEARED, not left alone: these records are
             // reused across frames, so an object that stops being a build site
             // would otherwise keep last frame's bill forever.
+            o.PropertyOwnerNpcId = (parts & ObjectParts.PropertyOwner) != 0 ? r.ReadInt32() : (int?)null;
+            o.PropertyOwnerFaction = (parts & ObjectParts.PropertyFaction) != 0 ? (Agents.Faction)r.ReadByte() : (Agents.Faction?)null;
             o.OwnerNpcId = (parts & ObjectParts.Owner) != 0 ? r.ReadInt32() : (int?)null;
             o.Variant = (parts & ObjectParts.Variant) != 0 ? r.ReadString() : string.Empty;
             o.BuildProduct = (parts & ObjectParts.BuildProduct) != 0 ? r.ReadString() : string.Empty;
@@ -1065,6 +1070,7 @@ public static class WorldSnapshotCodec
 
     private static void WriteNpcInventory(BinaryWriter w, NpcSnapshot n)
     {
+        WireIo.WriteInts(w, n.WearGrantObjectIds);
         WireIo.WriteStrings(w, n.InventoryItems);
         WireIo.WriteInts(w, n.InventoryOwnerIds);
         w.Write(n.InventoryUsedSlots);
@@ -1441,6 +1447,7 @@ public static class WorldSnapshotCodec
 
     private static void ReadNpcInventory(BinaryReader r, NpcSnapshot n)
     {
+        WireIo.ReadInts(r, n.WearGrantObjectIds);
         WireIo.ReadStrings(r, n.InventoryItems);
         WireIo.ReadInts(r, n.InventoryOwnerIds);
         n.InventoryUsedSlots = r.ReadInt32();

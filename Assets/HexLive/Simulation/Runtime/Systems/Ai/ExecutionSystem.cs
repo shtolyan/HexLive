@@ -1921,6 +1921,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         if (!CampPropertyMath.CanUse(world, npc, worldObject) &&
             !OutfitMaintenanceMath.CanRestorePinnedPiece(world, npc, worldObject)) return false;
 
+        var theft = TheftMath.IsTheft(world, npc, worldObject,
+            PlanningSystem.HasWearGrant(npc, worldObject.Id, world.Tick));
         var restoringSelectedOutfit =
             OutfitMaintenanceMath.CanRestorePinnedPiece(world, npc, worldObject);
         if (npc.Mind.OutfitLocked && !restoringSelectedOutfit)
@@ -1957,8 +1959,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 return false;
             }
 
-            npc.Mind.WearGrants.RemoveAll(g => g.Item.Equals(worldObject.Id));
         }
+        npc.Mind.WearGrants.RemoveAll(g => g.Item.Equals(worldObject.Id));
 
         // Spec 31A.5B: one item per (layer, body part) — dressing
         // over an occupied slot takes the old garment off. §52.7: the
@@ -2036,6 +2038,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             });
         }
 
+        if (theft) TheftMath.OnStolen(world, npc, worldObject);
         return true;
     }
 

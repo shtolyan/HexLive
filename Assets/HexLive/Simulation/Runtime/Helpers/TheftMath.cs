@@ -13,9 +13,10 @@ namespace HexLive.Simulation.Runtime
 /// меню красит глагол красным (клиент считает то же предикатом по снапшоту),
 /// а свидетельницы лагеря-хозяина, видящие воровку, теряют к ней отношение.
 ///
+/// Личная собственность другой живой NPC защищена и внутри своего лагеря.
 /// Радиус меряется от домашнего якоря лагеря (WorldState.FactionHomes — он и
 /// есть костёр лагеря, §146.14). Своё и союзное забрать — не кража: владелец
-/// вещи из союзной фракции снимает подозрение раньше геометрии.
+/// вещи снимает подозрение раньше геометрии только для самой хозяйки/разрешения.
 /// </summary>
 public static class TheftMath
 {
@@ -44,22 +45,40 @@ public static class TheftMath
         return false;
     }
 
-    public static bool IsTheft(WorldState world, NPCState actor, WorldObjectState obj)
+    // Personal property does not become communal just because its owner is an ally.
+    public static bool IsUnauthorizedUse(int actorId, Faction actorFaction,
+        int? personalOwnerId, Faction? communalOwner, bool authorized, bool foreignGround)
     {
-        if (actor is null || obj is null)
-        {
-            return false;
-        }
+        if (personalOwnerId == actorId || authorized) return false;
+        if (personalOwnerId.HasValue) return true;
+        if (communalOwner.HasValue)
+            return !FactionRelations.AreAllies(actorFaction, communalOwner.Value);
+        return foreignGround;
+    }
 
-        // Владелец вещи — союзник? Забрать своё из любого места — не кража.
-        if (obj.Owner is { } ownerId &&
-            world.Entities.Npcs.TryGetValue(ownerId, out var owner) &&
-            FactionRelations.AreAllies(actor.Faction, owner.Faction))
-        {
-            return false;
-        }
+    public static bool IsTheft(WorldState world, NPCState actor, WorldObjectState obj,
+        bool authorized = false)
+    {
+        if (actor is null || obj is null) return false;
+        int? owner = obj.Owner is { } id && ClothingOwnership.OwnerAlive(world, id.Value)
+            ? id.Value : null;
+        return IsUnauthorizedUse(actor.Id.Value, actor.Faction, owner, obj.OwnerFaction,
+            authorized, IsForeignPrivateGround(world, actor.Faction, obj.Tile));
+    }
 
-        return IsForeignPrivateGround(world, actor.Faction, obj.Tile);
+    public static bool IsTheft(Debug.WorldSnapshot snapshot, Debug.NpcSnapshot actor,
+        Debug.ObjectSnapshot obj, InteractionType interaction = InteractionType.PickUp)
+    {
+        if (snapshot is null || actor is null || obj is null) return false;
+        var foreignGround = false;
+        foreach (var home in snapshot.CampHomes)
+            if (!FactionRelations.AreAllies(actor.Faction, home.Faction) &&
+                HexSpatialMath.HexDistance(obj.Tile, home.Tile) <= PrivateGroundRadiusTiles)
+                foreignGround = true;
+        return IsUnauthorizedUse(actor.Id.Value, actor.Faction, obj.PropertyOwnerNpcId,
+            obj.PropertyOwnerFaction,
+            interaction == InteractionType.Dress && actor.WearGrantObjectIds.Contains(obj.Id.Value),
+            foreignGround);
     }
 
     /// <summary>Кража состоялась: событие в хронику + удар по отношению
@@ -74,7 +93,7 @@ public static class TheftMath
         foreach (var witness in world.Entities.Npcs.Values)
         {
             if (witness.Id.Equals(thief.Id) ||
-                FactionRelations.AreAllies(witness.Faction, thief.Faction) ||
+                witness.Health <= 0f ||
                 witness.IsUnconscious(world.Tick))
             {
                 continue;

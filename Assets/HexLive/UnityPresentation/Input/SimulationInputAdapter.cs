@@ -1128,10 +1128,10 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             // Bug #312: взять чужое на приватной земле чужого лагеря — это
             // «Украсть», красным. Предикат тот же, что применит симуляция
             // (TheftMath), посчитан по снапшоту: якоря лагерей + владелец.
-            var theft = type == InteractionType.PickUp &&
-                IsTheftTarget(snapshot, clicked);
+            var theft = (type == InteractionType.PickUp || type == InteractionType.Dress) &&
+                IsTheftTarget(snapshot, clicked, actingNpc, type);
             _entries.Add(new ContextMenuEntry(
-                emptyDrink ? Loc.Get("menu.drink_empty") : theft ? Loc.Get("menu.steal") : InteractionVerb(interaction),
+                emptyDrink ? Loc.Get("menu.drink_empty") : theft && type == InteractionType.PickUp ? Loc.Get("menu.steal") : InteractionVerb(interaction),
                 () => EnqueueOrder(actorId,
                     new InteractCommand(
                         actor, new ObjectId(objectId), type, interactionId)),
@@ -1860,42 +1860,10 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     // Bug #312: тот же предикат кражи, что применит симуляция (TheftMath),
     // посчитанный по снапшоту: вещь на приватной земле НЕсоюзного лагеря
     // (5 гексов от его якоря), и владелец вещи — не союзник.
-    private bool IsTheftTarget(WorldSnapshot? snapshot, ObjectSnapshot? target)
-    {
-        if (snapshot == null || target == null)
-        {
-            return false;
-        }
-
-        var myFaction = PlayerCampView.Of(_runner, snapshot);
-        if (target.OwnerNpcId is { } ownerId)
-        {
-            foreach (var npc in snapshot.Npcs)
-            {
-                if (npc.Id.Value == ownerId)
-                {
-                    if (FactionRelations.AreAllies(myFaction, npc.Faction))
-                    {
-                        return false;
-                    }
-
-                    break;
-                }
-            }
-        }
-
-        foreach (var home in snapshot.CampHomes)
-        {
-            if (!FactionRelations.AreAllies(myFaction, home.Faction) &&
-                HexSpatialMath.HexDistance(target.Tile, home.Tile) <=
-                    TheftMath.PrivateGroundRadiusTiles)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    private static bool IsTheftTarget(WorldSnapshot? snapshot, ObjectSnapshot? target,
+        NpcSnapshot? actor, InteractionType interaction) =>
+        snapshot != null && target != null && actor != null &&
+        TheftMath.IsTheft(snapshot, actor, target, interaction);
 
     private static string InteractionVerb(InteractionDefinition interaction)
     {

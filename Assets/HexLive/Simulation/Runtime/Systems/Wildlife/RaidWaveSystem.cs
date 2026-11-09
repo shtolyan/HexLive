@@ -22,6 +22,11 @@ public sealed class RaidWaveSystem : ISimulationSystem
     // база 6000 и шаг 400: Colony → 6001.., Colony6 → 8001...
     internal const int IslandRaiderIdBase = 6000;
     internal const int IslandRaiderIdStride = 400;
+    // Preserve all shipped early-wave ids. Later waves use a separate band
+    // with faction in the low bits, so crossing wave400 cannot impersonate
+    // the next camp or disappear from the camp's living-cap calculation.
+    private const int ExtendedIslandRaiderIdBase = 100000;
+    private const int ExtendedIslandRaiderIdStride = 8;
     internal const int IslandShoreMinDistanceTiles = 8;
     internal const int IslandShoreMaxDistanceTiles = 30;
 
@@ -181,7 +186,9 @@ public sealed class RaidWaveSystem : ISimulationSystem
     }
 
     internal static EntityId IslandRaiderId(Faction island, int wave) =>
-        new(IslandRaiderIdBase + (int)island * IslandRaiderIdStride + wave);
+        wave < IslandRaiderIdStride
+            ? new EntityId(IslandRaiderIdBase + (int)island * IslandRaiderIdStride + wave)
+            : new EntityId(ExtendedIslandRaiderIdBase + wave * ExtendedIslandRaiderIdStride + (int)island);
 
     // «Мёртв» = его нет среди живых. Труп с тем же id границу не держит.
     internal static bool HasLivingIslandOutsider(WorldState world, Faction island)
@@ -194,8 +201,13 @@ public sealed class RaidWaveSystem : ISimulationSystem
         var to = from + IslandRaiderIdStride;
         foreach (var npc in world.Entities.Npcs.Values)
         {
-            if (npc.Faction == Faction.Outsiders && npc.Health > 0f &&
-                npc.Id.Value > from && npc.Id.Value < to)
+            var id = npc.Id.Value;
+            var legacy = id > from && id < to;
+            var extended = id >= ExtendedIslandRaiderIdBase +
+                    IslandRaiderIdStride * ExtendedIslandRaiderIdStride &&
+                id < Bootstrap.PlayerCharacterCreation.FirstNpcId &&
+                (id - ExtendedIslandRaiderIdBase) % ExtendedIslandRaiderIdStride == (int)island;
+            if (npc.Faction == Faction.Outsiders && npc.Health > 0f && (legacy || extended))
             {
                 count++;
             }

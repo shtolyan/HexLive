@@ -18,6 +18,38 @@ public sealed class IslandOutsiderWaveTests
     private static int Interval => Spec72.RaidWaveIntervalDays * EnvironmentSystem.DayLengthTicks;
 
     [Test]
+    public void LateWaveIdsDoNotOverlapOtherCampsLegacyBands()
+    {
+        var camps=new[]{Faction.Colony,Faction.Colony2,Faction.Colony3,Faction.Colony4,Faction.Colony5,Faction.Colony6};
+        var ids=camps.SelectMany(f=>Enumerable.Range(1,1000).Select(w=>RaidWaveSystem.IslandRaiderId(f,w))).ToArray();
+        Assert.That(ids.Distinct().Count(),Is.EqualTo(ids.Length));
+        Assert.That(RaidWaveSystem.IslandRaiderId(Faction.Colony,1).Value,Is.EqualTo(6001));
+        Assert.That(RaidWaveSystem.IslandRaiderId(Faction.Colony3,399).Value,Is.EqualTo(7599));
+    }
+
+    [Test]
+    public void WaveFourHundredStillOccupiesItsCampsSingleLivingSlot()
+    {
+        var world=TestWorld.CreateWorld();world.Mode=GameMode.Islands;
+        foreach(var npc in world.Entities.Npcs.Values.Where(n=>n.Faction==Faction.Outsiders).ToArray())
+            world.Entities.Npcs.Remove(npc.Id);
+        world.Mobs.Clear();world.MobSpawnSlots.Clear();
+        var id=RaidWaveSystem.IslandRaiderId(Faction.Colony,400);
+        world.Entities.Npcs[id]=new NPCState{Id=id,Faction=Faction.Outsiders,Health=1};
+        world.IslandOutsiderWavesByFaction[Faction.Colony]=400;
+        world.Tick=Interval*401;
+        var waves=new RaidWaveSystem();waves.Run(world);
+        Assert.That(world.Entities.Npcs.ContainsKey(RaidWaveSystem.IslandRaiderId(Faction.Colony,401)),Is.False);
+        Assert.That(world.IslandOutsiderWavesByFaction[Faction.Colony],Is.EqualTo(401));
+        Assert.That(RaidWaveSystem.HasLivingIslandOutsider(world,Faction.Colony),Is.True);
+        world.Entities.Npcs.Remove(id);
+        waves.Run(world);
+        Assert.That(RaidWaveSystem.HasLivingIslandOutsider(world,Faction.Colony),Is.False);
+        world.Tick=Interval*402;waves.Run(world);
+        Assert.That(world.Entities.Npcs.ContainsKey(RaidWaveSystem.IslandRaiderId(Faction.Colony,402)),Is.True);
+    }
+
+    [Test]
     public void UnsafeFirstCampDoesNotBlockTheOtherCampsScheduledWaves()
     {
         var world = new WorldStateFactory().Create(

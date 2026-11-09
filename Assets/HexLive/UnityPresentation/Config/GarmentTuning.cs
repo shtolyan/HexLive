@@ -47,34 +47,24 @@ namespace HexLive.UnityPresentation.Config
         private static System.Collections.Generic.List<GarmentParams> BackfillCapacity(
             System.Collections.Generic.List<GarmentParams> fromAsset)
         {
-            var defaults = new System.Collections.Generic.Dictionary<string, int>();
+            var defaults = new System.Collections.Generic.Dictionary<string, GarmentParams>();
             foreach (var d in GarmentLibrary.Defaults)
             {
-                defaults[d.Id] = d.Capacity;
+                defaults[d.Id] = d;
             }
 
             var result = new System.Collections.Generic.List<GarmentParams>(fromAsset.Count);
             foreach (var g in fromAsset)
             {
+                defaults.TryGetValue(g.Id, out var matchingDefault);
                 var cap = g.Capacity;
-                if (cap == 0 && defaults.TryGetValue(g.Id, out var def))
+                if (cap == 0 && matchingDefault != null)
                 {
-                    cap = def;
+                    cap = matchingDefault.Capacity;
                 }
 
-                // §84: пол берётся из КОДОВЫХ умолчаний по id — в ассете
-                // одежды такого поля нет, и без этого переноса каталог стирал
-                // бы пол у всех вещей разом (ровно как раньше поступал с
-                // ёмкостью карманов, см. cap выше).
-                var sex = GarmentSex.Any;
-                foreach (var d in GarmentLibrary.Defaults)
-                {
-                    if (d.Id == g.Id)
-                    {
-                        sex = d.Sex;
-                        break;
-                    }
-                }
+                // Old assets predate the sex field; retain the existing code-default fallback.
+                var sex = matchingDefault?.Sex ?? GarmentSex.Any;
 
                 // §31B.4E: перенести ПРОТОТИП. Конструктор ставит PrototypeId
                 // равным Id — «сама себе геометрия», — так что строка, собранная
@@ -87,6 +77,10 @@ namespace HexLive.UnityPresentation.Config
                     g.DressDurationTicks, cap, sex, g.Covers.ToArray())
                 {
                     PrototypeId = g.PrototypeId,
+                    AlternateFitId = g.AlternateFitId,
+                    Category = g.Category,
+                    // An older asset with no flag cannot revive a retired default.
+                    Retired = g.Retired || (matchingDefault?.Retired ?? false),
                 });
             }
 

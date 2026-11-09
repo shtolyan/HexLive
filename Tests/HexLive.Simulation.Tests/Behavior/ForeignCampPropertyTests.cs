@@ -195,15 +195,25 @@ public sealed class ForeignCampPropertyTests
     public void NeutralCampBoundaryAndRememberedSuppliesUseFiveHexRadius()
     {
         var (world, actor, _) = Camp();
+        // WorldStateFactory already seeded outsider hostility (#654). Capture
+        // values AND record identities before either read-only admission call.
+        object[] CaptureRelations() => actor.Social.Relationships.Select(pair =>
+            (object)(pair.Key, pair.Value, pair.Value.Affinity, pair.Value.Trust,
+                pair.Value.Familiarity, pair.Value.Authority,
+                pair.Value.LastInteractionTick, pair.Value.IsLover)).ToArray();
+        var before = CaptureRelations();
+        Assert.That(before, Is.Not.Empty, "The factory's initial outsider relationship must exist before any query.");
         var home = actor.Tile;
         var remembered = new PerceivedObject { Id = new ObjectId(int.MaxValue),
             DefinitionId = ContentIds.Stone, Tile = new TileCoord(home.Q + 5, home.R),
             FromMemory = true };
         Assert.That(CampPropertyMath.CanUse(world, actor, remembered), Is.False);
+        Assert.That(CaptureRelations(), Is.EqualTo(before),
+            "Rejected remembered-supply admission must not create or mutate relationships.");
         remembered.Tile = new TileCoord(home.Q + 6, home.R);
         Assert.That(CampPropertyMath.CanUse(world, actor, remembered), Is.True);
-        Assert.That(actor.Social.Relationships, Is.Empty,
-            "Read-only admission must not create relationships.");
+        Assert.That(CaptureRelations(), Is.EqualTo(before),
+            "Accepted remembered-supply admission must not create or mutate relationships.");
     }
 }
 }

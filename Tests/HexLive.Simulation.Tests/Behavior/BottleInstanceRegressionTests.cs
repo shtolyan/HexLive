@@ -255,8 +255,10 @@ public sealed class BottleInstanceRegressionTests
         });
     }
 
-    [Test]
-    public void GroundBottleCanBePickedUpAlongsideExistingBottle()
+    [TestCase(false, 4f)]
+    [TestCase(true, 1f)]
+    [TestCase(true, 0.42f)]
+    public void GroundBottleCanBePickedUpAlongsideExistingBottle(bool parked, float amount)
     {
         var engine = TestWorld.CreateEngine(35502);
         var world = engine.World;
@@ -278,7 +280,9 @@ public sealed class BottleInstanceRegressionTests
             world, ContentIds.Bottle, npc.Fragment, tile, neighbor);
         ground.WaterKind = WaterKind.Rain;
         ground.LastAddedWaterKind = WaterKind.Coconut;
-        ground.ResourceAmount = 4f;
+        ground.ResourceAmount = amount;
+        if (parked) WorldObjectMutations.SpawnObject(
+            world, ContentIds.WaterCollector, npc.Fragment, tile, neighbor);
 
         var admission = ManualCommandExecutor.Apply(
             world, new InteractCommand(npc.Id, ground.Id, InteractionType.PickUp));
@@ -297,7 +301,7 @@ public sealed class BottleInstanceRegressionTests
             Assert.That(bottles.Single(b => b.WaterKind == WaterKind.Coconut).ResourceAmount,
                 Is.EqualTo(2f));
             Assert.That(bottles.Single(b => b.WaterKind == WaterKind.Rain).ResourceAmount,
-                Is.EqualTo(4f));
+                Is.EqualTo(parked ? amount * SimBalance.BottleCapacity : amount).Within(1e-5));
             Assert.That(bottles.Single(b => b.WaterKind == WaterKind.Rain).LastAddedWaterKind,
                 Is.EqualTo(WaterKind.Coconut));
         });

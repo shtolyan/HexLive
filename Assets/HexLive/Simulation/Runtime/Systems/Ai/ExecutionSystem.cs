@@ -1834,16 +1834,18 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
             // Item moves from world to inventory; the world object is gone,
             // so occupancy flags die with it (spec 29B.2).
+            var parkedBottle = WaterCollectorMath.IsParked(world, worldObject);
             var picked = new ItemInstance(worldObject.DefinitionId == ContentIds.SeveredLimb
                 ? HumanMeatCatalog.FromLimb(worldObject.Variant) : worldObject.DefinitionId)
             {
                 Wetness = worldObject.Wetness,
                 Durability = worldObject.Durability,
-                ResourceAmount = worldObject.DefinitionId == ContentIds.Bottle &&
-                    worldObject.WaterKind == WaterKind.None
-                        ? 0f
-                        : worldObject.ResourceAmount,
-                WaterKind = worldObject.WaterKind,
+                ResourceAmount = parkedBottle
+                    ? System.Math.Clamp(worldObject.ResourceAmount, 0f, 1f) * SimBalance.BottleCapacity
+                    : worldObject.DefinitionId == ContentIds.Bottle && worldObject.WaterKind == WaterKind.None
+                        ? 0f : worldObject.ResourceAmount,
+                WaterKind = parkedBottle && worldObject.ResourceAmount > 0f &&
+                    worldObject.WaterKind == WaterKind.None ? WaterKind.Rain : worldObject.WaterKind,
                 LastAddedWaterKind = worldObject.LastAddedWaterKind,
                 LeafDryingStartTick = LeafDryingMath.HasLeaves(worldObject.DefinitionId)
                     ? LeafDryingMath.Start(worldObject) : -1,

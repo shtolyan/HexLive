@@ -16,17 +16,22 @@ public static class ItemIcons
     private static readonly Dictionary<string, ContentAssetHandle<Sprite>> Handles = new();
     private static readonly HashSet<string> Loading = new();
     private static readonly HashSet<string> Missing = new();
+    private static readonly Dictionary<string, float> RetryAfter = new();
+    private static ContentAssetService _service;
     private static HashSet<string> _wearIds;
     public static int Revision { get; private set; }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics()
     {
+        if (_service != null) _service.RegistryRefreshed -= RegistryRefreshed;
+        _service = null;
         foreach (var handle in Handles.Values) handle?.Dispose();
         Cache.Clear();
         Handles.Clear();
         Loading.Clear();
         Missing.Clear();
+        RetryAfter.Clear();
         _wearIds = null;
         Revision = 0;
     }
@@ -74,6 +79,13 @@ public static class ItemIcons
             return;
         }
 
+        var service = ObserveRegistry();
+        if (service.TryGetRecord(type, id, out var record) && record.HasRealIcon)
+        {
+            // The owner's model has opened: retry from its already available bundle.
+            Missing.Remove(id);
+            RetryAfter.Remove(id);
+        }
         StartLoad(id, type, id);
     }
 
@@ -82,10 +94,12 @@ public static class ItemIcons
 
     public static Sprite Load(string id)
     {
-        if (string.IsNullOrEmpty(id) || Missing.Contains(id))
+        if (string.IsNullOrEmpty(id))
         {
             return null;
         }
+        ObserveRegistry();
+        if (Missing.Contains(id)) return null;
         if (Cache.TryGetValue(id, out var cached))
         {
             return cached;
@@ -98,6 +112,8 @@ public static class ItemIcons
 
     private static void StartLoad(string cacheId, string type, string objectId)
     {
+        if (RetryAfter.TryGetValue(cacheId, out var retryAt) && Time.realtimeSinceStartup < retryAt)
+            return;
         if (Missing.Contains(cacheId) || Cache.ContainsKey(cacheId) ||
             !Loading.Add(cacheId))
         {
@@ -105,26 +121,53 @@ public static class ItemIcons
         }
 
         ContentQueue.Begin(ContentQueue.Kind.Icon);
-        ContentAssetService.Instance.LoadIcon(type, objectId, loaded =>
+        var service = ObserveRegistry();
+        service.LoadIcon(type, objectId, loaded =>
         {
             var icon = loaded?.Asset;
             if (icon != null)
             {
                 Cache[cacheId] = icon;
                 Handles[cacheId] = loaded;
+                RetryAfter.Remove(cacheId);
             }
             else
             {
-                // Missing icon is an authoritative terminal result for this
-                // session. Do not restart the same owner-bundle request on
-                // every 4 Hz UI rebuild; every caller can show its emoji now.
-                Missing.Add(cacheId);
+                // A failed advertised icon is a transport/load failure, not
+                // proof that its art is absent. Back off instead of poisoning
+                // this session's cache or retrying on every UI refresh.
+                if (service.TryGetRecord(type, objectId, out var record) && record.HasRealIcon)
+                    RetryAfter[cacheId] = Time.realtimeSinceStartup + 4f;
+                else
+                    Missing.Add(cacheId);
                 loaded?.Dispose();
             }
             Loading.Remove(cacheId);
             Revision++;
             ContentQueue.End(ContentQueue.Kind.Icon);
         });
+    }
+
+    private static ContentAssetService ObserveRegistry()
+    {
+        var service = ContentAssetService.Instance;
+        if (!ReferenceEquals(_service, service))
+        {
+            if (_service != null) _service.RegistryRefreshed -= RegistryRefreshed;
+            _service = service;
+            _service.RegistryRefreshed += RegistryRefreshed;
+            RegistryRefreshed();
+        }
+        return service;
+    }
+
+    private static void RegistryRefreshed()
+    {
+        if (_service != null && _service.LastError.Length != 0) return;
+        if (Missing.Count == 0 && RetryAfter.Count == 0) return;
+        Missing.Clear();
+        RetryAfter.Clear();
+        Revision++;
     }
 
     private static (string Type, string Id) Owner(string id)

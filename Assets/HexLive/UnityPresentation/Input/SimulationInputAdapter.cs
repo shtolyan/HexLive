@@ -5,6 +5,7 @@ using HexLive.Simulation.Common;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Content;
+using HexLive.Simulation.Core;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
@@ -1094,6 +1095,23 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         var actor = new EntityId(actorId);
         var buildOffered = false;
         _entries.Clear();
+        // A door view can proxy its general menu onto the hut. These commands
+        // deliberately address the actual architecture leaf, never the owner.
+        if (clicked != null && clicked.DefinitionId == DoorTopology.DoorDefinitionId &&
+            !clicked.IsDoorOpen && clicked.Durability > 0f)
+        {
+            var doorId = new ObjectId(clicked.Id.Value);
+            _entries.Add(new ContextMenuEntry(Loc.Get("menu.knock_door"),
+                () => EnqueueOrder(actorId,new KnockDoorCommand(actor,doorId))));
+            var person = snapshot?.Npcs.Find(n => n.Id.Value == actorId);
+            var hands = person == null ? 0 :
+                (BodyPartFunctionSnapshotMath.LimbFunction(person.BodyPartConditions,BodyPart.ArmR) >= BodyState.UsableHandFunctionThreshold ? 1 : 0) +
+                (BodyPartFunctionSnapshotMath.LimbFunction(person.BodyPartConditions,BodyPart.ArmL) >= BodyState.UsableHandFunctionThreshold ? 1 : 0);
+            var canBreak = ActionRequirements.HasTool(carried,new[]{GearCapability.ChopWood},hands);
+            _entries.Add(new ContextMenuEntry(Loc.Get("menu.break_door"),
+                () => EnqueueOrder(actorId,new BreakDoorCommand(actor,doorId)),canBreak,
+                canBreak ? null : Loc.Get("menu.missing_tool")) { Danger=true });
+        }
         foreach (var interaction in definition.Interactions)
         {
             // §128.5 / bug #199: a container's Loot action opens the two-sided

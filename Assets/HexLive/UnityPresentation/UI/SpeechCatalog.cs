@@ -277,6 +277,11 @@ public static class SpeechCatalog
     private static readonly Dictionary<string, CueVisual> Cues = new()
     {
         // ---- крик о помощи: картинка зависит от того, КТО напал ----------
+        ["DoorKnock"] = new("Call", null, Rank.Action),
+        ["DoorWelcome"] = new("Agree", "agree_directive"),
+        ["DoorRefuse"] = new("Fail", "refuse_directive"),
+        ["DoorDefend"] = new("Attack", "angry_defend"),
+        ["DoorFear"] = new("Flee", "fear_flee", Rank.Alarm),
         ["HelpCry:dog"] = new("Dogs", "call_help"),
         ["HelpCry:npc"] = new("Attack", "call_help"),
         ["HelpCry"] = new("Dogs", "call_help"),

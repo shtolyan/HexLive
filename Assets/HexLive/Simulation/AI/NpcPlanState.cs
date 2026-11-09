@@ -118,7 +118,9 @@ public enum PlanStepType
     // one exact carried seed and create the first visible growth stage.
     PlantInventorySeed,
     // §127.13 append-only: at arm's length from the cheater, one fist blow.
-    JealousStrike
+    JealousStrike,
+    KnockDoor,
+    BreakDoor
 }
 
 public enum PlanStatus

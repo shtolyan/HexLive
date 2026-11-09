@@ -169,6 +169,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            if (npc.Plan.Steps.Count > 0 &&
+                npc.Plan.Steps[^1].Type is PlanStepType.KnockDoor or PlanStepType.BreakDoor)
+            {
+                RunDoorOrder(world, npc);
+                continue;
+            }
+
             // §173.2: inventory planting owns its seed until the authored
             // kneeling work finishes.  It has a movement leg but no target
             // world object, so it must run before the generic object branch.

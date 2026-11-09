@@ -1,0 +1,12 @@
+menu.knock_door	Knock on the door	Постучаться
+menu.break_door	Break the door with an axe	Взломать дверь топором
+history.DoorKnocked	{0} knocked on the door	{0} стучится в дверь
+history.DoorOpenedForGuest	{0} opened for {1}	{0} открывает дверь для {1}
+history.DoorRefusedGuest	{0} refused to let {1} in	{0} не пускает {1}
+history.DoorBreakInStarted	{0} started breaking the door	{0} начинает взламывать дверь
+history.DoorBroken	{0} broke the door	{0} ломает дверь
+history.detail.DoorKnocked	“May I come in?”	«Можно войти?»
+history.detail.DoorOpenedForGuest	“Come in, I will open it.”	«Открою, заходи».
+history.detail.DoorRefusedGuest	“I do not trust you. I will not open it.”	«Я тебе не доверяю. Не открою».
+history.detail.DoorBreakInStarted	The residents are frightened and lose trust even if the attempt stops.	Жители пугаются и теряют доверие даже после прерванной попытки.
+history.detail.DoorBroken	The broken latch cannot close anymore.	Сломанный запор больше не держит дверь.

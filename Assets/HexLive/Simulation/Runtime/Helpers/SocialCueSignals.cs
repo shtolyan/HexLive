@@ -18,13 +18,13 @@ internal static class SocialCueSignals
     // пространстве, где 3 значит волка, а не Марту. Раньше такие места
     // подставляли id самого кричащего, и это читалось бы как «боится себя».
     // null — честное «человека тут нет», и вид падает на прежнюю иконку.
-    public static void Stamp(WorldState world, NPCState npc, string kind, EntityId? peerId)
+    public static void Stamp(WorldState world, NPCState npc, string kind, EntityId? peerId, bool allowSleeping = false)
     {
         // §60: no cue bubbles over a body that cannot react — a sleeping,
         // fainted or comatose girl shows no emoji at all (she ignores every
-        // request; the single funnel here silences every stamp source).
+        // request; only the explicit door reply may be spoken through sleep).
         if (npc.IsUnconscious(world.Tick) ||
-            npc.Execution.CurrentInteraction == InteractionType.Sleep)
+            (!allowSleeping && npc.Execution.CurrentInteraction == InteractionType.Sleep))
         {
             return;
         }

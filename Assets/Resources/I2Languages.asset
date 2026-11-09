@@ -31868,6 +31868,102 @@ MonoBehaviour:
       - '{0} отпустила спутника {1}'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.knock_door'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Knock on the door'
+      - 'Постучаться'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.break_door'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Break the door with an axe'
+      - 'Взломать дверь топором'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.DoorKnocked'
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} knocked on the door'
+      - '{0} стучится в дверь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.DoorOpenedForGuest'
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} opened for {1}'
+      - '{0} открывает дверь для {1}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.DoorRefusedGuest'
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} refused to let {1} in'
+      - '{0} не пускает {1}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.DoorBreakInStarted'
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} started breaking the door'
+      - '{0} начинает взламывать дверь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.DoorBroken'
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} broke the door'
+      - '{0} ломает дверь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.DoorKnocked'
+      TermType: 0
+      Description:
+      Languages:
+      - '“May I come in?”'
+      - '«Можно войти?»'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.DoorOpenedForGuest'
+      TermType: 0
+      Description:
+      Languages:
+      - '“Come in, I will open it.”'
+      - '«Открою, заходи».'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.DoorRefusedGuest'
+      TermType: 0
+      Description:
+      Languages:
+      - '“I do not trust you. I will not open it.”'
+      - '«Я тебе не доверяю. Не открою».'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.DoorBreakInStarted'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The residents are frightened and lose trust even if the attempt stops.'
+      - 'Жители пугаются и теряют доверие даже после прерванной попытки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.DoorBroken'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The broken latch cannot close anymore.'
+      - 'Сломанный запор больше не держит дверь.'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

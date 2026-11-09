@@ -3589,11 +3589,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
         else if (npc.IsCrying)
         {
             // §110: сломалась от стресса — она НЕ падает, а ложится: сонная
-            // цепочка LieDown → Sleep, на земле, где стояла (кровати тут нет —
-            // она не дошла бы). Позу и лицо доводит NpcActorView.SetCrying.
+            // цепочка LieDown → Sleep. Канонический solver мог выбрать соседнюю
+            // кровать; вид использует тот же attach, что обычный сон.
             actorView.SetRagdoll(false);
             actorView.SetCrying(true);
-            actorView.SetLaying(true, null, ActorGroundY(npc.Tile));
+            actorView.SetLaying(true, FindBedAttachPoint(snapshot, npc, out var cryingBedY), cryingBedY);
         }
         else if (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress")
         {

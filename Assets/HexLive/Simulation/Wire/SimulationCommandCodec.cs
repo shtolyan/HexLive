@@ -98,7 +98,8 @@ public static class SimulationCommandCodec
         PlantInventorySeed = 49, // §173.2 append-only
         RequestTravelParty = 50,
         ReleaseTravelParty = 51,
-        // 52..53 reserved for doors (same wave).
+        KnockDoor = 52,
+        BreakDoor = 53,
         BeginGiftSession = 54,
         EndGiftSession = 55,
         PlacePlantingSite = 56, // #638 append-only
@@ -374,6 +375,10 @@ public static class SimulationCommandCodec
                 w.Write(c.Tile.R);
                 w.Write(c.Anchor.Value);
                 break;
+            case KnockDoorCommand c:
+                w.Write((ushort)CommandType.KnockDoor); WriteEntity(w, c.Npc); w.Write(c.Door.Value); break;
+            case BreakDoorCommand c:
+                w.Write((ushort)CommandType.BreakDoor); WriteEntity(w, c.Npc); w.Write(c.Door.Value); break;
             case RequestTravelPartyCommand c:
                 w.Write((ushort)CommandType.RequestTravelParty);
                 w.Write(c.Npc.Value); w.Write(c.Target.Value);
@@ -580,6 +585,10 @@ public static class SimulationCommandCodec
             case CommandType.PlacePlantingSite:
                 return new PlacePlantingSiteCommand(r.ReadString(),
                     new TileCoord(r.ReadInt32(), r.ReadInt32()), new JunctionId(r.ReadInt32()));
+            case CommandType.KnockDoor:
+                return new KnockDoorCommand(ReadEntity(r), new ObjectId(r.ReadInt32()));
+            case CommandType.BreakDoor:
+                return new BreakDoorCommand(ReadEntity(r), new ObjectId(r.ReadInt32()));
             case CommandType.RequestTravelParty:
                 return new RequestTravelPartyCommand(ReadEntity(r),ReadEntity(r));
             case CommandType.ReleaseTravelParty:

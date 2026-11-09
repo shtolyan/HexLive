@@ -5335,7 +5335,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return; // вариантов не назначили — у всех авторский клип состояния
         }
 
-        var clip = poses[((_npcId % poses.Length) + poses.Length) % poses.Length];
+        var clip = _crying && poses.Length > 1 ? poses[1]
+            : poses[((_npcId % poses.Length) + poses.Length) % poses.Length];
         OverrideClip(SleepBaseClip, clip);
         OverrideClip(FallenIdleBaseClip, clip);
     }
@@ -5353,6 +5354,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         OverrideClip(SleepBaseClip, poses[1]);
+        OverrideClip(FallenIdleBaseClip, poses[1]);
     }
 
     private void OverrideClip(string baseName, AnimationClip with)

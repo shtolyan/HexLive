@@ -95,6 +95,32 @@ public sealed class CorpsePresentationRuntimeTests
     }
 
     [UnityTest, Explicit(ContentRequired)]
+    public IEnumerator CryingOverridesBothRealLyingStatesAndSurvivesLatePoseInitialization()
+    {
+        using var fixture = new Fixture();
+        yield return fixture.CreateLiving();
+        yield return fixture.FinishAppearance(fixture.Actor);
+        var actor = fixture.Actor;
+        const BindingFlags instance = BindingFlags.Instance | BindingFlags.NonPublic;
+        var set = (NpcAnimSet)typeof(NpcActorView).GetField("_animSet",BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+        Assert.That(set.sleep.Length,Is.GreaterThanOrEqualTo(2));
+        var controller = (AnimatorOverrideController)typeof(NpcActorView).GetField("_animOverride",instance).GetValue(actor);
+        var originals = (Dictionary<string,AnimationClip>)typeof(NpcActorView).GetField("_clipsByName",instance).GetValue(actor);
+        actor.SetCrying(true);
+        foreach(var name in new[]{"Sleep","X Bot@Sleeping Idle"})
+            Assert.That(controller[originals[name]],Is.SameAs(set.sleep[1]),name);
+        // The asynchronous actor loader calls this after a snapshot may already
+        // have enabled crying. It must not restore the ordinary per-ID pose.
+        typeof(NpcActorView).GetMethod("ApplySleepPose",instance).Invoke(actor,null);
+        foreach(var name in new[]{"Sleep","X Bot@Sleeping Idle"})
+            Assert.That(controller[originals[name]],Is.SameAs(set.sleep[1]),"Late initialization: "+name);
+        actor.SetCrying(false);
+        var ordinary=set.sleep[((fixture.Body.Id.Value % set.sleep.Length)+set.sleep.Length)%set.sleep.Length];
+        foreach(var name in new[]{"Sleep","X Bot@Sleeping Idle"})
+            Assert.That(controller[originals[name]],Is.SameAs(ordinary),"Crying ended: "+name);
+    }
+
+    [UnityTest, Explicit(ContentRequired)]
     public IEnumerator FreshAndRestoredBodiesReachTheSameRealFallenPose()
     {
         Quaternion[] freshPose;

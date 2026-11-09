@@ -32,6 +32,7 @@ public static class BuildingDoorRules
             !IsDoor(door) || door.Junctions.Count != 1)
             return false;
 
+        if (!open && door.Durability <= 0f) return false;
         var portalId = door.Junctions[0];
         if (!world.Junctions.Items.TryGetValue(portalId, out var portal)) return false;
         if (door.IsDoorOpen == open && !portal.Blocked && portal.Door) return true;
@@ -40,6 +41,7 @@ public static class BuildingDoorRules
         // проверяется отдельно (§129: дверь не захлопывается на человеке).
         if (!open)
         {
+            // §129.5: a broken latch stays open; keep its architecture component.
             if (!SpatialQueries.IsJunctionFree(world, portalId)) return false;
             foreach (var npc in world.Entities.Npcs.Values)
             {

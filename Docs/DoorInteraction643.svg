@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560">
+<rect width="1000" height="560" fill="#14242c"/>
+<style>text{fill:#edf5f6;font:18px sans-serif}.small{font-size:15px}</style>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0L0,6L8,3z" fill="#67bded"/></marker></defs>
+<text x="22" y="32">#643 — подход к настоящей двери без прохода сквозь закрытую створку</text>
+<circle cx="431.19" cy="280.00" r="80.00" fill="#67bded" fill-opacity=".10" stroke="#67bded" stroke-dasharray="5 5"/>
+<circle cx="301.29" cy="392.50" r="5" fill="#e98770"/>
+<circle cx="333.76" cy="373.75" r="5" fill="#e98770"/>
+<circle cx="366.24" cy="355.00" r="5" fill="#e98770"/>
+<circle cx="398.71" cy="336.25" r="5" fill="#e98770"/>
+<circle cx="268.81" cy="373.75" r="5" fill="#e98770"/>
+<circle cx="301.29" cy="355.00" r="5" fill="#e98770"/>
+<circle cx="333.76" cy="336.25" r="5" fill="#e98770"/>
+<circle cx="366.24" cy="317.50" r="5" fill="#e98770"/>
+<circle cx="398.71" cy="298.75" r="5" fill="#e98770"/>
+<circle cx="236.33" cy="355.00" r="5" fill="#e98770"/>
+<circle cx="268.81" cy="336.25" r="5" fill="#e98770"/>
+<circle cx="301.29" cy="317.50" r="5" fill="#7dabb3"/>
+<circle cx="333.76" cy="298.75" r="5" fill="#7dabb3"/>
+<circle cx="366.24" cy="280.00" r="5" fill="#7dabb3"/>
+<circle cx="398.71" cy="261.25" r="5" fill="#7dabb3"/>
+<circle cx="203.86" cy="336.25" r="5" fill="#e98770"/>
+<circle cx="236.33" cy="317.50" r="5" fill="#e98770"/>
+<circle cx="268.81" cy="298.75" r="5" fill="#7dabb3"/>
+<circle cx="301.29" cy="280.00" r="5" fill="#7dabb3"/>
+<circle cx="333.76" cy="261.25" r="5" fill="#7dabb3"/>
+<circle cx="366.24" cy="242.50" r="5" fill="#7dabb3"/>
+<circle cx="398.71" cy="223.75" r="5" fill="#7dabb3"/>
+<circle cx="203.86" cy="298.75" r="5" fill="#e98770"/>
+<circle cx="236.33" cy="280.00" r="5" fill="#e98770"/>
+<circle cx="268.81" cy="261.25" r="5" fill="#7dabb3"/>
+<circle cx="301.29" cy="242.50" r="5" fill="#7dabb3"/>
+<circle cx="333.76" cy="223.75" r="5" fill="#7dabb3"/>
+<circle cx="366.24" cy="205.00" r="5" fill="#e98770"/>
+<circle cx="203.86" cy="261.25" r="5" fill="#e98770"/>
+<circle cx="236.33" cy="242.50" r="5" fill="#e98770"/>
+<circle cx="268.81" cy="223.75" r="5" fill="#7dabb3"/>
+<circle cx="301.29" cy="205.00" r="5" fill="#7dabb3"/>
+<circle cx="333.76" cy="186.25" r="5" fill="#e98770"/>
+<circle cx="203.86" cy="223.75" r="5" fill="#e98770"/>
+<circle cx="236.33" cy="205.00" r="5" fill="#e98770"/>
+<circle cx="268.81" cy="186.25" r="5" fill="#7dabb3"/>
+<circle cx="301.29" cy="167.50" r="5" fill="#e98770"/>
+<circle cx="171.38" cy="205.00" r="5" fill="#e98770"/>
+<circle cx="203.86" cy="186.25" r="5" fill="#e98770"/>
+<circle cx="236.33" cy="167.50" r="5" fill="#e98770"/>
+<circle cx="268.81" cy="148.75" r="5" fill="#e98770"/>
+<circle cx="301.29" cy="130.00" r="5" fill="#e98770"/>
+<circle cx="333.76" cy="148.75" r="5" fill="#e98770"/>
+<circle cx="366.24" cy="167.50" r="5" fill="#e98770"/>
+<circle cx="398.71" cy="186.25" r="5" fill="#e98770"/>
+<circle cx="431.19" cy="205.00" r="5" fill="#e98770"/>
+<circle cx="431.19" cy="242.50" r="5" fill="#e98770"/>
+<circle cx="431.19" cy="280.00" r="9" fill="#eeb35a"/>
+<circle cx="431.19" cy="317.50" r="5" fill="#e98770"/>
+<circle cx="431.19" cy="355.00" r="5" fill="#e98770"/>
+<circle cx="398.71" cy="373.75" r="5" fill="#e98770"/>
+<circle cx="366.24" cy="392.50" r="5" fill="#e98770"/>
+<circle cx="333.76" cy="411.25" r="5" fill="#e98770"/>
+<circle cx="301.29" cy="430.00" r="5" fill="#e98770"/>
+<circle cx="268.81" cy="411.25" r="5" fill="#e98770"/>
+<circle cx="236.33" cy="392.50" r="5" fill="#e98770"/>
+<circle cx="203.86" cy="373.75" r="5" fill="#e98770"/>
+<circle cx="171.38" cy="355.00" r="5" fill="#e98770"/>
+<circle cx="171.38" cy="317.50" r="5" fill="#e98770"/>
+<circle cx="171.38" cy="280.00" r="5" fill="#e98770"/>
+<circle cx="171.38" cy="242.50" r="5" fill="#e98770"/>
+<polyline points="528.62,261.25 496.14,280.00 463.67,261.25" fill="none" stroke="#67bded" stroke-width="4" marker-end="url(#arrow)"/>
+<text x="620" y="125">Оранжевый: закрытый портал</text>
+<text x="620" y="158">Красный: реальные блокировки</text>
+<text x="620" y="191">Синий: маршрут до обода</text>
+<text x="620" y="224">Обод: не дальше 0.80 wu</text>
+<text x="620" y="270">Стук: 8 тиков</text>
+<text x="620" y="303">Ответ слышен в радиусе 1 гекса</text>
+<text x="620" y="346">Взлом: работа четырёх пальм</text>
+<text x="620" y="379">Урон и стресс — уже с попытки</text>
+<text x="22" y="494">R=1.5 wu · шаг=0.375 wu · 37 внутренних + 24 граничных узла</text>
+<text x="22" y="530" class="small">Координаты и маршрут: DoorInteractionTests → WorldStateFactory → BuildingRules → HexPathfinder.</text>
+</svg>

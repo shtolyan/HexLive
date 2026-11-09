@@ -75,6 +75,10 @@ internal static partial class ManualCommandExecutor
             case SetManualControlCommand setManual:
                 ApplySetManual(world, setManual, admission);
                 break;
+            case KnockDoorCommand knock:
+                ApplyDoorOrder(world, knock.Npc, knock.Door, false, admission); break;
+            case BreakDoorCommand breakDoor:
+                ApplyDoorOrder(world, breakDoor.Npc, breakDoor.Door, true, admission); break;
             case RequestTravelPartyCommand requestParty:
                 ApplyRequestTravelParty(world, requestParty, admission);
                 break;
@@ -265,6 +269,8 @@ internal static partial class ManualCommandExecutor
         RecordAgentSocialCommand => "RecordAgentSocial",
         RecordCompanionTurnCommand => "RecordCompanionTurn",
         SetManualControlCommand => "SetManual",
+        KnockDoorCommand => "KnockDoor",
+        BreakDoorCommand => "BreakDoor",
         RequestTravelPartyCommand => "RequestTravelParty",
         ReleaseTravelPartyCommand => "ReleaseTravelParty",
         SetRunByDefaultCommand => "SetRunByDefault",

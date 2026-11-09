@@ -168,6 +168,11 @@ public static class GameEventTypes
         "ShipwreckSurvivorAppeared",
         "ShipwreckSurvivorJoined",
         "OutsiderRecruited",
+        "DoorKnocked",
+        "DoorOpenedForGuest",
+        "DoorRefusedGuest",
+        "DoorBreakInStarted",
+        "DoorBroken",
         "TravelPartyJoined",
         "TravelPartyReleased",
         // §157.5: прибой вынес потерпевшую на берег острова.

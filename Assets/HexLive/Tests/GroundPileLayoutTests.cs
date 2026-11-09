@@ -25,6 +25,40 @@ public sealed class GroundPileLayoutTests
     }
 
 #if UNITY_EDITOR
+    [TestCase(ContentIds.HerbSeed)]
+    [TestCase(ContentIds.YuccaSeed)]
+    public void ActualSeedModelsFormOneSeatedHandfulThroughProductionFit(string id)
+    {
+        var root = new GameObject("seed handful real model verification");
+        try
+        {
+            var source = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/HexLiveContent/RuntimeSource/Objects/" + id + ".fbx");
+            Assert.That(source, Is.Not.Null);
+            var renderer = root.AddComponent<HexWorldRenderer>(); renderer.enabled = false;
+            var fit = typeof(HexWorldRenderer).GetMethod("FitObjectPrefab",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            Assert.That(GroundPileCatalog.TryGet(id, false, out var profile), Is.True);
+            var count = GroundPileCatalog.Capacity(id);
+            for (int rank = 0; rank < count; rank++)
+            {
+                var slotRoot = new GameObject("physical seed " + rank); slotRoot.transform.SetParent(root.transform, false);
+                var visual = Object.Instantiate(source, slotRoot.transform);
+                fit.Invoke(renderer, new object[] { visual, id, rank + 1000, false, true });
+                var pile = slotRoot.AddComponent<GroundPileLayout>(); pile.Initialize(visual.transform, profile);
+                pile.Apply(rank, count, rank + 1000);
+                Assert.That(ObjectFit.WorldBounds(visual, out var bounds), Is.True);
+                Assert.That(bounds.min.y, Is.EqualTo(0f).Within(.00005f), "seed " + rank + " floats");
+                Assert.That(Mathf.Max(bounds.size.x, bounds.size.z), Is.LessThanOrEqualTo(.1700f), "rotated fitted seed remains within its circumcircle");
+                Assert.That(bounds.min.x, Is.GreaterThanOrEqualTo(profile.FullBounds.MinX - .00005f));
+                Assert.That(bounds.max.x, Is.LessThanOrEqualTo(profile.FullBounds.MaxX + .00005f));
+                Assert.That(bounds.min.z, Is.GreaterThanOrEqualTo(profile.FullBounds.MinZ - .00005f));
+                Assert.That(bounds.max.z, Is.LessThanOrEqualTo(profile.FullBounds.MaxZ + .00005f));
+            }
+        }
+        finally { Object.DestroyImmediate(root); }
+    }
+
     [TestCase("resource.log", "resource.log")]
     [TestCase("resource.palm_leaf", "palm_frond_native")]
     [TestCase("resource.palm_crown", "resource.palm_crown")]

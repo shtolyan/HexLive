@@ -65,6 +65,20 @@ public sealed class GroundPileProfile
         if (_layout==8) // bandage rolls: two compact bundles of five
             return new(0,index/5*(Single.MaxY-Single.MinY+.001f),
                 (index%5-2)*(Single.MaxZ-Single.MinZ+.006f));
+        if (_layout==10) // seeds: one grounded handful, never cube layers
+        {
+            // ObjectFit limits every fitted axis to TargetSize. The XZ
+            // circumcircle diameter is therefore sqrt(2)*TargetSize; this
+            // pitch leaves clearance for any yaw plus 2mm per-axis jitter.
+            var pitch = TargetSize * 1.5f + .006f;
+            var row = index / 5; var column = index % 5;
+            uint hash = unchecked((uint)objectId * 2654435761u + 1013904223u);
+            var jitterX = ((hash & 255u) / 255f - .5f) * .004f;
+            var jitterZ = (((hash >> 8) & 255u) / 255f - .5f) * .004f;
+            var yaw = ((hash >> 16) / 65536f) * 360f;
+            return new((column - 2f + (row % 2) * .5f - .25f) * pitch + jitterX,
+                0f, (row - 1.5f) * pitch * .8660254f + jitterZ, yaw);
+        }
         if (_layout==9) // stones: broad twelve-piece base, eight-piece upper course
         {
             var upper=index>=12;var stoneCell=upper?index-12:index;
@@ -148,7 +162,8 @@ public static class GroundPileCatalog
         foreach(var id in new[] {"food.coconut_open","food.meat_raw","food.meat_cooked","item.bandage","item.pill","item.plaster","med.splint","resource.arrow","resource.board","resource.cloth","resource.fiber","resource.herb_leaf","resource.herb_seed","resource.hide","resource.log","resource.mechanical_part","resource.rope","resource.stone","resource.yucca_seed","food.coconut","food.coconut_pierced","tool.axe_stone","tool.bottle","tool.bow","tool.hammer","tool.knife","tool.lighter","tool.machete","tool.pickaxe_stone","tool.saw","tool.sharp_stone","tool.spear",ContentIds.Flint,ContentIds.CrudeSaw,ContentIds.Firestarter,ContentIds.Torch})
         {
             var target=TargetWorldSize(id);var extent=(float)Math.Sqrt(3d)*target;
-            var layout=id=="resource.cloth"?5:id.StartsWith("tool.",StringComparison.Ordinal)?4:
+            var layout=id==ContentIds.HerbSeed||id==ContentIds.YuccaSeed?10:
+                id=="resource.cloth"?5:id.StartsWith("tool.",StringComparison.Ordinal)?4:
                 id.StartsWith("item.",StringComparison.Ordinal)||id=="med.splint"?6:0;
             Profiles[id]=new(id,new(-extent*.5f,0,-extent*.5f,extent*.5f,extent,extent*.5f),target,layout,centerVisualXZ:true);
         }

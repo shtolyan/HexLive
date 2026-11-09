@@ -90,6 +90,51 @@ public sealed class PersonalCareSeparationTests
         });
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public void LaundryKeepsFullBackpackContentsThroughSlowTickAndInterruption(bool interrupt)
+    {
+        var world = SettledWorld();
+        var npc = world.Entities.Npcs.Values.First(candidate =>
+            candidate.Faction == Faction.Colony && HygieneMath.FindReachableBathShore(world, candidate) is not null);
+        var pack = npc.WornItems.First(item =>
+            world.Content.ObjectDefinitions[item.DefinitionId].Layer == WearLayer.Bags);
+        npc.WornItems.Clear();
+        npc.Inventory.Items.Clear();
+        npc.WornItems.Add(pack);
+        pack.Dirtiness = 1f;
+        EquipmentMath.Recalculate(world, npc);
+        var capacity = npc.Inventory.Capacity;
+        for (var i = 0; i < capacity; i++) npc.Inventory.Items.Add(new ItemInstance(ContentIds.Bottle));
+        var items = npc.Inventory.Items.ToArray();
+        npc.Mind.CurrentGoal = GoalType.WashClothes;
+        npc.Plan.Status = PlanStatus.None;
+        new PlanningSystem().Run(world);
+        var index = npc.Plan.Steps.FindIndex(step => step.Type == PlanStepType.WashClothes);
+        var wash = npc.Plan.Steps[index];
+        var shore = world.Junctions.Items[wash.TargetJunction.Value];
+        npc.CurrentJunction = shore.Id;
+        npc.Tile = HygieneMath.DryStandTile(world, shore).Value;
+        npc.Position = shore.WorldPosition;
+        npc.Plan.CurrentStepIndex = index;
+        npc.Movement.IsMoving = false;
+        npc.Movement.SetStatus(MovementStatus.Arrived);
+        var execution = new ExecutionSystem();
+        execution.Run(world);
+        world.Tick = npc.Execution.EndTick;
+        execution.Run(world);
+        Assert.That(npc.Execution.HeldGarment, Is.SameAs(pack));
+        Assert.That(npc.Inventory.Capacity, Is.EqualTo(capacity));
+        InventoryMath.SpillOverflow(world, npc);
+        Assert.That(npc.Inventory.Items.Count, Is.EqualTo(items.Length));
+        for (var i = 0; i < items.Length; i++) Assert.That(npc.Inventory.Items[i], Is.SameAs(items[i]));
+        if (interrupt) PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "test interruption");
+        else { world.Tick = npc.Execution.EndTick; execution.Run(world); }
+        Assert.That(npc.WornItems.Any(item => ReferenceEquals(item,pack)), Is.True);
+        Assert.That(npc.Inventory.Items.Count, Is.EqualTo(capacity));
+        Assert.That(npc.Inventory.Capacity, Is.EqualTo(capacity));
+    }
+
     [Test]
     public void LaundryBatchReturnsEveryPieceToItsOrigin()
     {

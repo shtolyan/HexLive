@@ -123,6 +123,12 @@ internal static class EquipmentMath
             }
         }
 
+        // Laundry carries the garment with its pockets intact. It temporarily
+        // leaves WornItems, but its storage stays with the washer until restored.
+        var laundry = CarriedLaundryGarment(npc);
+        if (laundry is not null && world.Content.ObjectDefinitions.TryGetValue(laundry.DefinitionId, out var laundryDef))
+            slots += laundryDef.InventoryCapacity;
+
         npc.Inventory.Capacity = slots;
 
         // Spec §52.8: the TYPED weapon slots her worn holsters grant. Depends
@@ -137,6 +143,21 @@ internal static class EquipmentMath
                 holsterSlots.Add(toolId);
             }
         }
+        if (laundry is not null)
+            foreach (var toolId in HolsterCatalog.SlotsFor(laundry.DefinitionId))
+                holsterSlots.Add(toolId);
+    }
+
+    internal static ItemInstance CarriedLaundryGarment(NPCState npc)
+    {
+        var held = npc.Execution.HeldGarment;
+        var index = npc.Plan.CurrentStepIndex;
+        if (held is null || npc.Mind.CurrentGoal != GoalType.WashClothes ||
+            index < 0 || index >= npc.Plan.Steps.Count ||
+            npc.Plan.Steps[index].Type != PlanStepType.WashClothes ||
+            npc.Plan.Steps[index].LaundryFromInventory ||
+            InventoryMath.ContainsReference(npc.WornItems, held)) return null;
+        return held;
     }
 
     // Spec 31A.5B: protection has anatomy — only garments covering the

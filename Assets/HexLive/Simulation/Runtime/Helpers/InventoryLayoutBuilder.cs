@@ -412,6 +412,12 @@ public static class InventoryLayoutBuilder
             regular.Add(garment);
         }
 
+        // A worn garment held for washing still carries its unemptied pockets.
+        // Expose them in carry while the garment is absent from the paper doll.
+        var laundry = EquipmentMath.CarriedLaundryGarment(npc);
+        if (laundry is not null && world.Content.ObjectDefinitions.TryGetValue(laundry.DefinitionId, out var laundryDefinition))
+            backpackCapacity += laundryDefinition.InventoryCapacity;
+
         var baseCapacity = npc.Body.IntactHands > 0 ? SimBalance.BaseCarrySlots : 0;
         var strengthBonus = npc.Body.IntactHands > 0 ? AttributeMath.CarrySlotBonus(npc) : 0;
         var capacity = baseCapacity + strengthBonus + backpackCapacity;

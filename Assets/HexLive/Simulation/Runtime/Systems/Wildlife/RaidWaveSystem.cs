@@ -169,7 +169,9 @@ public sealed class RaidWaveSystem : ISimulationSystem
 
                 if (!SpawnIslandOutsider(world, faction, home, wave))
                 {
-                    return;
+                    // This camp keeps its unconsumed boundary for a safe retry;
+                    // independent inhabited camps must still get their own turn.
+                    break;
                 }
 
                 processed = wave;

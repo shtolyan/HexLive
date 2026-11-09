@@ -18,6 +18,29 @@ public sealed class IslandOutsiderWaveTests
     private static int Interval => Spec72.RaidWaveIntervalDays * EnvironmentSystem.DayLengthTicks;
 
     [Test]
+    public void UnsafeFirstCampDoesNotBlockTheOtherCampsScheduledWaves()
+    {
+        var world = new WorldStateFactory().Create(
+            PrototypeWorldDefinitionFactory.Create(12345, GameMode.Islands));
+        var first = world.FactionHomes[Faction.Colony];
+        var points = new System.Collections.Generic.List<Junction>();
+        LocalSearch.CollectWithinTiles(world, first, RaidWaveSystem.IslandShoreMaxDistanceTiles, points);
+        foreach (var point in points) point.Blocked = true;
+        var other = world.FactionHomes.Keys.Where(FactionRelations.IsGirlCamp)
+            .OrderBy(f=>(int)f).First(f=>f!=Faction.Colony &&
+                PopulationArrivalMath.TryPickShoreLanding(world,world.FactionHomes[f],
+                    RaidWaveSystem.IslandShoreMinDistanceTiles,RaidWaveSystem.IslandShoreMaxDistanceTiles,
+                    1,15801,out _));
+        world.Tick=Interval;
+        new RaidWaveSystem().Run(world);
+        Assert.That(world.Entities.Npcs.ContainsKey(RaidWaveSystem.IslandRaiderId(Faction.Colony,1)),Is.False);
+        Assert.That(world.Entities.Npcs.ContainsKey(RaidWaveSystem.IslandRaiderId(other,1)),Is.True,
+            "One camp without a safe landing must not prevent independent camps from receiving their wave.");
+        Assert.That((world.IslandOutsiderWavesByFaction.TryGetValue(Faction.Colony,out var processed)?processed:0),Is.Zero,
+            "The unsafe camp retries the same unconsumed boundary.");
+    }
+
+    [Test]
     public void Day3_EachIslandGetsOneOutsiderOnItsOwnShore_NoOutsiderCamp()
     {
         var world = new WorldStateFactory().Create(

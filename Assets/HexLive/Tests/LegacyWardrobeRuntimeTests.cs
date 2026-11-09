@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -34,18 +35,38 @@ public sealed class LegacyWardrobeRuntimeTests
     readonly List<(IDictionary cache, Hashtable previous)> _caches = new();
     readonly List<GameObject> _objects = new();
     readonly List<(FieldInfo field, object previous)> _fields = new();
-    JToken[] _live, _legacy, _combined;
-    Dictionary<string, GarmentDefinition> _definitions;
-    Dictionary<string, Wear> _prefabs;
+    // Imported assets and parsed metadata are fixture inputs, never per-case globals.
+    // Read-only views prevent a test from replacing entries in the shared input cache.
+    IReadOnlyList<JToken> _live, _legacy, _combined;
+    IReadOnlyDictionary<string, GarmentDefinition> _definitions;
+    IReadOnlyDictionary<string, Wear> _prefabs;
+    IReadOnlyDictionary<string, JToken> _prototypeRows;
+    IReadOnlyDictionary<ActorName, GameObject> _actorPrefabs;
+    IReadOnlyList<PaintPointMap> _paintMaps;
+    IReadOnlyList<(string pose, AnimationClip clip, float time, bool laying)> _poses;
+    string _liveJson;
     bool _async;
 
-    static JToken[] Records(string path) => ((JArray)JObject.Parse(File.ReadAllText(path))["records"])
-        .Where(r => (string)r["type"] == "wear").ToArray();
+    static IReadOnlyList<JToken> ParseRecords(string json) => Array.AsReadOnly(
+        ((JArray)JObject.Parse(json)["records"]).Where(r => (string)r["type"] == "wear").ToArray());
+    sealed class DiscoveryInputs
+    {
+        public readonly string Json;
+        public readonly IReadOnlyList<JToken> Rows;
+        public readonly IReadOnlyList<string> Keys;
+        public DiscoveryInputs()
+        {
+            Json = File.ReadAllText(Staged + "/catalog.json"); Rows = ParseRecords(Json);
+            Keys = Array.AsReadOnly(Rows.Where(r => (bool?)r["metadata"]?["legacyWardrobe"] == true)
+                .Select(r => (string)r["main"]).Distinct(StringComparer.Ordinal).OrderBy(p => p, StringComparer.Ordinal)
+                .SelectMany(path => new[] { path + "|Marta", path + "|Kshishtof" }).ToArray());
+        }
+    }
+    // NUnit can request ValueSource during discovery, before OneTimeSetUp and off
+    // the Unity main thread. Discovery performs file/JSON reads only, no AssetDatabase calls.
+    static readonly Lazy<DiscoveryInputs> Discovery = new(() => new DiscoveryInputs());
     // Unity's coroutine parameterization supports ValueSource, not TestCaseSource.
-    public static IEnumerable<string> GeometryCases => Records(Staged + "/catalog.json")
-        .Where(r => (bool?)r["metadata"]?["legacyWardrobe"] == true)
-        .Select(r => (string)r["main"]).Distinct(StringComparer.Ordinal).OrderBy(p => p, StringComparer.Ordinal)
-        .SelectMany(path => new[] { path + "|Marta", path + "|Kshishtof" });
+    public static IEnumerable<string> GeometryCases => Discovery.Value.Keys;
 
     IDictionary Isolate(Type type, string name)
     {
@@ -59,28 +80,93 @@ public sealed class LegacyWardrobeRuntimeTests
         var field = type.GetField(name, HiddenStatic); Assert.That(field, Is.Not.Null, name);
         _fields.Add((field, field.GetValue(null)));
     }
+    [OneTimeSetUp] public void LoadImmutableImportedInputsOnce()
+    {
+        Assert.That(Application.isPlaying, Is.True, "Run this fixture in graphics PlayMode");
+        Assert.That(SystemInfo.graphicsDeviceType, Is.Not.EqualTo(UnityEngine.Rendering.GraphicsDeviceType.Null));
+        var discovery = Discovery.Value;
+        Assert.That(File.ReadAllText(Staged + "/catalog.json"), Is.EqualTo(discovery.Json),
+            "Staged inputs changed after discovery; rediscover the full fixture instead of running stale/subset geometry cases.");
+        var previousAsync = ShaderUtil.allowAsyncCompilation; ShaderUtil.allowAsyncCompilation = false;
+        try
+        {
+            _liveJson = File.ReadAllText(Root + "/catalog.json");
+            _live = ParseRecords(_liveJson); _legacy = discovery.Rows;
+            Assert.That(_legacy, Is.Not.Empty, "Prepare the full staged wardrobe first; do not silently skip missing content");
+            Assert.That(_legacy.All(r => (bool?)r["metadata"]?["legacyWardrobe"] == true), Is.True);
+            Assert.That(_live.All(r => (bool?)r["metadata"]?["legacyWardrobe"] != true), Is.True,
+                "Preparation must not add the staged collection to the current live wardrobe");
+            _combined = Array.AsReadOnly(_live.Concat(_legacy).ToArray());
+            Assert.That(_combined.Select(r => (string)r["id"]).Distinct().Count(), Is.EqualTo(_combined.Count));
+            var definitions = new Dictionary<string, GarmentDefinition>(StringComparer.Ordinal);
+            var prefabs = new Dictionary<string, Wear>(StringComparer.Ordinal);
+            var definitionPaths = new Dictionary<string, GarmentDefinition>(StringComparer.Ordinal);
+            var prefabPaths = new Dictionary<string, Wear>(StringComparer.Ordinal);
+            foreach (var row in _combined)
+            {
+                string id = (string)row["id"], definitionPath = (string)row["definition"], prefabPath = (string)row["main"];
+                if (!definitionPaths.TryGetValue(definitionPath, out var definition))
+                {
+                    definition = AssetDatabase.LoadAssetAtPath<GarmentDefinition>(definitionPath);
+                    definitionPaths.Add(definitionPath, definition);
+                }
+                if (!prefabPaths.TryGetValue(prefabPath, out var prefab))
+                {
+                    prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath)?.GetComponent<Wear>();
+                    prefabPaths.Add(prefabPath, prefab);
+                }
+                Assert.That(definition, Is.Not.Null, id + " definition");
+                Assert.That(prefab, Is.Not.Null, id + " prefab");
+                definitions.Add(id, definition); prefabs.Add(id, prefab);
+            }
+            _definitions = new ReadOnlyDictionary<string, GarmentDefinition>(definitions);
+            _prefabs = new ReadOnlyDictionary<string, Wear>(prefabs);
+            _prototypeRows = new ReadOnlyDictionary<string, JToken>(_legacy.GroupBy(r => (string)r["main"], StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.OrderBy(r => (string)r["id"], StringComparer.Ordinal).First(), StringComparer.Ordinal));
+            Assert.That(discovery.Keys.Count, Is.EqualTo(_prototypeRows.Count * 2), "Every prototype keeps both canonical bodies.");
+            var mapPaths = AssetDatabase.FindAssets("t:PaintPointMap", new[] { Root + "/PaintMaps", Staged + "/PaintMaps" })
+                .Select(AssetDatabase.GUIDToAssetPath).Distinct(StringComparer.Ordinal).ToArray();
+            _paintMaps = Array.AsReadOnly(mapPaths.Select(path =>
+            {
+                var map = AssetDatabase.LoadAssetAtPath<PaintPointMap>(path);
+                Assert.That(map, Is.Not.Null, path);
+                Assert.That(map.name, Is.EqualTo(Path.GetFileNameWithoutExtension(path)), path + " runtime resource key");
+                return map;
+            }).ToArray());
+            Assert.That(_paintMaps.Select(map => map.name).Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(_paintMaps.Count),
+                "Imported runtime map keys must not shadow each other across active/staged roots.");
+            _actorPrefabs = new ReadOnlyDictionary<ActorName, GameObject>(new[] { ActorName.Marta, ActorName.Kshishtof }
+                .ToDictionary(actor => actor, actor =>
+                {
+                    var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/Prefabs/Actors/" + actor + ".prefab");
+                    Assert.That(prefab, Is.Not.Null, actor + " actual body prefab"); return prefab;
+                }));
+            var clips = new[] { "Male@Idle.fbx", "Male@Run.fbx", "Sleep.fbx", "LayingBelly.anim" }
+                .ToDictionary(file => file, ImportedClip, StringComparer.Ordinal);
+            _poses = Array.AsReadOnly(new[] { ("standing", clips["Male@Idle.fbx"], .4f, false),
+                ("run_early", clips["Male@Run.fbx"], .1f, false), ("run_mid", clips["Male@Run.fbx"], .45f, false),
+                ("run_late", clips["Male@Run.fbx"], .8f, false), ("sleep", clips["Sleep.fbx"], .5f, true),
+                ("belly", clips["LayingBelly.anim"], .5f, true) });
+            Directory.CreateDirectory(Output);
+            File.WriteAllText(Output + "/input-cache.json", new JObject {
+                ["geometryCases"] = discovery.Keys.Count, ["uniqueLegacyModels"] = _prototypeRows.Count,
+                ["posesPerGeometryCase"] = _poses.Count, ["logicalVariants"] = _legacy.Count,
+                ["uniqueDefinitionAssetsLoadedOnce"] = definitionPaths.Count, ["uniqueWearPrefabsLoadedOnce"] = prefabPaths.Count,
+                ["paintMapsLoadedOnce"] = _paintMaps.Count, ["actorPrefabsLoadedOnce"] = _actorPrefabs.Count,
+                ["animationClipsLoadedOnce"] = clips.Count, ["perCaseGlobalIsolation"] = true,
+                ["remoteRequests"] = false, ["published"] = false }.ToString());
+        }
+        finally { ShaderUtil.allowAsyncCompilation = previousAsync; }
+    }
+
     [SetUp] public void InjectOnlyImportedAssets()
     {
         Assert.That(Application.isPlaying, Is.True, "Run this fixture in graphics PlayMode");
         Assert.That(SystemInfo.graphicsDeviceType, Is.Not.EqualTo(UnityEngine.Rendering.GraphicsDeviceType.Null));
         _async = ShaderUtil.allowAsyncCompilation; ShaderUtil.allowAsyncCompilation = false;
-        _live = Records(Root + "/catalog.json"); _legacy = Records(Staged + "/catalog.json");
-        Assert.That(_legacy, Is.Not.Empty, "Prepare the full staged wardrobe first; do not silently skip missing content");
-        Assert.That(_legacy.All(r => (bool?)r["metadata"]?["legacyWardrobe"] == true), Is.True);
-        Assert.That(_live.All(r => (bool?)r["metadata"]?["legacyWardrobe"] != true), Is.True,
-            "Preparation must not add the staged collection to the current live wardrobe");
-        _combined = _live.Concat(_legacy).ToArray();
-        Assert.That(_combined.Select(r => (string)r["id"]).Distinct().Count(), Is.EqualTo(_combined.Length));
-        _definitions = _combined.ToDictionary(r => (string)r["id"], r =>
-            AssetDatabase.LoadAssetAtPath<GarmentDefinition>((string)r["definition"]), StringComparer.Ordinal);
-        _prefabs = _combined.ToDictionary(r => (string)r["id"], r =>
-            AssetDatabase.LoadAssetAtPath<GameObject>((string)r["main"])?.GetComponent<Wear>(), StringComparer.Ordinal);
-        foreach (var row in _combined)
-        {
-            var id = (string)row["id"]; Assert.That(_definitions[id], Is.Not.Null, id + " definition");
-            Assert.That(_prefabs[id], Is.Not.Null, id + " prefab");
-        }
         SaveField(typeof(GarmentLibrary), "_active"); SaveField(typeof(GarmentLibrary), "_spawnable"); SaveField(typeof(GarmentLibrary), "_byId");
+        // Keep fresh mutable simulation rows and per-case cache lists, as before.
+        // Only parsed metadata/imported asset inputs are shared between cases.
         GarmentLibrary.Override(_definitions.Values.Select(d => d.ToParams()));
         var cache = Isolate(typeof(ActorWardrobe), "Cache"); var variants = Isolate(typeof(GarmentVariants), "ById");
         foreach (var row in _combined)
@@ -88,14 +174,17 @@ public sealed class LegacyWardrobeRuntimeTests
             var id = (string)row["id"]; cache[id] = new List<Wear> { _prefabs[id] }; variants[id] = _definitions[id];
         }
         var maps = Isolate(typeof(PaintPointMap), "Cache");
-        foreach (var path in AssetDatabase.FindAssets("t:PaintPointMap", new[] { Root + "/PaintMaps" }).Select(AssetDatabase.GUIDToAssetPath))
-        {
-            var map = AssetDatabase.LoadAssetAtPath<PaintPointMap>(path);
-            Assert.That(map.name, Is.EqualTo(Path.GetFileNameWithoutExtension(path)), path + " runtime resource key");
-            maps[map.name] = map;
-        }
-        Directory.CreateDirectory(Output);
+        foreach (var map in _paintMaps) maps[map.name] = map;
     }
+
+    [OneTimeTearDown] public void VerifyInputCatalogsWereNotModified()
+    {
+        if (_liveJson != null)
+            Assert.That(File.ReadAllText(Root + "/catalog.json"), Is.EqualTo(_liveJson), "The active wardrobe inputs changed during acceptance.");
+        if (Discovery.IsValueCreated)
+            Assert.That(File.ReadAllText(Staged + "/catalog.json"), Is.EqualTo(Discovery.Value.Json), "The staged wardrobe inputs changed during acceptance.");
+    }
+
     [TearDown] public void RestoreGlobalCaches()
     {
         foreach (var go in _objects) if (go != null) Object.DestroyImmediate(go);
@@ -109,7 +198,7 @@ public sealed class LegacyWardrobeRuntimeTests
 
     GameObject Actor(ActorName actor)
     {
-        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/Prefabs/Actors/" + actor + ".prefab");
+        var prefab = _actorPrefabs[actor];
         Assert.That(prefab, Is.Not.Null);
         var go = Object.Instantiate(prefab); _objects.Add(go);
         go.GetComponent<Animator>().enabled = false;
@@ -142,7 +231,7 @@ public sealed class LegacyWardrobeRuntimeTests
         Assert.That(map, Is.Not.Null, key); Assert.That(map.VertexCount, Is.EqualTo(mesh.vertexCount), key);
         return map;
     }
-    static AnimationClip Clip(string file)
+    static AnimationClip ImportedClip(string file)
     {
         var clips = AssetDatabase.LoadAllAssetsAtPath("Assets/ImportedActors/AnimLibrary/" + file).OfType<AnimationClip>()
             .Where(c => !c.name.StartsWith("__preview__", StringComparison.Ordinal)).ToArray();
@@ -182,7 +271,7 @@ public sealed class LegacyWardrobeRuntimeTests
         [ValueSource(nameof(GeometryCases))] string key)
     {
         var parts = key.Split('|'); var path = parts[0]; var actor = (ActorName)Enum.Parse(typeof(ActorName), parts[1]);
-        var row = _legacy.Where(r => (string)r["main"] == path).OrderBy(r => (string)r["id"], StringComparer.Ordinal).First();
+        var row = _prototypeRows[path];
         string id = (string)row["id"], equipKey = id + "#0";
         var prefab = _prefabs[id]; Assert.That(prefab.SupportsActor(actor), Is.True, key);
         var expected = FittedMesh(prefab, actor); Assert.That(expected, Is.Not.Null);
@@ -200,10 +289,7 @@ public sealed class LegacyWardrobeRuntimeTests
         var body = ActorBodyResolver.ResolveOrNull(go.transform); Assert.That(body, Is.Not.Null);
         var animator = go.GetComponent<Animator>(); animator.runtimeAnimatorController = null;
         animator.enabled = true; animator.applyRootMotion = false; animator.cullingMode = AnimatorCullingMode.AlwaysAnimate; animator.Rebind();
-        var poses = new[] { ("standing", Clip("Male@Idle.fbx"), .4f, false),
-            ("run_early", Clip("Male@Run.fbx"), .1f, false), ("run_mid", Clip("Male@Run.fbx"), .45f, false),
-            ("run_late", Clip("Male@Run.fbx"), .8f, false), ("sleep", Clip("Sleep.fbx"), .5f, true),
-            ("belly", Clip("LayingBelly.anim"), .5f, true) };
+        var poses = _poses;
         var audit = new JArray(); var graph = PlayableGraph.Create("LegacyWardrobeActualRuntime"); Vector3[] standingBody = null;
         try
         {

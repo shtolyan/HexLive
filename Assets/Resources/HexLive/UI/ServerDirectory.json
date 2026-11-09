@@ -15,7 +15,7 @@
       "name": "New York",
       "socketUrl": "wss://163-245-204-96.sslip.io/watch",
       "playUrl": "https://163-245-204-96.sslip.io/play/",
-      "enabled": false
+      "enabled": true
     }
   ]
 }

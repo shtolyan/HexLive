@@ -21,6 +21,51 @@ namespace HexLive.Simulation.Runtime
 // вызывающий обязан не трогать ни цель, ни IsFighting, ни сцепку жертвы.
 public static class PlanInterruption
 {
+    /// <summary>
+    /// Retire only a finished executor before a new order. This preserves the
+    /// completed/failed plan result and emits no interruption. A live pose,
+    /// movement, carried item or craft project still needs the full abort path.
+    /// </summary>
+    internal static bool TryRetireTerminalExecution(WorldState world, NPCState npc)
+    {
+        if (npc.Plan.Status == PlanStatus.Active ||
+            npc.Execution.Status is not (ExecutionStatus.Completed or ExecutionStatus.Failed) ||
+            npc.Execution.CurrentInteraction != null || npc.Movement.IsMoving ||
+            npc.IsCarryingPerson || npc.Mind.InterruptedRescuePatientId != null ||
+            npc.Mind.RomancePartnerNpcId != null || npc.IsLyingDown(world.Tick) ||
+            npc.Execution.HeldGarment != null || npc.Execution.HeldGarmentContents.Count > 0 ||
+            npc.Execution.CraftProjectId != null || npc.Execution.CraftLayout.Count > 0)
+            return false;
+
+        // Terminal metadata may outlive its short claim. Release through the
+        // same owner-guarded services as Abort, without touching the actor's
+        // actual standing occupancy or another worker's reservation.
+        ObjectReservationSystem.ReleaseForPlan(world, npc);
+        ExecutionSystem.ReleaseClaims(world, npc);
+        LyingStations.ReleaseStation(npc);
+        void ReleaseTerminalJunction(JunctionId point)
+        {
+            SpatialMutations.ReleaseJunctionReservation(world, point, npc.Id);
+            if (npc.CurrentJunction != point) SpatialMutations.FreeJunction(world, point, npc.Id);
+        }
+        if (npc.Plan.TargetJunctionId is { } target) ReleaseTerminalJunction(target);
+        foreach (var step in npc.Plan.Steps)
+            if (step.TargetJunction is { } point) ReleaseTerminalJunction(point);
+
+        npc.Execution.Status = ExecutionStatus.None;
+        npc.Execution.CurrentInteraction = null;
+        npc.Execution.TargetObject = null;
+        npc.Execution.TargetInventoryItem = null;
+        npc.Execution.TargetInventoryWorldObject = null;
+        npc.Execution.ActionTool = null;
+        npc.Execution.ActionSupply = null;
+        npc.Execution.ActionItemsBound = false;
+        npc.Execution.VesselSources.Clear();
+        npc.Execution.StartTick = 0;
+        npc.Execution.EndTick = 0;
+        return true;
+    }
+
     public static bool TryAbort(
         WorldState world, NPCState npc, InterruptionCause cause, string reason)
     {

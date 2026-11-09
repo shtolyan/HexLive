@@ -541,18 +541,13 @@ internal static class ManualCommandExecutor
             }
         }
 
-        // A finished plan has nothing live to abort, but its terminal execution
-        // still belongs to the previous order. Each accepted new order starts
-        // with a fresh executor (including Plant -> PickUp and failed retries).
-        if (!keepRestPose && npc.Execution.Status is ExecutionStatus.Completed or ExecutionStatus.Failed)
+        // Retiring a finished result is not interrupting a live action. Keep
+        // ownership cleanup in the canonical lifecycle helper; malformed old
+        // terminal states that still own a pose/item require the ordinary abort.
+        if (!keepRestPose && npc.Execution.Status is ExecutionStatus.Completed or ExecutionStatus.Failed &&
+            !PlanInterruption.TryRetireTerminalExecution(world, npc))
         {
-            npc.Execution.Status = ExecutionStatus.None;
-            npc.Execution.CurrentInteraction = null;
-            npc.Execution.TargetObject = null;
-            npc.Execution.TargetInventoryItem = null;
-            npc.Execution.TargetInventoryWorldObject = null;
-            npc.Execution.StartTick = 0;
-            npc.Execution.EndTick = 0;
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.PlayerCommand, reason);
         }
 
         // A passive listener has no active plan to abort, but a new player

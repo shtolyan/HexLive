@@ -137,7 +137,13 @@ public sealed class PeoplePropAttachmentRuntimeTests
                         else if (id.StartsWith("resource.", StringComparison.Ordinal))
                         {
                             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>((string)r["main"]);
-                            Assert.That(prop.transform.localScale, Is.EqualTo(prefab.transform.localScale), id + " native resource scale");
+                            if (HexLive.Simulation.Content.GroundPileCatalog.TryGet(id, false, out var profile) && profile.TargetSize <= 0f)
+                                Assert.That(prop.transform.localScale, Is.EqualTo(prefab.transform.localScale), id + " native resource scale");
+                            else
+                            {
+                                ObjectFit.TryMeasuredSize(prop, id, out var resourceSize);
+                                Assert.That(resourceSize, Is.EqualTo(ObjectFit.TargetWorldSize(id)).Within(.001f), id + " ground/hand size");
+                            }
                             var grip = new Vector3(isLeft ? -.069f : .069f, -.063f, .007f);
                             Assert.That(Vector3.Distance(prop.transform.position, anchor.TransformPoint(grip)), Is.LessThan(.0001f), id + " resource grip");
                         }

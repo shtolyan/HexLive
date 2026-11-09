@@ -70,9 +70,9 @@ internal static class HandPropVisual
             return prop;
         }
 
-        // §54.12: RESOURCES (stick / leaf / log / fiber / rope…) ride in hand
-        // 1:1 — the prefab's NATIVE scale, exactly the size of the same piece
-        // on the ground or in the assembled bed, no palm-fit enlargement. One
+        // #622 / §54.12: resources use the same physical size as their ground
+        // owner. Native FBX scale is not a world size (seeds can be authored
+        // metres across). Only native-size ground profiles bypass ObjectFit. One
         // shared grip transform for all of them (dialed in the inspector on
         // the stick), mirrored for the off hand. Tools and weapons are NOT
         // touched — they keep their tuned gear-asset placements above.
@@ -89,7 +89,9 @@ internal static class HandPropVisual
 
             prop.transform.localPosition = gripPos;
             prop.transform.localRotation = gripRot;
-            // localScale stays as instantiated (the prefab/factory's own) — 1:1.
+            if (!Simulation.Content.GroundPileCatalog.TryGet(itemId, false, out var profile) ||
+                profile.TargetSize > 0f)
+                ApplyObjectFitScale(prop, itemId, prefabLocalScale, Vector3.one);
             return prop;
         }
 

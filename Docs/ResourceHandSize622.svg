@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="250" viewBox="0 0 760 250">
+<rect width="760" height="250" fill="#16232d"/><g fill="#dce7ef" font-family="sans-serif">
+<text x="25" y="32" font-size="20">#622: один физический размер семени</text>
+<text x="25" y="62">HexRadius = 1.5 wu; шаг сетки = 0.375 wu</text>
+<path d="M40 160H340M40 150V170M340 150V170" stroke="#687e8d"/>
+<text x="40" y="192">Один шаг сетки: 0.375 wu</text>
+<ellipse cx="88" cy="133" rx="48" ry="17" fill="#bfa36b"/>
+<path d="M40 106H136" stroke="#9fe870"/>
+<text x="30" y="97">На земле: 0.12 wu</text>
+<path d="M430 160H730M430 150V170M730 150V170" stroke="#687e8d"/>
+<ellipse cx="478" cy="133" rx="48" ry="17" fill="#bfa36b"/>
+<path d="M430 106H526" stroke="#9fe870"/>
+<text x="425" y="97">В руке: 0.12 wu</text>
+<text x="425" y="192">Масштаб кости учтён ObjectFit</text>
+<text x="25" y="230" font-size="14">0.08 × HexRadius — GroundPileCatalog; размеры показаны в едином масштабе.</text>
+</g></svg>

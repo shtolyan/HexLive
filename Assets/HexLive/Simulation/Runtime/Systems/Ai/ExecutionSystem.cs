@@ -1847,6 +1847,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         {
             RecoverStashedTools(world, npc, worldObject);
         }
+        else if (!CanCarryObjectContents(world, npc, worldObject))
+        {
+            FailPickupCapacity(world, npc, worldObject);
+            return false;
+        }
         else if (!InventoryMath.MakeRoomForGoal(
             world, npc, npc.Plan.Goal, worldObject.DefinitionId))
         {
@@ -1881,6 +1886,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     : 0
             };
             npc.Inventory.Items.Add(picked);
+            // Same physical pocket bundle as TakeFromContainer: validate all
+            // slots before taking the outer garment, then transfer without spill.
+            npc.Inventory.Items.AddRange(worldObject.Contents);
+            worldObject.Contents.Clear();
             WorldObjectMutations.DespawnObject(world, worldObject.Id);
             if (SimTrace.Enabled)
             {
@@ -1891,6 +1900,14 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
 
         return true;
+    }
+
+    private static bool CanCarryObjectContents(WorldState world, NPCState npc, WorldObjectState obj)
+    {
+        if (obj.Contents.Count == 0) return true;
+        var bundle = new System.Collections.Generic.List<ItemInstance>(obj.Contents)
+        { new ItemInstance(obj.DefinitionId) };
+        return ContainerLootMath.FitsInLooter(world, npc, bundle);
     }
 
     // These completion adapters transfer contents or wear the result, rather

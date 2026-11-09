@@ -133,6 +133,38 @@ public sealed class GarmentPocketStowTests
         Assert.That(npc.Inventory.UsedSlots, Is.LessThanOrEqualTo(npc.Inventory.Capacity));
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public void PickingUpAStoredGarmentTransfersAllContentsOrLeavesWholeBundleUntouched(bool full)
+    {
+        var (world, npc, garment, wardrobe) = Setup();
+        var laid = ExecutionSystem.StowWornGarmentWithContents(world, npc, garment, wardrobe.Id);
+        var contents = laid.Contents.ToArray();
+        npc.Inventory.Items.Clear();
+        if (full)
+            for (var i = 0; i < npc.Inventory.Capacity; i++) npc.Inventory.Items.Add(new ItemInstance(ContentIds.Bottle));
+        npc.Plan.Goal = GoalType.PlayerOrder; npc.Mind.ManualControl = true;
+        var objectCount = world.Entities.Objects.Count;
+        var definition = world.Content.ObjectDefinitions[laid.DefinitionId];
+        var completed = ExecutionSystem.ApplyInteractionCompletion(world, npc, laid, definition,
+            definition.Interactions.First(i => i.Type == InteractionType.PickUp), "");
+        Assert.That(completed, Is.EqualTo(!full));
+        if (full)
+        {
+            Assert.That(world.Entities.Objects.ContainsKey(laid.Id), Is.True);
+            Assert.That(laid.Contents.Count, Is.EqualTo(contents.Length));
+            Assert.That(contents.All(item => laid.Contents.Any(x => ReferenceEquals(x, item))), Is.True);
+            Assert.That(world.Entities.Objects.Count, Is.EqualTo(objectCount));
+        }
+        else
+        {
+            Assert.That(world.Entities.Objects.ContainsKey(laid.Id), Is.False);
+            Assert.That(contents.All(item => npc.Inventory.Items.Any(x => ReferenceEquals(x, item))), Is.True);
+            Assert.That(contents.Select(item => item.ResourceAmount), Is.EqualTo(new[] { .05f, 1.05f, 2.05f, 3.05f }));
+            Assert.That(world.Entities.Objects.Count, Is.EqualTo(objectCount - 1));
+        }
+    }
+
     [Test]
     public void ExistingAiCanFindResourcesInsideTheStowedGarment()
     {

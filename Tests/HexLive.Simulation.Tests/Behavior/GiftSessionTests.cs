@@ -93,6 +93,22 @@ public sealed class GiftSessionTests
     }
 
     [Test]
+    public void RetriedInvitationDoesNotRestartChosenTransferOrExtendItsWaitLease()
+    {
+        var (engine, giver, receiver) = Scene(); var world = engine.World;
+        giver.Inventory.Items.Clear(); var gift = new ItemInstance(ContentIds.Stick); giver.Inventory.Items.Add(gift);
+        engine.ApplyManualCommand(new BeginGiftSessionCommand(giver.Id, receiver.Id));
+        var deadline = giver.Mind.GiftUntilTick;
+        engine.ApplyManualCommand(new TransferInventoryCommand(giver.Id, receiver.Id,
+            new InventoryItemRef(InventoryItemSource.Carried, 0, gift.DefinitionId), 1, InventoryTransferDirection.Give));
+        world.Tick++;
+        Assert.That(engine.ApplyManualCommand(new BeginGiftSessionCommand(giver.Id, receiver.Id)).Accepted, Is.True);
+        Assert.That(giver.Mind.GiftUntilTick, Is.EqualTo(deadline));
+        Assert.That(giver.Plan.Goal, Is.EqualTo(GoalType.PlayerInventory));
+        Assert.That(giver.Execution.TargetInventoryItem, Is.SameAs(gift));
+    }
+
+    [Test]
     public void WrongAssignedActorCannotStartOrEndSomeoneElsesInvitation()
     {
         var (engine, giver, receiver) = Scene();

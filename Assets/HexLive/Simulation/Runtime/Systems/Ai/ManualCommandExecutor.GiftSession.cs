@@ -22,6 +22,9 @@ internal static partial class ManualCommandExecutor
         AdmissionTracker admission, IReadOnlyCollection<int> assigned)
     {
         if (!GiftActor(world, command.Npc, admission, assigned, out var giver)) return;
+        // Retried/rapid UI opens must not restart a selected transfer or renew an
+        // invitation forever. A fresh invitation requires the old one to end.
+        if (giver.Mind.GiftRecipientId == command.Recipient && world.Tick <= giver.Mind.GiftUntilTick) return;
         if (!GiftSessionMath.TryStart(world, giver, command.Recipient, out var receiver, out var approach, out var reason))
         { Reject(world, giver.Id, "BeginGiftSession", reason, admission); return; }
         ClearForNewOrder(world, giver, "Going to give a gift", keepCarriedPerson: true, keepGiftSession: true);

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "definitionId": "station.drying_rack",
-  "modelSha256": "80652af676080040421b7d06c41073612e828585183407f652843e4f41766b76",
+  "modelSha256": "2b60d5b7a5bd5de28b6ecef8b952961e96aa855c50f9305b6603f8077c6f68b3",
   "basis": {
     "up": "+Z",
     "forward": "+Y",

@@ -325,7 +325,7 @@
       "sourceRoot": "station.drying_rack",
       "export": "Assets/HexLiveContent/RuntimeSource/Objects/station.drying_rack.fbx",
       "exporter": "Tools/blender/export_construction_stage_workspace.py",
-      "notes": "#628: normalized +Y axis; two uprights, upper hanger rail at1.32wu, bottom brace at0.18wu, four lashings. Eight sockets at0.10wu pitch and the wardrobe hanger template. Same4sticks+4rope.",
+      "notes": "#639: normalized +Y axis; two uprights, upper hanger rail at1.32wu, bottom brace at0.18wu, four lashings. Existing short corner stays moved into grounded +X feet atY=+-0.50wu. Eight sockets at0.10wu pitch and the wardrobe hanger template unchanged. Same4sticks+4rope.",
       "stages": [
         {
           "index": 1,

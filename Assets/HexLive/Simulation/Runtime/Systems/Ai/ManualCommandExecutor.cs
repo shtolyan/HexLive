@@ -189,6 +189,12 @@ internal static partial class ManualCommandExecutor
             case FillVesselCommand fillVessel:
                 ApplyFillVessel(world, fillVessel, admission);
                 break;
+            case BeginGiftSessionCommand beginGift:
+                ApplyBeginGiftSession(world, beginGift, admission, assignedNpcIds);
+                break;
+            case EndGiftSessionCommand endGift:
+                ApplyEndGiftSession(world, endGift, admission, assignedNpcIds);
+                break;
             case TransferInventoryCommand transfer:
                 ApplyTransferInventory(world, transfer, admission);
                 break;
@@ -297,6 +303,8 @@ internal static partial class ManualCommandExecutor
         SetGroupManualControlCommand => "SetManual",
         ManageInventoryCommand => "Inventory",
         FillVesselCommand => "FillVessel",
+        BeginGiftSessionCommand => "BeginGiftSession",
+        EndGiftSessionCommand => "EndGiftSession",
         TransferInventoryCommand => "TransferInventory",
         TransferContainerCommand => "TransferContainer",
         PlaceBuildingPlanCommand => "PlaceBuildingPlan",
@@ -521,8 +529,9 @@ internal static partial class ManualCommandExecutor
     // смены режима контроля над лежащей без сознания, никогда для приказов.
     private static void ClearForNewOrder(
         WorldState world, NPCState npc, string reason, bool keepCarriedPerson = false,
-        bool keepRestPose = false)
+        bool keepRestPose = false, bool keepGiftSession = false)
     {
+        if (!keepGiftSession) GiftSessionMath.CancelForNewOrder(world, npc);
         // Bug #319: прямой приказ игрока расталкивает притворяющуюся мёртвой —
         // притворство добровольное, и хозяин решает, что хватит. Штатный
         // EndPlayDead освобождает лежанку/узел и даёт wake-grace, как любой
@@ -2483,7 +2492,8 @@ internal static partial class ManualCommandExecutor
 
         // §128: транзакция плана не роняет того, в чьих карманах роемся.
         ClearForNewOrder(world, looter, "Ручной обмен вещами с человеком",
-            keepCarriedPerson: carriedBySelf);
+            keepCarriedPerson: carriedBySelf,
+            keepGiftSession: !take && looter.Mind.GiftRecipientId == other.Id);
         ClearAttackOrder(world, looter);
 
         looter.Plan.Goal = GoalType.PlayerInventory;

@@ -793,6 +793,8 @@ public sealed class NpcSnapshot
     /// <summary>§133.9: player froze this NPC's current outfit.</summary>
     public bool OutfitLocked { get; set; }
 
+    public int? GiftSessionTargetNpcId { get; set; }
+
     // Spec §64: the colonist's current dream (aspiration) — the DreamType name,
     // localized by presentation into the character-panel dream pill. "None" when
     // she has nothing left to dream of.

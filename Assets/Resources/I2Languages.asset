@@ -4120,6 +4120,30 @@ MonoBehaviour:
       - 'Перетащите вещь на правую сторону — [[s:она примет её|он примет её]] как подарок'
       Flags: 0101
       Languages_Touch: []
+    - Term: gift.approaching
+      TermType: 0
+      Description:
+      Languages:
+      - "Walking over to give a gift — choose an item"
+      - "Идёт дарить подарок — выберите вещь"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: gift.choose
+      TermType: 0
+      Description:
+      Languages:
+      - "Ready to accept your gift — drag an item to the right"
+      - "Ждёт подарок — перетащите вещь направо"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: gift.wait_ended
+      TermType: 0
+      Description:
+      Languages:
+      - "The recipient stopped waiting — choose an item to try again"
+      - "Получатель больше не ждёт — выберите вещь для новой попытки"
+      Flags: 0101
+      Languages_Touch: []
     - Term: gift.take_forbidden
       TermType: 0
       Description:

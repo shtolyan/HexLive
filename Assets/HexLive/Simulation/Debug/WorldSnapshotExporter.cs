@@ -791,6 +791,7 @@ public static class WorldSnapshotExporter
             IsWaking = world.Tick < npc.Mind.WakeGraceUntilTick,
             Stress = npc.Needs.Stress,
             CurrentGoal = npc.Mind.CurrentGoal.ToString(),
+            GiftSessionTargetNpcId = npc.Mind.GiftRecipientId?.Value,
             IsManualControl = npc.Mind.PersistedManualControl, // §121: the player's switch, not an external agent
             TravelLeaderNpcId = npc.Mind.TravelLeaderNpcId?.Value,
             RunByDefault = npc.Mind.RunByDefault, // §121.11

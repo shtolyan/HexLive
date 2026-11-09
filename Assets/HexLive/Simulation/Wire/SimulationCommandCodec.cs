@@ -98,13 +98,22 @@ public static class SimulationCommandCodec
         PlantInventorySeed = 49, // §173.2 append-only
         RequestTravelParty = 50,
         ReleaseTravelParty = 51,
-        PlacePlantingSite = 56, // #638; 50-55 reserved for party/door/gift commands.
+        // 52..53 reserved for doors (same wave).
+        BeginGiftSession = 54,
+        EndGiftSession = 55,
+        PlacePlantingSite = 56, // #638 append-only
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
     {
         switch (command)
         {
+            case BeginGiftSessionCommand c:
+                w.Write((ushort)CommandType.BeginGiftSession); WriteEntity(w, c.Npc); WriteEntity(w, c.Recipient);
+                break;
+            case EndGiftSessionCommand c:
+                w.Write((ushort)CommandType.EndGiftSession); WriteEntity(w, c.Npc); WriteEntity(w, c.Recipient);
+                break;
             case RecordAgentSocialCommand c:
                 w.Write((ushort)CommandType.RecordAgentSocial);
                 WriteEntity(w, c.Npc);
@@ -451,6 +460,10 @@ public static class SimulationCommandCodec
                 return new RecordCompanionTurnCommand(
                     npc, turnId, trigger, reaction, intent, updates, r.ReadString());
             }
+            case CommandType.BeginGiftSession:
+                return new BeginGiftSessionCommand(ReadEntity(r), ReadEntity(r));
+            case CommandType.EndGiftSession:
+                return new EndGiftSessionCommand(ReadEntity(r), ReadEntity(r));
             case CommandType.SetManualControl:
                 return new SetManualControlCommand(ReadEntity(r), r.ReadBoolean());
             case CommandType.SetRunByDefault:

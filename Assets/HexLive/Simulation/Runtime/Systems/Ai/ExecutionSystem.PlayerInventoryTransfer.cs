@@ -212,6 +212,8 @@ public sealed partial class ExecutionSystem
     private static void FinishPlayerInventoryTransfer(
         WorldState world, NPCState looter, PlanStatus status)
     {
+        if (looter.Mind.GiftCloseRequested)
+            GiftSessionMath.End(world, looter, looter.Mind.GiftRecipientId, cancelApproach: false);
         if (looter.Plan.TargetJunctionId is { } approach)
         {
             SpatialMutations.ReleaseJunctionReservation(world, approach, looter.Id);

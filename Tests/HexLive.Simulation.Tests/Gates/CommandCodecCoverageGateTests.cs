@@ -111,6 +111,8 @@ public sealed class CommandCodecCoverageGateTests
             new InventoryItemRef(
                 InventoryItemSource.Carried, 7, ContentIds.HerbSeed),
             new JunctionId(1703), new TileCoord(-17, 30)),
+        new BeginGiftSessionCommand(new EntityId(54), new EntityId(45)),
+        new EndGiftSessionCommand(new EntityId(55), new EntityId(45)),
         new TransferInventoryCommand(
             new EntityId(36), new EntityId(63),
             new InventoryItemRef(InventoryItemSource.Carried, 2, "tool.knife"),

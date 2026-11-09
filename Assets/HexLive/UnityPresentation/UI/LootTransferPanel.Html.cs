@@ -83,7 +83,7 @@ public sealed partial class LootTransferPanel
 
     private string StatusTone()
     {
-        if (_pending) return "busy";
+        if (_pending || _status.text == Loc.Get("gift.approaching")) return "busy";
         var text = _status.text;
         return text == Loc.Get("loot.transfer_failed") || text == Loc.Get("gift.take_forbidden") ? "error" : "hint";
     }

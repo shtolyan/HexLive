@@ -56,6 +56,8 @@ public sealed partial class LootTransferPanel : MonoBehaviour
     // передачи нет по замыслу — это была бы вторая версия §128 со своими
     // багами; вместо неё окно знает про РЕЖИМ и гасит обратное направление.
     private bool _gift;
+    private int _giftSessionRequestTick;
+    private bool _giftSessionObserved;
 
     // Отказ обязан пережить конец жеста: ClearDrag возвращает подсказку по
     // умолчанию, и без этого флага «забрать нельзя» гасло бы в том же кадре,
@@ -188,6 +190,7 @@ public sealed partial class LootTransferPanel : MonoBehaviour
 
     private void OnDestroy()
     {
+        EndGiftSession();
         HtmlUi.Unhandle(HtmlScreen, OnHtmlCommand);
         _windowModal?.Show(false);
         if (!ReferenceEquals(_instance, this)) return;
@@ -245,7 +248,11 @@ public sealed partial class LootTransferPanel : MonoBehaviour
             return;
         }
 
+        if (IsOpen) Hide();
         _gift = gift;
+        _giftSessionObserved = false;
+        _giftSessionRequestTick = snapshot.Tick;
+        if (gift) _runner.EnqueueCommand(new BeginGiftSessionCommand(looter.Id, other.Id));
         _title.text = Loc.Get(gift ? "gift.title" : "loot.title");
         _arrows.text = gift ? "➜" : "⇄";
         _looterId = looterId;
@@ -615,6 +622,8 @@ public sealed partial class LootTransferPanel : MonoBehaviour
 
         var signature = PersonSignature(looter) + "<>" + PersonSignature(other);
         UpdatePendingStatus(snapshot, looter, signature);
+        if (_gift && !_pending && !_statusHeld && !_dragPrepared)
+            _status.text = GiftProgress(snapshot, looter);
 
         if (!force && signature == _signature) return;
         // §128.1a: раскладку во время жеста не трогаем — иначе нажатая ячейка
@@ -1224,6 +1233,13 @@ public sealed partial class LootTransferPanel : MonoBehaviour
             return;
         }
 
+        if (_gift && direction == InventoryTransferDirection.Give)
+        {
+            var current = FindNpc(_runner.CreateSnapshot(), _looterId);
+            if (current?.GiftSessionTargetNpcId != _otherId)
+                _runner.EnqueueCommand(new BeginGiftSessionCommand(
+                    new HexLive.Simulation.Common.EntityId(_looterId), new HexLive.Simulation.Common.EntityId(_otherId)));
+        }
         _runner.EnqueueCommand(new TransferInventoryCommand(
             new HexLive.Simulation.Common.EntityId(_looterId),
             new HexLive.Simulation.Common.EntityId(_otherId),
@@ -1490,8 +1506,28 @@ public sealed partial class LootTransferPanel : MonoBehaviour
     private string DragHint() =>
         Loc.Get(_gift ? "gift.drag_hint" : "loot.drag_hint");
 
+    private string GiftProgress(WorldSnapshot snapshot, NpcSnapshot giver)
+    {
+        if (giver.GiftSessionTargetNpcId == _otherId)
+        {
+            _giftSessionObserved = true;
+            return Loc.Get(giver.CurrentGoal == "PlayerOrder" && giver.PlanStatus == "Active"
+                ? "gift.approaching" : "gift.choose");
+        }
+        return Loc.Get(!_giftSessionObserved && snapshot.Tick <= _giftSessionRequestTick + 1
+            ? "gift.approaching" : "gift.wait_ended");
+    }
+
+    private void EndGiftSession()
+    {
+        if (_gift && _runner != null && _runner.IsReady && _looterId >= 0 && _otherId >= 0)
+            _runner.EnqueueCommand(new EndGiftSessionCommand(
+                new HexLive.Simulation.Common.EntityId(_looterId), new HexLive.Simulation.Common.EntityId(_otherId)));
+    }
+
     private void Hide()
     {
+        EndGiftSession();
         HideItemInformation();
         _windowModal?.Show(false);
         if (_root != null) _root.style.display = DisplayStyle.None;

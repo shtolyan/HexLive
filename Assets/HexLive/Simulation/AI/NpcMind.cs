@@ -241,6 +241,13 @@ public sealed class NPCMind
     // она просто спросит заново, что ровно и требовалось.
     public System.Collections.Generic.List<WearGrant> WearGrants { get; } = new();
 
+    // Transient gift invitation; loading simply releases both participants.
+    public HexLive.Simulation.Common.EntityId? GiftRecipientId { get; set; }
+    public HexLive.Simulation.Common.EntityId? PendingGiftFrom { get; set; }
+    public int GiftUntilTick { get; set; }
+    public bool GiftCloseRequested { get; set; }
+    public bool GiftManualAtStart { get; set; }
+
     public System.Collections.Generic.List<WearDenial> WearDenials { get; } = new();
 
     // Spec §53: someone is walking over to HELP this NPC (feed/treat/medicate/

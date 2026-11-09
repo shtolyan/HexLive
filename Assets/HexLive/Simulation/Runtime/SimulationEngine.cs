@@ -74,6 +74,9 @@ public sealed class SimulationEngine
             ApplyManualCommand(command);
         }
 
+        // Ephemeral gift waits release on timeout/danger/control changes before any movement.
+        GiftSessionMath.Update(World);
+
         var isMedium = World.Tick % Settings.MediumInterval == 0;
         var isSlow = World.Tick % Settings.SlowInterval == 0;
 

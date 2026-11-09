@@ -1261,6 +1261,15 @@ internal static class ManualCommandExecutor
             return;
         }
 
+        // #655: inviting an outsider recruits this one person, never the
+        // entire hostile faction or its camp/property.
+        if (target.Faction == Faction.Outsiders && !command.UseTargetCamp)
+        {
+            if (!CampDiplomacyMath.TryRecruitOutsider(world, npc, target, out var recruitReason))
+                Reject(world, npc.Id, "MergeCamps", recruitReason, admission);
+            return;
+        }
+
         if (!CampDiplomacyMath.CanMerge(world, npc, target, out var reason))
         {
             Reject(world, npc.Id, "MergeCamps", reason, admission);
@@ -1332,7 +1341,7 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        if (!CampDiplomacyMath.CanProvideCare(world, npc, partner))
+        if (!ManualControlMath.IsManual(npc) && !CampDiplomacyMath.CanProvideCare(world, npc, partner))
         {
             Reject(world, npc.Id, "Aid", "NotAlly", admission);
             return;

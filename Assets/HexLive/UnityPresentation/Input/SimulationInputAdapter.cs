@@ -1396,6 +1396,15 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         // every check and owns the actual atomic merge.
         var neighbourCamp = !dead && carrier != null &&
             ManualMenuTargets.NeighbourCamp(carrier.Faction, target.Faction);
+        if (!dead && carrier != null && target.Faction == Faction.Outsiders)
+        {
+            var ready = canOrderSocial && !lying &&
+                AffinityTo(carrier, npcId) > 0.5f && AffinityTo(target, carrier.Id.Value) > 0.5f &&
+                TrustTo(target, carrier.Id.Value) > 0.5f;
+            _entries.Add(new ContextMenuEntry(Loc.Get("menu.recruit_outsider"),
+                () => EnqueueOrder(carrier.Id.Value, new MergeCampsCommand(carrier.Id, target.Id, false)),
+                ready, ready ? null : Loc.Get("menu.recruit_outsider.requirements")));
+        }
         if (neighbourCamp)
         {
             var mutualAffinity = AffinityTo(carrier!, npcId) > 0.50f &&
@@ -1569,6 +1578,13 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             () => NpcSelection.Activate(npcId)));
 
         ContextMenuPanel.Open(mousePos, NpcTitle(npcId), _entries);
+    }
+
+    private static float TrustTo(NpcSnapshot source, int otherId)
+    {
+        foreach (var relation in source.RelationshipDetails)
+            if (relation.OtherId == otherId) return relation.Trust;
+        return 0f;
     }
 
     private static float AffinityTo(NpcSnapshot source, int otherId)

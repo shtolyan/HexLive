@@ -16,7 +16,7 @@ namespace HexLive.Simulation.Runtime
 /// The mode-aware hostility overloads live on <see cref="FactionRelations"/>;
 /// this class owns the thresholds and the atomic world mutation.
 /// </summary>
-public static class CampDiplomacyMath
+public static partial class CampDiplomacyMath
 {
     public const float HatredAffinityThreshold = -0.50f;
     public const float MergeAffinityThreshold = 0.50f;

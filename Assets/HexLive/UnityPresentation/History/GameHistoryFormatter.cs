@@ -69,6 +69,7 @@ namespace HexLive.UnityPresentation.History
                 "GiftGiven" => F("history.GiftGiven", actor,
                     TargetFromArrow(record.Message, target)),
                 "CampsMerged" => F("history.CampsMerged", actor),
+                "OutsiderRecruited" => F("history.OutsiderRecruited", actor, target),
                 "TalkQuarreled" => F("history.TalkQuarreled", actor, target),
                 "TalkWaitTimeout" => F("history.TalkWaitTimeout", actor),
                 // §108: сговор против чужака и чем он кончился.
@@ -215,6 +216,7 @@ namespace HexLive.UnityPresentation.History
                 "DirectiveExpired" => F("history.detail.DirectiveExpired", DirectiveKind(Token(record.Message, "Kind="))),
                 "GiftGiven" => GiftDetail(record.Message),
                 "CampsMerged" => L("history.detail.CampsMerged"),
+                "OutsiderRecruited" => L("history.detail.OutsiderRecruited"),
                 "TalkQuarreled" => L("history.detail.TalkQuarreled"),
                 "TalkWaitTimeout" => L("history.detail.TalkWaitTimeout"),
                 "RelationshipChanged" => RelationshipDetail(record.Message),

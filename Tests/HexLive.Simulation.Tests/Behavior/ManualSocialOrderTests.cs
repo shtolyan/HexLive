@@ -505,8 +505,9 @@ public sealed class ManualSocialOrderTests
         });
     }
 
-    [Test]
-    public void AidToOutsiderIsRejectedBeforeSuppliesAreSpent()
+    [TestCase(AidKind.Feed)]
+    [TestCase(AidKind.Hydrate)]
+    public void ExplicitAidFeedsOrWatersHostileOutsiderAndConsumesSupplies(AidKind kind)
     {
         var engine = TestWorld.CreateEngine(1461210);
         var world = engine.World;
@@ -514,17 +515,59 @@ public sealed class ManualSocialOrderTests
         var outsider = world.Entities.Npcs.Values.Single(n =>
             n.Faction == Faction.Outsiders);
         TakeControl(engine, helper);
+        TakeControl(engine, outsider);
+        PlaceOnFreeNeighbor(world, outsider, helper);
+        outsider.Wounds.Clear();
+        outsider.Needs.Hunger = kind == AidKind.Feed ? 0.8f : 0f;
+        outsider.Needs.Thirst = kind == AidKind.Hydrate ? 0.8f : 0f;
+        helper.Inventory.Items.Add(new ItemInstance(ContentIds.MeatCooked));
+        helper.Inventory.Items.Add(new ItemInstance(ContentIds.Bottle));
+        helper.BottleWater = WaterKind.Rain;
+        helper.BottleCharges = SimBalance.BottleCapacity;
+        var foodBefore = helper.Inventory.Items.Count(i => i.DefinitionId == ContentIds.MeatCooked);
+        var waterBefore = helper.BottleCharges;
+        var relationBefore = outsider.Social.GetOrCreate(helper.Id).Affinity;
 
         var admission = ManualCommandExecutor.Apply(
-            world, new AidPersonCommand(helper.Id, outsider.Id, AidKind.Feed));
+            world, new AidPersonCommand(helper.Id, outsider.Id, kind));
 
         Assert.Multiple(() =>
         {
             Assert.That(admission.Status,
-                Is.EqualTo(ManualCommandAdmissionStatus.Rejected));
-            Assert.That(admission.Reason, Is.EqualTo("NotAlly"));
-            Assert.That(helper.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+                Is.EqualTo(ManualCommandAdmissionStatus.Accepted), admission.Reason);
         });
+        for (var i = 0; i < 600; i++)
+        {
+            engine.Step();
+            if ((kind == AidKind.Feed ? outsider.Needs.Hunger : outsider.Needs.Thirst) < 0.6f) break;
+        }
+        Assert.That(kind == AidKind.Feed ? outsider.Needs.Hunger : outsider.Needs.Thirst, Is.LessThan(0.6f));
+        Assert.That(outsider.Social.GetOrCreate(helper.Id).Affinity, Is.GreaterThan(relationBefore));
+        if (kind == AidKind.Feed)
+            Assert.That(helper.Inventory.Items.Count(i => i.DefinitionId == ContentIds.MeatCooked), Is.EqualTo(foodBefore - 1));
+        else Assert.That(helper.BottleCharges, Is.LessThan(waterBefore));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void RecruitingOutsiderRequiresEarnedFriendshipAndMovesOnlyThatPerson(bool trusted)
+    {
+        var engine = TestWorld.CreateEngine(1461210);
+        var world = engine.World;
+        var inviter = TwoColonists(world)[0];
+        var outsider = world.Entities.Npcs.Values.Single(n => n.Faction == Faction.Outsiders);
+        TakeControl(engine, inviter);
+        PlaceOnFreeNeighbor(world, outsider, inviter);
+        outsider.Mind.CurrentGoal = GoalType.None;
+        outsider.Needs.Energy = 1f;
+        inviter.Social.GetOrCreate(outsider.Id).Affinity = trusted ? 0.7f : -0.5f;
+        outsider.Social.GetOrCreate(inviter.Id).Affinity = trusted ? 0.7f : -0.5f;
+        outsider.Social.GetOrCreate(inviter.Id).Trust = trusted ? 0.7f : 0f;
+        var outsiderHome = world.FactionHomes[Faction.Outsiders];
+        var result = ManualCommandExecutor.Apply(world, new MergeCampsCommand(inviter.Id, outsider.Id, false));
+        Assert.That(result.Status, Is.EqualTo(trusted ? ManualCommandAdmissionStatus.Accepted : ManualCommandAdmissionStatus.Rejected), result.Reason);
+        Assert.That(outsider.Faction, Is.EqualTo(trusted ? inviter.Faction : Faction.Outsiders));
+        Assert.That(world.FactionHomes[Faction.Outsiders], Is.EqualTo(outsiderHome));
     }
 
     // ── Медицинская помощь / протез ──────────────────────────────────────

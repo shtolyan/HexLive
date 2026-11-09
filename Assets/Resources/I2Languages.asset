@@ -31740,6 +31740,38 @@ MonoBehaviour:
       - 'Прошу постирать одежду'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.recruit_outsider'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Invite to our camp'
+      - 'Пригласить в наш лагерь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.recruit_outsider.requirements'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Mutual friendship and their trust must exceed 50; talk nearby'
+      - 'Нужны взаимная симпатия и доверие чужака выше 50; поговорите рядом'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.OutsiderRecruited'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} invited {1} into the camp'
+      - '{0} пригласила {1} в лагерь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.OutsiderRecruited'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A former outsider accepted a personal invitation and joined this camp. Other outsiders and their belongings remain independent.'
+      - 'Бывший чужак принял личное приглашение и присоединился к лагерю. Другие чужаки и их имущество остались независимыми.'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

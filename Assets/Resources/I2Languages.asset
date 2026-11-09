@@ -31540,9 +31540,6 @@ MonoBehaviour:
       - 'OK · Баг отправлен'
       Flags: 0101
       Languages_Touch: []
-    CaseInsensitiveTerms: 0
-    OnMissingTranslation: 1
-    mTerm_AppName:
     - Term: item.resource_flint.name
       TermType: 0
       Description:
@@ -31623,6 +31620,9 @@ MonoBehaviour:
       - "\u0414\u0435\u043b\u0430\u0435\u0442 \u043c\u043e\u043b\u043e\u0442\u043e\u043a"
       Flags: 0101
       Languages_Touch: []
+    CaseInsensitiveTerms: 0
+    OnMissingTranslation: 1
+    mTerm_AppName:
     mLanguages:
     - Name: English
       Code: en

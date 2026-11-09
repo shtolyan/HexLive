@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace HexLive.UnityPresentation.Environment
 {
-/// <summary>§175: flames follow the authored tip, while light retains the campfire's world scale.</summary>
+/// <summary>§175: flames and soft light follow the authored tip, with campfire reach.</summary>
 public sealed class PortableTorchVisual : MonoBehaviour
 {
     private Transform _tip = null!;
@@ -21,7 +21,7 @@ public sealed class PortableTorchVisual : MonoBehaviour
         visual.LateUpdate();
         var effect = host.AddComponent<CampfireEffect>();
         var radius = Simulation.Spatial.HexSpatialMath.HexRadius;
-        effect.Construct(radius * 0.18f, radius, playCrackle: false);
+        effect.Construct(radius * 0.18f, radius, playCrackle: false, lightIntensity: 1.5f);
         effect.SetLit(true);
         return effect;
     }

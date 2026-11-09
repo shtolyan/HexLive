@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 350" width="800" height="350">
+<rect width="800" height="350" rx="12" fill="#131b22"/>
+<g font-family="Arial,sans-serif" fill="#e0e9ed">
+<text x="30" y="35" font-size="20">Факел: независимые размер пламени и дальность света (§175)</text>
+<circle cx="190" cy="190" r="112.5" fill="#f6ac4a" fill-opacity=".08" stroke="#f6ac4a" stroke-dasharray="5 4"/>
+<circle cx="190" cy="190" r="3" fill="#f6ac4a"/>
+<path d="M190 190h112.5" stroke="#f6ac4a"/>
+<text x="202" y="180" font-size="15">7.5 wu</text>
+<text x="70" y="325" font-size="15">Вид сверху: радиус сохранён</text>
+<path d="M500 275v-150" stroke="#987555" stroke-width="12"/>
+<path d="M485 140v-35h30v35" fill="#c3b290"/>
+<circle cx="500" cy="110" r="3" fill="#ff9e26"/>
+<circle cx="500" cy="101.9" r="4" fill="#73d0ad"/>
+<circle cx="500" cy="65" r="4" fill="none" stroke="#e16c61"/>
+<path d="M540 110v-8.1" stroke="#73d0ad" stroke-width="2"/>
+<text x="552" y="105" font-size="15" fill="#73d0ad">+0.081 wu: теперь у пламени</text>
+<text x="522" y="60" font-size="15" fill="#e99990">+0.45 wu: прежде слишком высоко</text>
+<text x="410" y="308" font-size="15">Интенсивность: 1.5; у костра 3.2</text>
+<text x="410" y="332" font-size="13" fill="#acbac7">Высоты и план показаны в разных масштабах</text>
+</g></svg>

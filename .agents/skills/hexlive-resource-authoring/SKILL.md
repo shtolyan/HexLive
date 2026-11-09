@@ -1,21 +1,22 @@
 ---
 name: hexlive-resource-authoring
-description: Author a new carryable HexLive resource, item or tool end to end — the simulation id and catalog entry, the flat-shaded Blender model in Resources/HexLive/Objects, its size in ObjectFit, and the inventory icon with its Addressables entry. Use when adding or fixing a board, plank, rope, hide, stone, coconut, bandage, prosthetic part or any tool.* / resource.* / item.* prop; when a dropped item is invisible, tiny, grey, brown-when-it-should-be-light, or has no picture in the inventory list; and when an icon renders blown out to white.
+description: Author a new carryable HexLive resource, item or tool end to end — the simulation id and catalog entry, the flat-shaded Blender model in Resources/HexLive/Objects, its size in ObjectFit, its rendered inventory icon in the atomic owner bundle, and localized name/description in every supported language. Use when adding or fixing a board, plank, rope, hide, stone, coconut, bandage, prosthetic part or any tool.* / resource.* / item.* prop; when a dropped item is invisible, tiny, grey, brown-when-it-should-be-light, or has no picture in the inventory list; and when an icon renders blown out to white.
 ---
 
 # HexLive resource authoring
 
-A carryable thing is **six** artefacts, not one. Ship fewer and the failure is
+A carryable thing is **seven** artefacts, not one. Ship fewer and the failure is
 always silent: the item exists, the code runs, nothing appears.
 
 | # | Artefact | Where | Missing ⇒ |
 |---|---|---|---|
 | 1 | id | `Simulation/Content/ContentIds.cs` | nothing to reference |
 | 2 | catalog entry | `PrototypeContentCatalog.AddPickupItem(...)` | id unknown to the sim |
-| 3 | tuning asset (optional) | `Resources/HexLive/WorldObjects/<x>.asset` | code defaults only |
-| 4 | **model** | `Resources/HexLive/Objects/<id>.fbx` | grey primitive fallback |
-| 5 | **size** | `UnityPresentation/ObjectFit.cs` | 0.6·HexRadius, or a splinter |
-| 6 | **icon** | `HexLiveContent/Icons/<id>.png` **+ Addressables entry** | category emoji |
+| 3 | tuning asset (optional) | `HexLiveContent/RuntimeSource/WorldObjects/<x>.asset` | code defaults only |
+| 4 | **model** | `HexLiveContent/RuntimeSource/Objects/<id>.fbx` | grey primitive fallback |
+| 5 | **size** | `GroundPileCatalog` through `UnityPresentation/ObjectFit.cs` | 0.6·HexRadius, or a splinter |
+| 6 | **icon** | `HexLiveContent/Icons/<id>.png` **+ owner atomic `icon` entry** | category emoji |
+| 7 | **localization** | `Resources/I2Languages.asset` inside `mSource.mTerms` | raw keys or fallback names |
 
 Then re-export `SimData/simdata.json` (Unity menu **HexLive ▸ Export Sim Data
 (JSON)**) or every headless test runs on stale data.
@@ -25,10 +26,10 @@ Then re-export `SimData/simdata.json` (Unity menu **HexLive ▸ Export Sim Data
 Check first — a "missing" prop is usually present and unreadable.
 
 ```bash
-ls Assets/Resources/HexLive/Objects/ | grep <id>
+ls Assets/HexLiveContent/RuntimeSource/Objects/ | grep <id>
 ls Assets/HexLiveContent/Icons/ | grep <id>
 grep -n "<id>" Assets/HexLive/UnityPresentation/ObjectFit.cs
-grep -n "icon/<id>" Assets/AddressableAssetsData/AssetGroups/HexLive.Icons.asset
+# Verify candidate metadata.hasIcon=true and variant.iconAsset="icon".
 ```
 
 `WorldPropResources.Load` maps some ids to a `*_native` filename — read
@@ -89,15 +90,15 @@ food `0.12`, tools `0.216`, lighter `0.072`.
 
 ```bash
 /Applications/Blender.app/Contents/MacOS/Blender -b -P Tools/render_item_icon.py -- \
-    Assets/Resources/HexLive/Objects/<id>.fbx /tmp/<id>.png \
+    Assets/HexLiveContent/RuntimeSource/Objects/<id>.fbx /tmp/<id>.png \
     [--tilt 22] [--fit 1.10] --install <id>
 ```
 
-`--install` copies into `Assets/HexLiveContent/Icons/`, writes the sprite
-`.meta`, **and registers `icon/<id>` in `HexLive.Icons`**. All three are
-required: `Wearing/Garments/ItemIcons` is the only door to item icons and it
-asks Addressables and nothing else. A PNG without its group entry imports
-cleanly and never appears anywhere in the game.
+`--install` copies into `Assets/HexLiveContent/Icons/` and writes the sprite
+`.meta`. Build the owning atomic object with this imported Sprite as its `icon`
+entry (`metadata.hasIcon=true`, `variant.iconAsset="icon"`). `ItemIcons` loads
+`type/id#icon` from that same bundle and SHA. There is no separate icon bundle
+or Addressables icon group. A PNG on disk alone does not prove runtime loading.
 
 `Assets/Resources/HexLive/UI/Items` is **dead** — only the migration tooling
 still names it. Do not put an icon there.
@@ -124,6 +125,14 @@ importers keep the axis-conversion rotation there; assigning overwrites it and
 the model silently springs back to its original pose. Transform the mesh data:
 `ob.data.transform(ob.matrix_world.inverted() @ rot @ ob.matrix_world)`.
 
+## Localization — required, not a follow-up
+
+Every new object needs `item.<slug>.name` **and** `item.<slug>.desc` in every
+supported language (currently English and Russian). Add them inside the
+`mSource.mTerms` sequence, never after `mTerm_AppName` or another source field.
+Verify the imported asset through runtime `Loc.Get`/`Loc.Has` in both languages;
+grep or a regex over the whole YAML can falsely pass ignored terms.
+
 ## Register and record
 
 - Add the prop to `Tools/world_prop_manifest.json` (`mode:"existing-native"`,
@@ -139,3 +148,9 @@ Render the prop next to its nearest neighbour on a plain ground plane, at the
 real `ObjectFit` sizes, and look at that picture before declaring it done.
 Colour, size and silhouette are all decided there — none of them are visible in
 a diff.
+
+A new object is unfinished until the real model, rendered icon and localized
+name/description work in crafting and inventory through the production loading
+path. For glowing objects, inspect light/flames both held and dropped. Source
+files alone do not mean content was built or published; follow deployment
+authorization separately.

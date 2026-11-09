@@ -4,6 +4,21 @@ The canonical project guide is `CLAUDE.md`; follow it for architecture,
 tooling, verification, and content-pipeline rules. The canonical behaviour
 spec is `Spec/<N>.md` — one file per section — and must stay in sync with code.
 
+## Every new object must be complete
+
+Before declaring a new item/object ready, use the resource-authoring skill and
+provide its real model, correct hand/world scale, a rendered inventory PNG from
+that model, and localized name **and description in every supported language**.
+Register the PNG as the owning atomic object's `icon` entry; a file in the repo
+alone is insufficient. Verify the imported Sprite and translations through runtime
+`Loc`, then inspect the model and icon in the game's actual loading path.
+I2 terms belong inside `mSource.mTerms`; a text search for the keys does not prove
+that Unity imports them. Check crafting and inventory in both Russian and English.
+For luminous objects, also inspect the flame and lighting in game, in the hand
+and on the ground. Missing art, emoji fallbacks, raw localization keys or an
+unverified effect mean the object is unfinished. Follow existing build/publication
+authorization separately; never report local source files as published content.
+
 ## Света — куратор разработки и релизов
 
 Прямым поручением Толи от 2026-10-11 Света на openclaw-vps официально назначена

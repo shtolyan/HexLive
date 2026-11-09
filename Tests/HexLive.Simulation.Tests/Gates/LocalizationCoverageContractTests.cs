@@ -18,7 +18,13 @@ public sealed class LocalizationCoverageContractTests
     public void AllItemNamesAndPreparedWearDescriptionsHaveEnglishAndRussian()
     {
         var source = RepoPaths.ReadText(Path.Combine(RepoPaths.Root, "Assets/Resources/I2Languages.asset"));
-        var terms = Regex.Matches(source, @"^    - Term: (?:'([^'\r\n]+)'|([^\r\n]+))\n(.*?)(?=^    - Term: |^    mLanguages:)", RegexOptions.Multiline | RegexOptions.Singleline)
+        // Unity imports only the sequence under mTerms, not matching keys in other fields.
+        var block = Regex.Match(source, @"^    mTerms:\n(.*?)(?=^    [A-Za-z_])", RegexOptions.Multiline | RegexOptions.Singleline);
+        Assert.That(block.Success, Is.True, "mSource.mTerms must be a serialized sequence");
+        Assert.That(Regex.Matches(source, @"^    - Term:", RegexOptions.Multiline).Count,
+            Is.EqualTo(Regex.Matches(block.Groups[1].Value, @"^    - Term:", RegexOptions.Multiline).Count),
+            "Localization terms outside mSource.mTerms are ignored by Unity");
+        var terms = Regex.Matches(block.Groups[1].Value, @"^    - Term: (?:'([^'\r\n]+)'|([^\r\n]+))\n(.*?)(?=^    - Term: |\z)", RegexOptions.Multiline | RegexOptions.Singleline)
             .ToDictionary(m => m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value, m => m.Groups[3].Value);
         void Check(string key)
         {
@@ -44,7 +50,8 @@ public sealed class LocalizationCoverageContractTests
         var preparedIds = people["records"].AsArray().Where(r => r["type"].GetValue<string>() == "wear").Select(r => r["id"].GetValue<string>()).ToArray();
         var ids = world.Content.ObjectDefinitions.Keys.Concat(simdata["garments"].AsArray().Select(g => g["id"].GetValue<string>())).Concat(preparedIds).Distinct();
         foreach (var id in ids.Where(id => id != ContentIds.LeatherPants)) Check("item." + ItemInfo.Slug(id) + ".name");
-        foreach (var id in preparedIds) Check("item." + ItemInfo.Slug(id) + ".desc");
+        foreach (var id in preparedIds.Concat(new[] { ContentIds.Flint, ContentIds.CrudeSaw, ContentIds.Firestarter, ContentIds.Torch }))
+            Check("item." + ItemInfo.Slug(id) + ".desc");
     }
 
     [Test]

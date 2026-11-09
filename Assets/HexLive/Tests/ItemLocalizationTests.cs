@@ -13,6 +13,31 @@ namespace HexLive.Tests
 
 public sealed class ItemLocalizationTests
 {
+    [TestCase(ContentIds.Flint)]
+    [TestCase(ContentIds.CrudeSaw)]
+    [TestCase(ContentIds.Firestarter)]
+    [TestCase(ContentIds.Torch)]
+    public void SurvivalItemNameAndDescriptionResolveFromImportedSource(string id)
+    {
+        var original = Loc.Current;
+        try
+        {
+            foreach (var language in new[] { Language.English, Language.Russian })
+            {
+                Loc.Current = language;
+                foreach (var suffix in new[] { ".name", ".desc" })
+                {
+                    var key = "item." + ItemInfo.Slug(id) + suffix;
+                    Assert.That(Loc.Has(key), Is.True, key + " " + language);
+                    Assert.That(Loc.Get(key), Is.Not.Empty.And.Not.EqualTo(key), key);
+                    if (language == Language.Russian)
+                        Assert.That(Loc.Get(key), Does.Match("[А-Яа-яЁё]"), key);
+                }
+            }
+        }
+        finally { Loc.Current = original; }
+    }
+
     [Test]
     public void ImportedItemTermsHaveRussianAndBackpacksResolveThroughRuntimeLoc()
     {

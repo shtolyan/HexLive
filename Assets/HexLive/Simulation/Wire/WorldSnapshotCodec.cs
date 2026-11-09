@@ -96,7 +96,7 @@ public static class WorldSnapshotCodec
     // v42: per-vessel visual provenance and exact held-bottle fill (§55.5).
     // v43: persistent craft project current/last worker (§119, #422).
     // v44: §54.21 / #429 distinguishes harvest scatter from inventory piles.
-    public const int WireVersion = 44;
+    public const int WireVersion = 45; // #644: ObjectParts is ushort; old readers must refuse.
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 

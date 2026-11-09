@@ -170,7 +170,8 @@ public sealed class Handshake
     // 22: §149.6 — durable assignment notices and acknowledgement.
     // 26: §173.2 — exact inventory-seed planting command and target junction.
     // 27: #487 — exact encoder vocabulary, independent of either side's code defaults.
-    public const int ProtocolVersion = 27; // matched client/server required
+    // 28: #644 — snapshot v45 has ushort object flags and real property/consent.
+    public const int ProtocolVersion = 28; // matched client/server required
 
     public string WorldId { get; set; } = string.Empty;
     public string CreationConfig { get; set; } = string.Empty;

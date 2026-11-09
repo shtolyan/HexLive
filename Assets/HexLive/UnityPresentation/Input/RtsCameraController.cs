@@ -997,7 +997,7 @@ namespace HexLive.UnityPresentation.Input
                 {
                     if (!CanTargetPerson(npc) ||
                         !_worldRenderer.TryGetActorView(npc.Id.Value, out var view) ||
-                        !view.TryRaycastVisibleGeometry(ray, nearestViewDistance, out var hitDistance))
+                        !NpcBodyPicker.TryIntersect(view, ray, nearestViewDistance, out var hitDistance))
                     {
                         continue;
                     }

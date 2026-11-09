@@ -667,7 +667,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             if ((NpcSelection.Contains(person.Id.Value) && !isSelf) ||
                 !CanTargetPerson(person) || // §148: невидимого не выбрать
                 !_worldRenderer.TryGetActorView(person.Id.Value, out var view) ||
-                !view.TryRaycastVisibleGeometry(ray, distance, out var hitDistance))
+                !NpcBodyPicker.TryIntersect(view, ray, distance, out var hitDistance))
             {
                 continue;
             }
@@ -840,30 +840,33 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             return false;
         }
 
-        if (_hoveredNpcId >= 0)
+        var clickSnapshot = _runner.IsReady ? _runner.CreateSnapshot() : null;
+        PickTarget(clickSnapshot, mousePos, out var clickedNpc, out var clickedMob, out var clickedObject);
+
+        if (clickedNpc >= 0)
         {
             // §121.9: клик по себе — меню самодействий, не приказ и не выбор.
-            if (_hoveredNpcId == OrderNpcId)
+            if (clickedNpc == OrderNpcId)
             {
-                OpenSelfMenu(mousePos, _hoveredNpcId);
+                OpenSelfMenu(mousePos, clickedNpc);
             }
             else
             {
-                OpenNpcMenu(mousePos, _hoveredNpcId);
+                OpenNpcMenu(mousePos, clickedNpc);
             }
 
             return true;
         }
 
-        if (_hasHoveredMob || _hoveredMobId >= 0)
+        if (clickedMob != -1)
         {
-            OpenMobMenu(mousePos, _hoveredMobId);
+            OpenMobMenu(mousePos, clickedMob);
             return true;
         }
 
-        if (_hovered != null)
+        if (clickedObject != null)
         {
-            OpenObjectMenu(mousePos, _hovered);
+            OpenObjectMenu(mousePos, clickedObject);
             return true;
         }
 

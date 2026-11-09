@@ -1118,18 +1118,21 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             var objectId = view.ContextObjectId;
             var type = interaction.Type;
             var interactionId = interaction.Id;
+            var emptyDrink = type == InteractionType.Drink && clicked != null &&
+                ItemCatalog.IsDrainedWaterShell(clicked.DefinitionId, clicked.ResourceAmount);
+            if (emptyDrink) ok = false;
             // Bug #312: взять чужое на приватной земле чужого лагеря — это
             // «Украсть», красным. Предикат тот же, что применит симуляция
             // (TheftMath), посчитан по снапшоту: якоря лагерей + владелец.
             var theft = type == InteractionType.PickUp &&
                 IsTheftTarget(snapshot, clicked);
             _entries.Add(new ContextMenuEntry(
-                theft ? Loc.Get("menu.steal") : InteractionVerb(interaction),
+                emptyDrink ? Loc.Get("menu.drink_empty") : theft ? Loc.Get("menu.steal") : InteractionVerb(interaction),
                 () => EnqueueOrder(actorId,
                     new InteractCommand(
                         actor, new ObjectId(objectId), type, interactionId)),
                 ok,
-                ok ? null : Loc.Get(usableHands == 0 ? "menu.needs_hand" : "menu.missing_tool"))
+                emptyDrink ? Loc.Get("menu.drink_empty") : ok ? null : Loc.Get(usableHands == 0 ? "menu.needs_hand" : "menu.missing_tool"))
             { Danger = theft });
 
             // §121.10 (баг #270): рядом с «Подобрать» — «Собрать все». Собрать

@@ -3017,6 +3017,13 @@ internal static class ManualCommandExecutor
             return false;
         }
 
+        if (interactionType == InteractionType.Drink &&
+            ItemCatalog.IsDrainedWaterShell(worldObject.DefinitionId, worldObject.ResourceAmount))
+        {
+            Reject(world, npc.Id, verb, "EmptyVessel", admission);
+            return false;
+        }
+
         // §42 / #416: an unlit hearth is not a warming interaction.
         if (interactionType == InteractionType.Observe && definition.HasTag("Campfire") &&
             worldObject.ResourceAmount <= 0f)

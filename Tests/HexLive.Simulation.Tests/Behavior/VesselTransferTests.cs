@@ -645,6 +645,23 @@ public sealed class VesselTransferTests
     }
 
     [Test]
+    public void EmptyGroundCoconutRejectsDrinkWithoutInstallingPlan()
+    {
+        var world = TestWorld.CreateWorld(621);
+        var npc = Girl(world);
+        npc.Mind.ManualControl = true;
+        var anchor = world.Junctions.Items.Values.First(j => j.Fragment == npc.Fragment && j.Tiles.Count > 0);
+        var coconut = WorldObjectMutations.SpawnObject(world, ContentIds.CoconutPierced,
+            npc.Fragment, anchor.Tiles[0], anchor.Id);
+        coconut.ResourceAmount = 0f;
+        var result = ManualCommandExecutor.Apply(world,
+            new InteractCommand(npc.Id, coconut.Id, InteractionType.Drink));
+        Assert.That(result.Status, Is.EqualTo(ManualCommandAdmissionStatus.Rejected));
+        Assert.That(result.Reason, Is.EqualTo("EmptyVessel"));
+        Assert.That(coconut.ResourceAmount, Is.Zero);
+    }
+
+    [Test]
     public void ZeroChargeBottleCannotDrinkOrRollSickness()
     {
         var world = TestWorld.CreateWorld(348);

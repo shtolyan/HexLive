@@ -31620,6 +31620,14 @@ MonoBehaviour:
       - "\u0414\u0435\u043b\u0430\u0435\u0442 \u043c\u043e\u043b\u043e\u0442\u043e\u043a"
       Flags: 0101
       Languages_Touch: []
+    - Term: menu.drink_empty
+      TermType: 0
+      Description:
+      Languages:
+      - "Drink (empty)"
+      - "Выпить (пусто)"
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

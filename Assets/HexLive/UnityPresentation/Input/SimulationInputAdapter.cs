@@ -1576,8 +1576,8 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     }
 
     // §121.9: само-меню — то, что колонистка делает сама с собой. Пункты
-    // всегда активны: правду («нечем перевязаться», «не в бою», «нечего
-    // стирать») знает симуляция, отказ придёт честным тостом причины.
+    // обычно активны: правду о нуждах проверяет симуляция. Питьё отдельно
+    // повторяет доступность реальных глотков, чтобы пустая ёмкость не обещала действие.
     private void OpenSelfMenu(Vector2 mousePos, int npcId)
     {
         var runner = _runner;
@@ -1598,7 +1598,14 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         Add("menu.self.bathe", SelfActionKind.Bathe);
         Add("menu.self.wash", SelfActionKind.WashClothes);
         Add("menu.self.eat", SelfActionKind.EatFromPack);
-        Add("menu.self.drink", SelfActionKind.DrinkFromPack);
+        var selfSnapshot = runner.IsReady ? runner.CreateSnapshot() : null;
+        var self = selfSnapshot?.Npcs.Find(candidate => candidate.Id.Value == npcId);
+        var canDrink = ManualMenuTargets.CanDrinkFromPack(self, id =>
+            runner.TryGetObjectDefinition(id, out var definition) && definition != null &&
+            definition.Interactions.Any(interaction => interaction.Type == InteractionType.Drink));
+        _entries.Add(new ContextMenuEntry(Loc.Get(canDrink ? "menu.self.drink" : "menu.drink_empty"),
+            () => EnqueueOrder(npcId, new SelfActionCommand(actor, SelfActionKind.DrinkFromPack)),
+            canDrink, canDrink ? null : Loc.Get("toast.order_rejected.NothingToDrink")));
         Add("menu.self.go_home", SelfActionKind.GoHome);
         // §167.2: крикнуть всем своим в радиусе — каждая решает сама.
         _entries.Add(new ContextMenuEntry(Loc.Get("menu.shout"),

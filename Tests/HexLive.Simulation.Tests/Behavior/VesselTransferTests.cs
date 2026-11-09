@@ -706,6 +706,36 @@ public sealed class VesselTransferTests
         Assert.That(npc.Plan.Steps, Is.Empty);
     }
 
+    [TestCase(ContentIds.Bottle, 0f, WaterKind.None, false)]
+    [TestCase(ContentIds.Bottle, .5f, WaterKind.Rain, false)]
+    [TestCase(ContentIds.Bottle, 1f, WaterKind.Rain, true)]
+    [TestCase(ContentIds.Bottle, 4.2f, WaterKind.Rain, true)]
+    [TestCase(ContentIds.CoconutPierced, 0f, WaterKind.None, false)]
+    [TestCase(ContentIds.CoconutPierced, 1f, WaterKind.None, true)]
+    public void PackDrinkMenuMatchesPhysicalVesselAvailability(string id, float amount, WaterKind kind, bool expected)
+    {
+        var world = TestWorld.CreateWorld(62101);
+        var npc = Girl(world);
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Items.Add(new ItemInstance(id) { ResourceAmount = amount, WaterKind = kind });
+        var snapshot = WorldSnapshotExporter.Export(world).Npcs.Single(item => item.Id == npc.Id);
+        Assert.That(ManualMenuTargets.CanDrinkFromPack(snapshot,definitionId =>
+            world.Content.ObjectDefinitions.TryGetValue(definitionId,out var definition) &&
+            definition.Interactions.Any(interaction => interaction.Type == InteractionType.Drink)), Is.EqualTo(expected));
+        npc.Mind.ManualControl = true;
+        var admission = ManualCommandExecutor.Apply(world,new SelfActionCommand(npc.Id,SelfActionKind.DrinkFromPack));
+        Assert.That(admission.Status,Is.EqualTo(expected ? ManualCommandAdmissionStatus.Accepted : ManualCommandAdmissionStatus.Rejected));
+        if (!expected) Assert.That(admission.Reason,Is.EqualTo("NothingToDrink"));
+    }
+
+    [Test]
+    public void PackDrinkMenuKeepsDataDeclaredDrinkablesAvailable()
+    {
+        var snapshot = new NpcSnapshot();
+        snapshot.InventoryItems.Add("mod.herbal_drink");
+        Assert.That(ManualMenuTargets.CanDrinkFromPack(snapshot,id => id == "mod.herbal_drink"),Is.True);
+    }
+
     [Test]
     public void EmptyGroundCoconutRejectsDrinkWithoutInstallingPlan()
     {

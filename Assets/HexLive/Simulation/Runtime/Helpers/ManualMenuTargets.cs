@@ -1,4 +1,6 @@
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Content;
+using HexLive.Simulation.Debug;
 
 namespace HexLive.Simulation.Runtime
 {
@@ -26,6 +28,30 @@ namespace HexLive.Simulation.Runtime
 /// </summary>
 public static class ManualMenuTargets
 {
+    /// <summary>#621: menus read the same physical drink charges as execution.</summary>
+    public static bool CanDrinkFromPack(NpcSnapshot npc, System.Func<string, bool> hasDrinkInteraction)
+    {
+        if (npc is null) return false;
+        foreach (var container in npc.InventoryContainers)
+        foreach (var slot in container.Slots)
+        {
+            if (slot.SourceIndex < 0 || slot.StackCount <= 0) continue;
+            if (slot.ItemDefinitionId == ContentIds.Bottle &&
+                BottleInventoryMath.Charges(slot.ResourceAmount, slot.WaterKind) > 0) return true;
+            if (slot.ItemDefinitionId == ContentIds.CoconutPierced && slot.ResourceAmount > 0f) return true;
+        }
+        var hasWholeCoconut = false;
+        foreach (var id in npc.InventoryItems)
+        {
+            if (id == ContentIds.Bottle || id == ContentIds.CoconutPierced) continue;
+            if (id == ContentIds.Coconut) hasWholeCoconut = true;
+            if (hasDrinkInteraction?.Invoke(id) == true) return true;
+        }
+        var hands = BodyPartFunctionSnapshotMath.LimbFunction(npc.BodyPartConditions, BodyPart.ArmL) >= BodyState.UsableHandFunctionThreshold ||
+            BodyPartFunctionSnapshotMath.LimbFunction(npc.BodyPartConditions, BodyPart.ArmR) >= BodyState.UsableHandFunctionThreshold;
+        return hasWholeCoconut && hands && ActionRequirements.HasTool(npc.InventoryItems, new[] { GearCapability.OpenCoconut }, 2);
+    }
+
     /// <summary>Своя: охота §56, «взять на руки» стоящей, обычная помощь.</summary>
     public static bool SameSide(Faction actor, Faction target) =>
         FactionRelations.AreAllies(actor, target);

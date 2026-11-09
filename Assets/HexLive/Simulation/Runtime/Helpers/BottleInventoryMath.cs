@@ -13,17 +13,15 @@ public static class BottleInventoryMath
     public static bool IsBottle(ItemInstance item) =>
         item is not null && item.DefinitionId == ContentIds.Bottle;
 
-    public static int Charges(ItemInstance item)
-    {
-        if (!IsBottle(item) || item.WaterKind == WaterKind.None ||
-            item.ResourceAmount <= 0f)
-        {
-            return 0;
-        }
+    public static int Charges(ItemInstance item) =>
+        IsBottle(item) ? Charges(item.ResourceAmount, item.WaterKind) : 0;
 
-        return System.Math.Min(
-            SimBalance.BottleCapacity,
-            System.Math.Max(0, (int)System.MathF.Floor(item.ResourceAmount + 1e-4f)));
+    /// <summary>Shared physical-vessel rule for simulation and snapshot-based menus.</summary>
+    public static int Charges(float amount, WaterKind kind)
+    {
+        if (kind == WaterKind.None || (float.IsNaN(amount) || float.IsInfinity(amount)) || amount <= 0f) return 0;
+        return System.Math.Min(SimBalance.BottleCapacity,
+            System.Math.Max(0, (int)System.MathF.Floor(amount + 1e-4f)));
     }
 
     public static void SetContents(ItemInstance bottle, WaterKind kind, int charges)

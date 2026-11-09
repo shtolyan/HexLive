@@ -415,12 +415,14 @@ public sealed class ContainerLootTests
 
     [TestCase(87)]
     [TestCase(88)]
+    [TestCase(89)]
     public void CampfireRoleSaveMigrationPreservesWaterLeafAgeAndReversibleContents(int version)
     {
         var world = TestWorld.CreateWorld(62088);
         var npc = Colonist(world);
         var fire = WorldObjectMutations.SpawnObject(world, ContentIds.Campfire,
             npc.Fragment,npc.Tile,Junction(world,npc));
+        fire.Variant = "planted";
         var bottle = new ItemInstance(ContentIds.Bottle) {
             ResourceAmount = 4.2f, WaterKind = WaterKind.Rain, LastAddedWaterKind = WaterKind.Coconut,
             LeafDryingStartTick = 17, OwnerId = npc.Id.Value, Wetness = .3f,
@@ -437,7 +439,9 @@ public sealed class ContainerLootTests
         data.Position = 0;
         var restored = TestWorld.CreateWorld(world.Seed);
         using (var reader = new BinaryReader(data,System.Text.Encoding.UTF8,true)) WorldSaveSerializer.Read(restored,reader);
+        Assert.That(data.Position,Is.EqualTo(data.Length));
         var restoredFire = restored.Entities.Objects[fire.Id];
+        Assert.That(restoredFire.Variant,Is.EqualTo(version >= 89 ? "planted" : string.Empty));
         var storedBottle = restoredFire.Contents.Single(item => item.DefinitionId == ContentIds.Bottle);
         var storedLeaf = restoredFire.Contents.Single(item => item.DefinitionId == ContentIds.PalmLeaf);
         var storedWood = restoredFire.Contents.Single(item => item.DefinitionId == ContentIds.Stick);
@@ -452,6 +456,19 @@ public sealed class ContainerLootTests
         Assert.That(storedWood.CampfireFuelRole,Is.EqualTo(CampfireFuelRole.Wood));
         Assert.That(storedWood.ResourceAmount,Is.Zero);
         Assert.That(storedBottle.CampfireFuelRole,Is.EqualTo(version >= 88 ? CampfireFuelRole.Discard : CampfireFuelRole.None));
+        using var upgraded = new MemoryStream();
+        using (var writer = new BinaryWriter(upgraded,System.Text.Encoding.UTF8,true))
+            WorldSaveSerializer.Write(restored,writer);
+        upgraded.Position = 0;
+        var twice = TestWorld.CreateWorld(world.Seed);
+        using (var reader = new BinaryReader(upgraded,System.Text.Encoding.UTF8,true)) WorldSaveSerializer.Read(twice,reader);
+        Assert.That(upgraded.Position,Is.EqualTo(upgraded.Length));
+        var upgradedFire = twice.Entities.Objects[fire.Id];
+        Assert.That(upgradedFire.Variant,Is.EqualTo(restoredFire.Variant));
+        Assert.That(upgradedFire.Contents.Single(item => item.DefinitionId == ContentIds.Bottle).ResourceAmount,Is.EqualTo(4.2f));
+        Assert.That(upgradedFire.Contents.Single(item => item.DefinitionId == ContentIds.Bottle).WaterKind,Is.EqualTo(WaterKind.Rain));
+        Assert.That(upgradedFire.Contents.Single(item => item.DefinitionId == ContentIds.Stick).CampfireFuelRole,Is.EqualTo(CampfireFuelRole.Wood));
+        Assert.That(upgradedFire.Contents.Single(item => item.DefinitionId == ContentIds.PalmLeaf).LeafDryingStartTick,Is.EqualTo(123));
         if (version >= 88)
         {
             ContainerLootMath.TakeFromContainer(restored,restoredFire,Colonist(restored),new[]{storedBottle},new ObjectId[0]);

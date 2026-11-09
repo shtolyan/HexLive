@@ -175,6 +175,46 @@ public sealed class PlantGrowthTests
         });
     }
 
+    [TestCase(ContentIds.YuccaSeed, ContentIds.YuccaSprout)]
+    [TestCase(ContentIds.HerbSeed, ContentIds.HerbSprout)]
+    [TestCase(ContentIds.Coconut, ContentIds.PalmSprout)]
+    public void FirstManualPlantOrderAfterCompletedWorkPlantsWithoutASecondClick(
+        string seedId, string sproutId)
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        foreach (var colonist in world.Entities.Npcs.Values)
+            engine.ApplyManualCommand(new SetManualControlCommand(colonist.Id, true));
+        engine.Step();
+        var npc = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        npc.Needs.Stamina = 1f;
+        npc.Execution.Status = HexLive.Simulation.AI.ExecutionStatus.Completed;
+        npc.Execution.CurrentInteraction = null;
+        npc.Plan.Status = HexLive.Simulation.AI.PlanStatus.Completed;
+        npc.Mind.CurrentGoal = HexLive.Simulation.AI.GoalType.None;
+        npc.Plan.Steps.Clear();
+        var seed = new ItemInstance(seedId);
+        npc.Inventory.Items.Add(seed);
+        var target = SpatialQueries.GetPassableNeighbors(world, npc.CurrentJunction.Value)
+            .Select(j => (Point: j, Tile: world.Junctions.Items[j].Tiles[0]))
+            .First(p => PlantGrowthSystem.CanPlantAt(world, p.Point, p.Tile, npc.Id));
+        var before = world.Entities.Objects.Values.Count(o => o.DefinitionId == sproutId);
+        var accepted = engine.ApplyManualCommand(new PlantInventorySeedCommand(npc.Id,
+            new InventoryItemRef(InventoryItemSource.Carried, npc.Inventory.Items.Count - 1, seedId),
+            target.Point, target.Tile));
+        Assert.That(accepted.Accepted, Is.True, accepted.Reason);
+        for (var tick = 0; tick < 400 && npc.Inventory.Items.Contains(seed); tick++) engine.Step();
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Inventory.Items.Contains(seed), Is.False,
+                "One accepted placement click must complete the timed planting.");
+            Assert.That(world.Entities.Objects.Values.Count(o => o.DefinitionId == sproutId),
+                Is.EqualTo(before + 1));
+            Assert.That(world.Entities.Objects.Values.Any(o =>
+                o.DefinitionId == sproutId && o.Junctions.Contains(target.Point)), Is.True);
+        });
+    }
+
     [TestCase(ContentIds.HerbSeed, ContentIds.HerbSprout)]
     [TestCase(ContentIds.YuccaSeed, ContentIds.YuccaSprout)]
     public void DroppedSeedPilePlantsOneSeedInsteadOfFailingAfterTheAnimation(

@@ -17,6 +17,22 @@ MonoBehaviour:
     UserAgreesToHaveItInsideThePluginsFolder: 0
     GoogleLiveSyncIsUptoDate: 1
     mTerms:
+    - Term: menu.choose_target
+      TermType: 0
+      Description:
+      Languages:
+      - Choose a target
+      - "Выберите цель"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.walk_here
+      TermType: 0
+      Description:
+      Languages:
+      - Walk here
+      - "Идти сюда"
+      Flags: 0101
+      Languages_Touch: []
     - Term: item.food_human_arm_male_raw.name
       TermType: 0
       Languages: ["Raw male arm", "Сырая рука мужчины"]

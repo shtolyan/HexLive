@@ -41,7 +41,7 @@ namespace HexLive.UnityPresentation.Input
 /// симуляции, и она же авторитет: кнопка, помнящая своё, рано или поздно
 /// показывает одно, пока персонаж делает другое.
 /// </summary>
-public sealed class SimulationInputAdapter : MonoBehaviour
+public sealed partial class SimulationInputAdapter : MonoBehaviour
 {
     [SerializeField] private SimulationRunnerBehaviour? _runner;
 
@@ -841,6 +841,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         }
 
         var clickSnapshot = _runner.IsReady ? _runner.CreateSnapshot() : null;
+        if (TryOpenTargetChooser(clickSnapshot, mousePos)) return true;
         PickTarget(clickSnapshot, mousePos, out var clickedNpc, out var clickedMob, out var clickedObject);
 
         if (clickedNpc >= 0)
@@ -991,6 +992,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             return false;
         }
 
+        if (TryOpenTargetChooser(snapshot, mousePos)) return true;
         PickTarget(snapshot, mousePos, out var npcId, out var mobId, out var objectHit);
         if (npcId >= 0)
         {

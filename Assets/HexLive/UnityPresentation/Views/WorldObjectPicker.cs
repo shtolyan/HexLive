@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Views
@@ -108,6 +109,30 @@ public static class WorldObjectPicker
 
         distance = deferredDistance;
         return deferred;
+    }
+
+    public readonly struct Hit
+    {
+        public readonly WorldObjectView View; public readonly float Distance;
+        public Hit(WorldObjectView view,float distance) {View=view;Distance=distance;}
+    }
+    /// <summary>#647: all precise object hits; a rack no longer erases the other choices.
+    /// Keep its existing small-content near-miss so its tiny hung item remains reachable.
+    /// </summary>
+    public static void Collect(Ray ray,Func<WorldObjectView,bool> isEligible,
+        Func<WorldObjectView,bool> defers,List<Hit> into)
+    {
+        into.Clear();var hasRack=false;
+        foreach(var view in WorldObjectView.All)
+        {
+            if(view==null||!isEligible(view)||!view.TryIntersect(ray,out var distance)||distance<0) continue;
+            into.Add(new Hit(view,distance));hasRack|=defers(view);
+        }
+        if(!hasRack) return;
+        var near=PickNearMiss(ray,isEligible,defers,out var nearDistance);
+        if(near==null||nearDistance<0) return;
+        foreach(var hit in into) if(hit.View==near) return;
+        into.Add(new Hit(near,nearDistance));
     }
 
     private static WorldObjectView? PickNearMiss(

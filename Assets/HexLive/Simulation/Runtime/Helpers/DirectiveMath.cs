@@ -30,6 +30,8 @@ public static class DirectiveMath
         TalkTopic.AskStockFood => DirectiveKind.StockFood,
         TalkTopic.AskStockWater => DirectiveKind.StockWater,
         TalkTopic.AskFirewood => DirectiveKind.Firewood,
+        TalkTopic.AskBathe => DirectiveKind.Bathe,
+        TalkTopic.AskWashClothes => DirectiveKind.WashClothes,
         _ => null
     };
 
@@ -39,6 +41,8 @@ public static class DirectiveMath
         DirectiveKind.StockFood => TalkTopic.AskStockFood,
         DirectiveKind.StockWater => TalkTopic.AskStockWater,
         DirectiveKind.Firewood => TalkTopic.AskFirewood,
+        DirectiveKind.Bathe => TalkTopic.AskBathe,
+        DirectiveKind.WashClothes => TalkTopic.AskWashClothes,
         _ => TalkTopic.SmallTalk
     };
 
@@ -145,7 +149,8 @@ public static class DirectiveMath
     public static string? RefusalByRule(WorldState world, NPCState asker, NPCState target, DirectiveKind kind)
     {
         if (ManualControlMath.IsManual(target)) return "Manual";
-        if (!FactionRelations.AreAllies(asker, target)) return "Faction";
+        if (!FactionRelations.AreAllies(asker, target) &&
+            (!IsHygiene(kind) || FactionRelations.AreHostile(world, target, asker))) return "Faction";
         if (target.Health <= 0f || target.IsUnconscious(world.Tick)) return "Incapacitated";
         if (target.Mind.IsStarving || target.Mind.IsDehydrated ||
             System.Math.Max(target.Needs.Hunger, target.Needs.Thirst) >= Spec167.RefuseNeedThreshold ||
@@ -320,6 +325,12 @@ public static class DirectiveMath
                 if (goal is GoalType.GatherWood or GoalType.SplitLog or GoalType.HaulToFire) return Spec167.Pull;
                 if (goal == GoalType.HarvestTree) return feeder;
                 break;
+            case DirectiveKind.Bathe:
+                if (goal == GoalType.Bathe) return Spec167.Pull;
+                break;
+            case DirectiveKind.WashClothes:
+                if (goal == GoalType.WashClothes) return Spec167.Pull;
+                break;
         }
 
         return 0f;
@@ -327,6 +338,9 @@ public static class DirectiveMath
 
     /// <summary>Вид принятого и ещё живого указания; None — нет.</summary>
     public static DirectiveKind Current(NPCState npc) => npc.Mind.Directive?.Kind ?? DirectiveKind.None;
+
+    public static bool IsHygiene(DirectiveKind kind) =>
+        kind is DirectiveKind.Bathe or DirectiveKind.WashClothes;
 
     public static bool IsStocking(DirectiveKind kind) =>
         kind is DirectiveKind.StockFood or DirectiveKind.StockWater or DirectiveKind.Firewood;
@@ -558,6 +572,15 @@ public static class DirectiveMath
                  ColonyQueries.CampStock(world, npc.Faction, directive.Kind) >= StockTarget(directive.Kind))
         {
             done = "StockReached";
+        }
+        else if ((directive.Kind == DirectiveKind.Bathe && npc.Needs.Hygiene >= 0.95f &&
+                  npc.Mind.RedressGarments.Count == 0) ||
+                 (directive.Kind == DirectiveKind.WashClothes &&
+                  npc.Execution.HeldGarment is null &&
+                  npc.Mind.CurrentGoal != GoalType.WashClothes &&
+                  DecisionSystem.DirtyGarmentWashNeed(world, npc) <= 0.05f))
+        {
+            done = "Clean";
         }
         else if (directive.Kind == DirectiveKind.Build &&
                  DecisionSystem.FindBuildSite(npc, world) is null &&

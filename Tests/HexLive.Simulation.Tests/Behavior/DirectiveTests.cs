@@ -16,6 +16,61 @@ namespace HexLive.Simulation.Tests.Behavior;
 /// <summary>§167: указания — просьба, согласие, тяга, снятие, сейв.</summary>
 public sealed class DirectiveTests
 {
+    [TestCase(TalkTopic.AskBathe, DirectiveKind.Bathe)]
+    [TestCase(TalkTopic.AskWashClothes, DirectiveKind.WashClothes)]
+    public void TrustedHygieneRequestReachesSlobThroughRealConversation(TalkTopic topic, DirectiveKind kind)
+    {
+        var engine = Setup(out var actor, out var target);
+        target.Traits.Add(TraitKind.Slob);
+        Warm(target, actor, affinity: 0.7f, trust: 0.7f);
+        target.Needs.Hygiene = 0.3f;
+        foreach (var item in target.WornItems) item.Dirtiness = 0.8f;
+        Ask(engine.World, actor, target, topic);
+        StartTalk(engine, actor, target);
+        Assert.That(target.Mind.Directive?.Kind, Is.EqualTo(kind));
+        Assert.That(target.Execution.CurrentTalkTopic, Is.EqualTo(TalkTopic.DirectiveYes));
+        Assert.That(DirectiveMath.Pull(kind, kind == DirectiveKind.Bathe ? GoalType.Bathe : GoalType.WashClothes),
+            Is.EqualTo(Spec167.Pull));
+    }
+
+    [Test]
+    public void DislikedHygieneRequestDoesNotForceSlobToClean()
+    {
+        var engine = Setup(out var actor, out var target);
+        target.Traits.Add(TraitKind.Slob);
+        Warm(target, actor, affinity: -0.2f, trust: 0f);
+        Assert.That(DirectiveMath.Ask(engine.World, actor, target, DirectiveKind.Bathe), Is.False);
+        Assert.That(target.Mind.Directive, Is.Null);
+        Assert.That(EventMessage(engine.World, "DirectiveRefused", target), Does.Contain("Dislike"));
+    }
+
+    [Test]
+    public void AcceptedLaundryRequestMakesSlobActuallyWashAndThenCompletes()
+    {
+        var engine = Setup(out var actor, out var target);
+        var world = engine.World;
+        target.Traits.Add(TraitKind.Slob);
+        Warm(target, actor, 0.8f, 0.8f);
+        foreach (var other in world.Entities.Npcs.Values) other.Mind.ManualControl = true;
+        target.Mind.ManualControl = false;
+        var garment = target.WornItems.First();
+        foreach (var item in target.WornItems) { item.Dirtiness = 0f; item.Bloodiness = 0f; }
+        garment.Dirtiness = 0.8f;
+        Assert.That(DirectiveMath.Ask(world, actor, target, DirectiveKind.WashClothes), Is.True);
+        var sawWash = false;
+        for (var i = 0; i < 1800 && garment.Dirtiness > 0.05f; i++)
+        {
+            Calm(target);
+            engine.Step();
+            sawWash |= target.Execution.CurrentInteraction == InteractionType.WashClothes;
+        }
+        Assert.That(sawWash, Is.True, "Accepted request must execute the ordinary laundry action.");
+        Assert.That(garment.Dirtiness, Is.LessThanOrEqualTo(0.05f));
+        for (var i = 0; i < 80 && target.Mind.Directive is not null; i++) { Calm(target); engine.Step(); }
+        Assert.That(target.Mind.Directive, Is.Null);
+        Assert.That(EventMessage(world, "DirectiveDone", target), Does.Contain("Clean"));
+    }
+
     [Test]
     public void AskBuildAcceptedSetsDirectiveAndAnswerBubble()
     {

@@ -31692,6 +31692,54 @@ MonoBehaviour:
       - "\u041d\u0430\u043c\u0435\u0442\u044c\u0442\u0435 \u043c\u0435\u0441\u0442\u043e: \u0436\u0438\u0442\u0435\u043b\u044c \u043f\u0440\u0438\u043d\u0435\u0441\u0451\u0442 \u043e\u0434\u043d\u043e \u0441\u0435\u043c\u044f \u043b\u0435\u0447\u0435\u0431\u043d\u043e\u0439 \u0442\u0440\u0430\u0432\u044b \u0438 \u043f\u043e\u0441\u0430\u0434\u0438\u0442 \u0435\u0433\u043e."
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.ask_bathe'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ask to wash up'
+      - 'Попросить умыться'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.ask_wash_clothes'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ask to wash clothes'
+      - 'Попросить постирать одежду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.directive.bathe'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wash up'
+      - 'Умыться'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.directive.wash_clothes'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wash clothes'
+      - 'Постирать одежду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.shout.bathe'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Please wash up'
+      - 'Прошу умыться'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.shout.wash_clothes'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Please wash your clothes'
+      - 'Прошу постирать одежду'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

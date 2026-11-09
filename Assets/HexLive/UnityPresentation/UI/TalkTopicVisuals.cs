@@ -54,6 +54,8 @@ public static class TalkTopicVisuals
             case "AskStockFood": return new Topic("\U0001F965", Warm);// 🥥
             case "AskStockWater": return new Topic("\U0001F4A7", Cool);// 💧
             case "AskFirewood": return new Topic("\U0001FAB5", Warm); // 🪵
+            case "AskBathe": return new Topic("\U0001F4A7", Cool);
+            case "AskWashClothes": return new Topic("\U0001F455", Cool);
             case "DirectiveYes": return new Topic("\U0001F44D", Warm);// 👍
             case "DirectiveNo": return new Topic("\U0001F44E", Danger);// 👎
             case "SmallTalk":

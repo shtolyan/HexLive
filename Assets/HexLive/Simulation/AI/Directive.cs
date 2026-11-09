@@ -22,7 +22,9 @@ public enum DirectiveKind
     StockWater = 3,
 
     /// <summary>«Заготовь дров» — заложено в enum сразу; тяга в v1.5.</summary>
-    Firewood = 4
+    Firewood = 4,
+    Bathe = 5,
+    WashClothes = 6
 }
 
 /// <summary>

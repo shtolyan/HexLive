@@ -2699,6 +2699,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // `Faction == Colony`, то есть «не моется» было свойством стороны
         // конфликта: колонистка не могла быть неряхой в принципе, а чужак
         // чистюлей. Теперь это характер, и он ездит с человеком.
+        var askedBathe = ctx.DirectiveKind == DirectiveKind.Bathe;
+        var askedWash = ctx.DirectiveKind == DirectiveKind.WashClothes;
         var caresAboutGrooming = !npc.Traits.Has(TraitKind.Slob);
         // §40.6 r6: the state which makes the router reject renewed water
         // travel also closes voluntary grooming. Seed 104729 had a dehydrated
@@ -2707,11 +2709,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var groomingSurvivalSafe = !PlanningSystem.ExploreMustAvoidDeepWater(npc);
         // Outfit lock preserves the chosen outfit; bathing temporarily removes
         // and restores those exact pieces, so it must not block body washing.
-        var batheAvail = caresAboutGrooming && groomingSurvivalSafe &&
+        var batheAvail = (caresAboutGrooming || askedBathe) && groomingSurvivalSafe &&
             (ctx.PendingRedress ||
              // §126: чистюле хватает меньшей грязи, чтобы взяться (множитель к
              // ПОРОГУ — ставку она потом выигрывает по общей формуле).
-             (batheNeed >= SimBalance.BatheNeedThreshold * TraitMath.GroomingThresholdMult(npc) &&
+             ((askedBathe ? batheNeed > 0.05f :
+                batheNeed >= SimBalance.BatheNeedThreshold * TraitMath.GroomingThresholdMult(npc)) &&
               npc.Needs.Blood >= 0.6f &&
               // ⭐ §139.3: ГОЛОЙ ПРИ ОПАСНОСТИ НЕ ХОДЯТ. Купание снимает ВСЁ, а
               // броня на конечностях — единственное, что стоит между волком и
@@ -2764,8 +2767,9 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // Гейт по фракции, а не по ставке: понижать вес бесполезно, он
         // всё равно всплывёт, когда остальные дела кончатся, и человек
         // опять пойдёт полоскать чистую рубаху вместо дела.
-        var washAvail = caresAboutGrooming && groomingSurvivalSafe &&
-            washNeed >= SimBalance.WashClothesNeedThreshold * TraitMath.GroomingThresholdMult(npc) &&
+        var washAvail = (caresAboutGrooming || askedWash) && groomingSurvivalSafe &&
+            (askedWash ? washNeed > 0.05f :
+                washNeed >= SimBalance.WashClothesNeedThreshold * TraitMath.GroomingThresholdMult(npc)) &&
             npc.Needs.Blood >= 0.6f;
         var washActive = npc.Mind.CurrentGoal == GoalType.WashClothes &&
             npc.Plan.Status == PlanStatus.Active;

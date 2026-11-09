@@ -62,7 +62,9 @@ public enum TalkTopic
 
     // §167.2: ответ слушательницы — только её собственная тема, никогда общая.
     DirectiveYes,
-    DirectiveNo
+    DirectiveNo,
+    AskBathe,
+    AskWashClothes
 }
 
 /// <summary>§28.15G: only shared conversation subjects may be requested by a command.</summary>
@@ -74,7 +76,8 @@ public static class TalkTopicRequest
         TalkTopic.Food, TalkTopic.Fire, TalkTopic.Home, TalkTopic.Gossip,
         TalkTopic.Flirt, TalkTopic.Joke, TalkTopic.Grumble,
         // §167.2: просьбы — общие темы по определению (их задаёт просящая).
-        TalkTopic.AskBuild, TalkTopic.AskStockFood, TalkTopic.AskStockWater, TalkTopic.AskFirewood
+        TalkTopic.AskBuild, TalkTopic.AskStockFood, TalkTopic.AskStockWater, TalkTopic.AskFirewood,
+        TalkTopic.AskBathe, TalkTopic.AskWashClothes
     });
 
     public static bool IsAllowed(TalkTopic topic)

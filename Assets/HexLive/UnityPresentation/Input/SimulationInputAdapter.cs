@@ -8,6 +8,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
+using HexLive.Simulation.Social;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Localization;
 using HexLive.UnityPresentation.Rendering;
@@ -1362,6 +1363,14 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                 () => EnqueueOrder(carrier!.Id.Value, new TalkToCommand(
                     new EntityId(carrier.Id.Value), new EntityId(npcId))),
                 canOrderSocial, canOrderSocial ? null : socialBlocked));
+            _entries.Add(new ContextMenuEntry(Loc.Get("menu.ask_bathe"),
+                () => EnqueueOrder(carrier!.Id.Value, new TalkToCommand(
+                    carrier.Id, new EntityId(npcId), TalkTopic.AskBathe)),
+                canOrderSocial, canOrderSocial ? null : socialBlocked));
+            _entries.Add(new ContextMenuEntry(Loc.Get("menu.ask_wash_clothes"),
+                () => EnqueueOrder(carrier!.Id.Value, new TalkToCommand(
+                    carrier.Id, new EntityId(npcId), TalkTopic.AskWashClothes)),
+                canOrderSocial, canOrderSocial ? null : socialBlocked));
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.romance"),
                 () => EnqueueOrder(carrier!.Id.Value, new RomancePersonCommand(
                     new EntityId(carrier.Id.Value), new EntityId(npcId),
@@ -1627,6 +1636,8 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             new(Loc.Get(prefix + "build"), () => issue(DirectiveKind.Build)),
             new(Loc.Get(prefix + "stock_food"), () => issue(DirectiveKind.StockFood)),
             new(Loc.Get(prefix + "stock_water"), () => issue(DirectiveKind.StockWater)),
+            new(Loc.Get(prefix + "bathe"), () => issue(DirectiveKind.Bathe)),
+            new(Loc.Get(prefix + "wash_clothes"), () => issue(DirectiveKind.WashClothes)),
         };
     }
 

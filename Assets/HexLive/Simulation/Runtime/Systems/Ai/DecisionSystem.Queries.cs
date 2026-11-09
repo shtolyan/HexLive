@@ -815,7 +815,7 @@ public sealed partial class DecisionSystem
         return HygieneMath.FindReachableBathShore(world, npc) is not null;
     }
 
-    private static float DirtyGarmentWashNeed(WorldState world, NPCState npc)
+    internal static float DirtyGarmentWashNeed(WorldState world, NPCState npc)
     {
         var need = 0f;
 

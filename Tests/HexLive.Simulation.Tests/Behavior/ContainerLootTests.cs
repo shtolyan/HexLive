@@ -274,8 +274,10 @@ public sealed class ContainerLootTests
         Assert.That(npc.Inventory.Items.Last(), Is.SameAs(collectedBottle[0]));
     }
 
-    [Test]
-    public void CollectorLootRoundTripPreservesPartialNonRainBottle()
+    [TestCase(4f)]
+    [TestCase(4.2f)]
+    [TestCase(.05f)]
+    public void CollectorLootRoundTripPreservesPartialNonRainBottle(float amount)
     {
         var world = TestWorld.CreateWorld(35516);
         var npc = Colonist(world);
@@ -285,7 +287,7 @@ public sealed class ContainerLootTests
         var collector = WorldObjectMutations.SpawnObject(
             world, ContentIds.WaterCollector, npc.Fragment, npc.Tile, anchor);
         var raw = new ItemInstance(ContentIds.Bottle);
-        BottleInventoryMath.SetContents(raw, WaterKind.Raw, 4);
+        BottleInventoryMath.SetContents(raw, WaterKind.Raw, amount);
         npc.Inventory.Items.Add(raw);
 
         ContainerLootMath.GiveToContainer(world, collector, npc, new[] { raw });
@@ -293,7 +295,7 @@ public sealed class ContainerLootTests
         Assert.That(parked, Is.Not.Null);
         Assert.Multiple(() =>
         {
-            Assert.That(parked!.ResourceAmount, Is.EqualTo(0.4f).Within(1e-5f));
+            Assert.That(parked!.ResourceAmount, Is.EqualTo(amount / SimBalance.BottleCapacity).Within(1e-5f));
             Assert.That(parked.WaterKind, Is.EqualTo(WaterKind.Raw));
         });
 
@@ -301,7 +303,7 @@ public sealed class ContainerLootTests
         new WaterCollectorSystem().Run(world);
         Assert.Multiple(() =>
         {
-            Assert.That(parked.ResourceAmount, Is.EqualTo(0.4f).Within(1e-5f),
+            Assert.That(parked.ResourceAmount, Is.EqualTo(amount / SimBalance.BottleCapacity).Within(1e-5f),
                 "Rain must not silently mix into a non-rain bottle.");
             Assert.That(parked.WaterKind, Is.EqualTo(WaterKind.Raw));
         });
@@ -314,7 +316,7 @@ public sealed class ContainerLootTests
         Assert.Multiple(() =>
         {
             Assert.That(moving[0].WaterKind, Is.EqualTo(WaterKind.Raw));
-            Assert.That(BottleInventoryMath.Charges(moving[0]), Is.EqualTo(4));
+            Assert.That(moving[0].ResourceAmount, Is.EqualTo(amount).Within(1e-5f));
         });
 
         var full = WorldObjectMutations.SpawnObject(

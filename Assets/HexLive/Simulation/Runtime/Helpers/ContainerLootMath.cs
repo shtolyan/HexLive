@@ -496,11 +496,11 @@ internal static class ContainerLootMath
         // store real drink charges (0..BottleCapacity), so the loot boundary
         // must use the same conversion as TakeVessel.
         ResourceAmount = container.DefinitionId == ContentIds.WaterCollector
-            ? WaterCollectorMath.ChargesIn(source)
+            ? WaterCollectorMath.AmountIn(source)
             : source.ResourceAmount,
         WaterKind = container.DefinitionId == ContentIds.WaterCollector &&
                     source.WaterKind == WaterKind.None &&
-                    WaterCollectorMath.ChargesIn(source) > 0
+                    WaterCollectorMath.AmountIn(source) > 0f
             ? WaterKind.Rain
             : source.WaterKind,
         LastAddedWaterKind = source.LastAddedWaterKind,

@@ -41,7 +41,7 @@ public static class VesselTransferMath
 
     public static int BottleRoom(ItemInstance bottle) =>
         bottle is not null
-            ? System.Math.Max(0, SimBalance.BottleCapacity - BottleInventoryMath.Charges(bottle))
+            ? System.Math.Max(0, (int)System.MathF.Floor(SimBalance.BottleCapacity - BottleInventoryMath.Amount(bottle) + 1e-4f))
             : 0;
 
     /// <summary>Один предикат на автономный шаг плана и ручную команду:
@@ -53,7 +53,7 @@ public static class VesselTransferMath
         npc.Body.CanUseTwoHanded &&
         bottle is not null && InventoryMath.ContainsReference(npc.Inventory.Items, bottle) &&
         BottleRoom(bottle) > 0 &&
-        (BottleInventoryMath.Charges(bottle) == 0 || bottle.WaterKind == WaterKind.Coconut) &&
+        (BottleInventoryMath.Amount(bottle) <= 0f || bottle.WaterKind == WaterKind.Coconut) &&
         CoconutSips(npc) > 0;
 
     /// <summary>Сам перелив: глоток за глоток, 1:1, до полной бутылки.
@@ -71,7 +71,7 @@ public static class VesselTransferMath
     {
         var room = BottleRoom(bottle);
         if (room <= 0 || bottle is null ||
-            (BottleInventoryMath.Charges(bottle) > 0 && bottle.WaterKind != WaterKind.Coconut))
+            (BottleInventoryMath.Amount(bottle) > 0f && bottle.WaterKind != WaterKind.Coconut))
         {
             return 0;
         }
@@ -107,7 +107,7 @@ public static class VesselTransferMath
     /// <summary>Manual consolidation preserves exact amounts, including collector fractions.</summary>
     public static float SourceSips(ItemInstance item) =>
         item is null ? 0f : BottleInventoryMath.IsBottle(item)
-            ? item.WaterKind == WaterKind.None ? 0f : System.Math.Clamp(item.ResourceAmount, 0f, SimBalance.BottleCapacity)
+            ? BottleInventoryMath.Amount(item)
             : item.DefinitionId == ContentIds.CoconutPierced ? System.MathF.Max(0f, item.ResourceAmount) : 0f;
 
     public static bool CanConsolidateBottle(NPCState npc, ItemInstance bottle)

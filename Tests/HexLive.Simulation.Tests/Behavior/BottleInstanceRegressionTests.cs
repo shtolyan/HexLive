@@ -307,6 +307,80 @@ public sealed class BottleInstanceRegressionTests
         });
     }
 
+    [TestCase(4.2f)]
+    [TestCase(1.2f)]
+    public void ConsumingAndAddingOneSipPreservesTheFractionalRemainder(float amount)
+    {
+        var world = TestWorld.CreateWorld(63401);
+        var npc = Girl(world);
+        npc.Inventory.Items.Clear();
+        var bottle = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(bottle,WaterKind.Raw,amount);
+        bottle.LastAddedWaterKind = WaterKind.Coconut;
+        npc.Inventory.Items.Add(bottle);
+        Assert.That(BottleInventoryMath.ConsumeOne(bottle,out _),Is.True);
+        Assert.That(bottle.ResourceAmount,Is.EqualTo(amount-1f).Within(1e-5));
+        Assert.That(bottle.WaterKind,Is.EqualTo(WaterKind.Raw));
+        Assert.That(bottle.LastAddedWaterKind,Is.EqualTo(WaterKind.Coconut));
+        Assert.That(BottleInventoryMath.FirstEmpty(npc),Is.Null);
+        Assert.That(BottleInventoryMath.Add(bottle,WaterKind.Raw,1),Is.EqualTo(1));
+        Assert.That(bottle.ResourceAmount,Is.EqualTo(amount).Within(1e-5));
+    }
+
+    [Test]
+    public void FractionalBottleRoomCannotOverdrawOrLaunderWater()
+    {
+        var world = TestWorld.CreateWorld(63402);
+        var npc = Girl(world);
+        npc.Inventory.Items.Clear();
+        var bottle = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(bottle,WaterKind.Raw,.2f);
+        var coconut = new ItemInstance(ContentIds.CoconutPierced) { ResourceAmount = 4f };
+        npc.Inventory.Items.AddRange(new[]{bottle,coconut});
+        Assert.That(VesselTransferMath.FillBottleFromCoconuts(npc,bottle),Is.Zero);
+        Assert.That(bottle.ResourceAmount,Is.EqualTo(.2f));
+        Assert.That(bottle.WaterKind,Is.EqualTo(WaterKind.Raw));
+        Assert.That(coconut.ResourceAmount,Is.EqualTo(4f));
+        BottleInventoryMath.SetContents(bottle,WaterKind.Coconut,9.2f);
+        Assert.That(BottleInventoryMath.Add(bottle,WaterKind.Coconut,1),Is.Zero);
+        Assert.That(VesselTransferMath.FillBottleFromCoconuts(npc,bottle),Is.Zero);
+        Assert.That(bottle.ResourceAmount,Is.EqualTo(9.2f));
+        Assert.That(coconut.ResourceAmount,Is.EqualTo(4f));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void TakeVesselKeepsTheExactCollectorQuantity(bool pourIntoOwnBottle)
+    {
+        var engine = TestWorld.CreateEngine(63403);
+        var world = engine.World;
+        var npc = Girl(world);
+        npc.Mind.ManualControl = true;
+        npc.Needs.Hunger = 0f;
+        npc.Needs.Thirst = 0f;
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Capacity = 8;
+        if (pourIntoOwnBottle) npc.Inventory.Items.Add(new ItemInstance(ContentIds.Bottle));
+        PlaceAtOpenJunction(world,npc);
+        var neighbor = SpatialQueries.GetPassableNeighbors(world,npc.CurrentJunction.Value).First();
+        var tile = world.Junctions.Items[neighbor].Tiles[0];
+        var collector = WorldObjectMutations.SpawnObject(world,ContentIds.WaterCollector,npc.Fragment,tile,neighbor);
+        var vessel = WorldObjectMutations.SpawnObject(world,ContentIds.Bottle,npc.Fragment,tile,neighbor);
+        vessel.ResourceAmount = .42f;
+        vessel.WaterKind = WaterKind.Rain;
+        vessel.LastAddedWaterKind = WaterKind.Coconut;
+        vessel.Owner = npc.Id;
+        var admission = ManualCommandExecutor.Apply(world,new InteractCommand(npc.Id,collector.Id,InteractionType.TakeVessel));
+        Assert.That(admission.Status,Is.EqualTo(ManualCommandAdmissionStatus.Accepted),admission.Reason);
+        for (var i=0;i<1000 && !npc.Inventory.Items.Any(item => item.DefinitionId==ContentIds.Bottle && item.ResourceAmount > 0f);i++) engine.Step();
+        var result = npc.Inventory.Items.Single(item => item.DefinitionId==ContentIds.Bottle);
+        Assert.That(result.ResourceAmount,Is.EqualTo(4.2f).Within(1e-5));
+        Assert.That(result.WaterKind,Is.EqualTo(WaterKind.Rain));
+        Assert.That(result.LastAddedWaterKind,Is.EqualTo(WaterKind.Coconut));
+        if(pourIntoOwnBottle) Assert.That(vessel.ResourceAmount,Is.Zero);
+        else Assert.That(world.Entities.Objects.ContainsKey(vessel.Id),Is.False);
+    }
+
     [Test]
     public void CorpseSpoilRemovesTheSelectedBottleByReference()
     {

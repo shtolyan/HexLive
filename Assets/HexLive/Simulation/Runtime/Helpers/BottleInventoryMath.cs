@@ -20,16 +20,25 @@ public static class BottleInventoryMath
     public static int Charges(float amount, WaterKind kind)
     {
         if (kind == WaterKind.None || (float.IsNaN(amount) || float.IsInfinity(amount)) || amount <= 0f) return 0;
-        return System.Math.Min(SimBalance.BottleCapacity,
-            System.Math.Max(0, (int)System.MathF.Floor(amount + 1e-4f)));
+        return System.Math.Max(0, (int)System.MathF.Floor(
+            System.MathF.Min(SimBalance.BottleCapacity, amount) + 1e-4f));
     }
 
-    public static void SetContents(ItemInstance bottle, WaterKind kind, int charges)
+    public static float Amount(ItemInstance item) =>
+        IsBottle(item) && item.WaterKind != WaterKind.None &&
+        !float.IsNaN(item.ResourceAmount) && !float.IsInfinity(item.ResourceAmount)
+            ? System.Math.Clamp(item.ResourceAmount, 0f, SimBalance.BottleCapacity) : 0f;
+
+    public static void SetContents(ItemInstance bottle, WaterKind kind, int charges) =>
+        SetContents(bottle, kind, (float)charges);
+
+    public static void SetContents(ItemInstance bottle, WaterKind kind, float amount)
     {
         if (!IsBottle(bottle)) return;
-        var clamped = System.Math.Min(SimBalance.BottleCapacity, System.Math.Max(0, charges));
+        var clamped = float.IsNaN(amount) || float.IsInfinity(amount) ? 0f
+            : System.Math.Clamp(amount, 0f, SimBalance.BottleCapacity);
         bottle.ResourceAmount = clamped;
-        bottle.WaterKind = clamped > 0 && kind != WaterKind.None ? kind : WaterKind.None;
+        bottle.WaterKind = clamped > 0f && kind != WaterKind.None ? kind : WaterKind.None;
         if (bottle.WaterKind == WaterKind.None) bottle.ResourceAmount = 0f;
         bottle.LastAddedWaterKind = bottle.WaterKind;
     }
@@ -58,7 +67,7 @@ public static class BottleInventoryMath
     {
         foreach (var item in npc.Inventory.Items)
         {
-            if (IsBottle(item) && Charges(item) == 0) return item;
+            if (IsBottle(item) && Amount(item) <= 0f) return item;
         }
 
         return null;
@@ -70,12 +79,12 @@ public static class BottleInventoryMath
         foreach (var item in npc.Inventory.Items)
         {
             if (!IsBottle(item)) continue;
-            var charges = Charges(item);
-            if (charges == 0)
+            var amount = Amount(item);
+            if (amount <= 0f)
             {
                 empty ??= item;
             }
-            else if (charges < SimBalance.BottleCapacity && item.WaterKind == kind)
+            else if (amount + 1f <= SimBalance.BottleCapacity + 1e-4f && item.WaterKind == kind)
             {
                 return item;
             }
@@ -89,9 +98,10 @@ public static class BottleInventoryMath
     public static int Add(ItemInstance bottle, WaterKind kind, int charges)
     {
         if (!IsBottle(bottle) || charges <= 0) return 0;
-        var before = Charges(bottle);
-        if (before > 0 && bottle.WaterKind != kind) return 0;
-        var moved = System.Math.Min(charges, SimBalance.BottleCapacity - before);
+        var before = Amount(bottle);
+        if (before > 0f && bottle.WaterKind != kind) return 0;
+        var room = System.Math.Max(0, (int)System.MathF.Floor(SimBalance.BottleCapacity - before + 1e-4f));
+        var moved = System.Math.Min(charges, room);
         if (moved <= 0) return 0;
         SetContents(bottle, before == 0 ? kind : bottle.WaterKind, before + moved);
         return moved;
@@ -103,8 +113,8 @@ public static class BottleInventoryMath
         var charges = Charges(bottle);
         if (charges <= 0) return false;
         var appearance = bottle.LastAddedWaterKind;
-        SetContents(bottle, kind, charges - 1);
-        if (charges > 1) bottle.LastAddedWaterKind = appearance;
+        SetContents(bottle, kind, Amount(bottle) - 1f);
+        if (bottle.ResourceAmount > 0f) bottle.LastAddedWaterKind = appearance;
         return true;
     }
 
@@ -112,7 +122,7 @@ public static class BottleInventoryMath
     public static void MigrateLegacy(NPCState npc, WaterKind kind, int charges)
     {
         var bottle = FirstBottle(npc);
-        if (bottle is not null && Charges(bottle) == 0 &&
+        if (bottle is not null && Amount(bottle) <= 0f &&
             kind != WaterKind.None && charges > 0)
         {
             SetContents(bottle, kind, charges);

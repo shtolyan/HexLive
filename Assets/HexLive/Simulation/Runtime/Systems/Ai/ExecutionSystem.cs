@@ -1738,7 +1738,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             return false;
         }
 
-        var charges = WaterCollectorMath.ChargesIn(vessel);
+        var amount = WaterCollectorMath.AmountIn(vessel);
         var collectedKind = vessel.WaterKind == WaterKind.None
             ? WaterKind.Rain
             : vessel.WaterKind;
@@ -1758,12 +1758,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             npc.Inventory.Items.Add(bottle);
         }
 
-        BottleInventoryMath.SetContents(bottle, collectedKind, charges);
+        BottleInventoryMath.SetContents(bottle, collectedKind, amount);
         bottle.LastAddedWaterKind = collectedAppearance;
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "VesselTaken",
-                $"Rain x{charges} from collector {worldObject.Id.Value}" +
+                $"Rain x{amount} from collector {worldObject.Id.Value}" +
                 (pouredOver ? " (poured over)" : " (bottle reclaimed)"));
         }
 
@@ -1841,7 +1841,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 Wetness = worldObject.Wetness,
                 Durability = worldObject.Durability,
                 ResourceAmount = parkedBottle
-                    ? System.Math.Clamp(worldObject.ResourceAmount, 0f, 1f) * SimBalance.BottleCapacity
+                    ? WaterCollectorMath.AmountIn(worldObject)
                     : worldObject.DefinitionId == ContentIds.Bottle && worldObject.WaterKind == WaterKind.None
                         ? 0f : worldObject.ResourceAmount,
                 WaterKind = parkedBottle && worldObject.ResourceAmount > 0f &&

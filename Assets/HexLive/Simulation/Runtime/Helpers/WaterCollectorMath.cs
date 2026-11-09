@@ -65,9 +65,14 @@ public static class WaterCollectorMath
         return null;
     }
 
-    /// Whole gulps the vessel's collected rain converts to on TakeVessel.
+    /// Exact physical quantity. Rounding belongs only to drink availability.
+    public static float AmountIn(WorldObjectState vessel) =>
+        vessel is null || float.IsNaN(vessel.ResourceAmount) || float.IsInfinity(vessel.ResourceAmount)
+            ? 0f : System.Math.Clamp(vessel.ResourceAmount, 0f, 1f) * SimBalance.BottleCapacity;
+
+    /// Whole available gulps; never use this value for a physical transfer.
     public static int ChargesIn(WorldObjectState vessel) =>
-        (int)System.Math.Floor(vessel.ResourceAmount * SimBalance.BottleCapacity + 1e-4f);
+        (int)System.Math.Floor(AmountIn(vessel) + 1e-4f);
 
     /// Can this NPC draw from the parked vessel? Pouring into her OWN empty
     /// bottle is open to everyone (the parked bottle stays and keeps

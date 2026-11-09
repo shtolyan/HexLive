@@ -1,0 +1,5 @@
+# Merge after Flashback's production compose.yaml. Keep this outside release directories.
+services:
+  app:
+    environment:
+      ALLOWED_ORIGINS: https://flashback.62-146-235-120.sslip.io,https://play.62-146-235-120.sslip.io,https://163-245-204-96.sslip.io

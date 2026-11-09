@@ -16,6 +16,9 @@ MonoBehaviour:
   prefab: {fileID: 0}
   prefabResourcePath: 
   damage: 0.21
+  damageProfileAuthored: 1
+  cutFraction: 0.75
+  bloodLossMultiplier: 1.3
   hitDelaySeconds: 0.75
   attackDurationSeconds: 1.86
   cooldownSeconds: 1.14

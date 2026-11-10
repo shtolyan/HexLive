@@ -8,7 +8,8 @@ using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine;
 
-namespace HexLive.Tests;
+namespace HexLive.Tests
+{
 public sealed class BlueprintApplyReceiptRuntimeTests
 {
     private const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
@@ -59,5 +60,6 @@ public sealed class BlueprintApplyReceiptRuntimeTests
         }
         finally { Object.DestroyImmediate(host); }
     }
+}
 }
 #endif

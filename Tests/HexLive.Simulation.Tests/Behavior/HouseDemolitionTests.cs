@@ -58,6 +58,9 @@ public sealed class HouseDemolitionTests
             Assert.That(FreeArchitectureRules.IsDemolitionSite(wall), Is.True);
             Assert.That(blocked.All(j => world.Junctions.Items[j].Blocked), Is.True);
         }
+        Assert.That(hut.BuildProduct, Is.Empty,
+            "Queued teardown is its own work target; a paid-only house must not acquire an empty building bill.");
+        Assert.That(ContainerLootMath.IsLootable(world, hut), Is.False, "Paid-only materials are not lootable duplicates.");
         var before = world.Entities.Objects.Keys.ToHashSet();
         FreeArchitectureRules.CompleteDemolition(world, wall);
         Assert.That(world.Entities.Objects.ContainsKey(oldId), Is.False);
@@ -83,8 +86,9 @@ public sealed class HouseDemolitionTests
         Assert.That(world.Entities.Objects.Count, Is.EqualTo(count), "Completion must not duplicate salvage after despawn.");
     }
 
-    [Test]
-    public void PreexistingLegacyExtensionKeepsItsNewDeliverySeparateFromOldPaidModules()
+    [TestCase(false)]
+    [TestCase(true)]
+    public void PreexistingLegacyExtensionKeepsItsNewDeliverySeparateFromOldPaidModules(bool alreadyCompleted)
     {
         var engine = TestWorld.CreateEngine(12345); var world = engine.World;
         var hut = world.Entities.Objects.Values.Single(o => o.DefinitionId == ContentIds.HutPlan && string.IsNullOrEmpty(o.BuildProduct));
@@ -96,9 +100,17 @@ public sealed class HouseDemolitionTests
         // and stored; original raised modules are already paid in their counters.
         world.PlayerBlueprints[hut.BlueprintId] = extended;
         var bill = BuildingRules.ReconcileHutElements(world, hut);
-        hut.BuildProduct = ContentIds.HutPlan;
+        hut.BuildProduct = alreadyCompleted ? string.Empty : ContentIds.HutPlan;
         hut.BillSticks = bill.Sticks; hut.BillBoards = bill.Boards; hut.BillRope = bill.Rope; hut.BillLeaves = bill.Leaves;
         Assert.That(bill.Sticks, Is.EqualTo(2));
+        if (alreadyCompleted)
+        {
+            var addition = BuildingRules.Elements(world, hut).Single(e => !e.Complete);
+            addition.DeliveredSticks = addition.RequiredSticks; addition.DeliveredRope = addition.RequiredRope;
+            addition.WorkDone = addition.WorkRequired;
+            for (var n = 0; n < addition.RequiredSticks; n++) hut.Contents.Add(new HexLive.Simulation.Agents.ItemInstance(ContentIds.Stick));
+            for (var n = 0; n < addition.RequiredRope; n++) hut.Contents.Add(new HexLive.Simulation.Agents.ItemInstance(ContentIds.Rope));
+        }
         var stock = Enumerable.Range(0, 4).Select(_ => new HexLive.Simulation.Agents.ItemInstance(ContentIds.Stick) { Wetness = .91f }).ToArray();
         hut.Contents.AddRange(stock);
         var wall = BuildingRules.ArchitectureObjects(world, hut).First(o => o.DefinitionId == "architecture.wall.wood");
@@ -118,11 +130,11 @@ public sealed class HouseDemolitionTests
         var engine = TestWorld.CreateEngine(12345); var world = engine.World;
         var hut = world.Entities.Objects.Values.Single(o => o.DefinitionId == ContentIds.HutPlan && string.IsNullOrEmpty(o.BuildProduct));
         BuildingBlueprintJson.TryDeserialize(BuildingRules.EditablePlanJsonFor(world, hut), out var original, out _);
-        Assert.That(engine.ApplyManualCommand(new UpdateBuildingBlueprintCommand(hut.Id, BuildingBlueprintJson.Serialize(original, false))).Accepted, Is.True);
-        Assert.That(hut.InstalledBuildMaterials, Is.Not.Null);
-        Assert.That(ContainerLootMath.IsLootable(world, hut), Is.False, "Installed resources are building geometry, not a lootable duplicate.");
         var loose = new HexLive.Simulation.Agents.ItemInstance(ContentIds.Stick) { Wetness = .91f };
         hut.Contents.Add(loose); hut.Contents.Add(new HexLive.Simulation.Agents.ItemInstance(ContentIds.Stick) { Wetness = .91f });
+        Assert.That(engine.ApplyManualCommand(new UpdateBuildingBlueprintCommand(hut.Id, BuildingBlueprintJson.Serialize(original, false))).Accepted, Is.True);
+        Assert.That(hut.InstalledBuildMaterials, Is.Not.Null);
+        Assert.That(ContainerLootMath.IsLootable(world, hut), Is.True, "Loose resources predating normalization remain accessible.");
         var cells = new System.Collections.Generic.List<(string ItemId, int Count, int SourceIndex)>();
         ContainerLootMath.BuildCells(world, hut, cells);
         Assert.That(cells.Single().Count, Is.EqualTo(2));

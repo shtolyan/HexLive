@@ -37,6 +37,7 @@ public static class HouseArchitectureEditing
         if (owner.InstalledBuildMaterials != null) return;
         if (!BuildingRules.IsCompletedBuilding(owner)) { BuildSiteMath.TrackWork(owner); return; }
         var elements = BuildingRules.Elements(world, owner).ToArray();
+        var legacyDeltaBill = BuildSiteMath.AllMaterials.Any(material => BuildSiteMath.Bill(owner, material) > 0);
         var installed = new int[BuildSiteMath.AllMaterials.Length];
         var historical = new List<ItemInstance>();
         for (var i = 0; i < installed.Length; i++)
@@ -54,9 +55,13 @@ public static class HouseArchitectureEditing
             // their LEGO counters. A legacy extension's bill/Contents holds
             // the new delta; keep that loose delivery in addition to the old
             // paid prefix, instead of stealing it during a later teardown.
-            var missing = string.IsNullOrEmpty(owner.BuildProduct)
-                ? Math.Max(0, paid - existing)
-                : Math.Max(0, elements.Sum(Required) - BuildSiteMath.Bill(owner, material));
+            // RaiseFurnitureSite copies neither Bill nor Contents into a new
+            // owner: bill=0 means counter-only payment, so existing items are
+            // loose. In-place extensions retain their DELTA bill even after
+            // completion; their existing Contents already represents that delta.
+            var missing = legacyDeltaBill
+                ? Math.Max(0, elements.Sum(Required) - BuildSiteMath.Bill(owner, material))
+                : paid;
             missing = Math.Max(missing, paid - existing);
             for (var n = 0; n < missing; n++) historical.Add(new ItemInstance(material) {
                 LeafDryingStartTick = owner.LeafDryingStartTick,

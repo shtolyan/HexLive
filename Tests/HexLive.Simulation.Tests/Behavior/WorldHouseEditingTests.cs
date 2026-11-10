@@ -77,6 +77,29 @@ public sealed class WorldHouseEditingTests
     }
 
     [Test]
+    public void UndoCanRestoreAWholePhysicalFloorTileBeforeTeardownCompletes()
+    {
+        var engine = TestWorld.CreateEngine(12345); var world = engine.World;
+        var tile = world.Tiles.Items.Values.First(t => HexLive.Simulation.Bootstrap.BuildingBootstrap.CanPlaceHut(world, t.Coord)).Coord;
+        var anchor = StructurePlacement.CenterJunction(world, tile).Value;
+        var hut = WorldObjectMutations.SpawnObject(world, ContentIds.HutPlan, world.Junctions.Items[anchor].Fragment, tile, anchor);
+        var original = BuiltInBuildingBlueprints.Hut1Hex(); original.Furniture.Clear();
+        hut.BlueprintId = world.NextPlayerBlueprintId++; world.PlayerBlueprints[hut.BlueprintId] = original;
+        BuildingRules.EnsureHutElements(world, hut, completed: true);
+        HexLive.Simulation.Bootstrap.BuildingBootstrap.CompleteHut(world, hut);
+        var revision = original.Clone(); revision.Elements.RemoveAll(e => e.Kind == BlueprintElementKind.FloorSector);
+        Assert.That(engine.ApplyManualCommand(new UpdateBuildingBlueprintCommand(hut.Id, BuildingBlueprintJson.Serialize(revision, false))).Accepted, Is.True);
+        var floors = BuildingRules.ArchitectureObjects(world, hut).Where(o => o.DefinitionId == "architecture.floor.board").ToArray();
+        Assert.That(floors.Length, Is.EqualTo(6));
+        Assert.That(floors.All(FreeArchitectureRules.IsDemolitionSite), Is.True);
+        var undo = engine.ApplyManualCommand(new UpdateBuildingBlueprintCommand(hut.Id, BuildingBlueprintJson.Serialize(original, false)));
+        Assert.That(undo.Accepted, Is.True, "Restore the still-owned physical footprint: " + undo.Reason);
+        Assert.That(floors.All(o => world.Entities.Objects.ContainsKey(o.Id) && !FreeArchitectureRules.IsDemolitionSite(o)), Is.True);
+        Assert.That(world.Tiles.Items[tile].Flags.HasFlag(TileFlags.HasFloor), Is.True);
+        Assert.That(hut.BuildProduct, Is.Empty);
+    }
+
+    [Test]
     public void FiveOldFloorSectorsPlusOneIndependentSectorMakeOnePhysicalFloor()
     {
         var engine = TestWorld.CreateEngine(12345); var world = engine.World;

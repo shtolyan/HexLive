@@ -377,6 +377,9 @@ public static class BuildingBootstrap
         }
 
         var oldFootprint = FootprintTiles(world, owner).ToHashSet();
+        var physicalBefore = Runtime.Blueprints.HouseArchitectureEditing.PhysicalPlan(world, owner);
+        if (physicalBefore != null)
+            oldFootprint.UnionWith(FootprintTiles(physicalBefore, owner.Tile, owner.RotationDegrees));
         var newFootprint = FootprintTiles(draft, owner.Tile, owner.RotationDegrees);
         if (!world.Tiles.Items.TryGetValue(owner.Tile, out var ownerTile))
         {
@@ -481,8 +484,12 @@ public static class BuildingBootstrap
         owner.BillLogs = 0;
         owner.BillStones = 0;
 
-        var unfinished = bill.Sticks + bill.Boards + bill.Rope + bill.Leaves > 0;
-        owner.BuildProduct = unfinished ? ContentIds.HutPlan : string.Empty;
+        // The bill contains already installed history as well as new work.
+        // Teardown is a separate module task, not an unpaid house upgrade.
+        var unfinished = BuildingRules.Elements(world, owner).Any(element =>
+            !element.DemolitionPlanned && !element.Complete);
+        owner.BuildProduct = unfinished || owner.DefinitionId == ContentIds.BuildSite
+            ? ContentIds.HutPlan : string.Empty;
         if (unfinished) BuildingRules.SyncHutElements(world, owner);
 
         foreach (var tile in oldFootprint)

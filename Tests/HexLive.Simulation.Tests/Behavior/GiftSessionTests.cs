@@ -38,7 +38,7 @@ public sealed class GiftSessionTests
     }
 
     [Test]
-    public void OpeningGiftStopsMovingRecipientAndStartsGiverBeforeItemSelection()
+    public void ExplicitGiftInvitationStopsMovingRecipientAndStartsTheApproach()
     {
         var (engine, giver, receiver) = Scene(); var world = engine.World;
         receiver.Movement.IsMoving = true;

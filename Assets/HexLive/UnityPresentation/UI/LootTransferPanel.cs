@@ -56,8 +56,6 @@ public sealed partial class LootTransferPanel : MonoBehaviour
     // передачи нет по замыслу — это была бы вторая версия §128 со своими
     // багами; вместо неё окно знает про РЕЖИМ и гасит обратное направление.
     private bool _gift;
-    private int _giftSessionRequestTick;
-    private bool _giftSessionObserved;
 
     // Отказ обязан пережить конец жеста: ClearDrag возвращает подсказку по
     // умолчанию, и без этого флага «забрать нельзя» гасло бы в том же кадре,
@@ -250,9 +248,6 @@ public sealed partial class LootTransferPanel : MonoBehaviour
 
         if (IsOpen) Hide();
         _gift = gift;
-        _giftSessionObserved = false;
-        _giftSessionRequestTick = snapshot.Tick;
-        if (gift) _runner.EnqueueCommand(new BeginGiftSessionCommand(looter.Id, other.Id));
         _title.text = Loc.Get(gift ? "gift.title" : "loot.title");
         _arrows.text = gift ? "➜" : "⇄";
         _looterId = looterId;
@@ -623,7 +618,7 @@ public sealed partial class LootTransferPanel : MonoBehaviour
         var signature = PersonSignature(looter) + "<>" + PersonSignature(other);
         UpdatePendingStatus(snapshot, looter, signature);
         if (_gift && !_pending && !_statusHeld && !_dragPrepared)
-            _status.text = GiftProgress(snapshot, looter);
+            _status.text = DragHint();
 
         if (!force && signature == _signature) return;
         // §128.1a: раскладку во время жеста не трогаем — иначе нажатая ячейка
@@ -765,9 +760,12 @@ public sealed partial class LootTransferPanel : MonoBehaviour
         _leftTitle.text = Loc.NpcName(looter.DisplayName);
         _rightTitle.text = Loc.NpcName(other.DisplayName);
         _leftCapacity.text = $"{looter.InventoryUsedSlots}/{looter.InventoryCapacity}";
-        _rightCapacity.text = $"{other.InventoryUsedSlots}/{other.InventoryCapacity}";
+        _rightCapacity.text = _gift ? string.Empty : $"{other.InventoryUsedSlots}/{other.InventoryCapacity}";
         BuildInventoryProjection(_leftContent, looter);
-        BuildInventoryProjection(_rightContent, other);
+        if (_gift)
+            _rightContent.Add(new Label(Loc.Get("gift.receive_hint")));
+        else
+            BuildInventoryProjection(_rightContent, other);
         _densityTier = 0;
         ApplyDensity();
         _frame.schedule.Execute(FitDensity);
@@ -1125,7 +1123,8 @@ public sealed partial class LootTransferPanel : MonoBehaviour
         }
         else if (_dragCell != null && _dragCell.worldBound.Contains(position))
         {
-            ShowItemInformation(item);
+            if (_gift && item.OwnerId == _looterId) ExecuteTransfer(_otherId, item, 1);
+            else ShowItemInformation(item);
         }
 
         // Двойной клик сам оставляет сообщение (в том числе «так нельзя»), а
@@ -1151,6 +1150,12 @@ public sealed partial class LootTransferPanel : MonoBehaviour
         {
             _statusHeld = true;
             _status.text = Loc.Get("gift.take_forbidden");
+            return;
+        }
+
+        if (_gift)
+        {
+            ExecuteTransfer(destinationId, _drag, 1);
             return;
         }
 
@@ -1213,6 +1218,7 @@ public sealed partial class LootTransferPanel : MonoBehaviour
     {
         _drag = item;
         if (destinationId == item.OwnerId || _runner == null) return;
+        if (_gift) count = 1;
 
         var direction = item.OwnerId == _otherId && destinationId == _looterId
             ? (wear ? InventoryTransferDirection.TakeAndWear : InventoryTransferDirection.Take)
@@ -1248,6 +1254,7 @@ public sealed partial class LootTransferPanel : MonoBehaviour
             count,
             direction));
         MarkPending();
+        if (_gift) Hide();
     }
 
     /// <summary>§128.4 быстрое действие двойным кликом. Сторону выбирает
@@ -1256,6 +1263,11 @@ public sealed partial class LootTransferPanel : MonoBehaviour
     private void QuickAction(DragItem item)
     {
         if (_runner == null || _pending) return;
+        if (_gift && item.OwnerId == _looterId)
+        {
+            ExecuteTransfer(_otherId, item, 1);
+            return;
+        }
         var quick = InventoryQuickActions.Resolve(
             ownSide: item.OwnerId == _looterId,
             worn: item.Source == InventoryItemSource.Worn,
@@ -1505,18 +1517,6 @@ public sealed partial class LootTransferPanel : MonoBehaviour
     /// только в одну сторону, и обещать обмен было бы враньём.</summary>
     private string DragHint() =>
         Loc.Get(_gift ? "gift.drag_hint" : "loot.drag_hint");
-
-    private string GiftProgress(WorldSnapshot snapshot, NpcSnapshot giver)
-    {
-        if (giver.GiftSessionTargetNpcId == _otherId)
-        {
-            _giftSessionObserved = true;
-            return Loc.Get(giver.CurrentGoal == "PlayerOrder" && giver.PlanStatus == "Active"
-                ? "gift.approaching" : "gift.choose");
-        }
-        return Loc.Get(!_giftSessionObserved && snapshot.Tick <= _giftSessionRequestTick + 1
-            ? "gift.approaching" : "gift.wait_ended");
-    }
 
     private void EndGiftSession()
     {

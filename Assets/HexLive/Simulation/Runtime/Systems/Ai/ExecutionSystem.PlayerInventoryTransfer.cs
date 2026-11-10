@@ -112,8 +112,13 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        if (!PlayerInventoryTransferMath.FitsAfter(
-                world, source, destination, itemRef, count, wear, gift: !take))
+        bool TransferFits() => PlayerInventoryTransferMath.FitsAfter(
+            world, source, destination, itemRef, count, wear, gift: !take);
+        if (!TransferFits() &&
+            (take || moving.Count != 1 || !PlayerLootTargets.CanReactToGift(world, other) ||
+             !PlayerInventoryTransferMath.FitsAfter(world, source, destination, itemRef,
+                 count, wear, gift: true, ignoreDestinationCapacity: true) ||
+             !InventoryMath.MakeRoomForGiftTransfer(world, other, selected.DefinitionId, TransferFits)))
         {
             FailPlayerInventoryTransfer(world, looter, "InsufficientSpace");
             return;

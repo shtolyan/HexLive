@@ -80,7 +80,7 @@ internal static class PlayerInventoryTransferMath
         NPCState destination,
         InventoryItemRef itemRef,
         int count,
-        bool wear = false, bool gift = false)
+        bool wear = false, bool gift = false, bool ignoreDestinationCapacity = false)
     {
         if (!TryResolveTransfer(
                 world, source, itemRef, count, out var moving, out var contents))
@@ -135,10 +135,10 @@ internal static class PlayerInventoryTransferMath
 
         return PlayerInventoryMath.FitsProjected(
                    world, source, sourceCarried, sourceWorn) &&
-               (wear
+               (ignoreDestinationCapacity || (wear
                    ? moving.Count == 1 && CanWearIncoming(world, destination, moving[0], contents)
                    : PlayerInventoryMath.FitsProjected(
-                       world, destination, destinationCarried, destinationWorn));
+                       world, destination, destinationCarried, destinationWorn)));
     }
 
     internal static bool CanWearIncoming(WorldState world, NPCState npc, ItemInstance item,

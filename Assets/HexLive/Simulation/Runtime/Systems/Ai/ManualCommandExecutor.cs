@@ -2479,13 +2479,17 @@ internal static partial class ManualCommandExecutor
             return;
         }
 
+        var transferCount = !take && PlayerLootTargets.CanReactToGift(world, other)
+            ? 1 : command.Count;
         var source = take ? other : looter;
         var destination = take ? looter : other;
         if (!PlayerInventoryTransferMath.TryResolveTransfer(
-                world, source, command.Item, command.Count,
+                world, source, command.Item, transferCount,
                 out var selectedItems, out _) ||
             !PlayerInventoryTransferMath.FitsAfter(
-                world, source, destination, command.Item, command.Count, wear, gift: !take))
+                world, source, destination, command.Item, transferCount, wear, gift: !take,
+                ignoreDestinationCapacity: !take && transferCount == 1 &&
+                    PlayerLootTargets.CanReactToGift(world, other)))
         {
             Reject(world, looter.Id, "TransferInventory", "StaleOrNoSpace", admission);
             return;
@@ -2575,7 +2579,7 @@ internal static partial class ManualCommandExecutor
         {
             Type = stepType,
             TimeoutEndTick = PlayerInventoryTransferMath.PackCursor(
-                command.Item.Index, command.Count)
+                command.Item.Index, transferCount)
         });
         looter.Plan.CurrentStepIndex = 0;
         looter.Plan.Status = PlanStatus.Active;
@@ -2585,7 +2589,7 @@ internal static partial class ManualCommandExecutor
             Trace.Debug(world, looter.Id, "ManualOrderAccepted",
                 $"Order=TransferInventory Direction={command.Direction} " +
                 $"Other=NPC{other.Id.Value} Source={command.Item.Source} " +
-                $"Index={command.Item.Index} Count={command.Count} " +
+                $"Index={command.Item.Index} Count={transferCount} " +
                 $"Def={command.Item.ExpectedDefinitionId}");
         }
     }

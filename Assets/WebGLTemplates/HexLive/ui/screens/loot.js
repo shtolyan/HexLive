@@ -111,7 +111,7 @@ function Pane({ side, pane, ctx, accepts }) {
         ? html`<span class="hx-loot__face">${face ? html`<img src=${face} alt="" />` : pane.name.slice(0, 1)}</span>`
         : html`<span class="hx-loot__face hx-loot__face--thing">${icons.bag()}</span>`}
       <h3>${pane.name}</h3>
-      <span class="hx-inv__cap">${used}/${cap}</span>
+      ${!pane.privateInventory && html`<span class="hx-inv__cap">${used}/${cap}</span>`}
     </header>
     <div class="hx-loot__scroll">
       ${(pane.groups || []).map((g, i) => html`
@@ -127,7 +127,7 @@ function Pane({ side, pane, ctx, accepts }) {
           <div class="hx-loot__group-head"><b>${t('inv.worn')}</b></div>
           <ul class="hx-loot__chips">${pane.worn.map((it) => html`<${Chip} key=${it.uid} item=${it} ctx=${ctx} />`)}</ul>
         </div>`}
-      ${!(pane.groups?.length || pane.worn?.length) && html`<p class="hx-muted hx-loot__empty">${t('loot.empty')}</p>`}
+      ${!(pane.groups?.length || pane.worn?.length) && html`<p class="hx-muted hx-loot__empty">${pane.hint ?? t('loot.empty')}</p>`}
     </div>
     ${info && html`<${Info} item=${info} detail=${detail} onClose=${() => ctx.select(null)} />`}
   </section>`;
@@ -141,14 +141,18 @@ export function Loot({ model, send }) {
   const ctx = {
     model, selected, dragging, pending: model.pending,
     // The card is C#'s (the same builder as in UI Toolkit): ask for it.
-    select: (uid) => { const next = uid === selected ? null : uid; setSelected(next); send('info', { uid: next }); },
+    select: (uid) => {
+      if (gift && uid && sideOf(model, uid) === 'left') { send('move', { uid, to: 'right', count: 1 }); return; }
+      const next = uid === selected ? null : uid; setSelected(next); send('info', { uid: next });
+    },
     drag: setDragging,
     quick: (uid) => { setSelected(null); send('quick', { uid }); },
     drop: (uid, to) => {
       setDragging(null);
       const item = findItem(model, uid);
       if (!item || sideOf(model, uid) === to) return;
-      if (item.count > 1) setAsking({ item, to });
+      if (gift) send('move', { uid, to, count: 1 });
+      else if (item.count > 1) setAsking({ item, to });
       else send('move', { uid, to, count: 1 });
     },
   };

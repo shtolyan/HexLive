@@ -54,7 +54,7 @@ public sealed partial class LootTransferPanel
         {
             var other = FindNpc(snapshot, _otherId);
             if (other == null) return;
-            right = PersonPane(builder, other);
+            right = _gift ? GiftRecipientPane(other) : PersonPane(builder, other);
         }
 
         var model = new JObject
@@ -71,6 +71,13 @@ public sealed partial class LootTransferPanel
         _lastHtmlJson = json;
         HtmlUi.Show(HtmlScreen, model);
     }
+
+    private static JObject GiftRecipientPane(NpcSnapshot other) => new JObject
+    {
+        ["name"] = Loc.NpcName(other.DisplayName), ["kind"] = "person",
+        ["privateInventory"] = true, ["hint"] = Loc.Get("gift.receive_hint"),
+        ["groups"] = new JArray(), ["worn"] = new JArray()
+    };
 
     private void HideHtml()
     {
@@ -237,6 +244,7 @@ public sealed partial class LootTransferPanel
     private JObject? InfoModel(WorldSnapshot snapshot, CharacterPanel builder)
     {
         if (_htmlInfoUid == null || !TryParseUid(_htmlInfoUid, out var item)) return null;
+        if (_gift && item.OwnerId != _looterId) return null;
         NpcSnapshot? owner = null;
         InventorySlotSnapshot? slot = null;
         var worn = item.Source == InventoryItemSource.Worn;

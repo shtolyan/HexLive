@@ -155,6 +155,93 @@ public sealed class GiftTransferTests
         });
     }
 
+    private static ItemInstance[] FillResourceSlots(NPCState receiver)
+    {
+        var ids=new[]{ContentIds.Stone,ContentIds.Stick,ContentIds.Rope,ContentIds.PalmLeaf,
+            ContentIds.Flint,ContentIds.Fiber,ContentIds.Cloth,ContentIds.Hide,ContentIds.Board};
+        Assert.That(receiver.Inventory.Capacity,Is.LessThanOrEqualTo(ids.Length));
+        var items=ids.Take(receiver.Inventory.Capacity).Select((id,i)=>new ItemInstance(id)
+            {Durability=.231513f+i*.001f,Dirtiness=.41235f,OwnerId=receiver.Id.Value}).ToArray();
+        receiver.Inventory.Items.AddRange(items);
+        Assert.That(receiver.Inventory.HasSpace,Is.False);
+        return items;
+    }
+
+    [Test]
+    public void OneGiftCanBeOfferedToAFullPackAndRecipientMakesRoomOnlyOnArrival()
+    {
+        var(engine,giver,receiver)=Scene();var world=engine.World;
+        var before=FillResourceSlots(receiver);
+        var gift=new ItemInstance(ContentIds.Hammer){Durability=.371f,Wetness=.219f,Dirtiness=.417f};
+        giver.Inventory.Items.Add(gift);
+        var dryingControl=new ItemInstance(ContentIds.Hammer){Wetness=gift.Wetness};
+        giver.Inventory.Items.Add(dryingControl);
+        Assert.That(InventoryMath.CanMakeRoomFor(world,receiver,gift.DefinitionId),Is.True,
+            "The fixture must have a physical drop location and an ordinary lower-priority replacement.");
+        var result=engine.ApplyManualCommand(new TransferInventoryCommand(giver.Id,receiver.Id,
+            new InventoryItemRef(InventoryItemSource.Carried,0,gift.DefinitionId),1,InventoryTransferDirection.Give));
+        Assert.That(result.Accepted,Is.True,result.Reason);
+        Assert.That(receiver.Inventory.Items.SequenceEqual(before),Is.True,
+            "Offering a gift must not evict the recipient's belongings before arrival.");
+        engine.Step();
+        Assert.That(receiver.Inventory.Items.Any(i=>ReferenceEquals(i,gift)),Is.True);
+        Assert.That(gift.Durability,Is.EqualTo(.371f));
+        Assert.That(gift.Wetness,Is.EqualTo(dryingControl.Wetness),
+            "The normal simulation tick dries both physical hammers equally.");
+        Assert.That(giver.Inventory.Items.Any(i=>ReferenceEquals(i,gift)),Is.False);
+        var dropped=before.Where(old=>!receiver.Inventory.Items.Any(i=>ReferenceEquals(i,old))).ToArray();
+        Assert.That(dropped.Length,Is.GreaterThan(0));
+        foreach(var old in dropped)Assert.That(world.Entities.Objects.Values.Any(o=>o.DefinitionId==old.DefinitionId&&
+            o.Durability==old.Durability&&o.Dirtiness==old.Dirtiness),Is.True,"Evicted physical contents must remain in the world.");
+        Assert.That(receiver.Inventory.UsedSlots,Is.LessThanOrEqualTo(receiver.Inventory.Capacity));
+    }
+
+    [Test]
+    public void ReceiverWithoutExpendableBelongingsKeepsGiftWithTheGiver()
+    {
+        var(engine,giver,receiver)=Scene();var world=engine.World;
+        // A resource gift has no right to evict more important weapons/tools.
+        for(int i=0;i<receiver.Inventory.Capacity;i++)receiver.Inventory.Items.Add(new ItemInstance(ContentIds.Hammer));
+        var before=receiver.Inventory.Items.ToArray();var gift=new ItemInstance(ContentIds.Stone){Durability=.713f};
+        giver.Inventory.Items.Add(gift);
+        var result=engine.ApplyManualCommand(new TransferInventoryCommand(giver.Id,receiver.Id,
+            new InventoryItemRef(InventoryItemSource.Carried,0,gift.DefinitionId),1,InventoryTransferDirection.Give));
+        Assert.That(result.Accepted,Is.True,"A full pack must not suppress the offer.");
+        engine.Step();
+        Assert.That(giver.Inventory.Items.Any(i=>ReferenceEquals(i,gift)),Is.True);
+        Assert.That(receiver.Inventory.Items.SequenceEqual(before),Is.True);
+        Assert.That(world.Events.Items.Any(e=>e.Type=="GiftGiven"),Is.False);
+    }
+
+    [Test]
+    public void SleepingFullRecipientDoesNotDiscardBelongingsForAnOffer()
+    {
+        var(engine,giver,receiver)=Scene();var before=FillResourceSlots(receiver);
+        receiver.Execution.CurrentInteraction=InteractionType.Sleep;
+        var gift=new ItemInstance(ContentIds.Hammer);giver.Inventory.Items.Add(gift);
+        var result=engine.ApplyManualCommand(new TransferInventoryCommand(giver.Id,receiver.Id,
+            new InventoryItemRef(InventoryItemSource.Carried,0,gift.DefinitionId),1,InventoryTransferDirection.Give));
+        Assert.That(result.Accepted,Is.False);
+        Assert.That(receiver.Inventory.Items.SequenceEqual(before),Is.True);
+        Assert.That(giver.Inventory.Items.Any(i=>ReferenceEquals(i,gift)),Is.True);
+    }
+
+    [Test]
+    public void AwakeGiftTransfersExactlyOnePhysicalItemEvenWhenCommandRequestsTheStack()
+    {
+        var(engine,giver,receiver)=Scene();
+        var stack=Enumerable.Range(0,3).Select(i=>new ItemInstance(ContentIds.Stick){Durability=.7f+i*.01f}).ToArray();
+        giver.Inventory.Items.AddRange(stack);
+        var result=engine.ApplyManualCommand(new TransferInventoryCommand(giver.Id,receiver.Id,
+            new InventoryItemRef(InventoryItemSource.Carried,0,ContentIds.Stick),3,InventoryTransferDirection.Give));
+        Assert.That(result.Accepted,Is.True);
+        engine.Step();
+        Assert.That(receiver.Inventory.Items.Count,Is.EqualTo(1));
+        Assert.That(receiver.Inventory.Items[0],Is.SameAs(stack[0]));
+        Assert.That(giver.Inventory.Items.Count,Is.EqualTo(2));
+        Assert.That(giver.Inventory.Items.Any(i=>ReferenceEquals(i,stack[1])),Is.True);
+    }
+
     [Test]
     public void TakingFromAnAwakePersonIsRejected_GiftIsOneWay()
     {

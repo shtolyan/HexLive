@@ -4148,8 +4148,16 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - 'Drag an item to the right side — [[s:she|he]] will take it as a gift'
-      - 'Перетащите вещь на правую сторону — [[s:она примет её|он примет её]] как подарок'
+      - 'Choose one item to offer as a gift'
+      - 'Выберите один предмет в подарок'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: gift.receive_hint
+      TermType: 0
+      Description:
+      Languages:
+      - 'One gift at a time. The recipient decides what to make room for.'
+      - 'Один подарок за раз. Получатель сам решит, что освободить для него.'
       Flags: 0101
       Languages_Touch: []
     - Term: gift.approaching

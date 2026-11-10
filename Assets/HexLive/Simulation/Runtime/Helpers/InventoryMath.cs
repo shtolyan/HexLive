@@ -205,6 +205,24 @@ internal static class InventoryMath
         return npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId);
     }
 
+    // §153.1: a recipient chooses its ordinary lower-priority belongings only
+    // on arrival. The incoming item and any pocket contents are projected by
+    // the same transfer validator; an offer never reserves a stranger's slot.
+    internal static bool MakeRoomForGiftTransfer(
+        WorldState world, NPCState npc, string incomingDefinitionId,
+        System.Func<bool> transferFits)
+    {
+        if (!CanAcquireAdditional(world, npc, incomingDefinitionId)) return false;
+        for (var guard = 0; guard < 64 && !transferFits(); guard++)
+        {
+            var victim = ReplacementVictim(world, npc, incomingDefinitionId);
+            if (!CanDropReplacement(world, npc, victim) ||
+                TryDropAutomatic(world, npc, victim) == null) return false;
+            RemoveReference(npc.Inventory.Items, victim);
+        }
+        return transferFits();
+    }
+
     public static bool MakeRoomForGoal(
         WorldState world, NPCState npc, GoalType goal, string incomingDefinitionId)
     {

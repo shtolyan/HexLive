@@ -1729,18 +1729,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             npc.Mind.CurrentGoal = GoalType.None;
             return false;
         }
-        var vessel = WorldObjectMutations.SpawnObject(
-            world, bottleItem.DefinitionId, npc.Fragment,
-            worldObject.Tile, worldObject.Junctions[0]);
-        vessel.Wetness = bottleItem.Wetness; vessel.Durability = bottleItem.Durability;
-        vessel.Dirtiness = bottleItem.Dirtiness; vessel.Bloodiness = bottleItem.Bloodiness;
-        vessel.Owner = npc.Id; // remembers whose physical vessel waits here
-        // A manual placement can park a partially filled vessel just like the
-        // container inventory. Ground collector amounts are capacity fractions.
-        var amount = BottleInventoryMath.Amount(bottleItem);
-        vessel.ResourceAmount = amount / BottleInventoryMath.Capacity(bottleItem);
-        vessel.WaterKind = amount > 0f ? bottleItem.WaterKind : WaterKind.None;
-        vessel.LastAddedWaterKind = amount > 0f ? bottleItem.LastAddedWaterKind : WaterKind.None;
+        WaterCollectorMath.SpawnParkedVessel(world, worldObject, bottleItem, npc.Id);
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "VesselPlaced",

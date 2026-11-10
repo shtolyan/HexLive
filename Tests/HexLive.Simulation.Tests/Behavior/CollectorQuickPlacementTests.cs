@@ -23,7 +23,7 @@ public sealed class CollectorQuickPlacementTests
         var npc=world.Entities.Npcs.Values.First(n=>(int)n.Faction==0);
         npc.Mind.ManualControl=true;npc.Needs.Hunger=npc.Needs.Thirst=0;
         npc.Inventory.Items.Clear();
-        var item=new ItemInstance(id){Durability=.64f,Wetness=.23f,Dirtiness=.17f,Bloodiness=.11f};
+        var item=new ItemInstance(id){Durability=.64f,Wetness=.23f,Dirtiness=.17f,Bloodiness=.11f,OwnerId=711};
         BottleInventoryMath.SetContents(item,WaterKind.Raw,amount);
         if(amount>0)item.LastAddedWaterKind=WaterKind.Coconut;
         npc.Inventory.Items.Add(item);
@@ -35,6 +35,7 @@ public sealed class CollectorQuickPlacementTests
         SpatialMutations.MoveEntityToTile(world,npc.Id,oldTile,npc.Tile);SpatialMutations.OccupyJunction(world,destination.Id,npc.Id);
         var anchor=SpatialQueries.GetPassableNeighbors(world,destination.Id).First();
         var collector=WorldObjectMutations.SpawnObject(world,ContentIds.WaterCollector,npc.Fragment,world.Junctions.Items[anchor].Tiles[0],anchor);
+        collector.RotationDegrees=120f;
         var admitted=ManualCommandExecutor.Apply(world,new InteractCommand(npc.Id,collector.Id,InteractionType.PlaceVessel,"vessel.place"));
         Assert.That(admitted.Status,Is.EqualTo(ManualCommandAdmissionStatus.Accepted),admitted.Reason);
         for(int tick=0;tick<300&&WaterCollectorMath.FindVessel(world,collector)==null;tick++)engine.Step();
@@ -46,6 +47,8 @@ public sealed class CollectorQuickPlacementTests
             Assert.That(parked.WaterKind,Is.EqualTo(amount>0?WaterKind.Raw:WaterKind.None));
             Assert.That(parked.LastAddedWaterKind,Is.EqualTo(amount>0?WaterKind.Coconut:WaterKind.None));
             Assert.That(parked.Durability,Is.EqualTo(.64f));
+            Assert.That(parked.Owner,Is.EqualTo(new HexLive.Simulation.Common.EntityId(711)));
+            Assert.That(parked.RotationDegrees,Is.EqualTo(120f));
             Assert.That(parked.Dirtiness,Is.EqualTo(.17f));
             Assert.That(parked.Bloodiness,Is.EqualTo(.11f));
             Assert.That(npc.Inventory.Items.Contains(item),Is.False);

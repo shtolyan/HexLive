@@ -638,6 +638,11 @@ internal static class ContainerLootMath
                     item.DefinitionId, out var definition) &&
                 AcceptsExternalObject(obj, definition, item.DefinitionId))
             {
+                if (obj.DefinitionId == ContentIds.WaterCollector)
+                {
+                    WaterCollectorMath.SpawnParkedVessel(world, obj, item, looter.Id);
+                    continue;
+                }
                 var stored = WorldObjectMutations.SpawnObject(
                     world, item.DefinitionId, obj.Fragment, obj.Tile, obj.Junctions[0]);
                 stored.RotationDegrees = obj.RotationDegrees;
@@ -645,10 +650,7 @@ internal static class ContainerLootMath
                 stored.Durability = item.Durability;
                 stored.Dirtiness = item.Dirtiness;
                 stored.Bloodiness = item.Bloodiness;
-                stored.ResourceAmount = obj.DefinitionId == ContentIds.WaterCollector
-                    ? System.Math.Clamp(
-                        item.ResourceAmount / BottleInventoryMath.Capacity(item), 0f, 1f)
-                    : item.ResourceAmount;
+                stored.ResourceAmount = item.ResourceAmount;
                 stored.WaterKind = item.WaterKind;
                 stored.LastAddedWaterKind = item.LastAddedWaterKind;
                 stored.Owner = item.OwnerId != 0 ? new EntityId(item.OwnerId) : looter.Id;

@@ -1,4 +1,5 @@
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Agents;
 
@@ -64,6 +65,26 @@ public static class WaterCollectorMath
         }
 
         return null;
+    }
+
+    // One authoritative item→collector representation for quick actions and
+    // the two-sided inventory. Call only after admission and inventory removal.
+    internal static WorldObjectState SpawnParkedVessel(
+        WorldState world, WorldObjectState collector, ItemInstance item, EntityId placer)
+    {
+        var vessel = WorldObjectMutations.SpawnObject(
+            world, item.DefinitionId, collector.Fragment, collector.Tile, collector.Junctions[0]);
+        vessel.RotationDegrees = collector.RotationDegrees;
+        vessel.Wetness = item.Wetness;
+        vessel.Durability = item.Durability;
+        vessel.Dirtiness = item.Dirtiness;
+        vessel.Bloodiness = item.Bloodiness;
+        vessel.Owner = item.OwnerId != 0 ? new EntityId(item.OwnerId) : placer;
+        var amount = BottleInventoryMath.Amount(item);
+        vessel.ResourceAmount = amount / BottleInventoryMath.Capacity(item);
+        vessel.WaterKind = amount > 0f ? item.WaterKind : WaterKind.None;
+        vessel.LastAddedWaterKind = amount > 0f ? item.LastAddedWaterKind : WaterKind.None;
+        return vessel;
     }
 
     /// Exact physical quantity. Rounding belongs only to drink availability.

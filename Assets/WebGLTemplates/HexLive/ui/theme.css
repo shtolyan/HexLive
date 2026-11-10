@@ -614,6 +614,8 @@
 .hx-steps-tabs button[aria-selected="true"] b { background: var(--hx-gold); color: var(--hx-ink); }
 
 .hx-seg-row { display: flex; gap: 0.5rem; }
+.hx-creator-voices { flex-wrap: wrap; }
+.hx-creator-voices .hx-choice { flex: 1 0 6rem; }
 .hx-choice {
   flex: 1;
   display: inline-flex;

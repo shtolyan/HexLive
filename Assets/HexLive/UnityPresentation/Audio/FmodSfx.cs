@@ -877,6 +877,21 @@ namespace HexLive.UnityPresentation.Audio
                 0, FMODUnity.RuntimeUtils.To3DAttributes(camera));
         }
 
+        public static bool InitializationFailed => _failed;
+
+        // §171.20 / #667: list actual localized Player audio, including entries
+        // not downloaded yet in WebGL. Selection never calls a paid voice API.
+        public static string[] VoicePreviewGroups(string voice)
+        {
+            if (string.IsNullOrWhiteSpace(voice)) return System.Array.Empty<string>();
+            var prefix = "voice_" + voice + "_";
+            var relative = VoiceRoot(CurrentVoiceBank).Substring(AudioRoot.Length + 1)
+                .Replace(Path.DirectorySeparatorChar, '/');
+            return AudioFiles(relative, true).Where(IsAudioFile).Select(GroupId)
+                .Where(id => id.StartsWith(prefix, System.StringComparison.Ordinal))
+                .Distinct(System.StringComparer.Ordinal).OrderBy(id => id, System.StringComparer.Ordinal).ToArray();
+        }
+
         /// <summary>Есть ли такой звук (учитывая голосовые группы из скана).</summary>
         public static bool HasSound(string id) => _ready &&
             (Sounds.ContainsKey(id) || EnsureVoiceGroup(id));
@@ -932,7 +947,7 @@ namespace HexLive.UnityPresentation.Audio
 
         /// <summary>One-shot с хэндлом — говорящая не начинает новую реплику,
         /// пока звучит предыдущая (IsPlaying).</summary>
-        public static Loop PlayTracked(string id, Vector3 position, float volumeGain = 1f)
+        public static Loop PlayTracked(string id, Vector3 position, float volumeGain = 1f, bool listenerRelative = false)
         {
             if (!_ready || (!Sounds.TryGetValue(id, out var variants) &&
                             (!EnsureVoiceGroup(id) || !Sounds.TryGetValue(id, out variants))))
@@ -949,7 +964,8 @@ namespace HexLive.UnityPresentation.Audio
                 return default;
             }
 
-            if (def.Spatial)
+            if (listenerRelative) channel.setMode(FMOD.MODE._2D);
+            if (def.Spatial && !listenerRelative)
             {
                 var pos = ToFmod(position);
                 var vel = default(FMOD.VECTOR);
@@ -957,7 +973,7 @@ namespace HexLive.UnityPresentation.Audio
             }
 
             channel.setVolume(def.Volume * volumeGain);
-            if (def.PitchJitter > 0f)
+            if (def.PitchJitter > 0f && !listenerRelative)
             {
                 channel.setPitch(1f + ((float)_rng.NextDouble() * 2f - 1f) * def.PitchJitter);
             }

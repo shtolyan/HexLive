@@ -8,9 +8,9 @@
 //   phase: 'signedOut' | 'loading' | 'failed' | 'editing',
 //   messageText,                        // gate only: the flow's status, already worded (I2)
 //   bannerText, busyText, pending,      // editing: flow message / submit in progress / frozen attempt
-//   draft: { name, sex, skin, hair, hairColour, eyes, camp,
+//   draft: { name, sex, skin, hair, hairColour, eyes, voice, camp,
 //            attributes: { id: 0–10 }, skills: { id: 0–10 }, traits: [id] },
-//   options: { sexes, skins: [id], hair: [{ id, colours: [id] }], eyes: [id],
+//   options: { sexes, skins: [id], hair: [{ id, colours: [id] }], eyes: [id], voices: [id],
 //              attributes: [id], skills: [id], traits: [id], pairs: [[a, b]],
 //              attributeBudget, skillBudget,  // in the same 0–10 points as the cells
 //              camps: [{ id, number, hasSpace, residents?, capacity? }] },  // counts: §171.10, 18.10.2026
@@ -30,7 +30,7 @@ import { Button, Pips } from '../components.js';
 import { asset } from '../bridge.js';
 
 const STEPS = ['appearance', 'abilities', 'camp'];
-const LOOKS = ['skin', 'hair', 'colour'];
+const LOOKS = ['skin', 'hair', 'colour', 'voice'];
 
 const sexIcon = {
   female: html`<svg class="hx-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="7.5" r="4.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 12v6M7 15.5h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
@@ -52,7 +52,7 @@ const label = (model, kind, id) => model.labels?.[`${kind}:${id}`] ?? t(`creator
 function Appearance({ model, set, send }) {
   const [look, setLookState] = useState('skin');
   const setLook = (id) => { setLookState(id); send('look', { tab: id }); };
-  useEffect(() => send('look', { tab: look }), []);
+  useEffect(() => { send('look', { tab: look }); return () => send('voiceStop'); }, []);
   const { draft, options } = model;
   const hairIds = options.hair.map((h) => h.id);
   const hairIndex = Math.max(0, hairIds.indexOf(draft.hair));
@@ -86,6 +86,17 @@ function Appearance({ model, set, send }) {
       <div class="hx-tiles">
         ${options.hair.map((h) => html`<${Tile} key=${h.id} selected=${draft.hair === h.id} label=${label(model, 'hair', h.id)}
           thumb=${asset(model.thumbs[`hair:${h.id}`])} onClick=${() => set('hair', h.id)} />`)}
+      </div>`}
+    ${look === 'voice' && html`
+      <div class="hx-section">
+        <p class="hx-muted">${t('creator.voiceHint')}</p>
+        <div class="hx-seg-row hx-creator-voices" role="group" aria-label=${t('creator.voice')}>
+          ${(options.voices ?? []).map((id) => html`
+            <button type="button" class="hx-choice" key=${id} aria-pressed=${draft.voice === id}
+              onClick=${() => set('voice', id)}>${label(model, 'voice', id)}</button>`)}
+        </div>
+        <button type="button" class="hx-seg" onClick=${() => send('voicePreview')}>${t('creator.voiceAgain')}</button>
+        <p class="hx-muted" role="status" aria-live="polite">${model.voicePreview?.text ?? ''}</p>
       </div>`}
     ${look === 'colour' && (draft.hair === 'none'
       ? html`<p class="hx-muted">${t('creator.chooseHairFirst')}</p>`
@@ -238,7 +249,7 @@ function Editor({ model, send }) {
   const locked = model.pending || !!model.busyText;
   const last = step === 'camp';
   const primary = model.pending ? t('creator.retryCreation') : last ? t('creator.create') : t('creator.next');
-  const go = () => (model.pending || last ? send('submit') : setStep(STEPS[index + 1]));
+  const go = () => { send('voiceStop'); return model.pending || last ? send('submit') : setStep(STEPS[index + 1]); };
   return html`
     <div class="hx-creator hx-surface">
       <header class="hx-creator__head">
@@ -253,7 +264,7 @@ function Editor({ model, send }) {
           <ol class="hx-steps-tabs" role="tablist">
             ${STEPS.map((id, i) => html`
               <li key=${id}><button type="button" role="tab" aria-selected=${step === id} disabled=${locked}
-                onClick=${() => setStep(id)}><b>${i + 1}</b>${t(`creator.${id}`)}</button></li>`)}
+                onClick=${() => { send('voiceStop'); setStep(id); }}><b>${i + 1}</b>${t(`creator.${id}`)}</button></li>`)}
           </ol>
           <div class="hx-panel__scroll" inert=${locked}>
             ${step === 'appearance' && html`<${Appearance} model=${model} set=${set} send=${send} />`}

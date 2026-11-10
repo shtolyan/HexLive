@@ -4,6 +4,7 @@ using System.Linq;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Bootstrap;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Audio;
 using HexLive.UnityPresentation.Platform;
 using HexLive.UnityPresentation.Wearing;
 using Newtonsoft.Json.Linq;
@@ -19,6 +20,8 @@ public sealed class PlayerCharacterCreator : IDisposable
     public readonly PlayerCreatorAppearance Appearance;
     private readonly LobbyCharacterPreview _preview;
     private readonly LobbyAppearanceThumbnails _thumbnails;
+    private readonly CreatorVoicePreview _voicePreview;
+    private Label _voiceStatus;
     private readonly ScrollView _controls;
     private readonly VisualElement _choices;
     private readonly Label _status, _summary;
@@ -45,7 +48,7 @@ public sealed class PlayerCharacterCreator : IDisposable
     private float _nextThumbPoll;
     private static readonly string[][] OppositeTraits = { new[] { "Slob", "Neat" }, new[] { "Lazy", "Diligent" }, new[] { "Coward", "Brave" } };
     public PlayerCharacterCreator(VisualElement parent, MonoBehaviour runner, PlayerCreatorAppearance appearance,
-        Action changed, Action submit, Action back, Action retry)
+        Action changed, Action submit, Action back, Action retry, CreatorVoicePreview.IAudio voiceAudio = null)
     {
         Appearance = appearance; _changed = changed; _submit = submit; _backAction = back; _retryAction = retry;
         Html = HtmlUi.Active;
@@ -62,12 +65,13 @@ public sealed class PlayerCharacterCreator : IDisposable
         _name.RegisterValueChangedCallback(e => { Appearance.Character.Name = e.newValue; Changed(false); });
         Root.Q<Label>("eyebrow").text = T("eyebrow"); Root.Q<Label>("title").text = T("title");
         Root.Q<Label>("orbitHint").text = T("orbitHint");
-        _back = Root.Q<Button>("back"); _back.text = T("back"); _back.clicked += back;
+        _back = Root.Q<Button>("back"); _back.text = T("back"); _back.clicked += () => { _voicePreview.Stop(); back(); };
         _continue = Root.Q<Button>("continue"); _continue.name = "createCharacter";
-        _continue.clicked += () => { if (_tab != "camp" && !_pending) SwitchTab(_tab == "appearance" ? "abilities" : "camp"); else _submit(); };
-        _retry = Root.Q<Button>("retry"); _retry.text = T("retry"); _retry.clicked += retry;
+        _continue.clicked += () => { if (_tab != "camp" && !_pending) SwitchTab(_tab == "appearance" ? "abilities" : "camp"); else { _voicePreview.Stop(); _submit(); } };
+        _retry = Root.Q<Button>("retry"); _retry.text = T("retry"); _retry.clicked += () => { _voicePreview.Stop(); retry(); };
         _preview = new LobbyCharacterPreview(Root.Q<VisualElement>("preview"), runner, Appearance.Character, creator: true);
         _thumbnails = new LobbyAppearanceThumbnails(runner);
+        _voicePreview = new CreatorVoicePreview(voiceAudio ?? new CreatorVoicePreviewAudio(), () => Time.realtimeSinceStartup);
         var cameras = Root.Q<VisualElement>("cameraControls");
         IconButton(cameras, "left", T("rotateLeft"), () => _preview.Rotate(-30));
         IconButton(cameras, "body", T("fullBody"), () => { _focusHead = false; _preview.FocusBody(); });
@@ -98,11 +102,11 @@ public sealed class PlayerCharacterCreator : IDisposable
     private void SwitchTab(string tab)
     {
         if (_busy || _pending) return;
-        _tab = tab; BuildControls(); UpdateReady();
+        _voicePreview.Stop(); _tab = tab; BuildControls(); UpdateReady();
     }
     private void BuildControls()
     {
-        _choices.Clear(); _tiles.Clear();
+        _choices.Clear(); _tiles.Clear(); _voiceStatus = null;
         BuildEyes();
         foreach (var pair in _steps) pair.Value.EnableInClassList("creator-selected", pair.Key == _tab);
         if (_tab == "appearance") BuildAppearance();
@@ -135,21 +139,22 @@ public sealed class PlayerCharacterCreator : IDisposable
         var sex = Row("creator-choice-row");
         foreach (var male in new[] { false, true })
         {
-            var button = IconButton(sex, male ? "male" : "female", T(male ? "male" : "female"), () => { Appearance.SetSex(male); Changed(); BuildControls(); });
+            var button = IconButton(sex, male ? "male" : "female", T(male ? "male" : "female"), () => { _voicePreview.Stop(); Appearance.SetSex(male); Changed(); BuildControls(); });
             button.name = male ? "creatorMale" : "creatorFemale";
             _tiles.Add((button, () => Appearance.IsMale == male));
             button.SetEnabled(Appearance.Bodies.Any(b => b.Value<string>("sex") == (male ? "male" : "female")));
         }
         var categories = Row("creator-choice-row");
-        foreach (var category in new[] { "skin", "hair", "colour" })
+        foreach (var category in new[] { "skin", "hair", "colour", "voice" })
         {
             var button = AddButton(categories, T(category), () => {
-                _appearanceTab = category; _focusHead = category != "skin"; BuildControls();
+                _voicePreview.Stop(); _appearanceTab = category; _focusHead = category != "skin"; BuildControls();
             });
             button.EnableInClassList("creator-selected", category == _appearanceTab);
         }
         if (_appearanceTab == "skin") { BuildSkins(); Highlight(); return; }
         if (_appearanceTab == "hair") { BuildHair(); Highlight(); return; }
+        if (_appearanceTab == "voice") { BuildVoices(); Highlight(); return; }
         BuildColours(); Highlight();
     }
     private void BuildSkins()
@@ -188,6 +193,35 @@ public sealed class PlayerCharacterCreator : IDisposable
         }
         else Note(T("chooseHairFirst"));
     }
+    private void BuildVoices()
+    {
+        Heading(T("voice")); Note(T("voiceHint"));
+        var voices = Row("creator-choice-row"); voices.AddToClassList("creator-voice-row"); var index = 0;
+        foreach (var id in Appearance.Voices)
+        {
+            var button = AddButton(voices, Appearance.Label("voice", id, index++), () => SelectVoice(id));
+            button.name = "creatorVoice-" + id;
+            _tiles.Add((button, () => Appearance.Character.Voice == id));
+        }
+        var again = AddButton(_choices, T("voiceAgain"), () => PreviewVoice(), "creator-secondary");
+        again.name = "creatorVoiceAgain";
+        _voiceStatus = new Label(VoiceStatusText()) { name = "creatorVoiceStatus" };
+        _voiceStatus.AddToClassList("creator-note"); _choices.Add(_voiceStatus);
+    }
+    private void SelectVoice(string id)
+    {
+        if (_busy || _pending || !Appearance.SetVoice(id)) return;
+        Changed(false); PreviewVoice();
+    }
+    private void PreviewVoice()
+    {
+        if (_busy || _pending || !Appearance.Voices.Contains(Appearance.Character.Voice)) return;
+        _voicePreview.Play(Appearance.Character.Voice); UpdateReady();
+    }
+    private string VoiceStatusText() => T(_voicePreview.State == CreatorVoicePreview.PlaybackState.Loading ? "voiceLoading" :
+        _voicePreview.State == CreatorVoicePreview.PlaybackState.Playing ? "voicePlaying" :
+        _voicePreview.State == CreatorVoicePreview.PlaybackState.Failed ? "voiceFailed" : "voiceHint");
+
     private void ChooseHair(string[] hair, int step)
     {
         if (hair.Length == 0) return;
@@ -282,6 +316,8 @@ public sealed class PlayerCharacterCreator : IDisposable
     private void UpdateReady()
     {
         if (_disposed) return;
+        _voicePreview.Tick();
+        if (_voiceStatus != null) _voiceStatus.text = VoiceStatusText();
         if (_focusHead && _preview.IsReady) { _preview.FocusFace(); _focusHead = false; }
         _continue.text = T(_pending ? "retryCreation" : _tab == "camp" ? "create" : "next");
         var reason = BlockedReason();
@@ -296,6 +332,7 @@ public sealed class PlayerCharacterCreator : IDisposable
     }
     public void SetState(bool busy, bool pending, string message)
     {
+        if (busy || pending) _voicePreview.Stop();
         _busy = busy; _pending = pending; _stateMessage = message ?? "";
         _controls.SetEnabled(!busy && !pending); _back.SetEnabled(!busy); _retry.SetEnabled(!busy);
         _name.SetEnabled(!busy && !pending);
@@ -327,7 +364,7 @@ public sealed class PlayerCharacterCreator : IDisposable
             foreach (var skin in Appearance.Skins) yield return ("skin:" + skin, Appearance.Look(skin: skin, hair: "none"), 1);
         else if (tab == "hair")
             foreach (var hair in Appearance.Hair) yield return ("hair:" + hair, Appearance.Look(hair: hair, colour: "prototype"), 3);
-        else if (Appearance.Character.Hair != "none")
+        else if (tab == "colour" && Appearance.Character.Hair != "none")
             // Palette tints are flat swatches; only authored colours need a picture.
             foreach (var colour in Appearance.Colours)
                 if (colour != "prototype" && !colour.StartsWith("tint.", StringComparison.Ordinal))
@@ -359,6 +396,8 @@ public sealed class PlayerCharacterCreator : IDisposable
         foreach (var skin in Appearance.Skins) labels["skin:" + skin] = Appearance.Label("skin", skin, index++);
         index = 0;
         foreach (var hair in Appearance.Hair) labels["hair:" + hair] = Appearance.Label("hair", hair, index++);
+        index = 0;
+        foreach (var voice in Appearance.Voices) labels["voice:" + voice] = Appearance.Label("voice", voice, index++);
         var hairOptions = new JArray();
         foreach (var hair in Appearance.Hair)
         {
@@ -406,19 +445,20 @@ public sealed class PlayerCharacterCreator : IDisposable
             ["draft"] = new JObject
             {
                 ["name"] = c.Name ?? "", ["sex"] = Appearance.IsMale ? "male" : "female", ["skin"] = c.Skin,
-                ["hair"] = c.Hair, ["hairColour"] = c.HairColour, ["eyes"] = c.Eyes ?? "", ["camp"] = c.Camp.ToString(),
+                ["hair"] = c.Hair, ["hairColour"] = c.HairColour, ["eyes"] = c.Eyes ?? "", ["voice"] = c.Voice, ["camp"] = c.Camp.ToString(),
                 ["attributes"] = attributes, ["skills"] = skills, ["traits"] = new JArray(c.Traits),
             },
             ["options"] = new JObject
             {
                 ["sexes"] = sexes, ["skins"] = new JArray(Appearance.Skins), ["hair"] = hairOptions,
-                ["eyes"] = new JArray(Appearance.Eyes), ["attributes"] = new JArray(Appearance.Values("attributes")),
+                ["eyes"] = new JArray(Appearance.Eyes), ["voices"] = new JArray(Appearance.Voices), ["attributes"] = new JArray(Appearance.Values("attributes")),
                 ["skills"] = new JArray(Appearance.Values("skills")), ["traits"] = new JArray(Appearance.Values("traits")),
                 ["pairs"] = JArray.FromObject(OppositeTraits),
                 ["attributeBudget"] = Points(Appearance.Options.Value<float>("attributeBudget")),
                 ["skillBudget"] = Points(Appearance.Options.Value<float>("skillBudget")),
                 ["camps"] = camps,
             },
+            ["voicePreview"] = new JObject { ["state"] = _voicePreview.State.ToString().ToLowerInvariant(), ["text"] = VoiceStatusText() },
             ["labels"] = labels, ["thumbs"] = thumbs, ["tints"] = tints, ["eyeSwatches"] = eyes,
             ["preview"] = _preview.Failed ? "failed" : _preview.IsReady ? "ready" : "loading",
             ["nameErrorText"] = nameError.Length > 0 ? T(nameError) : null,
@@ -436,9 +476,16 @@ public sealed class PlayerCharacterCreator : IDisposable
                 if (!_busy && !_pending) Set((string)args["field"], args["value"]);
                 break;
             case "submit":
-                _submit();
+                _voicePreview.Stop(); _submit();
+                break;
+            case "voicePreview":
+                PreviewVoice();
+                break;
+            case "voiceStop":
+                _voicePreview.Stop();
                 break;
             case "look":
+                if ((string)args["tab"] != "voice") _voicePreview.Stop();
                 _htmlLook = (string)args["tab"] ?? "skin";
                 _focusHead = _htmlLook != "skin";
                 break;
@@ -462,7 +509,7 @@ public sealed class PlayerCharacterCreator : IDisposable
                 _retryAction();
                 break;
             case "back":
-                _backAction();
+                _voicePreview.Stop(); _backAction();
                 break;
         }
     }
@@ -477,7 +524,7 @@ public sealed class PlayerCharacterCreator : IDisposable
                 c.Name = (string)value ?? ""; _name.SetValueWithoutNotify(c.Name); Changed(false);
                 break;
             case "sex":
-                Appearance.SetSex((string)value == "male"); Changed();
+                _voicePreview.Stop(); Appearance.SetSex((string)value == "male"); Changed();
                 break;
             case "skin":
                 if (Appearance.Skins.Contains((string)value)) { c.Skin = (string)value; Changed(); }
@@ -490,6 +537,9 @@ public sealed class PlayerCharacterCreator : IDisposable
                 break;
             case "eyes":
                 if (Appearance.Eyes.Contains((string)value ?? "")) { c.Eyes = (string)value ?? ""; _focusHead = true; Changed(); }
+                break;
+            case "voice":
+                SelectVoice((string)value);
                 break;
             case "camp":
                 if (Enum.TryParse<Faction>((string)value, out var camp)) { c.Camp = camp; Changed(false); }
@@ -513,7 +563,7 @@ public sealed class PlayerCharacterCreator : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return; _disposed = true; _thumbnails.Dispose(); _preview.Dispose(); Root.RemoveFromHierarchy();
+        if (_disposed) return; _disposed = true; _voicePreview.Dispose(); _thumbnails.Dispose(); _preview.Dispose(); Root.RemoveFromHierarchy();
     }
 }
 }

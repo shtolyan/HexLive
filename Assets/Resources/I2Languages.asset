@@ -32108,6 +32108,110 @@ MonoBehaviour:
       - 'Время нашего пути с {0} пока вышло. Снова займусь своими делами.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'creator.voice'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Voice'
+      - 'Голос'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.voiceHint'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Select a voice to hear a random line before continuing.'
+      - 'Выберите голос — прозвучит случайная реплика. Можно послушать другую перед продолжением.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.voiceAgain'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Play a random line'
+      - 'Случайная реплика'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.voiceLoading'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Loading a voice sample…'
+      - 'Загружается реплика…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.voicePlaying'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Playing the selected voice'
+      - 'Звучит выбранный голос'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.voiceFailed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Could not play the line. Try again.'
+      - 'Не удалось воспроизвести реплику. Попробуйте ещё раз.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.voice.fallback'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Voice {0}'
+      - 'Голос {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.voice.marta'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Marta'
+      - 'Марта'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.voice.molly'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Molly'
+      - 'Молли'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.voice.jana'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Jana'
+      - 'Яна'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.voice.jolly'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Jolly'
+      - 'Джолли'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.voice.kshishtof'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Kshishtof'
+      - 'Кшиштоф'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.voice.masha'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Masha'
+      - 'Маша'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

@@ -104,3 +104,17 @@ creator.colour.tint.violet	Violet	Фиолетовый
 creator.colour.tint.ocean	Ocean	Океан
 creator.colour.tint.mint	Mint	Мятный
 creator.colour.fallback	Tone {0}	Оттенок {0}
+
+creator.voice	Voice	Голос
+creator.voiceHint	Select a voice to hear a random line before continuing.	Выберите голос — прозвучит случайная реплика. Можно послушать другую перед продолжением.
+creator.voiceAgain	Play a random line	Случайная реплика
+creator.voiceLoading	Loading a voice sample…	Загружается реплика…
+creator.voicePlaying	Playing the selected voice	Звучит выбранный голос
+creator.voiceFailed	Could not play the line. Try again.	Не удалось воспроизвести реплику. Попробуйте ещё раз.
+creator.voice.fallback	Voice {0}	Голос {0}
+creator.voice.marta	Marta	Марта
+creator.voice.molly	Molly	Молли
+creator.voice.jana	Jana	Яна
+creator.voice.jolly	Jolly	Джолли
+creator.voice.kshishtof	Kshishtof	Кшиштоф
+creator.voice.masha	Masha	Маша

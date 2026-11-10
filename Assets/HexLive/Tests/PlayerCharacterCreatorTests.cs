@@ -41,11 +41,93 @@ public sealed class PlayerCharacterCreatorTests
                     ["hair"]=new JArray(new[]{"none"}.Concat(hair)), ["eyes"]=new JArray(new[]{""}.Concat(ColonistAppearance.EyeColors)),
                     ["startingClothing"]=new JArray("underwear.briefs_primal_male") }),
             ["hair"]=new JArray(hair.Select(id=>new JObject { ["id"]=id, ["colours"]=new JArray(new[]{"prototype"}.Concat(HairTintPalette.All.Select(t=>t.Id))) })),
+            ["voices"]=new JArray("marta","molly","jana","jolly","kshishtof","masha"),
             ["attributes"]=new JArray("Strength","Agility","Endurance","Intelligence","Willpower","Charisma","Perception"),
             ["skills"]=new JArray("Crafting","Building","Medicine"), ["traits"]=new JArray("Neat","Slob","Brave","Coward"),
             ["attributeBudget"]=4.2, ["skillBudget"]=3.0,
             ["camps"]=new JArray(new JObject {["id"]="Colony",["hasSpace"]=true},new JObject{["id"]="Colony2",["hasSpace"]=false})
         };
+    }
+    [Test]
+    public void ChosenVoiceSurvivesDraftRestoreAndSexChangeAndEntersTheSubmitPayload()
+    {
+        var model = new PlayerCreatorAppearance(Options());
+        Assert.That(model.SetVoice("jolly"), Is.True);
+        model.SetSex(true);
+        Assert.That(model.Character.Voice, Is.EqualTo("jolly"));
+        var restored = new PlayerCreatorAppearance(Options(), model.Character);
+        restored.SetSex(true);
+        Assert.That(restored.Character.Voice, Is.EqualTo("jolly"));
+        Assert.That(restored.Request("voice-fixture").Value<string>("voice"), Is.EqualTo("jolly"));
+        Assert.That(restored.SetVoice("not-a-shipped-voice"), Is.False);
+        Assert.That(restored.Character.Voice, Is.EqualTo("jolly"));
+    }
+    [Test]
+    public void VoiceDefaultsFollowSexUntilAnExplicitVoiceWasChosen()
+    {
+        var model = new PlayerCreatorAppearance(Options());
+        Assert.That(model.Character.Voice, Is.EqualTo("marta"));
+        model.SetSex(true);
+        Assert.That(model.Character.Voice, Is.EqualTo("kshishtof"));
+        model.Character.Name = "Test"; model.Character.Voice = "invalid";
+        Assert.That(model.CanSubmit, Is.False);
+    }
+    private sealed class VoiceAudio : CreatorVoicePreview.IAudio
+    {
+        public bool Playing;
+        public readonly List<string> Started = new();
+        public void Prepare() { }
+        public string[] Groups(string voice) => new[] { "voice_" + voice + "_hello" };
+        public bool Ready(string group) => true;
+        public bool Start(string group) { Started.Add(group); Playing = true; return true; }
+        public bool IsPlaying => Playing;
+        public bool Failed => false;
+        public void Stop() => Playing = false;
+    }
+    [TestCase(Language.Russian, false)]
+    [TestCase(Language.English, false)]
+    [TestCase(Language.Russian, true)]
+    [TestCase(Language.English, true)]
+    public void CreatorVoiceControlsShareTheDraftAndStopOnLeavingOrSubmitting(Language language, bool html)
+    {
+        using var sources = new SourceFixture();
+        var host = new GameObject("Creator voice controls"); var runner = host.AddComponent<PlayerCreatorRunner>();
+        var model = new PlayerCreatorAppearance(Options()); model.Character.Name = "Voice test";
+        var audio = new VoiceAudio(); var old = Loc.Current; PlayerCharacterCreator ui = null; var submissions = 0;
+        try
+        {
+            Loc.Current = language;
+            foreach (var key in new[] { "voice", "voiceHint", "voiceAgain", "voiceLoading", "voicePlaying", "voiceFailed" }.Concat(model.Voices.Select(v => "voice." + v)))
+            {
+                Assert.That(Loc.Has("creator." + key), Is.True, key);
+                Assert.That(Loc.Get("creator." + key), Is.Not.EqualTo("creator." + key));
+            }
+            ui = new PlayerCharacterCreator(new VisualElement(), runner, model, () => { }, () => { submissions++; }, () => { }, () => { }, audio);
+            typeof(PlayerCharacterCreator).GetField("_appearanceTab", Instance).SetValue(ui, "voice");
+            typeof(PlayerCharacterCreator).GetMethod("BuildControls", Instance).Invoke(ui, null);
+            Assert.That(ui.Root.Query<Button>().ToList().Count(b => b.name.StartsWith("creatorVoice-")), Is.EqualTo(6));
+            if (html) ui.HtmlCommand("set", new JObject { ["field"] = "voice", ["value"] = "molly" });
+            else typeof(Clickable).GetMethod("SimulateSingleClick", Instance | BindingFlags.Public).Invoke(ui.Root.Q<Button>("creatorVoice-molly").clickable, new object[] { null, 0 });
+            Assert.That(model.Character.Voice, Is.EqualTo("molly")); Assert.That(audio.Playing, Is.True);
+            Assert.That(audio.Started, Is.EqualTo(new[] { "voice_molly_hello" }));
+            Assert.That(submissions, Is.Zero, "A voice choice must not create the character.");
+            Assert.That(ui.Root.Q<Label>("creatorVoiceStatus").text, Is.EqualTo(Loc.Get("creator.voicePlaying")));
+            var web = ui.HtmlModel("");
+            Assert.That(web["draft"].Value<string>("voice"), Is.EqualTo("molly"));
+            Assert.That(web["options"]["voices"].Values<string>(), Is.EquivalentTo(model.Voices));
+            Assert.That(web["voicePreview"].Value<string>("state"), Is.EqualTo("playing"));
+            if (html) ui.HtmlCommand("voiceStop", new JObject());
+            else typeof(PlayerCharacterCreator).GetMethod("SwitchTab", Instance).Invoke(ui, new object[] { "abilities" });
+            Assert.That(audio.Playing, Is.False);
+            ui.HtmlCommand("voicePreview", new JObject()); Assert.That(audio.Playing, Is.True);
+            ui.SetState(true, false, ""); Assert.That(audio.Playing, Is.False);
+            ui.HtmlCommand("set", new JObject { ["field"] = "voice", ["value"] = "jana" });
+            ui.HtmlCommand("voicePreview", new JObject()); Assert.That(audio.Playing, Is.False);
+            Assert.That(model.Character.Voice, Is.EqualTo("molly"));
+            ui.SetState(false, false, ""); ui.HtmlCommand("voicePreview", new JObject());
+            Assert.That(audio.Playing, Is.True); ui.Dispose(); ui = null; Assert.That(audio.Playing, Is.False);
+        }
+        finally { ui?.Dispose(); Loc.Current = old; Object.DestroyImmediate(host); }
     }
     [Test]
     public void PlayerPayloadHasNoWardrobeOwnershipOrBudgetAndSexPreservesAllowedHairColour()

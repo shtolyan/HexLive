@@ -12,10 +12,12 @@ public sealed class PlayerCreatorAppearance
 {
     public readonly JObject Options;
     public readonly CharacterCreationConfig Character;
+    private bool _voiceChosen;
     public PlayerCreatorAppearance(JObject options, CharacterCreationConfig character = null)
     {
         Options = options;
         Character = character ?? new CharacterCreationConfig { Id = 1, Name = "", Hair = "none", HairColour = "prototype" };
+        _voiceChosen = character != null && Voices.Contains(Character.Voice);
         if (character == null)
         {
             SetSex(false);
@@ -30,6 +32,14 @@ public sealed class PlayerCreatorAppearance
     public IEnumerable<JToken> Bodies => Options["bodies"] ?? Enumerable.Empty<JToken>();
     public JToken Body => Bodies.FirstOrDefault(b => b.Value<string>("id") == Character.Body);
     public bool IsMale => Body?.Value<string>("sex") == "male";
+    public IEnumerable<string> Voices => Options["voices"] is JArray voices
+        ? voices.Values<string>().Where(v => !string.IsNullOrWhiteSpace(v)).Distinct()
+        : HexLive.Simulation.Content.ColonistAppearance.VoiceBanks.Concat(new[] { "kshishtof", "masha" });
+    public bool SetVoice(string voice)
+    {
+        if (!Voices.Contains(voice)) return false;
+        Character.Voice = voice; _voiceChosen = true; return true;
+    }
     public IEnumerable<string> Skins => Body?["skins"]?.Values<string>() ?? Enumerable.Empty<string>();
     public IEnumerable<string> Hair => Body?["hair"]?.Values<string>() ?? Enumerable.Empty<string>();
     public IEnumerable<string> Eyes => Body?["eyes"]?.Values<string>() ?? new[]{""};
@@ -43,7 +53,11 @@ public sealed class PlayerCreatorAppearance
         if (!Hair.Contains(Character.Hair)) Character.Hair = Hair.FirstOrDefault() ?? "none";
         if (!Colours.Contains(Character.HairColour)) Character.HairColour = "prototype";
         if(!Eyes.Contains(Character.Eyes)) Character.Eyes=Eyes.FirstOrDefault() ?? "";
-        Character.Voice = IsMale ? "kshishtof" : "marta";
+        if (!_voiceChosen || !Voices.Contains(Character.Voice))
+        {
+            var preferred = IsMale ? "kshishtof" : "marta";
+            Character.Voice = Voices.Contains(preferred) ? preferred : Voices.FirstOrDefault() ?? "";
+        }
         Character.Clothing = body["startingClothing"]?.Values<string>().ToList() ?? PlayerCharacterCreation.StartingClothing(Character.Body);
     }
     public string Label(string kind, string id, int index = 0)
@@ -79,7 +93,7 @@ public sealed class PlayerCreatorAppearance
         {
             if (NameErrorKey.Length > 0) return NameErrorKey;
             if (Body == null || !Skins.Contains(Character.Skin) || !Hair.Contains(Character.Hair) ||
-                !Colours.Contains(Character.HairColour) || !Eyes.Contains(Character.Eyes)) return "error.appearance";
+                !Colours.Contains(Character.HairColour) || !Eyes.Contains(Character.Eyes) || !Voices.Contains(Character.Voice)) return "error.appearance";
             if (!ValidBudget("attributes")) return "error.attributeBudget";
             if (!ValidBudget("skills")) return "error.skillBudget";
             if (Options["camps"]?.Any(c => c.Value<string>("id") == Character.Camp.ToString() && c.Value<bool>("hasSpace")) != true)

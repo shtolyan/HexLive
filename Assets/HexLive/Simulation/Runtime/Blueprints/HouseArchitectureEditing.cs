@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
@@ -19,6 +20,23 @@ public static class HouseArchitectureEditing
         var state = piece.ArchitectureElements[0];
         if (state.DefinitionId == desiredDefinition)
         {
+            if (state.DemolitionPlanned)
+            {
+                // The work target has been withdrawn. Merely clearing its
+                // flag strands an in-flight Build executor after its generic
+                // site interaction disappears; retire its actual claims now.
+                foreach (var npc in world.Entities.Npcs.Values)
+                {
+                    var executing = npc.Execution.TargetObject == piece.Id &&
+                        npc.Execution.CurrentInteraction == InteractionType.Build;
+                    var approaching = npc.Plan.Status == PlanStatus.Active && npc.Plan.Steps
+                        .Skip(Math.Max(0, npc.Plan.CurrentStepIndex)).Any(step =>
+                            step.TargetObject == piece.Id && step.Interaction == InteractionType.Build);
+                    if ((executing || approaching) && PlanInterruption.TryAbort(world, npc,
+                            InterruptionCause.PlayerCommand, "Construction teardown cancelled"))
+                        npc.Mind.CurrentGoal = GoalType.None;
+                }
+            }
             state.DemolitionPlanned = false;
             state.ReplacementDefinitionId = string.Empty;
             return false;

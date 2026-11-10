@@ -1479,7 +1479,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 : null;
             var queueFuel = carriedFuel is not null &&
                 ContainerLootMath.CanAccept(world, worldObject, new[] { carriedFuel });
-            if (!queueFuel && !wasLit && playerFuelOrder)
+            if (!queueFuel && playerFuelOrder)
             {
                 // Bug #235: отказ — тоже конец сцены, и закрыть его надо
                 // целиком: заявку с очага, узел подхода и саму сцену.

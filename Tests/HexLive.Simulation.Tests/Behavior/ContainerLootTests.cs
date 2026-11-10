@@ -335,7 +335,7 @@ public sealed class ContainerLootTests
     }
 
     [Test]
-    public void CampfireFuelBufferIsThreeFilteredStacksAndNotConstruction()
+    public void CampfireFuelBufferHasTwentyDefinitionCellsAndIsNotConstruction()
     {
         var world = TestWorld.CreateWorld(151002);
         var npc = Colonist(world);
@@ -364,11 +364,11 @@ public sealed class ContainerLootTests
             {
                 ContentIds.Log, ContentIds.Board, ContentIds.Stick
             }));
-            Assert.That(ContainerLootMath.Capacity(world, fire), Is.EqualTo(3));
+            Assert.That(ContainerLootMath.Capacity(world, fire), Is.EqualTo(20));
             Assert.That(BuildSiteMath.Delivered(fire, ContentIds.Stick), Is.EqualTo(1),
                 "The queued stick must not become a delivered spit component.");
             Assert.That(ContainerLootMath.CanAccept(
-                world, fire, new[] { new ItemInstance(ContentIds.Stone) }), Is.False);
+                world, fire, new[] { new ItemInstance(ContentIds.Stone) }), Is.True);
         });
 
         Assert.That(ContainerLootMath.TryConsumeCampfireFuel(
@@ -615,12 +615,13 @@ public sealed class ContainerLootTests
             fire.Contents.Add(new ItemInstance(ContentIds.Rope));
         }
 
-        var fuel = new[]
-        {
-            new ItemInstance(ContentIds.Stick),
-            new ItemInstance(ContentIds.Board),
-            new ItemInstance(ContentIds.Log)
-        };
+        var fuel = new[] { ContentIds.Stick, ContentIds.Board, ContentIds.Log }
+            .Concat(world.Content.ObjectDefinitions.Keys.Where(id =>
+                id.StartsWith("resource.", System.StringComparison.Ordinal) ||
+                id.StartsWith("tool.", System.StringComparison.Ordinal)))
+            .Where(id => id != ContentIds.Stone).Distinct().Take(20)
+            .Select(id => new ItemInstance(id)).ToArray();
+        Assert.That(fuel, Has.Length.EqualTo(20));
         foreach (var item in fuel) npc.Inventory.Items.Add(item);
         ContainerLootMath.GiveToContainer(world, fire, npc, fuel);
 
@@ -631,7 +632,7 @@ public sealed class ContainerLootTests
                 "Полная очередь топлива не должна закрывать вертел.");
             Assert.That(ContainerLootMath.CanAccept(
                     world, fire, new[] { new ItemInstance(ContentIds.Stone) }), Is.False,
-                "Камень костру по-прежнему не еда и не дрова.");
+                "20 заполненных видов топлива не принимают 21-й, но не занимают крюки вертела.");
         });
     }
 

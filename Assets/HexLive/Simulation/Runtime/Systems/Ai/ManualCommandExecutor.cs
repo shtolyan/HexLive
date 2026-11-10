@@ -3122,8 +3122,7 @@ internal static partial class ManualCommandExecutor
                 return false;
             }
 
-            if (worldObject.ResourceAmount <= 0f &&
-                !ContainerLootMath.CanAccept(world, worldObject, new[] { fuel }))
+            if (!ContainerLootMath.CanAccept(world, worldObject, new[] { fuel }))
             {
                 Reject(world, npc.Id, verb, "FuelBufferFull", admission);
                 return false;

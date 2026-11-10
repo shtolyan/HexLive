@@ -26,9 +26,9 @@ namespace HexLive.Simulation.Runtime
 /// </summary>
 internal static class ContainerLootMath
 {
-    public const int CampfireFuelCapacity = 3;
+    public const int CampfireFuelCapacity = 20;
 
-    // §151.3 (bug #293): к трём топливным ячейкам добавляются ЖАРОЧНЫЕ. Их
+    // §151.3: к двадцати топливным ячейкам добавляются ЖАРОЧНЫЕ. Их
     // ровно две, а не шесть: мясо стопкуется, поэтому шесть крюков вертела
     // (SimBalance.CampfireSpitCapacity) показываются двумя стопками — сырой и
     // готовой. Настоящий предел крюков стережёт CanAccept, а не число ячеек.
@@ -292,7 +292,7 @@ internal static class ContainerLootMath
         {
             var item = obj.Contents[index];
             if (!IsStoredItem(world, obj, item)) continue;
-            AddCell(cells, item.DefinitionId, index);
+            AddStoredCell(obj, cells, item, index);
         }
         foreach (var garment in WardrobeGarments(world, obj))
         {
@@ -302,9 +302,9 @@ internal static class ContainerLootMath
 
     private static void AddCell(
         List<(string ItemId, int Count, int SourceIndex)> cells,
-        string itemId, int sourceIndex)
+        string itemId, int sourceIndex, bool forceStack = false)
     {
-        if (InventoryState.IsStackable(itemId))
+        if (forceStack || InventoryState.IsStackable(itemId))
         {
             for (var cell = 0; cell < cells.Count; cell++)
             {
@@ -315,6 +315,27 @@ internal static class ContainerLootMath
         }
 
         cells.Add((itemId, 1, sourceIndex));
+    }
+
+    // §151.2 / #668: every queued definition gets one display cell, including
+    // normally non-stackable tools and vessels. Physical instances remain in
+    // Contents in insertion order, with all durability/liquid/pocket data intact.
+    private static void AddStoredCell(WorldObjectState obj,
+        List<(string ItemId, int Count, int SourceIndex)> cells,
+        ItemInstance item, int sourceIndex)
+    {
+        var queued = IsQueuedCampfireFuel(obj, item);
+        if (queued || InventoryState.IsStackable(item.DefinitionId))
+        {
+            for (var cell = 0; cell < cells.Count; cell++)
+            {
+                if (cells[cell].ItemId != item.DefinitionId ||
+                    IsQueuedCampfireFuel(obj, obj.Contents[cells[cell].SourceIndex]) != queued) continue;
+                cells[cell] = (item.DefinitionId, cells[cell].Count + 1, cells[cell].SourceIndex);
+                return;
+            }
+        }
+        cells.Add((item.DefinitionId, 1, sourceIndex));
     }
 
     /// <summary>
@@ -351,7 +372,7 @@ internal static class ContainerLootMath
         {
             var item = obj.Contents[index];
             if (!IsStoredItem(world, obj, item)) continue;
-            AddCell(contentCells, item.DefinitionId, index);
+            AddStoredCell(obj, contentCells, item, index);
         }
 
         if (slotIndex < contentCells.Count)
@@ -364,7 +385,8 @@ internal static class ContainerLootMath
                 return false;
             }
 
-            if (!InventoryState.IsStackable(cell.ItemId))
+            var queued = IsQueuedCampfireFuel(obj, obj.Contents[contentCell.SourceIndex]);
+            if (!queued && !InventoryState.IsStackable(cell.ItemId))
             {
                 var selected = obj.Contents[contentCell.SourceIndex];
                 if (!IsStoredItem(world, obj, selected) ||
@@ -383,7 +405,8 @@ internal static class ContainerLootMath
                 {
                     var item = obj.Contents[index];
                     if (item.DefinitionId == cell.ItemId &&
-                        IsStoredItem(world, obj, item))
+                        IsStoredItem(world, obj, item) &&
+                        IsQueuedCampfireFuel(obj, item) == queued)
                     {
                         items.Add(item);
                     }
@@ -466,7 +489,8 @@ internal static class ContainerLootMath
             return false;
         }
 
-        var take = InventoryState.IsStackable(expectedDefinitionId)
+        var queued = IsQueuedCampfireFuel(obj, selectedItem);
+        var take = (queued || InventoryState.IsStackable(expectedDefinitionId))
             ? System.Math.Max(1, requestedCount)
             : 1;
         for (var index = selectedIndex;
@@ -475,7 +499,8 @@ internal static class ContainerLootMath
         {
             var item = obj.Contents[index];
             if (item.DefinitionId == expectedDefinitionId &&
-                IsStoredItem(world, obj, item))
+                IsStoredItem(world, obj, item) &&
+                IsQueuedCampfireFuel(obj, item) == queued)
             {
                 items.Add(item);
             }
@@ -545,7 +570,7 @@ internal static class ContainerLootMath
 
     /// <summary>
     /// §151.3 (bug #293): у костра ДВА независимых предела — очередь топлива и
-    /// крюки вертела. Считать их одной вместимостью нельзя: три полена не имеют
+    /// крюки вертела. Считать их одной вместимостью нельзя: запас дров не имеет
     /// права занять место мяса, а мясо — место дров. Правило про вертел здесь
     /// то же, что у автономной готовки (§54.14): без готового вертела вешать
     /// не на что, а крюков ровно <c>CampfireSpitCapacity</c>.
@@ -558,7 +583,7 @@ internal static class ContainerLootMath
         {
             if (IsQueuedCampfireFuel(fire, item))
             {
-                AddCell(fuelCells, item.DefinitionId, fuelCells.Count);
+                AddCell(fuelCells, item.DefinitionId, fuelCells.Count, forceStack: true);
             }
         }
 
@@ -582,7 +607,7 @@ internal static class ContainerLootMath
 
             if (!world.Content.ObjectDefinitions.ContainsKey(item.DefinitionId)) return false;
 
-            AddCell(fuelCells, item.DefinitionId, fuelCells.Count);
+            AddCell(fuelCells, item.DefinitionId, fuelCells.Count, forceStack: true);
             if (fuelCells.Count > CampfireFuelCapacity) return false;
         }
 

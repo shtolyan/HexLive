@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Wearing;
 using Newtonsoft.Json.Linq;
@@ -11,6 +12,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Animations;
 using UnityEngine.Playables;
+using UnityEngine.Rendering;
 using UnityEngine.TestTools;
 using Object=UnityEngine.Object;
 namespace HexLive.Tests
@@ -48,8 +50,10 @@ public sealed class NpcBodyPickerRuntimeTests
             Transform Bone(string id)=>skin.bones.Single(b=>b!=null&&string.Equals(b.name,id,StringComparison.OrdinalIgnoreCase));
             var elbow=Bone(side+"ForearmBend");var hand=Bone(side+"Hand");var palm=Bone(side+"Mid2");
             yield return null;yield return null;
+            var samplePoints=new[]{(elbow.position+hand.position)*.5f,(hand.position+palm.position)*.5f};
+            WriteGeometryDiagnostic(actor,skin,samplePoints,value);
             var rows=new JArray();
-            foreach(var point in new[]{(elbow.position+hand.position)*.5f,(hand.position+palm.position)*.5f})
+            foreach(var point in samplePoints)
             {
                 var ray=new Ray(point-actor.transform.forward*3,actor.transform.forward);
                 Assert.That(OldCoreHit(skin,ray,10),Is.False,value+" is a concrete miss of the old torso/legs-only picker");
@@ -120,6 +124,74 @@ public sealed class NpcBodyPickerRuntimeTests
     }
 
     static JArray V(Vector3 point)=>new JArray(point.x,point.y,point.z);
+    static JArray M(Matrix4x4 matrix)=>new JArray(Enumerable.Range(0,16).Select(i=>matrix[i]));
+    static JObject B(Bounds bounds)=>new JObject{["center"]=V(bounds.center),["size"]=V(bounds.size)};
+    static void WriteGeometryDiagnostic(GameObject actor,SkinnedMeshRenderer skin,Vector3[] points,string value)
+    {
+        var directory="Build/Diagnostics/bug-wave2-actions/picking";Directory.CreateDirectory(directory);
+        var prefix=directory+"/geometry-"+value.Replace('|','-');
+        var report=new JObject{["actorScale"]=V(actor.transform.lossyScale),["skinScale"]=V(skin.transform.lossyScale),
+            ["skinLocalScale"]=V(skin.transform.localScale),["skinPosition"]=V(skin.transform.position),
+            ["rendererBounds"]=B(skin.bounds),["rendererLocalBounds"]=B(skin.localBounds),["samples"]=new JArray(points.Select(V))};
+        var variants=new JArray();
+        var intersect=typeof(HexLive.UnityPresentation.Views.MeshRayPicker).GetMethod("TryIntersectArrays",BindingFlags.Static|BindingFlags.NonPublic);
+        Assert.That(intersect,Is.Not.Null,"Diagnostic must use the actual production triangle intersection algorithm");
+        foreach(var useScale in new[]{true,false})
+        {
+            var baked=new Mesh();
+            try
+            {
+                skin.BakeMesh(baked,useScale);var vertices=baked.vertices;var triangles=baked.triangles;
+                foreach(var fullMatrix in new[]{false,true})
+                {
+                    var matrix=fullMatrix?skin.transform.localToWorldMatrix:Matrix4x4.TRS(skin.transform.position,skin.transform.rotation,Vector3.one);
+                    var world=vertices.Select(matrix.MultiplyPoint3x4).ToArray();var bounds=new Bounds(world[0],Vector3.zero);
+                    foreach(var vertex in world)bounds.Encapsulate(vertex);
+                    var samples=new JArray();
+                    foreach(var point in points)
+                    {
+                        var ray=new Ray(point-actor.transform.forward*3,actor.transform.forward);
+                        var args=new object[]{vertices,triangles,matrix,ray,0f};var hit=(bool)intersect.Invoke(null,args);
+                        var nearest=0;var distance=float.PositiveInfinity;var centroid=Vector3.zero;
+                        for(var i=0;i+2<triangles.Length;i+=3)
+                        {
+                            var center=(world[triangles[i]]+world[triangles[i+1]]+world[triangles[i+2]])/3;
+                            var candidate=(center-point).sqrMagnitude;if(candidate>=distance)continue;
+                            nearest=i;distance=candidate;centroid=center;
+                        }
+                        samples.Add(new JObject{["point"]=V(point),["hit"]=hit,["distance"]=(float)args[4],
+                            ["closestTriangleCentroidDistance"]=Mathf.Sqrt(distance),["closestTriangleCentroid"]=V(centroid),
+                            ["closestTriangleWorld"]=new JArray(V(world[triangles[nearest]]),V(world[triangles[nearest+1]]),V(world[triangles[nearest+2]])),
+                            ["closestTriangleRaw"]=new JArray(V(vertices[triangles[nearest]]),V(vertices[triangles[nearest+1]]),V(vertices[triangles[nearest+2]]))});
+                    }
+                    variants.Add(new JObject{["bakeUseScale"]=useScale,["matrixMode"]=fullMatrix?"renderer.localToWorld":"positionRotationUnitScale",
+                        ["matrix"]=M(matrix),["bakedLocalBounds"]=B(baked.bounds),["worldBounds"]=B(bounds),["vertexCount"]=vertices.Length,["samples"]=samples});
+                }
+            }
+            finally{Object.DestroyImmediate(baked);}
+        }
+        report["variants"]=variants;
+        var cameraObject=new GameObject("Actual body picking diagnostic camera");var lightObject=new GameObject("Picking diagnostic light");
+        var target=new RenderTexture(768,768,24);var image=new Texture2D(768,768,TextureFormat.RGB24,false);var previous=RenderTexture.active;
+        try
+        {
+            var camera=cameraObject.AddComponent<Camera>();camera.enabled=false;camera.orthographic=true;
+            camera.orthographicSize=skin.bounds.extents.magnitude*1.1f;camera.nearClipPlane=.01f;camera.farClipPlane=20;
+            camera.transform.position=skin.bounds.center-actor.transform.forward*4;camera.transform.LookAt(skin.bounds.center,actor.transform.up);
+            camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(.12f,.18f,.22f);camera.useOcclusionCulling=false;
+            var light=lightObject.AddComponent<Light>();light.type=LightType.Directional;light.intensity=1.2f;light.transform.rotation=camera.transform.rotation;
+            target.Create();RenderPipeline.SubmitRenderRequest(camera,new RenderPipeline.StandardRequest{destination=target});
+            RenderTexture.active=target;image.ReadPixels(new Rect(0,0,768,768),0,0);image.Apply();File.WriteAllBytes(prefix+".png",image.EncodeToPNG());
+            var pixels=image.GetPixels32();var background=pixels[0];var changed=pixels.Count(p=>Math.Abs(p.r-background.r)+Math.Abs(p.g-background.g)+Math.Abs(p.b-background.b)>24);
+            report["renderForegroundPixels"]=changed;report["renderPath"]=prefix+".png";
+        }
+        finally
+        {
+            RenderTexture.active=previous;target.Release();Object.DestroyImmediate(target);Object.DestroyImmediate(image);
+            Object.DestroyImmediate(cameraObject);Object.DestroyImmediate(lightObject);
+            File.WriteAllText(prefix+".json",report.ToString());
+        }
+    }
     // Differential control retained for this regression: a ray crossing actual
     // visible forearm/palm skin was completely outside all five old volumes.
     static bool OldCoreHit(SkinnedMeshRenderer skin,Ray ray,float maximum)

@@ -1,5 +1,97 @@
 # Singapore release coordination — Sveta
 
+## Windows native retirement — player instruction, 2026-11-10
+
+Native Windows Player and new `StandaloneWindows64` bundles are no longer
+supported. Windows users play WebGL in a browser. The Windows Player build
+entry point refuses all build/publication modes before credentials/network/Unity;
+help remains available. AGENTS.md, CLAUDE.md and specs152/166 record this policy;
+old Windows release/handoff guides are historical. Windows development and
+WebGL builds remain available; existing saves/artifacts/content are retained.
+
+MSI inspection found no running game-server process, no listener on5123/5124/5201,
+no HexLive service/scheduled task, and no HexLive startup entry. The temporary QA
+server had already been stopped after the preceding release. The old persistent
+Windows game server is retired and must not be restarted. Singapore/New York
+were not changed by this retirement task.
+
+## Публикация 2026-11-09 UTC — Singapore и New York
+
+Опубликованы веб-клиент **0.1.113**, сервер и необходимый WebGL-контент source
+`ab005114b33b7b1f4863763a34e86e85f472a223`, **protocol27 / writer89**.
+Игровые артефакты и runtime при диагностических повторах не менялись.
+
+| VPS | Игра | Registry | Контролируемый save89 tick → продолжение | Restart UTC |
+|---|---|---|---|---|
+| Singapore | https://play.62-146-235-120.sslip.io/ | 1103→1128 | 9383482→9383543 | 16:55:51 |
+| New York | https://163-245-204-96.sslip.io/play/ | 6615→6652 | 13009779→13009832 | 17:32:44 |
+
+На обоих VPS server053fb723b/client811056cca заменены ab005114b;
+`/opt/hexlive/current` → `/opt/hexlive/releases/ab005114b33b7b1f4863763a34e86e85f472a223`,
+`/var/lib/hexlive-web/current` → `/var/lib/hexlive-web/releases/msi-20261109-ab005114b`.
+
+**Проверки:** Simulation2161PASS/6skip, Server520PASS, Unity31PASS,
+construction14PASS, WebGL errors/banned APIs0/0. Server manifest подтверждает
+точные исходники и compiled trees проверенной базы. Все **8 миров** прошли
+no-tick roundtrip→89 с полной dictionary/object/character identity, физическими
+метаданными и строгой геометрией/байтами: SG1×blob83+1×87;
+NY3×blob72+2×77+1×87. Финальные активации и повторные контролируемые рестарты
+успешны; оба мира продолжаются **1× без паузы**.
+
+После обоих стартов каждого VPS получен реальный свежий **Deepgram grant**:
+безопасный spectator, пустые assigned IDs, без аудио/игровых команд.
+Ключи/учётные данные сохранены. SHA проверены все526 server/5719 installed
+Player-файлов; публично — все предусмотренные non-audio файлы, обе Studio
+банки, audio manifest,8FSB образцов (**59 ответов /77558126байт**) и25 content
+payloads. Проверены Brotli/wasm заголовки, release receipts и три platform indexes.
+
+В браузере Singapore после повторной загрузки показал меню обоих серверов и FMOD
+**48000Hz /4×4096**; New York — публичную страницу входа, без входа в реальный
+аккаунт и без Play. Протокол/grants проверялись отдельными observer/probe.
+
+Область — **WebGL**: SG25 variants; NY27 incoming/51 post-publication.
+Сохранены **22 native wear variants** (байты/visual overrides, simulation metadata
+обновлена штатно) и **2 native rack variants** (полностью старые payload/metadata,
+включая отсутствие construction receipt/icon). Новая rack-геометрия — WebGL.
+Native-приложения не публиковались; Mac SDK не нужен. История объектов не возвращена.
+World-local armor/costs/torch-tag изменены минимально; добавлены только недостающие
+canonical определения, другие настройки и world instances сохранены.
+
+Канонические архивы SHA-256:
+
+| Артефакт | SHA-256 |
+|---|---|
+| Server | `29d3c92d5f3ac02b73f156bd786b39c7075801d23c6e14322134f4ae1053b79a` |
+| Client | `1fd32dc9eae84132e07f470711ca67ebc702a6b5d48ce16a658b1b7ba65ca72b` |
+| SG content | `d471d8c488fd5b6a3071239e88fc7c72a6206871a31facc8d0d806180c814f49` |
+| NY content | `4b6f3a0e266747169340bf5492a410fc30aba21b66c8e59639020164fe445a52` |
+
+Архивы полностью проверены локально; NY delta/chunk transport проверил каждый
+итоговый526/5719/51файл на VPS, без повторной отправки полных архивов.
+
+Диагностические ошибки сохранены с доказательствами: SG r0 filename-shadow и r2
+missing-client-ID вызвали безопасное восстановление **полного checkpoint87**
+([r0](Build/Diagnostics/bug-wave-release-20261109/attempt-r0-evidence/singapore-activate-receipt.json),
+[r2](Build/Diagnostics/bug-wave-release-20261109/attempt-r2-evidence/singapore-activate-receipt.json)).
+NY checksum-phase исправлен только в probe; v7/v8 checkpoint guards по avatar alias
+и отсутствующему lazy accounts JSON остановились **до изменения данных**, старый053
+возобновлялся. Exact alias/absence policy проверена, старые файлы и частичные backup
+удерживаются в `activation-attempt-v7/v8`. Оригинальные87 и отдельные89 checkpoints
+сохранены; откат требует всего checkpoint87 перед старым бинарником.
+
+Приватные ops: SG `/var/lib/hexlive/ops/msi-bug-wave-20261109-ab005114b-r3`; NY `/var/lib/hexlive/ops/msi-bug-wave-20261109-ab005114b`.
+Локальные sanitized квитанции в `Build/Diagnostics/bug-wave-release-20261109/`:
+`publication-sg-r3-{stage,activate,restart,provenance}.json` и
+`publication-ny-v9-{stage,activate,restart,provenance}.json`.
+Plan SHA: SG `90d167d3f28852448cc8797b999099996a0ffd880668a470509e0eab85a1d1e0`;
+NY `761d198149e941a0c4386c8257da559459ad5c3bf73edf2133c4d235f8b29b8e`.
+
+**Flashback617–635: публикация записана,19/19 успешно**.
+Журнал: `tracker-publication-results.json`, `applied=true`;
+идемпотентный marker `[publication:ab005114b:singapore+new-york]`.
+Статусы, исполнители и fixCommits сохранены; `fixed` подтверждает игрок.
+
+
 ## MSI — current-only storage active on both servers, 2026-11-09 09:33Z
 
 The player explicitly selected **update both servers** for the prepared

@@ -1710,14 +1710,14 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
     {
-        var bottleItem = BottleInventoryMath.FirstEmpty(npc);
+        var bottleItem = BottleInventoryMath.FirstEmpty(npc) ?? BottleInventoryMath.FirstBottle(npc);
         if (bottleItem is null ||
             worldObject.Junctions.Count == 0 ||
             WaterCollectorMath.FindVessel(world, worldObject) is not null)
         {
             PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
             PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
-                "PlaceVessel: no empty bottle to park, or the slot is taken");
+                "PlaceVessel: no portable vessel to park, or the slot is taken");
             npc.Mind.CurrentGoal = GoalType.None;
             return false;
         }
@@ -1735,9 +1735,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         vessel.Wetness = bottleItem.Wetness; vessel.Durability = bottleItem.Durability;
         vessel.Dirtiness = bottleItem.Dirtiness; vessel.Bloodiness = bottleItem.Bloodiness;
         vessel.Owner = npc.Id; // remembers whose physical vessel waits here
-        vessel.ResourceAmount = 0f;
-        vessel.WaterKind = WaterKind.None;
-        vessel.LastAddedWaterKind = WaterKind.None;
+        // A manual placement can park a partially filled vessel just like the
+        // container inventory. Ground collector amounts are capacity fractions.
+        var amount = BottleInventoryMath.Amount(bottleItem);
+        vessel.ResourceAmount = amount / BottleInventoryMath.Capacity(bottleItem);
+        vessel.WaterKind = amount > 0f ? bottleItem.WaterKind : WaterKind.None;
+        vessel.LastAddedWaterKind = amount > 0f ? bottleItem.LastAddedWaterKind : WaterKind.None;
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "VesselPlaced",

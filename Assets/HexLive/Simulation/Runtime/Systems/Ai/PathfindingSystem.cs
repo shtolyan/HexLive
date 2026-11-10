@@ -395,6 +395,16 @@ public sealed class PathfindingSystem : ISimulationSystem
                 continue;
             }
 
+            // §21.21B / #657: PlanInterruption may queue a different goal in
+            // flight, but the existing hop owns its landing and path indices.
+            // Routing now would start at the takeoff junction and let landing
+            // interpret HopLandingIndex in an unrelated replacement path.
+            // Keep the new plan; build its route from the actual landed body.
+            if (npc.Movement.HopTimer > 0f)
+            {
+                continue;
+            }
+
             // Bug #95 / spec 41.5: a replacement plan may already be queued
             // while GetUp is playing (notably a manual order that woke her).
             // Keep the order, but do not even arm locomotion during wake grace.

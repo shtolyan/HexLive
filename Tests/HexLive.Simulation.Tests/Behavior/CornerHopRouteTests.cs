@@ -4,6 +4,7 @@ using System.Linq;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Runtime;
@@ -86,6 +87,81 @@ public sealed class CornerHopRouteTests
         Assert.That(npc.Movement.Status, Is.EqualTo(MovementStatus.Arrived));
         Assert.That(npc.Tile, Is.EqualTo(far));
         Assert.That(npc.Position, Is.EqualTo(path[^1].WorldPosition));
+    }
+
+    [TestCase(0)]
+    [TestCase(2)]
+    [TestCase(5)]
+    public void SafeGroundReplacementWaitsForTheRealAirborneHopBeforeRouting_Bug657(int yaw)
+    {
+        var (world, npc, _, far, _, route) = CreateRoute(yaw, true, false);
+        var movement = new MovementSystem();
+        var airborne = false;
+        for (int tick = 0; tick < 60; tick++)
+        {
+            movement.Run(world); world.Tick++;
+            if (npc.Movement.HopTimer > 0f && !npc.Movement.HopCrossed &&
+                HexSpatialMath.Distance(npc.Position, npc.Movement.HopFrom) > .02f &&
+                HexSpatialMath.Distance(npc.Position, npc.Movement.HopTo) > .02f)
+            { airborne = true; break; }
+        }
+        Assert.That(airborne, Is.True, "Exercise the real corner-hop launch and flight, not a fabricated timer.");
+        var landing = npc.Movement.HopTo;
+        // The warning can replace an ordinary errand while its hop is still
+        // airborne. These are real injured-leg functions and the reported
+        // aggregate health, not a rounded healthy-body approximation.
+        npc.Body.Parts[BodyPart.LegL] = .74f; npc.Body.Parts[BodyPart.LegR] = .62f;
+        npc.Body.Parts[BodyPart.Torso] = .8497470617294312f * npc.Body.Parts.Count -
+            npc.Body.Parts.Where(p => p.Key != BodyPart.Torso).Sum(p => p.Value);
+        npc.Health = .8497470617294312f;
+        Assert.That(npc.Health, Is.EqualTo(.8497470617294312f).Within(.000001f));
+        Assert.That(npc.Body.CanJump, Is.False);
+        Assert.That(PlanningSystem.CanUseCriticalTraversal(npc), Is.True);
+        Assert.That(PlanInterruption.TryAbort(world, npc, InterruptionCause.Auction,
+            "Reach safe ground while injured at an elevation border"), Is.True);
+        var destination = world.Junctions.Items.Values.Where(j => !j.Blocked && !j.Door &&
+                j.Id != npc.CurrentJunction.Value && HexSpatialMath.Distance(j.WorldPosition, landing) > .75f &&
+                HexSpatialMath.Distance(j.WorldPosition, route[0].WorldPosition) < 5f)
+            .OrderBy(j => HexSpatialMath.Distance(j.WorldPosition, landing)).ThenBy(j => j.Id.Value)
+            .First(j => HexPathfinder.FindPath(world, npc.CurrentJunction.Value, j.Id, null, true,
+                canJump: true).Count > npc.Movement.HopLandingIndex);
+        // The replacement is the same one-step shape produced by the planner.
+        // Its destination is legitimate but must not own the in-flight route.
+        npc.Mind.CurrentGoal = GoalType.ReachSafeGround;
+        npc.Plan.Goal = GoalType.ReachSafeGround; npc.Plan.Status = PlanStatus.Active;
+        npc.Plan.TargetJunctionId = destination.Id;
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.MoveToJunction, TargetJunction = destination.Id });
+        var pathfinding = new PathfindingSystem();
+        pathfinding.Run(world);
+        Assert.That(npc.Movement.JunctionPath, Is.Empty,
+            "A new route must wait: HopLandingIndex still belongs to the interrupted route.");
+        for (int tick = 0; tick < 20 && npc.Movement.HopTimer > 0f; tick++)
+        {
+            pathfinding.Run(world); movement.Run(world); world.Tick++;
+            Assert.That(npc.Movement.JunctionPath, Is.Empty, "Do not renumber route nodes during an atomic hop.");
+        }
+        Assert.That(npc.Movement.HopTimer, Is.LessThanOrEqualTo(0f));
+        Assert.That(npc.Position, Is.EqualTo(landing));
+        Assert.That(npc.Tile, Is.EqualTo(far));
+        Assert.That(world.Junctions.Items[npc.CurrentJunction.Value].Tiles, Does.Contain(far),
+            "Landing must resolve the physical landing side, not an old index into a replacement route.");
+        // Injuring the legs can turn the completed crossing into a recovery
+        // pause. Respect its real timer; do not clear it to force a green test.
+        for (int tick = 0; tick < 40 && npc.Movement.ClimbPauseTimer > 0f; tick++)
+        { movement.Run(world); world.Tick++; }
+        pathfinding.Run(world);
+        Assert.That(npc.Movement.JunctionPath, Is.Not.Empty,
+            $"The replacement route starts after the physical landing. Current={npc.CurrentJunction} Target={npc.Plan.TargetJunctionId} " +
+            $"Blocked={world.Junctions.Items[npc.CurrentJunction.Value].Blocked} Pause={npc.Movement.ClimbPauseTimer} Wake={npc.Mind.WakeGraceUntilTick} " +
+            $"Tick={world.Tick} Interaction={npc.Execution.CurrentInteraction} Moving={npc.Movement.IsMoving} Stop={npc.Movement.StopReason}");
+        Assert.That(npc.Movement.JunctionPath[0], Is.EqualTo(npc.CurrentJunction.Value));
+        var execution = new ExecutionSystem();
+        for (int tick = 0; tick < 180 && npc.Plan.Status == PlanStatus.Active; tick++)
+        {
+            pathfinding.Run(world); movement.Run(world); execution.Run(world); world.Tick++;
+        }
+        Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Completed), "The queued safe-ground goal must not be lost at landing.");
+        Assert.That(npc.CurrentJunction, Is.EqualTo(destination.Id));
     }
 
     private static (WorldState world, NPCState npc, TileCoord near, TileCoord far, TileCoord third, Junction[] path)

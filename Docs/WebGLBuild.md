@@ -115,6 +115,16 @@ SHA256 `.asmdef` `19f0b8d844420f9933893d96181a484fc51c005f4649092fe50fc524c36d7a
   не подключается к серверу, не копирует звук и не публикует архивы.
   Пакеты контента на MSI — `Tools/build_webgl_content_windows.py`, только по
   команде Толи.
+- **macOS — проверенное переиспользование звука также допустимо.** Флаг
+  `-webgl-reuse-published-audio` работает и на Mac, если исходные `Sfx/**` и
+  `Music` полностью совпадают с точным опубликованным аудиорелизом. Обязательны
+  полный `audio-source-proof.json` с `passed:true`, сохранённые source SHA и
+  manifest происхождения аудио, а после переноса — проверка состава, размера,
+  SHA-256 **каждого** FSB/`.vis` и сигнатур FSB5. Метку
+  `audio-reuse-required.json` удаляют только после успешной полной проверки.
+  Изменённые, добавленные или удалённые аудиоисточники запрещают reuse на любой
+  платформе. Новое кодирование по-прежнему выполняется только на Mac с SDK;
+  reuse не обходит сборочный guard и не допускает сборку через меню.
 - **Отдельный проект для сборки (Мак):** `~/hex-girls/webgl-build/HexLive`
   (worktree этого репо, уже импортирован под WebGL). Основной проект
   `/Volumes/ORICO/HexLive` под WebGL **не переключать**: `-buildTarget`
@@ -191,7 +201,7 @@ SHA256 `.asmdef` `19f0b8d844420f9933893d96181a484fc51c005f4649092fe50fc524c36d7a
    решению Толи; `-webgl-reuse-published-audio` — путь MSI, см. выше. Код
    выхода 0 — успех; `DisplayDialog` скрипт не показывает. Кроме плеера в
    результат кладётся `server-directory.json` — каталог серверов меню (§168.14).
-4. **Звук в FSB — обязательно** (на MSI — проверенное переиспользование, см.
+4. **Звук в FSB — обязательно** (при reuse — проверенное переиспользование на Windows или macOS, см.
    «Где собирать»). Веб-FMOD читает только FSB; без этого шага
    голоса, музыка, лупы и фолбэк SFX в браузере молчат (`ERR_FORMAT`):
    ```bash
@@ -245,7 +255,7 @@ keyframe/delta. `worldObjects` JSON может не перечислять вс�
 Версию в проверке брать из `HtmlUi.Protocol` в исходном commit сборки
 (`Assets/HexLive/UnityPresentation/Platform/HtmlUi.cs`), а не фиксировать
 старое `v1` в браузерном тесте.
-При перекодировании нужны все строки. В каноническом MSI reuse-пути
+При перекодировании нужны все строки. В каноническом reuse-пути (Windows или macOS)
 `WriteWebMusic()` не вызывается, поэтому строки `web music` в логе нет.
 Вместо неё до переноса аудио проверяются `audio-reuse-required.json`
 с `requiresVerifiedPublishedFsb:true`, `audio-source-proof.json` с `passed:true`
@@ -273,7 +283,7 @@ http://localhost:8090/):
   HTTP404 доходит до `FMOD.Studio.System.loadBankMemory(null)`.
   Упаковщик проверяет RIFF/FEV, размер и SHA каждой банки против точного
   закоммиченного source SHA (включая LFS), затем полный состав и SHA архива.
-  Отсутствующая/пустая/изменённая банка блокирует упаковку. Для MSI:
+  Отсутствующая/пустая/изменённая банка блокирует упаковку. Для reuse на Windows или macOS:
   ```powershell
   python Tools/webgl_package_player.py <existing-player-dir> `
     --source-commit <exact-player-source-sha> --protocol <wire-version> `

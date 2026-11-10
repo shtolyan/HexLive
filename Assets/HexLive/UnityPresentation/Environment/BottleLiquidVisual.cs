@@ -38,7 +38,9 @@ public sealed class BottleLiquidVisual : MonoBehaviour
         if (_liquid == null && !Initialize()) return;
         _target = Mathf.Clamp01(float.IsNaN(fill) ? 0f : fill);
         // First snapshot is exact; later snapshots ease without quantizing percentages.
-        if (_shown < 0f || !Application.isPlaying) _shown = _target;
+        // Empty is a physical state, not an interpolation endpoint: no stale
+        // liquid or zero-height cap may remain during a later empty snapshot.
+        if (_target == 0f || _shown < 0f || !Application.isPlaying) _shown = _target;
         var color = appearance switch
         {
             WaterKind.Coconut => new Color(0.74f, 0.79f, 0.56f, 1f),

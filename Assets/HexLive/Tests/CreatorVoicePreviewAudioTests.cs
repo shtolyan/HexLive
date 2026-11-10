@@ -10,6 +10,30 @@ namespace HexLive.Tests
 {
 public sealed class CreatorVoicePreviewAudioTests
 {
+    [Test]
+    public void CachedVoiceTracksCurrentLanguageWithoutWaitingForTheDeferredI2Event()
+    {
+        var previous = Loc.Current; FmodSfx.Loop handle = default;
+        try
+        {
+            FmodSfx.Prewarm();
+            // No yield or forced localization callback: this is the actual
+            // same-frame race, including an already selected/loading group.
+            foreach (var language in new[] { Language.Russian, Language.English, Language.Russian })
+            {
+                Loc.Current = language;
+                const string group = "voice_marta_agree_directive";
+                Assert.That(FmodSfx.HasSound(group), Is.True);
+                handle = FmodSfx.PlayTracked(group, UnityEngine.Vector3.zero, listenerRelative: true);
+                Assert.That(handle.IsValid, Is.True);
+                var locale = language == Language.Russian ? "ru" : "en";
+                Assert.That(handle.File.Replace('\\', '/'), Does.Contain("/VoicesLoc/" + locale + "/marta/"));
+                Assert.That(FmodSfx.IsPlaying(ref handle), Is.True);
+                FmodSfx.StopLoop(ref handle);
+            }
+        }
+        finally { FmodSfx.StopLoop(ref handle); Loc.Current = previous; }
+    }
     [TestCase(Language.Russian, "ru")]
     [TestCase(Language.English, "en")]
     public void PreviewPlaysActualLocalizedAudioInTheVoicesGroupWithoutSpatialAttenuationOrPitchJitter(Language language, string locale)

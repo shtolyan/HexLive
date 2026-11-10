@@ -794,6 +794,10 @@ namespace HexLive.UnityPresentation.Audio
 
         private static bool EnsureVoiceGroup(string id)
         {
+            // #667: I2 updates CurrentLanguage immediately but raises its
+            // localization event on the next frame in PlayMode. Never serve
+            // a cached group from the previous bank during that interval.
+            OnLanguageChanged();
             if (Sounds.ContainsKey(id))
             {
                 return true;
@@ -884,6 +888,7 @@ namespace HexLive.UnityPresentation.Audio
         public static string[] VoicePreviewGroups(string voice)
         {
             if (string.IsNullOrWhiteSpace(voice)) return System.Array.Empty<string>();
+            OnLanguageChanged();
             var prefix = "voice_" + voice + "_";
             var relative = VoiceRoot(CurrentVoiceBank).Substring(AudioRoot.Length + 1)
                 .Replace(Path.DirectorySeparatorChar, '/');
@@ -894,7 +899,8 @@ namespace HexLive.UnityPresentation.Audio
 
         /// <summary>Есть ли такой звук (учитывая голосовые группы из скана).</summary>
         public static bool HasSound(string id) => _ready &&
-            (Sounds.ContainsKey(id) || EnsureVoiceGroup(id));
+            (id.StartsWith("voice_", System.StringComparison.Ordinal)
+                ? EnsureVoiceGroup(id) : Sounds.ContainsKey(id));
 
         // ---- §67.12: маршрут через события FMOD Studio --------------------
         // Если Studio-событие доступно, громкость/эффекты/дистанции берутся из
@@ -949,8 +955,9 @@ namespace HexLive.UnityPresentation.Audio
         /// пока звучит предыдущая (IsPlaying).</summary>
         public static Loop PlayTracked(string id, Vector3 position, float volumeGain = 1f, bool listenerRelative = false)
         {
-            if (!_ready || (!Sounds.TryGetValue(id, out var variants) &&
-                            (!EnsureVoiceGroup(id) || !Sounds.TryGetValue(id, out variants))))
+            if (!_ready ||
+                (id.StartsWith("voice_", System.StringComparison.Ordinal) && !EnsureVoiceGroup(id)) ||
+                !Sounds.TryGetValue(id, out var variants))
             {
                 return default;
             }

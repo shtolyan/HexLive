@@ -3,7 +3,8 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
-namespace HexLive.UnityPresentation.Rendering;
+namespace HexLive.UnityPresentation.Rendering
+{
 
 // Presentation permission only; never changes simulation sight or building access.
 public static class HutHoverRevealMath
@@ -36,4 +37,5 @@ public static class HutHoverRevealMath
         }
         return ourGround;
     }
+}
 }

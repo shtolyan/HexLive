@@ -19,7 +19,8 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Object=UnityEngine.Object;
-namespace HexLive.Tests;
+namespace HexLive.Tests
+{
 
 // Offline: actual imported hut/roof geometry and production cutaway dispatcher.
 // Controlled private cache injection avoids registry requests and world mutation.
@@ -94,5 +95,6 @@ public sealed class HutHoverCutawayRuntimeTests
             NpcSelection.ActivateMany(selection);
         }
     }
+}
 }
 #endif

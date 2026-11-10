@@ -411,6 +411,8 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             return;
         }
 
+        // House-only picking must work before any NPC ray initialized this cache.
+        if (_worldRenderer == null) _worldRenderer = FindAnyObjectByType<HexWorldRenderer>();
         var mousePos = mouse.position.ReadValue();
         // §168.11 PERF: the pick walks every object view and ray-tests every
         // person — in the browser that is a real slice of the frame. Re-pick

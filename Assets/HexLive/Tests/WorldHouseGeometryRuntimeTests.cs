@@ -10,6 +10,7 @@ using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime.Blueprints;
 using HexLive.UnityPresentation.Environment;
 using HexLive.UnityPresentation.Spatial;
+using HexLive.UnityPresentation.UI;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -26,8 +27,11 @@ public sealed class WorldHouseGeometryRuntimeTests
         var saved = new Dictionary<string, (bool had, object value)>();
         var roots = new List<GameObject>();
         var plan = BuiltInBuildingBlueprints.Hut1Hex(); var destination = new TileCoord(-6, -26);
-        var projected = new BuildingBlueprintDraft { HasAnchor = true };
-        foreach (var e in plan.Elements) projected.Elements.Add(ArchitectureWorldEditing.ToWorld(e, plan, destination, yaw));
+        var snapshot = new WorldSnapshot();
+        snapshot.Objects.Add(new ObjectSnapshot { Id = new ObjectId(900), Tile = destination, RotationDegrees = yaw,
+            BuildingBlueprintJson = BuildingBlueprintJson.Serialize(plan, false) });
+        var projected = Project(snapshot);
+        var context = BlueprintArchitectureRenderContext.World(snapshot); context.Prepare(projected);
         var modules = BlueprintBuildingPlan.Modules(plan).ToDictionary(m => m.Key);
         var actualRoot = new GameObject("664 real module views"); roots.Add(actualRoot);
         actualRoot.transform.position = SimulationUnityMapper.ToUnityTilePosition(destination);
@@ -45,24 +49,24 @@ public sealed class WorldHouseGeometryRuntimeTests
             foreach (var e in plan.Elements)
             {
                 var m = modules[BlueprintBuildingPlan.SlotKey(e)];
-                var global = ArchitectureWorldEditing.ToWorld(e, plan, destination, yaw);
+                var global = projected.Elements.Single(p => p.Id == "house_900_" + e.Id);
                 var id = e.Kind switch { BlueprintElementKind.Support => "architecture.support.wood", BlueprintElementKind.FloorSector => "architecture.floor.board",
                     BlueprintElementKind.Window => "architecture.window.wood", BlueprintElementKind.Door => "architecture.door.wood", BlueprintElementKind.RoofSector => "architecture.roof.palm", _ => "architecture.wall.wood" };
-                var preview = BlueprintArchitectureFactory.Build(global, projected); preview.transform.SetParent(previewRoot.transform, true);
+                var preview = BlueprintArchitectureFactory.BuildInContext(global, projected, context); preview.transform.SetParent(previewRoot.transform, true);
                 var actual = new GameObject("Actual " + m.Key); actual.transform.SetParent(actualRoot.transform, false);
                 var view = actual.AddComponent<ArchitectureModuleView>();
-                var piece = new ObjectSnapshot { Id = new ObjectId(1000 + m.Index), DefinitionId = id, Tile = destination, RotationDegrees = yaw, ArchitectureOwnerObjectId = 900 };
+                var piece = new ObjectSnapshot { Id = new ObjectId(1000 + m.Index), DefinitionId = id, Tile = destination, RotationDegrees = yaw, ArchitectureOwnerObjectId = 900, IsDoorOpen = true };
                 var state = new ArchitectureElementSnapshot { DefinitionId = id, SlotKey = m.Key, LocalX = m.LocalX, LocalZ = m.LocalZ, LocalYaw = m.LocalYaw,
                     RequiredSticks = m.Sticks, RequiredBoards = m.Boards, RequiredRope = m.Rope, RequiredLeaves = m.Leaves,
                     DeliveredSticks = m.Sticks, DeliveredBoards = m.Boards, DeliveredRope = m.Rope, DeliveredLeaves = m.Leaves,
                     Buildable = true, WorkRequired = 1, WorkDone = 1 };
                 piece.ArchitectureElements.Add(state); view.Sync(piece);
                 var actualBounds = BoundsOf(actual); var previewBounds = BoundsOf(preview);
-                if (e.Kind is BlueprintElementKind.FloorSector or BlueprintElementKind.RoofSector)
-                {
-                    Assert.That(Vector3.Distance(actualBounds.center, previewBounds.center), Is.LessThan(.002f), m.Key + " centre");
-                    Assert.That(Vector3.Distance(actualBounds.size, previewBounds.size), Is.LessThan(.002f), m.Key + " size");
-                }
+                Assert.That(Vector3.Distance(actualBounds.center, previewBounds.center), Is.LessThan(.002f), m.Key + " centre");
+                Assert.That(Vector3.Distance(actualBounds.size, previewBounds.size), Is.LessThan(.002f), m.Key + " size");
+                for (var stage = 1; stage <= 3; stage++)
+                    Assert.That(BlueprintArchitectureFactory.ResourceCount(preview, stage),
+                        Is.EqualTo(BlueprintArchitectureFactory.ResourceCount(actual, stage)), m.Key + " stage units " + stage);
                 // A queued paid wall remains visibly the same until the worker finishes.
                 state.DemolitionPlanned = true; view.Sync(piece);
                 Assert.That(Vector3.Distance(BoundsOf(actual).center, actualBounds.center), Is.LessThan(.0001f));
@@ -78,6 +82,52 @@ public sealed class WorldHouseGeometryRuntimeTests
         {
             foreach (var root in roots) if (root != null) Object.DestroyImmediate(root);
             foreach (var p in saved) { if (p.Value.had) cache[p.Key] = p.Value.value; else cache.Remove(p.Key); }
+        }
+    }
+
+    private static BuildingBlueprintDraft Project(WorldSnapshot snapshot) =>
+        (BuildingBlueprintDraft)typeof(BuildModePanel).GetMethod("FreeWorldProjection", BindingFlags.Static | BindingFlags.NonPublic)
+            .Invoke(null, new object[] { snapshot });
+
+    [TestCase(0)] [TestCase(60)] [TestCase(120)] [TestCase(180)] [TestCase(240)] [TestCase(300)]
+    public void AddingARemoteHouseCannotChangeNearHouseModelPosesOrGeometry(float yaw)
+    {
+        var cache = (IDictionary)typeof(BlueprintArchitectureFactory).GetField("ModelPrefabs", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+        var saved = new Dictionary<string, (bool had, object value)>(); var roots = new List<GameObject>();
+        var near = new TileCoord(-6, -26); var far = new TileCoord(1, -26);
+        var source = BuiltInBuildingBlueprints.Hut1Hex(); var json = BuildingBlueprintJson.Serialize(source, false);
+        var first = new WorldSnapshot(); first.Objects.Add(new ObjectSnapshot { Id = new ObjectId(900), Tile = near, RotationDegrees = yaw, BuildingBlueprintJson = json });
+        var both = new WorldSnapshot(); both.Objects.Add(first.Objects[0]);
+        both.Objects.Add(new ObjectSnapshot { Id = new ObjectId(901), Tile = far, RotationDegrees = yaw, BuildingBlueprintJson = json });
+        var before = Project(first); var after = Project(both);
+        Func<TileCoord,float> elevation = tile => tile == near ? .25f : 1f;
+        var beforeContext = BlueprintArchitectureRenderContext.World(first, elevation); beforeContext.Prepare(before);
+        var afterContext = BlueprintArchitectureRenderContext.World(both, elevation); afterContext.Prepare(after);
+        try
+        {
+            foreach (var id in new[] { "architecture.support.wood", "architecture.floor.board", "architecture.wall.wood", "architecture.window.wood", "architecture.door.wood", "architecture.roof.palm" })
+            {
+                saved[id] = (cache.Contains(id), cache[id]);
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/HexLiveContent/RuntimeSource/Objects/" + id + ".fbx");
+                Assert.That(prefab, Is.Not.Null); cache[id] = prefab;
+            }
+            foreach (var element in before.Elements)
+            {
+                var other = after.Elements.Single(e => e.Id == element.Id);
+                var a = BlueprintArchitectureFactory.BuildInContext(element, before, beforeContext); roots.Add(a);
+                var b = BlueprintArchitectureFactory.BuildInContext(other, after, afterContext); roots.Add(b);
+                Assert.That(Vector3.Distance(a.transform.position, b.transform.position), Is.LessThan(.0001f), element.Id);
+                Assert.That(Quaternion.Angle(a.transform.rotation, b.transform.rotation), Is.LessThan(.05f), element.Id);
+                Assert.That(Vector3.Distance(BoundsOf(a).center, BoundsOf(b).center), Is.LessThan(.001f), element.Id);
+                Assert.That(Vector3.Distance(BoundsOf(a).size, BoundsOf(b).size), Is.LessThan(.001f), element.Id);
+                var expectedLift = element.Kind == BlueprintElementKind.RoofSector ? BlueprintArchitectureFactory.RoofEaveHeight : 0f;
+                Assert.That(a.transform.position.y, Is.EqualTo(.25f + expectedLift).Within(.0001f), "Own terrain frame stays independent too.");
+            }
+        }
+        finally
+        {
+            foreach (var root in roots) if (root != null) Object.DestroyImmediate(root);
+            foreach (var item in saved) { if (item.Value.had) cache[item.Key] = item.Value.value; else cache.Remove(item.Key); }
         }
     }
 

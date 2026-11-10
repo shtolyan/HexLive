@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="690" viewBox="0 0 1180 690">
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="780" viewBox="0 0 1180 780">
 <rect width="1180" height="690" fill="#101820"/>
 <g fill="#eef4f8" font-family="Arial,sans-serif">
 <text x="30" y="40" font-size="24">#664 — direct world editing, physical floor union and queued teardown</text>
@@ -46,4 +46,8 @@
 <text x="30" y="603" font-size="14">Sources: BlueprintGeometry.BuildStep/CornerOffsets/RotateNode; HexSpatialMath.HexRadius/TileToWorld;</text>
 <text x="30" y="626" font-size="14">ArchitectureWorldEditing.ToWorld; HouseArchitectureEditing.PhysicalPlan/RefreshWorldFlags/CompleteDemolition.</text>
 <text x="30" y="655" font-size="14">No scale compensation or asset-specific yaw. Same integer coordinates feed preview, command and real topology.</text>
+<path d="M30 677 H1150" stroke="#637683"/>
+<text x="30" y="707" font-size="15">Render context: each house keeps its source local draft + own 6×60° frame; all free pieces use one free-world group.</text>
+<text x="30" y="733" font-size="15">BuildInContext → native InstantiateModel + ModuleLift + ModuleRotation + shared authored door poses.</text>
+<text x="30" y="758" font-size="14">No global-house centroid, no preview-only post/lashing removal; own GroundTopY offsets keep terrain frames independent.</text>
 </g></svg>

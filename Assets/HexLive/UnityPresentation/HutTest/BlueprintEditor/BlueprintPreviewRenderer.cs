@@ -52,6 +52,7 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
         private HashSet<HexLive.Simulation.Common.TileCoord> _extraFurnitureGridTiles = new();
         private HashSet<HexLive.Simulation.Common.TileCoord> _extraArchitectureGridTiles = new();
         private bool _invalidGhost;
+        private BlueprintArchitectureRenderContext? _architectureContext;
 
         public BuildingBlueprintDraft? Draft => _draft;
 
@@ -65,7 +66,8 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
             bool invalidGhost = false,
             IEnumerable<string>? selectedIds = null,
             IEnumerable<HexLive.Simulation.Common.TileCoord>? extraFurnitureGridTiles = null,
-            IEnumerable<HexLive.Simulation.Common.TileCoord>? extraArchitectureGridTiles = null)
+            IEnumerable<HexLive.Simulation.Common.TileCoord>? extraArchitectureGridTiles = null,
+            BlueprintArchitectureRenderContext? architectureContext = null)
         {
             EnsureRoots();
             ClearChildren(_elementRoot!);
@@ -74,6 +76,8 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
             _walls.Clear();
             _conflictMarkers.Clear();
             _draft = draft;
+            _architectureContext = architectureContext ?? BlueprintArchitectureRenderContext.Local(draft);
+            _architectureContext.Prepare(draft);
             _mode = mode;
             _selectedId = selectedId ?? string.Empty;
             _selectedIds = selectedIds != null
@@ -174,7 +178,7 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
         private void BuildElement(BlueprintElementData element)
         {
             if (_draft == null) return;
-            var root = BlueprintArchitectureFactory.Build(element, _draft);
+            var root = BlueprintArchitectureFactory.BuildInContext(element, _draft, _architectureContext!);
             root.name = $"Blueprint {element.Kind} {element.Id}";
             root.transform.SetParent(_elementRoot, false);
             _objects[element.Id] = root;

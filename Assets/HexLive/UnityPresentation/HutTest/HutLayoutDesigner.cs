@@ -52,6 +52,7 @@ namespace HexLive.UnityPresentation.HutTest
             // Existing-house Apply closes only after this exact revision appears in a server snapshot.
             public Func<string, bool> IsRevisionApplied;
             public bool ApplyEachGesture;
+            public BlueprintArchitectureRenderContext? ArchitectureRenderContext;
             public Action<IReadOnlyList<FreeArchitecturePlacementData>,
                 IReadOnlyList<string>> OnApplyFreeArchitecture;
             public Action OnClosed;
@@ -291,6 +292,8 @@ namespace HexLive.UnityPresentation.HutTest
                 if (DirectWorldConstruction && _runner?.CreateSnapshot() is { } snapshot)
                 {
                     _draft = UI.BuildModePanel.FreeWorldProjection(snapshot);
+                    _worldPlacement.ArchitectureRenderContext = _worldPlacement.ArchitectureRenderContext?.WithSnapshot(snapshot)
+                        ?? BlueprintArchitectureRenderContext.World(snapshot);
                     _history.Clear();
                     _selectedId = string.Empty;
                     _selectedIds.Clear();
@@ -1073,7 +1076,8 @@ namespace HexLive.UnityPresentation.HutTest
             if (_preview == null) return;
             _preview.Rebuild(_draft, _mode, _selectedId, selectedIds: _selectedIds,
                 extraFurnitureGridTiles: OutdoorGridTiles(),
-                extraArchitectureGridTiles: DirectArchitectureGridTiles());
+                extraArchitectureGridTiles: DirectArchitectureGridTiles(),
+                architectureContext: _worldPlacement?.ArchitectureRenderContext);
             RebuildHandles();
         }
 
@@ -1090,7 +1094,7 @@ namespace HexLive.UnityPresentation.HutTest
                 (!result.Validation.IsValid || !CheckWorldAccess(_draft, candidate));
             _preview.Rebuild(candidate, _mode, _selectedId,
                 junctionConflicts, buildConflicts, changed, invalid, _selectedIds,
-                OutdoorGridTiles(), DirectArchitectureGridTiles());
+                OutdoorGridTiles(), DirectArchitectureGridTiles(), _worldPlacement?.ArchitectureRenderContext);
         }
 
         private IEnumerable<TileCoord> OutdoorGridTiles()

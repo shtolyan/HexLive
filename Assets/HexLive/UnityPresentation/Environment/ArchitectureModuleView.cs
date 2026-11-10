@@ -201,31 +201,7 @@ namespace HexLive.UnityPresentation.Environment
         /// decision, and that needs the room's floor sectors — data the world
         /// snapshot does not carry — so a module door opens to its authored side.
         /// </summary>
-        private void ConfigureDoor(GameObject model)
-        {
-            Transform? pivot = null;
-            Transform? open = null;
-            Transform? closed = null;
-            foreach (var child in model.GetComponentsInChildren<Transform>(true))
-            {
-                if (child.name.StartsWith("HL_Door_Pivot", StringComparison.Ordinal)) pivot = child;
-                else if (child.name.StartsWith("HL_Door_State_Open", StringComparison.Ordinal)) open = child;
-                else if (child.name.StartsWith("HL_Door_State_Closed", StringComparison.Ordinal)) closed = child;
-            }
-
-            if (pivot == null) return;
-            var visual = pivot.GetComponent<BlueprintDoorVisual>();
-            if (visual == null) visual = pivot.gameObject.AddComponent<BlueprintDoorVisual>();
-            if (open != null && closed != null)
-            {
-                visual.ConfigurePoses(closed.localRotation, open.localRotation, startOpen: true);
-            }
-            else
-            {
-                visual.Configure(72f, startOpen: true);
-            }
-
-            _door = visual;
-        }
+        private void ConfigureDoor(GameObject model) =>
+            _door = BlueprintArchitectureFactory.ConfigureAuthoredDoor(model, startOpen: true);
     }
 }

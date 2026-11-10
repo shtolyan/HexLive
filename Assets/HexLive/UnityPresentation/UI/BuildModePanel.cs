@@ -1447,6 +1447,8 @@ namespace HexLive.UnityPresentation.UI
                 AnchorWorldPosition = new Vector3(0f, elevation, 0f),
                 AnchorTile = referenceTile,
                 DirectWorldConstruction = true,
+                ArchitectureRenderContext = BlueprintArchitectureRenderContext.World(_snapshot,
+                    tile => worldRenderer.GroundTopY(tile) - elevation),
                 InitialDraft = projection,
                 CanApplyDraft = (before, after) =>
                 {

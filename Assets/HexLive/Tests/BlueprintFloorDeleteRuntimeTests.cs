@@ -8,7 +8,8 @@ using HexLive.UnityPresentation.HutTest;
 using NUnit.Framework;
 using UnityEngine;
 
-namespace HexLive.Tests;
+namespace HexLive.Tests
+{
 public sealed class BlueprintFloorDeleteRuntimeTests
 {
     [Test]
@@ -35,5 +36,6 @@ public sealed class BlueprintFloorDeleteRuntimeTests
         }
         finally { Object.DestroyImmediate(host); }
     }
+}
 }
 #endif

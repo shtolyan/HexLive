@@ -217,6 +217,28 @@ public sealed class PlayerBlueprintTests
     }
 
     [Test]
+    public void SubmittedExistingHouseRevisionAppearsExactlyInAuthoritativeSnapshot_Bug663()
+    {
+        var engine = TestWorld.CreateEngine(12345);
+        var world = engine.World;
+        var hut = world.Entities.Objects.Values.Single(obj =>
+            obj.DefinitionId == ContentIds.HutPlan && string.IsNullOrEmpty(obj.BuildProduct));
+        BuildingBlueprintJson.TryDeserialize(BuildingRules.EditablePlanJsonFor(world, hut), out var draft, out _);
+        draft.BlueprintId = $"building_{hut.Id.Value}";
+        // The existing editor pins the legacy implicit anchor before editing.
+        var anchor = BlueprintBuildingPlan.AnchorTile(draft);
+        draft.HasAnchor = true; draft.AnchorQ = anchor.Q; draft.AnchorR = anchor.R;
+        draft.Elements.First(e => e.Kind == BlueprintElementKind.Wall).Kind = BlueprintElementKind.Window;
+        var json = BuildingBlueprintJson.Serialize(draft, pretty: false);
+        var before = WorldSnapshotExporter.Export(world).Objects.Single(o => o.Id == hut.Id).BuildingBlueprintJson;
+        Assert.That(before, Is.Not.EqualTo(json), "An old snapshot must not acknowledge the new Apply.");
+        var admission = engine.ApplyManualCommand(new UpdateBuildingBlueprintCommand(hut.Id, json));
+        Assert.That(admission.Accepted, Is.True);
+        Assert.That(WorldSnapshotExporter.Export(world).Objects.Single(o => o.Id == hut.Id).BuildingBlueprintJson,
+            Is.EqualTo(json), "The UI must wait for this exact authoritative revision, not enqueue success.");
+    }
+
+    [Test]
     public void SnapshotExposesOnlyOwnerBlueprintForExistingBuildingEditor()
     {
         var world = TestWorld.CreateWorld(12345);

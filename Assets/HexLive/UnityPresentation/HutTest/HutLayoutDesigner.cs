@@ -49,6 +49,8 @@ namespace HexLive.UnityPresentation.HutTest
             /// every accepted gesture is sent immediately as a world delta.</summary>
             public bool DirectWorldConstruction;
             public Action<BuildingBlueprintDraft> OnBuild;
+            // Existing-house Apply closes only after this exact revision appears in a server snapshot.
+            public Func<string, bool> IsRevisionApplied;
             public Action<IReadOnlyList<FreeArchitecturePlacementData>,
                 IReadOnlyList<string>> OnApplyFreeArchitecture;
             public Action OnClosed;
@@ -66,6 +68,9 @@ namespace HexLive.UnityPresentation.HutTest
 
         private WorldPlacementConfig _worldPlacement;
         private int _worldRejectionRevision;
+        private string? _pendingRevisionJson;
+        private float _pendingRevisionAt;
+        private const float RevisionTimeoutSeconds = 15f;
         private bool WorldMode => _worldPlacement != null;
         private bool EditingExisting => _worldPlacement?.ExistingOwner != null;
         private bool DirectWorldConstruction =>
@@ -257,6 +262,7 @@ namespace HexLive.UnityPresentation.HutTest
         private void Update()
         {
             RefreshWorldRejection();
+            RefreshRevisionReceipt();
             SuppressWorldSelection();
             if (!_initialized) InitializePreview();
             if (!_initialized || _preview == null || _camera == null) return;
@@ -280,6 +286,7 @@ namespace HexLive.UnityPresentation.HutTest
             if (WorldMode && _worldRejectionRevision != ManualOrderFeedback.WorldRevision)
             {
                 _worldRejectionRevision = ManualOrderFeedback.WorldRevision;
+                _pendingRevisionJson = null;
                 if (DirectWorldConstruction && _runner?.CreateSnapshot() is { } snapshot)
                 {
                     _draft = UI.BuildModePanel.FreeWorldProjection(snapshot);
@@ -291,6 +298,22 @@ namespace HexLive.UnityPresentation.HutTest
                 }
                 SetStatus(ManualOrderFeedback.WorldReasonKey, true);
             }
+        }
+
+        private void RefreshRevisionReceipt()
+        {
+            if (_pendingRevisionJson == null) return;
+            if (_worldPlacement?.IsRevisionApplied?.Invoke(_pendingRevisionJson) == true)
+            {
+                _pendingRevisionJson = null;
+                CloseWorldMode();
+                return;
+            }
+            if (Time.unscaledTime - _pendingRevisionAt < RevisionTimeoutSeconds) return;
+            // Keep the edited draft and permit retry. A delayed acknowledgement
+            // is not evidence that a house was changed or that data may be lost.
+            _pendingRevisionJson = null;
+            SetStatus("blueprint.status.apply_timeout", true);
         }
 
         private void OnDisable()
@@ -513,6 +536,7 @@ namespace HexLive.UnityPresentation.HutTest
         /// причиной в статусе — молча терять работу игрока нельзя.</summary>
         private void BuildAndClose()
         {
+            if (_pendingRevisionJson != null) return;
             if (_worldPlacement?.OnBuild == null) return;
             if (_worldPlacement.CanBuild != null && !_worldPlacement.CanBuild(_draft))
             {
@@ -534,6 +558,15 @@ namespace HexLive.UnityPresentation.HutTest
             }
 
             var draft = _draft.Clone();
+            if (EditingExisting && _worldPlacement.IsRevisionApplied != null)
+            {
+                _pendingRevisionJson = BuildingBlueprintJson.Serialize(draft, pretty: false);
+                _pendingRevisionAt = Time.unscaledTime;
+                _worldRejectionRevision = ManualOrderFeedback.WorldRevision;
+                SetStatus("blueprint.status.applying", true);
+                _worldPlacement.OnBuild(draft);
+                return;
+            }
             _worldPlacement.OnBuild(draft);
             CloseWorldMode();
         }
@@ -547,6 +580,7 @@ namespace HexLive.UnityPresentation.HutTest
 
         private void HandleKeyboard()
         {
+            if (_pendingRevisionJson != null) return;
             var keyboard = Keyboard.current;
             if (keyboard == null) return;
             var command = keyboard.leftCtrlKey.isPressed || keyboard.rightCtrlKey.isPressed ||
@@ -564,6 +598,7 @@ namespace HexLive.UnityPresentation.HutTest
 
         private void HandlePointer()
         {
+            if (_pendingRevisionJson != null) return;
             var mouse = Mouse.current;
             if (mouse == null) return;
             if (mouse.rightButton.wasPressedThisFrame)
@@ -931,6 +966,7 @@ namespace HexLive.UnityPresentation.HutTest
 
         private void DeleteSelected()
         {
+            if (_pendingRevisionJson != null) return;
             if (string.IsNullOrEmpty(_selectedId)) return;
             ClearRotationPreview();
             // §120.9 / #662: room selection also drives resize handles, but
@@ -951,6 +987,7 @@ namespace HexLive.UnityPresentation.HutTest
 
         private void Undo()
         {
+            if (_pendingRevisionJson != null) return;
             ClearRotationPreview();
             var before = DirectWorldConstruction ? _draft.Clone() : null;
             if (!_history.Undo(_draft, CheckWorldAccess)) return;
@@ -965,6 +1002,7 @@ namespace HexLive.UnityPresentation.HutTest
 
         private void Redo()
         {
+            if (_pendingRevisionJson != null) return;
             ClearRotationPreview();
             var before = DirectWorldConstruction ? _draft.Clone() : null;
             if (!_history.Redo(_draft, CheckWorldAccess)) return;
@@ -1121,6 +1159,7 @@ namespace HexLive.UnityPresentation.HutTest
 
         private bool CheckWorldAccess(BuildingBlueprintDraft before, BuildingBlueprintDraft after)
         {
+            if (_pendingRevisionJson != null) return false;
             if (_worldPlacement?.CanApplyDraft == null || _worldPlacement.CanApplyDraft(before, after)) return true;
             SetStatus("toast.order_rejected.ForeignConstruction", true);
             return false;

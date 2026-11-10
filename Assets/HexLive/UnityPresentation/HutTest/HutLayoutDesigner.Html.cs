@@ -108,6 +108,7 @@ namespace HexLive.UnityPresentation.HutTest
 
         private void OnHtmlCommand(string command, JObject args)
         {
+            if (_pendingRevisionJson != null && command != "exit") return;
             switch (command)
             {
                 case "mode":

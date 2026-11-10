@@ -919,6 +919,9 @@ namespace HexLive.UnityPresentation.UI
                 ExistingOwner = new ObjectId(ownerId),
                 InitialDraft = draft,
                 CanBuild = updated => CanBuildDraft(updated, anchorTile, rotation),
+                IsRevisionApplied = json => runner.CreateSnapshot()?.Objects.Any(obj =>
+                    obj.Id.Value == ownerId && string.Equals(obj.BuildingBlueprintJson, json,
+                        System.StringComparison.Ordinal)) == true,
                 OnBuild = updated => runner.EnqueueCommand(
                     new UpdateBuildingBlueprintCommand(
                         new ObjectId(ownerId),

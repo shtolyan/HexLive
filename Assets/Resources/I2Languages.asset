@@ -17,6 +17,22 @@ MonoBehaviour:
     UserAgreesToHaveItInsideThePluginsFolder: 0
     GoogleLiveSyncIsUptoDate: 1
     mTerms:
+    - Term: blueprint.status.applying
+      TermType: 0
+      Description:
+      Languages:
+      - "Applying house changes…"
+      - "Применяем изменения дома…"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: blueprint.status.apply_timeout
+      TermType: 0
+      Description:
+      Languages:
+      - "No confirmation yet. Your plan is kept; check the connection and retry Apply."
+      - "Подтверждение пока не получено. План сохранён в редакторе; проверьте связь и повторите применение."
+      Flags: 0101
+      Languages_Touch: []
     - Term: item.tool_flask_leather.name
       TermType: 0
       Description:

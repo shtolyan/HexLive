@@ -1,5 +1,10 @@
 # Atomic content: macOS/Windows lockstep runbook
 
+> Historical runbook. Native Windows Player and `StandaloneWindows64` bundle
+> support ended by player instruction on 2026-11-10. Do not require a Windows
+> build or this macOS/Windows lockstep gate for new releases. Windows users play
+> WebGL; preserve existing native platform records and payloads.
+
 This runbook is the operational companion to §152. Both platform variants of
 an object must be built from the same Git commit. Do not maintain a handwritten
 inventory, rename authoring ids, or inject platform-specific placeholder art.

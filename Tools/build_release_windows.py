@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Build a versioned content-free HexLive Windows player.
+"""Retired native Windows player pipeline (player instruction, 2026-11-10).
+
+The CLI refuses all build/publication modes; Windows players use WebGL.
+The implementation below is retained as historical tooling.
 
 Windows sibling of Tools/build_release.py (which stays macOS-only). Unity Auto
 Refresh prefs live in the registry (hashed value names), not in
@@ -59,8 +62,8 @@ AUTO_REFRESH_PREFIXES = ("kAutoRefreshMode", "kAutoRefresh")
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Build the content-free HexLive Windows player and publish it "
-            "with the Git/bug report."
+            "RETIRED: native Windows Player builds and publication are disabled. "
+            "Use the WebGL client in a browser."
         )
     )
     parser.add_argument(
@@ -876,8 +879,17 @@ def build_local(args: argparse.Namespace) -> int:
     return 0
 
 
+def require_supported_player_platform() -> None:
+    raise RuntimeError(
+        "Native Windows Player support was retired on 2026-11-10. "
+        "Build/publication, including local-only and dry-run modes, are disabled. "
+        "Use the WebGL client in a browser."
+    )
+
+
 def main() -> int:
     args = parse_args()
+    require_supported_player_platform()
     if args.local_only:
         return build_local(args)
     if args.bug_snapshot is not None:

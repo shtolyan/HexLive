@@ -1,5 +1,16 @@
 # HexLive — Codex agent guide
 
+## Windows native support retired — player instruction, 2026-11-10
+
+The native Windows game client and its `StandaloneWindows64` content are no
+longer supported. Do not build, publish, or require Windows Player/bundles for
+releases. Windows players use the WebGL client in a browser. Windows remains
+a development machine; this does not prohibit WebGL builds or developer tests.
+The old persistent game server on this Windows machine is retired: do not start
+or restore its autostart. Production worlds run on Singapore and New York.
+Keep existing saves and archived artifacts; retirement does not authorize deletion.
+Older Windows release and cross-platform handoff instructions are historical.
+
 The canonical project guide is `CLAUDE.md`; follow it for architecture,
 tooling, verification, and content-pipeline rules. The canonical behaviour
 spec is `Spec/<N>.md` — one file per section — and must stay in sync with code.

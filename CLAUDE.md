@@ -165,6 +165,16 @@ directory and its sibling latest link together; `--dry-run` writes nothing.
 
 ### Game player distribution
 
+**Current support policy (player, 2026-11-10):** the native Windows Player and
+`StandaloneWindows64` bundles are retired. Windows users play the WebGL client
+in a browser. Do not build/publish a Windows Player or wait for Windows bundles
+as a release prerequisite. The Windows release entry point now fails before
+credentials, version reservation, network or Unity work. Existing native blobs,
+saves and old artifacts are retained. The old persistent Windows game server
+must remain stopped; Windows can still be used for development and WebGL builds.
+
+The Windows-specific distribution details below describe the retired pipeline.
+
 The build agent uses one entry point **per platform** — macOS and Windows are
 two scripts, not one script with a flag, because almost nothing about the
 outside of a build is portable (prefs live in `defaults` vs the registry,

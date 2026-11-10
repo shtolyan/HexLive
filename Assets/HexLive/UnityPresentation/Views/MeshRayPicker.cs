@@ -94,10 +94,12 @@ public static class MeshRayPicker
                 return false;
             }
 
-            // BakeMesh(useScale: true) кладёт масштаб трансформа в вершины,
-            // поэтому мировая матрица — только поворот и позиция.
-            var transform = skinned.transform;
-            var matrix = Matrix4x4.TRS(transform.position, transform.rotation, Vector3.one);
+            // #646: these baked vertices remain in the renderer's local
+            // space. Canonical FBX bodies have a .01 renderer scale; dropping
+            // it makes their picking surface roughly 100 times too large.
+            // Use the full renderer matrix, including inherited/nonuniform
+            // scale, just as when rendering the same baked mesh.
+            var matrix = skinned.transform.localToWorldMatrix;
             if (submesh < 0)
             {
                 return TryIntersectLists(
@@ -317,9 +319,9 @@ public static class MeshRayPicker
         List<Vector3> vertices, List<int> triangles, int indexStart, int indexCount,
         Matrix4x4 localToWorld, Ray ray, out float distance)
     {
-        // Bug #299: та же нормировка, что в TryIntersectArrays — запечённый
-        // скиннинг живёт без масштаба (TRS без scale), так что здесь она
-        // тождественна, но пусть оба пути держат один инвариант.
+        // Bug #299/#646: the full skinned-renderer matrix can contain tiny
+        // authored or nonuniform inherited scale. Normalize the local ray
+        // and restore world distance exactly as in the static-mesh path.
         var inverse = localToWorld.inverse;
         var origin = inverse.MultiplyPoint3x4(ray.origin);
         var direction = inverse.MultiplyVector(ray.direction);

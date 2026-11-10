@@ -8,6 +8,7 @@ using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using BodyPart = HexLive.Simulation.Content.BodyPart;
 using Object = UnityEngine.Object;
 
 namespace HexLive.Tests

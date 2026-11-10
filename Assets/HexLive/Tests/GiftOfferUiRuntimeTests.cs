@@ -102,6 +102,22 @@ public sealed class GiftOfferUiRuntimeTests
             Assert.That(Call(panel,"InfoModel",source.Snapshot,null),Is.Null);
         });
     }
+
+    [Test]
+    public void QueuedNonStackableContainerCellAsksForQuantityBeforeSendingAnything()
+    {
+        WithPanel((panel,source)=>
+        {
+            Assert.That(HexLive.Simulation.Agents.InventoryState.IsStackable(ContentIds.Bottle),Is.False);
+            var type=typeof(LootTransferPanel).GetNestedType("DragItem",BindingFlags.NonPublic);
+            var drag=System.Activator.CreateInstance(type,BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic,null,
+                new object[]{-100,InventoryItemSource.Carried,0,5,ContentIds.Bottle},null);
+            Call(panel,"DropOn",1,drag);
+            Assert.That(Get<bool>(panel,"_quantityOpen"),Is.True);
+            Assert.That(source.Commands,Is.Empty,"Five separate queued vessels must not all transfer without the quantity choice.");
+            Call(panel,"CancelQuantity");
+        });
+    }
 }
 }
 #endif

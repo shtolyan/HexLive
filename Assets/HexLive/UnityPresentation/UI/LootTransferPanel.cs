@@ -1161,7 +1161,7 @@ public sealed partial class LootTransferPanel : MonoBehaviour
 
         // §174.7: the page asks how many before it drops; a double click there
         // takes the whole stack.
-        if (InventoryState.IsStackable(_drag.DefinitionId) && _drag.Count > 1 && !HtmlUi.Active)
+        if (_drag.Count > 1 && !HtmlUi.Active)
         {
             ShowQuantityPicker(destinationId, _drag);
             return;

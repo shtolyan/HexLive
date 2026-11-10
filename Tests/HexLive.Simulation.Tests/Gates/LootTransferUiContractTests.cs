@@ -85,7 +85,6 @@ public sealed class LootTransferUiContractTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(panel, Does.Contain("InventoryState.IsStackable(_drag.DefinitionId)"));
             Assert.That(panel, Does.Contain("ShowQuantityPicker(destinationId, _drag)"));
             var quantity = RepoPaths.ReadText(Presentation("UI", "InventoryQuantityChoice.cs"));
             Assert.That(quantity, Does.Contain("new SliderInt"));

@@ -933,11 +933,13 @@ namespace HexLive.UnityPresentation.HutTest
         {
             if (string.IsNullOrEmpty(_selectedId)) return;
             ClearRotationPreview();
-            var result = _selectedRoomId > 0
-                ? Execute(working => BlueprintEditorCommands.DeleteRoom(working, _selectedRoomId))
-                : _selectedIds.Count > 1
-                    ? Execute(working => BlueprintEditorCommands.DeleteMany(working, _selectedIds))
-                    : Execute(working => BlueprintEditorCommands.Delete(working, _selectedId));
+            // §120.9 / #662: room selection also drives resize handles, but
+            // Delete acts on the selected pieces. Inferring DeleteRoom from a
+            // floor's RoomId used to reject a harmless spare sector whenever
+            // another part of that room supported furniture or a manual wall.
+            var result = _selectedIds.Count > 1
+                ? Execute(working => BlueprintEditorCommands.DeleteMany(working, _selectedIds))
+                : Execute(working => BlueprintEditorCommands.Delete(working, _selectedId));
             if (result.Succeeded)
             {
                 _selectedId = string.Empty;

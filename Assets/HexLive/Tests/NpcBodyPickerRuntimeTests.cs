@@ -31,12 +31,20 @@ public sealed class NpcBodyPickerRuntimeTests
             "Assets/HexLiveContent/People/Prefabs/Actors/"+name+".prefab"));
         try
         {
-            actor.GetComponent<Animator>().enabled=false;
+            var animator=actor.GetComponent<Animator>();animator.enabled=false;
             actor.GetComponent<BodyBones>().Construct((ActorName)Enum.Parse(typeof(ActorName),name),646);
+            // This fixture has no camera and deliberately moves far offscreen.
+            // Evaluate the real imported rig and let Unity update its skinned
+            // bounds before asking the old exact-mesh picker (whose first gate
+            // is Renderer.bounds). Bone positions alone do not refresh bounds.
+            animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;
+            animator.runtimeAnimatorController=null;animator.enabled=true;
+            animator.Rebind();animator.Update(0);animator.enabled=false;
             actor.transform.localScale=Vector3.one*.7764706f;actor.transform.position=new Vector3(1000,2,1000);
             actor.transform.rotation=Quaternion.Euler(prone?90:0,32,0);
             var view=actor.GetComponent<NpcActorView>()??actor.AddComponent<NpcActorView>();view.enabled=false;
             var skin=view.PrimaryBodySkin;Assert.That(skin,Is.Not.Null);skin.enabled=true;
+            skin.updateWhenOffscreen=true;
             Transform Bone(string id)=>skin.bones.Single(b=>b!=null&&string.Equals(b.name,id,StringComparison.OrdinalIgnoreCase));
             var elbow=Bone(side+"ForearmBend");var hand=Bone(side+"Hand");var palm=Bone(side+"Mid2");
             yield return null;yield return null;
@@ -45,8 +53,10 @@ public sealed class NpcBodyPickerRuntimeTests
             {
                 var ray=new Ray(point-actor.transform.forward*3,actor.transform.forward);
                 Assert.That(OldCoreHit(skin,ray,10),Is.False,value+" is a concrete miss of the old torso/legs-only picker");
+                var exactMeshHit=HexLive.UnityPresentation.Views.MeshRayPicker.TryIntersect(skin,ray,out var exactMeshDistance);
                 Assert.That(view.TryRaycastVisibleGeometry(ray,10,out var realMeshHit),Is.True,
-                    value+" must be genuinely visible imported skin, not an arbitrary point outside the body");
+                    value+" must be genuinely visible imported skin, not an arbitrary point outside the body; "+
+                    "point="+point+" bounds="+skin.bounds+" directMeshHit="+exactMeshHit+" directMeshDistance="+exactMeshDistance);
                 Assert.That(NpcBodyPicker.TryIntersect(view,ray,10,out var hit),Is.True,value);
                 Assert.That(hit,Is.InRange(2.6f,3.1f));
                 Assert.That(NpcBodyPicker.TryIntersect(view,ray,hit*.5f,out _),Is.False,"Respect a nearer target's maximum distance");

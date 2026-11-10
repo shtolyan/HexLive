@@ -77,7 +77,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
             return regions;
         }
 
-        private static bool IsIndoorRegion(
+        internal static bool IsIndoorRegion(
             BuildingBlueprintDraft draft, IReadOnlyList<FloorSectorKey> floors)
         {
             var roofs = new HashSet<RoofSectorKey>(draft.Elements.Where(element =>

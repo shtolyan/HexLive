@@ -68,7 +68,7 @@ namespace HexLive.UnityPresentation.Environment
                 (piece.ArchitectureOwnerObjectId is { } ownerId &&
                  HutLayoutDesigner.EditingOwnerObjectId == ownerId) ||
                 (HutLayoutDesigner.DirectWorldEditorOpen &&
-                 piece.ArchitectureOwnerObjectId == piece.Id.Value);
+                 piece.ArchitectureOwnerObjectId.HasValue);
 
             // §120.1: a roof panel whose posts are not up yet does not exist. It
             // is not an empty frame waiting for leaves — it is nothing at all,

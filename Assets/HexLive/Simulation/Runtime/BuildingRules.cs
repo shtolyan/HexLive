@@ -516,10 +516,9 @@ public static class BuildingRules
     /// <summary>
     /// Reconciles a revised blueprint with the real top-level LEGO objects of
     /// an existing house. Stable SlotKeys keep unchanged modules (and their
-    /// ObjectIds/progress); removed slots despawn, and new slots start as
-    /// ordinary unfinished modules. A wall/opening replacement shares its bay
-    /// key and therefore reuses as much delivered material as the new module
-    /// can physically accept.
+    /// ObjectIds/progress); empty removed slots despawn, while paid removed
+    /// slots remain physical demolition jobs. Replacement bays wait for work,
+    /// then start empty; delivered material is never silently reused twice.
     /// </summary>
     internal static (int Sticks, int Boards, int Rope, int Leaves) ReconcileHutElements(
         WorldState world, WorldObjectState owner, ISet<string> completeNewSlots = null)
@@ -534,6 +533,14 @@ public static class BuildingRules
         {
             var state = piece.ArchitectureElements[0];
             nextElementId = Math.Max(nextElementId, state.ElementId + 1);
+            var desiredDefinition = wanted.TryGetValue(state.SlotKey, out var wantedDefinition)
+                ? DefinitionId(wantedDefinition.Kind) : string.Empty;
+            if (completeNewSlots == null && !byKey.ContainsKey(state.SlotKey) &&
+                HouseArchitectureEditing.QueueOrRestore(world, owner, piece, desiredDefinition))
+            {
+                byKey[state.SlotKey] = piece;
+                continue;
+            }
             if (!wanted.ContainsKey(state.SlotKey) || byKey.ContainsKey(state.SlotKey))
             {
                 WorldObjectMutations.DespawnObject(world, piece.Id);
@@ -566,6 +573,7 @@ public static class BuildingRules
             }
 
             var element = piece.ArchitectureElements[0];
+            if (element.DemolitionPlanned) continue;
             var wasComplete = element.Complete ||
                               completeNewSlots?.Contains(definition.Key) == true;
             element.DefinitionId = DefinitionId(definition.Kind);
@@ -611,7 +619,7 @@ public static class BuildingRules
         var bill = (Sticks: 0, Boards: 0, Rope: 0, Leaves: 0);
         foreach (var element in elements)
         {
-            if (element.Complete) continue;
+            if (element.Complete || element.DemolitionPlanned) continue;
             bill.Sticks += element.RequiredSticks;
             bill.Boards += element.RequiredBoards;
             bill.Rope += element.RequiredRope;
@@ -622,13 +630,13 @@ public static class BuildingRules
             // Editing a tracked plan preserves installed modules and adds
             // only the uninstalled delta to its historical paid prefix.
             bill.Sticks = BuildSiteMath.Installed(owner, ContentIds.Stick) +
-                elements.Sum(element => Math.Max(0, element.RequiredSticks-element.DeliveredSticks));
+                elements.Where(element => !element.DemolitionPlanned).Sum(element => Math.Max(0, element.RequiredSticks-element.DeliveredSticks));
             bill.Boards = BuildSiteMath.Installed(owner, ContentIds.Board) +
-                elements.Sum(element => Math.Max(0, element.RequiredBoards-element.DeliveredBoards));
+                elements.Where(element => !element.DemolitionPlanned).Sum(element => Math.Max(0, element.RequiredBoards-element.DeliveredBoards));
             bill.Rope = BuildSiteMath.Installed(owner, ContentIds.Rope) +
-                elements.Sum(element => Math.Max(0, element.RequiredRope-element.DeliveredRope));
+                elements.Where(element => !element.DemolitionPlanned).Sum(element => Math.Max(0, element.RequiredRope-element.DeliveredRope));
             bill.Leaves = BuildSiteMath.Installed(owner, ContentIds.PalmLeaf) +
-                elements.Sum(element => Math.Max(0, element.RequiredLeaves-element.DeliveredLeaves));
+                elements.Where(element => !element.DemolitionPlanned).Sum(element => Math.Max(0, element.RequiredLeaves-element.DeliveredLeaves));
         }
         return bill;
     }
@@ -705,7 +713,7 @@ public static class BuildingRules
         element.DeliveredRope < element.RequiredRope ? ContentIds.Rope : string.Empty;
 
     public static bool CanInstallMaterial(WorldState world, WorldObjectState owner, string materialId) =>
-        Elements(world, owner).Any(element => element.Buildable && !element.Complete &&
+        Elements(world, owner).Any(element => !element.DemolitionPlanned && element.Buildable && !element.Complete &&
             NextElementMaterial(element) == materialId);
 
     public static bool AssignDeliveredMaterial(WorldState world, WorldObjectState owner, string materialId,
@@ -715,7 +723,7 @@ public static class BuildingRules
         var elements = Elements(world, owner).ToArray();
         RefreshRoofBuildability(elements);
         var candidates = elements.Where(element =>
-            element.Buildable && !element.Complete && RemainingFor(element, materialId) > 0 &&
+            !element.DemolitionPlanned && element.Buildable && !element.Complete && RemainingFor(element, materialId) > 0 &&
             (!staged || NextElementMaterial(element) == materialId)).ToList();
         if (candidates.Count == 0) return false;
 
@@ -758,7 +766,7 @@ public static class BuildingRules
             owner.BuildProduct == ContentIds.HutPlan;
         foreach (var element in elements)
         {
-            if (extendingCompletedBuilding && element.Complete) continue;
+            if (element.DemolitionPlanned || extendingCompletedBuilding && element.Complete) continue;
             element.DeliveredSticks = 0;
             element.DeliveredBoards = 0;
             element.DeliveredRope = 0;
@@ -771,10 +779,10 @@ public static class BuildingRules
         var rope = Count(owner, ContentIds.Rope);
         var leaves = Count(owner, ContentIds.PalmLeaf);
         var nonRoof = definitions.FindAll(definition =>
-            definition.Kind != BuildingElementKind.Roof &&
+            definition.Kind != BuildingElementKind.Roof && !byKey[definition.Key].DemolitionPlanned &&
             (!extendingCompletedBuilding || !byKey[definition.Key].Complete));
         var roofs = definitions.FindAll(definition =>
-            definition.Kind == BuildingElementKind.Roof &&
+            definition.Kind == BuildingElementKind.Roof && !byKey[definition.Key].DemolitionPlanned &&
             (!extendingCompletedBuilding || !byKey[definition.Key].Complete));
         Shuffle(nonRoof, owner.Id.Value ^ 0x4B1D);
         Shuffle(roofs, owner.Id.Value ^ 0x72A9);
@@ -830,7 +838,7 @@ public static class BuildingRules
         var definitions = DefinitionsFor(world, owner).ToDictionary(definition => definition.Key);
         foreach (var element in Elements(world, owner))
         {
-            if (!definitions.TryGetValue(element.SlotKey, out var definition)) continue;
+            if (element.DemolitionPlanned || !definitions.TryGetValue(element.SlotKey, out var definition)) continue;
             element.DefinitionId = DefinitionId(definition.Kind);
             element.SlotIndex = definition.Index;
             element.Layer = PlacementLayer.Architecture;
@@ -852,6 +860,11 @@ public static class BuildingRules
     {
         if (world == null || owner == null || !IsCompletedBuilding(owner)) return;
 
+        if (Elements(world, owner).Any(element => element.DemolitionPlanned))
+        {
+            RefreshHutElementGeometry(world, owner);
+            return;
+        }
         var definitions = DefinitionsFor(world, owner);
         var desired = definitions.ToDictionary(definition => definition.Key, StringComparer.Ordinal);
         var actual = ArchitectureObjects(world, owner).ToArray();

@@ -919,6 +919,7 @@ namespace HexLive.UnityPresentation.UI
                 ExistingOwner = new ObjectId(ownerId),
                 InitialDraft = draft,
                 CanBuild = updated => CanBuildDraft(updated, anchorTile, rotation),
+                ApplyEachGesture = true,
                 IsRevisionApplied = json => runner.CreateSnapshot()?.Objects.Any(obj =>
                     obj.Id.Value == ownerId && string.Equals(obj.BuildingBlueprintJson, json,
                         System.StringComparison.Ordinal)) == true,
@@ -1484,6 +1485,19 @@ namespace HexLive.UnityPresentation.UI
                 element.Id = $"free_{obj.Id.Value}";
                 element.Origin = BlueprintElementOrigin.Manual;
                 draft.Elements.Add(element);
+            }
+            var occupiedSlots = draft.Elements.Select(BlueprintBuildingPlan.SlotKey).ToHashSet();
+            foreach (var owner in snapshot.Objects.OrderBy(obj => obj.Id.Value))
+            {
+                if (string.IsNullOrEmpty(owner.BuildingBlueprintJson) ||
+                    !BuildingBlueprintJson.TryDeserialize(owner.BuildingBlueprintJson, out var plan, out _)) continue;
+                foreach (var authored in plan.Elements)
+                {
+                    var element = ArchitectureWorldEditing.ToWorld(authored, plan, owner.Tile, owner.RotationDegrees);
+                    if (!occupiedSlots.Add(BlueprintBuildingPlan.SlotKey(element))) continue;
+                    element.Id = $"house_{owner.Id.Value}_{authored.Id}";
+                    draft.Elements.Add(element);
+                }
             }
             draft.NextElementId = draft.Elements.Count + 1;
             draft.Normalize();

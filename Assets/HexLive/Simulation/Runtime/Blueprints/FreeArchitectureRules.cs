@@ -12,8 +12,9 @@ namespace HexLive.Simulation.Runtime.Blueprints
     /// <summary>
     /// §120.10 direct-world architecture. A free piece owns itself: the same
     /// top-level WorldObject is its construction site, saved LEGO identity and
-    /// render anchor. No BuildingBlueprintDraft, BlueprintId or footprint owner
-    /// is created in authoritative world state.
+    /// render anchor. No new footprint owner is created for free additions.
+    /// #664: world gestures touching an existing house route those slots back
+    /// to its authoritative draft and share the same paid teardown contract.
     /// </summary>
     public static class FreeArchitectureRules
     {
@@ -35,10 +36,12 @@ namespace HexLive.Simulation.Runtime.Blueprints
             piece.ArchitectureElements.Count == 1;
 
         public static bool IsDemolitionSite(WorldObjectState piece) =>
-            IsFreePiece(piece) && piece.ArchitectureElements[0].DemolitionPlanned;
+            piece != null && piece.ArchitectureOwnerId.HasValue && piece.ArchitectureElements.Count == 1 &&
+            piece.ArchitectureElements[0].DemolitionPlanned;
 
         public static bool IsDemolitionSite(ObjectSnapshot piece) =>
-            IsFreePiece(piece) && piece.ArchitectureElements[0].DemolitionPlanned;
+            piece != null && piece.ArchitectureOwnerObjectId.HasValue && piece.ArchitectureElements.Count == 1 &&
+            piece.ArchitectureElements[0].DemolitionPlanned;
 
         /// <summary>The element the editor should show, as distinct from the
         /// physical element that remains until demolition finishes. Empty means
@@ -111,9 +114,16 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 return false;
             }
 
+            if (!ArchitectureWorldEditing.Plan(world, placements, removedSlotKeys, builderFactions,
+                    out var houseRevisions, out var houseSlots, out error)) return false;
             var freeBySlot = FreePieces(world)
                 .ToDictionary(piece => piece.ArchitectureElements[0].SlotKey, StringComparer.Ordinal);
-            var removals = new HashSet<string>(removedSlotKeys, StringComparer.Ordinal);
+            if (houseSlots.Any(freeBySlot.ContainsKey))
+            {
+                error = "DuplicateArchitectureSlot";
+                return false;
+            }
+            var removals = new HashSet<string>(removedSlotKeys.Where(slot => !houseSlots.Contains(slot)), StringComparer.Ordinal);
             if (removals.Any(slot => !freeBySlot.ContainsKey(slot)))
             {
                 error = "ArchitectureElementMissing";
@@ -124,7 +134,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
             var affectedTiles = new HashSet<TileCoord>();
             foreach (var placement in placements)
             {
-                if (placement == null || !ValidatePlacement(world, placement))
+                if (placement == null || !ValidatePlacement(world, placement, houseSlots.Contains(placement.SlotKey)))
                 {
                     error = "InvalidArchitecturePlacement";
                     return false;
@@ -143,6 +153,13 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 if (freeBySlot.ContainsKey(pair.Key)) removals.Add(pair.Key);
             }
 
+            // All permissions, shapes and free placements were checked above.
+            // Existing-house removals/replacements use the same queued physical
+            // teardown as its own editor, without migrating unrelated pieces.
+            foreach (var revision in houseRevisions)
+                if (!Bootstrap.BuildingBootstrap.ApplyBlueprintRevision(world, revision.Owner, revision.Draft, out var houseError))
+                    throw new InvalidOperationException("Prevalidated house gesture failed: " + houseError);
+            foreach (var slot in houseSlots) placementBySlot.Remove(slot);
             var deferredReplacements = new HashSet<string>(StringComparer.Ordinal);
             foreach (var slot in removals)
             {
@@ -215,7 +232,13 @@ namespace HexLive.Simulation.Runtime.Blueprints
         /// </summary>
         public static void CompleteDemolition(WorldState world, WorldObjectState piece)
         {
-            if (!IsDemolitionSite(piece)) return;
+            if (!IsDemolitionSite(piece) || !world.Entities.Objects.TryGetValue(piece.Id, out var current) ||
+                !ReferenceEquals(piece, current)) return;
+            if (!IsFreePiece(piece))
+            {
+                HouseArchitectureEditing.CompleteDemolition(world, piece);
+                return;
+            }
             var state = piece.ArchitectureElements[0];
             var replacement = state.ReplacementDefinitionId;
             var tile = piece.Tile;
@@ -367,12 +390,12 @@ namespace HexLive.Simulation.Runtime.Blueprints
         }
 
         private static bool ValidatePlacement(
-            WorldState world, FreeArchitecturePlacementData placement)
+            WorldState world, FreeArchitecturePlacementData placement, bool existingHouse = false)
         {
             if (!world.Tiles.Items.TryGetValue(placement.AnchorTile, out var tile) ||
-                !tile.Flags.HasFlag(TileFlags.Walkable) ||
+                !existingHouse && (!tile.Flags.HasFlag(TileFlags.Walkable) ||
                 tile.Flags.HasFlag(TileFlags.Water) ||
-                tile.Flags.HasFlag(TileFlags.Blocked)) return false;
+                tile.Flags.HasFlag(TileFlags.Blocked))) return false;
 
             var element = placement.ToElement("validate");
             return placement.Kind switch
@@ -588,40 +611,8 @@ namespace HexLive.Simulation.Runtime.Blueprints
             _ = changed;
         }
 
-        private static void RefreshTileFlags(
-            WorldState world, IEnumerable<TileCoord> affectedTiles)
-        {
-            var pieces = FreePieces(world).ToArray();
-            var touched = affectedTiles.Distinct().ToArray();
-            var architecturalOwners = world.Entities.Objects.Values.Where(owner =>
-                !IsFreePiece(owner) &&
-                (BuildSiteMath.IsArchitecturalBuilding(owner.BuildProduct) ||
-                 BuildingRules.IsCompletedBuilding(owner))).ToArray();
-            foreach (var tileCoord in touched)
-            {
-                if (!world.Tiles.Items.TryGetValue(tileCoord, out var tile)) continue;
-                var completedFloors = pieces.Count(piece =>
-                    piece.DefinitionId == "architecture.floor.board" && piece.Tile == tileCoord &&
-                    piece.ArchitectureElements[0].Complete);
-                var completedRoofs = pieces.Count(piece =>
-                    piece.DefinitionId == "architecture.roof.palm" && piece.Tile == tileCoord &&
-                    piece.ArchitectureElements[0].Complete);
-                var planFloor = architecturalOwners.Any(owner =>
-                    Bootstrap.BuildingBootstrap.FootprintTiles(world, owner).Contains(tileCoord) &&
-                    BuildingRules.FloorComplete(world, owner));
-                var completedPlan = architecturalOwners.Any(owner =>
-                    BuildingRules.IsCompletedBuilding(owner) &&
-                    Bootstrap.BuildingBootstrap.FootprintTiles(world, owner).Contains(tileCoord));
-                SetFlag(tile, TileFlags.HasFloor, completedFloors >= 6 || planFloor);
-                SetFlag(tile, TileFlags.Roofed, completedRoofs >= 6 || completedPlan);
-            }
-        }
-
-        private static void SetFlag(Tile tile, TileFlags flag, bool enabled)
-        {
-            if (enabled) tile.Flags |= flag;
-            else tile.Flags &= ~flag;
-        }
+        private static void RefreshTileFlags(WorldState world, IEnumerable<TileCoord> affectedTiles) =>
+            HouseArchitectureEditing.RefreshWorldFlags(world, affectedTiles);
 
         private static int Count(WorldObjectState piece, string definitionId) =>
             BuildSiteMath.Installed(piece, definitionId);

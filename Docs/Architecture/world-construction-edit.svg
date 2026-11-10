@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="690" viewBox="0 0 1180 690">
+<rect width="1180" height="690" fill="#101820"/>
+<g fill="#eef4f8" font-family="Arial,sans-serif">
+<text x="30" y="40" font-size="24">#664 — direct world editing, physical floor union and queued teardown</text>
+<text x="30" y="72" font-size="15">Source schematic, not a rendered game screenshot. R=1.5 wu; build step=0.5 wu; six yaw steps ×60°; six sectors per floor.</text>
+<polygon points="205,250 205.000,125.500 312.820,187.750" fill="#368bb4" stroke="#c0d4df" stroke-width="1.4"/>
+<text x="240.9" y="187.8" text-anchor="middle" font-size="15">0</text>
+<polygon points="205,250 312.820,187.750 312.820,312.250" fill="#368bb4" stroke="#c0d4df" stroke-width="1.4"/>
+<text x="276.9" y="250.0" text-anchor="middle" font-size="15">1</text>
+<polygon points="205,250 312.820,312.250 205.000,374.500" fill="#368bb4" stroke="#c0d4df" stroke-width="1.4"/>
+<text x="240.9" y="312.2" text-anchor="middle" font-size="15">2</text>
+<polygon points="205,250 205.000,374.500 97.180,312.250" fill="#1a2732" stroke="#c0d4df" stroke-width="1.4"/>
+<text x="169.1" y="312.2" text-anchor="middle" font-size="15">3</text>
+<polygon points="205,250 97.180,312.250 97.180,187.750" fill="#368bb4" stroke="#c0d4df" stroke-width="1.4"/>
+<text x="133.1" y="250.0" text-anchor="middle" font-size="15">4</text>
+<polygon points="205,250 97.180,187.750 205.000,125.500" fill="#368bb4" stroke="#c0d4df" stroke-width="1.4"/>
+<text x="169.1" y="187.8" text-anchor="middle" font-size="15">5</text>
+<text x="205" y="115" font-size="17" text-anchor="middle">5 completed house sectors</text>
+<text x="205" y="410" font-size="18" text-anchor="middle">HasFloor = false</text>
+<polygon points="590,250 590.000,125.500 697.820,187.750" fill="#368bb4" stroke="#c0d4df" stroke-width="1.4"/>
+<text x="625.9" y="187.8" text-anchor="middle" font-size="15">0</text>
+<polygon points="590,250 697.820,187.750 697.820,312.250" fill="#368bb4" stroke="#c0d4df" stroke-width="1.4"/>
+<text x="661.9" y="250.0" text-anchor="middle" font-size="15">1</text>
+<polygon points="590,250 697.820,312.250 590.000,374.500" fill="#368bb4" stroke="#c0d4df" stroke-width="1.4"/>
+<text x="625.9" y="312.2" text-anchor="middle" font-size="15">2</text>
+<polygon points="590,250 590.000,374.500 482.180,312.250" fill="#d6923f" stroke="#c0d4df" stroke-width="1.4"/>
+<text x="554.1" y="312.2" text-anchor="middle" font-size="15">3</text>
+<polygon points="590,250 482.180,312.250 482.180,187.750" fill="#368bb4" stroke="#c0d4df" stroke-width="1.4"/>
+<text x="518.1" y="250.0" text-anchor="middle" font-size="15">4</text>
+<polygon points="590,250 482.180,187.750 590.000,125.500" fill="#368bb4" stroke="#c0d4df" stroke-width="1.4"/>
+<text x="554.1" y="187.8" text-anchor="middle" font-size="15">5</text>
+<text x="590" y="115" font-size="17" text-anchor="middle">+ 1 completed independent sector</text>
+<text x="590" y="410" font-size="18" text-anchor="middle">HasFloor = true</text>
+<path d="M360 250 H425" stroke="#eef4f8" stroke-width="3"/><path d="M415 242 L427 250 L415 258" fill="none" stroke="#eef4f8" stroke-width="3"/>
+<text x="795" y="155" font-size="17">Tile (-6,-26)</text>
+<text x="795" y="185" font-size="15">world centre=(-49.36345, -58.5) wu</text>
+<text x="795" y="215" font-size="15">Positive 60°: (q,r) → (-r,q+r)</text>
+<text x="795" y="245" font-size="15">Clockwise sector index → sector−yawStep</text>
+<text x="795" y="285" font-size="15">New plan alone does not count as floor.</text>
+<text x="795" y="313" font-size="15">Count completed physical world slots.</text>
+<text x="795" y="341" font-size="15">Paid queued removals remain physical.</text>
+<path d="M30 450 H1150" stroke="#637683"/>
+<text x="30" y="490" font-size="18">Edit existing wall → desired draft changes → paid OLD wall stays + red demolition stakes</text>
+<text x="30" y="525" font-size="18">Axe/saw work finishes → release OLD blocking → floor(delivered/2) per material at its anchor</text>
+<text x="30" y="560" font-size="18">Removed slot disappears; replacement starts EMPTY. Neighbour ObjectIds, paid progress and owner remain.</text>
+<text x="30" y="603" font-size="14">Sources: BlueprintGeometry.BuildStep/CornerOffsets/RotateNode; HexSpatialMath.HexRadius/TileToWorld;</text>
+<text x="30" y="626" font-size="14">ArchitectureWorldEditing.ToWorld; HouseArchitectureEditing.PhysicalPlan/RefreshWorldFlags/CompleteDemolition.</text>
+<text x="30" y="655" font-size="14">No scale compensation or asset-specific yaw. Same integer coordinates feed preview, command and real topology.</text>
+</g></svg>

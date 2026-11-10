@@ -4079,14 +4079,9 @@ internal static partial class ManualCommandExecutor
             return;
         }
 
-        var hasFloor = draft.Elements.Any(element =>
-            element.Kind == Blueprints.BlueprintElementKind.FloorSector);
-        var hasDoor = draft.Elements.Any(element =>
-            element.Kind == Blueprints.BlueprintElementKind.Door);
-        if (!hasFloor || !hasDoor ||
-            !world.Entities.Objects.TryGetValue(command.Owner, out var owner))
+        if (!world.Entities.Objects.TryGetValue(command.Owner, out var owner))
         {
-            RejectWorld(!hasFloor || !hasDoor ? "InvalidBlueprint" : "NotEditableBuilding");
+            RejectWorld("NotEditableBuilding");
             return;
         }
 

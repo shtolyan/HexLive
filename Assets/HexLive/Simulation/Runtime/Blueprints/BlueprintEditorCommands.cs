@@ -324,11 +324,10 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 working.Elements.Remove(element);
                 if (element.Kind == BlueprintElementKind.FloorSector && roomId > 0)
                 {
-                    var remaining = working.Elements.Where(candidate =>
-                        candidate.Kind == BlueprintElementKind.FloorSector && candidate.RoomId == roomId)
-                        .Select(candidate => candidate.FloorSector).ToArray();
-                    if (remaining.Length > 0 && !BlueprintGeometry.IsConnected(remaining)) return false;
+                    var firstNewRoom = working.NextRoomId;
+                    NormalizeRoomConnectivity(working);
                     RebuildRoomBoundary(working, roomId);
+                    for (var id = firstNewRoom; id < working.NextRoomId; id++) RebuildRoomBoundary(working, id);
                 }
                 return true;
             }, "Элемент удалён.");
@@ -420,6 +419,35 @@ namespace HexLive.Simulation.Runtime.Blueprints
             RoomId = roomId,
             Segment = segment
         };
+
+        /// <summary>Relabels disconnected floor components after a cut. Only
+        /// private working drafts are passed here; walls are never removed by
+        /// this bookkeeping, and each surviving floor retains its element Id.</summary>
+        public static void NormalizeRoomConnectivity(BuildingBlueprintDraft draft)
+        {
+            foreach (var room in draft.Elements.Where(e => e.Kind == BlueprintElementKind.FloorSector && e.RoomId > 0)
+                         .GroupBy(e => e.RoomId).ToArray())
+            {
+                var remaining = room.ToDictionary(e => e.FloorSector);
+                var first = true;
+                while (remaining.Count > 0)
+                {
+                    var id = first ? room.Key : draft.AllocateRoomId();
+                    if (!first && draft.OpenRooms.Contains(room.Key)) draft.OpenRooms.Add(id);
+                    first = false;
+                    var start = remaining.Keys.OrderBy(key => key).First();
+                    var queue = new Queue<FloorSectorKey>(); queue.Enqueue(start);
+                    while (queue.Count > 0)
+                    {
+                        var key = queue.Dequeue();
+                        if (!remaining.TryGetValue(key, out var floor)) continue;
+                        remaining.Remove(key); floor.RoomId = id;
+                        foreach (var next in remaining.Keys.Where(k => BlueprintGeometry.AreSectorsAdjacent(key, k)).OrderBy(k => k).ToArray())
+                            queue.Enqueue(next);
+                    }
+                }
+            }
+        }
 
         private static void RebuildRoomBoundary(BuildingBlueprintDraft draft, int roomId)
         {

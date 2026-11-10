@@ -420,6 +420,19 @@ public static class BuildingBootstrap
 
         if (owner.BlueprintId == 0)
             owner.BlueprintId = world.NextPlayerBlueprintId++;
+        if (legacyCompleted)
+        {
+            // Normalize the legacy twelve-bay representation FIRST, preserving
+            // its paid equivalent composition; then queue the player's delta
+            // against those actual modular pieces, including the first edit.
+            var baseline = previous.Clone();
+            baseline.HasAnchor = true; baseline.AnchorQ = stableAnchor.Q; baseline.AnchorR = stableAnchor.R;
+            world.PlayerBlueprints[owner.BlueprintId] = baseline;
+            owner.DefinitionId = ContentIds.HutPlan;
+            BuildingRules.ReconcileHutElements(world, owner, completeLegacySlots);
+            completeLegacySlots = null;
+        }
+        Runtime.Blueprints.HouseArchitectureEditing.TrackPaidPrefix(world, owner);
         world.PlayerBlueprints[owner.BlueprintId] = draft;
         if (owner.DefinitionId == ContentIds.Hut1Hex) owner.DefinitionId = ContentIds.HutPlan;
         if (owner.BuildProduct == ContentIds.Hut1Hex) owner.BuildProduct = ContentIds.HutPlan;
@@ -498,6 +511,7 @@ public static class BuildingBootstrap
         {
             CompleteHut(world, owner);
         }
+        Runtime.Blueprints.HouseArchitectureEditing.RefreshFlags(world, owner, oldFootprint);
         return true;
     }
 
@@ -652,7 +666,8 @@ public static class BuildingBootstrap
         {
             if (world.Tiles.Items.TryGetValue(footprintTile, out var footprint))
             {
-                footprint.Flags |= TileFlags.HasFloor | TileFlags.Indoor | TileFlags.Roofed;
+                if (hut.DefinitionId != ContentIds.HutPlan)
+                    footprint.Flags |= TileFlags.HasFloor | TileFlags.Indoor | TileFlags.Roofed;
                 WorldTopology.NoteTile(world, footprintTile); // §158.2
             }
         }
@@ -664,6 +679,7 @@ public static class BuildingBootstrap
         if (hut.DefinitionId == ContentIds.HutPlan)
         {
             RepairPlanTopology(world, hut);
+            Runtime.Blueprints.HouseArchitectureEditing.RefreshFlags(world, hut);
             StakePlanFurnitureSites(world, hut);
             return;
         }
@@ -834,7 +850,7 @@ public static class BuildingBootstrap
         if (!world.Tiles.Items.ContainsKey(owner.Tile)) return;
 
         // §120.8: топология считается по чертежу ЭТОЙ площадки, не по committed.
-        var plan = BuildingRules.PlanFor(world, owner);
+        var plan = Runtime.Blueprints.HouseArchitectureEditing.PhysicalPlan(world, owner);
         var authoredBySlot = new Dictionary<string, Runtime.Blueprints.BlueprintElementData>(
             StringComparer.Ordinal);
         foreach (var element in plan.Elements)
@@ -992,7 +1008,11 @@ public static class BuildingBootstrap
     {
         var index = new Dictionary<Runtime.Blueprints.JunctionKey, JunctionId>();
         var tiles = new List<TileCoord>();
-        foreach (var footprint in FootprintTiles(world, owner))
+        var physicalPlan = Runtime.Blueprints.HouseArchitectureEditing.PhysicalPlan(world, owner);
+        var physicalTiles = physicalPlan != null
+            ? Runtime.ConstructionAccess.PlanTiles(physicalPlan, owner.Tile, owner.RotationDegrees)
+            : FootprintTiles(world, owner);
+        foreach (var footprint in physicalTiles)
         {
             if (!tiles.Contains(footprint)) tiles.Add(footprint);
             foreach (var direction in HexDirection.All)

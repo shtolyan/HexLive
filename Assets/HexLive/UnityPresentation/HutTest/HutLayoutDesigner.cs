@@ -51,6 +51,7 @@ namespace HexLive.UnityPresentation.HutTest
             public Action<BuildingBlueprintDraft> OnBuild;
             // Existing-house Apply closes only after this exact revision appears in a server snapshot.
             public Func<string, bool> IsRevisionApplied;
+            public bool ApplyEachGesture;
             public Action<IReadOnlyList<FreeArchitecturePlacementData>,
                 IReadOnlyList<string>> OnApplyFreeArchitecture;
             public Action OnClosed;
@@ -306,7 +307,9 @@ namespace HexLive.UnityPresentation.HutTest
             if (_worldPlacement?.IsRevisionApplied?.Invoke(_pendingRevisionJson) == true)
             {
                 _pendingRevisionJson = null;
-                CloseWorldMode();
+                if (_worldPlacement.ApplyEachGesture)
+                    SetStatus("blueprint.status.planned", true);
+                else CloseWorldMode();
                 return;
             }
             if (Time.unscaledTime - _pendingRevisionAt < RevisionTimeoutSeconds) return;
@@ -547,7 +550,7 @@ namespace HexLive.UnityPresentation.HutTest
             var validation = BlueprintValidator.Validate(_draft);
             var hasFloor = _draft.Elements.Any(e => e.Kind == BlueprintElementKind.FloorSector);
             var hasDoor = _draft.Elements.Any(e => e.Kind == BlueprintElementKind.Door);
-            if (!validation.IsValid || !hasFloor || !hasDoor)
+            if (!validation.IsValid || !EditingExisting && (!hasFloor || !hasDoor))
             {
                 SetStatus(!hasFloor
                     ? Loc.Get("blueprint.build.needs_floor")
@@ -858,6 +861,7 @@ namespace HexLive.UnityPresentation.HutTest
             if (result.Succeeded)
             {
                 if (DirectWorldConstruction) DispatchDirectDelta(before!, _draft);
+                else if (_worldPlacement?.ApplyEachGesture == true) BuildAndClose();
                 else _autosaveDeadline = Time.unscaledTime + 0.35f;
                 RebuildPreview();
             }
@@ -998,6 +1002,7 @@ namespace HexLive.UnityPresentation.HutTest
             RebuildPreview();
             RefreshUiState();
             SetStatus("blueprint.status.undo", true);
+            if (_worldPlacement?.ApplyEachGesture == true) BuildAndClose();
         }
 
         private void Redo()
@@ -1013,6 +1018,7 @@ namespace HexLive.UnityPresentation.HutTest
             RebuildPreview();
             RefreshUiState();
             SetStatus("blueprint.status.redo", true);
+            if (_worldPlacement?.ApplyEachGesture == true) BuildAndClose();
         }
 
         private void CancelGesture()

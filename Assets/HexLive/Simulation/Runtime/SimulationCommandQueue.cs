@@ -896,8 +896,9 @@ public sealed class FreeArchitecturePlacementData
 /// <summary>
 /// §120.10: atomically apply one direct world-building gesture. Placements are
 /// independent construction objects; removed slot keys are direct demolition,
-/// not deletion of a plan. A wall drag or room drag therefore crosses the wire
-/// as one user transaction without ever creating a blueprint registry entry.
+/// not instant deletion. A wall/room drag crosses the wire as one transaction;
+/// #664 existing-house slots update that owner's desired blueprint, while
+/// independent additions create no new aggregate or blueprint registry entry.
 /// </summary>
 public sealed class ApplyFreeArchitectureCommand : ISimulationCommand
 {

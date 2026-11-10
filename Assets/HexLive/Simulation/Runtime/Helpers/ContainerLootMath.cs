@@ -59,7 +59,19 @@ internal static class ContainerLootMath
             return false;
         }
 
-        if (obj.Contents.Count > 0)
+        if (BuildingRules.IsCompletedBuilding(obj) && obj.InstalledBuildMaterials != null)
+        {
+            System.Span<int> seen = stackalloc int[BuildSiteMath.AllMaterials.Length];
+            seen.Clear();
+            foreach (var item in obj.Contents)
+            {
+                var material = System.Array.IndexOf(BuildSiteMath.AllMaterials, item.DefinitionId);
+                if (material < 0 || ++seen[material] > obj.InstalledBuildMaterials[material]) return true;
+            }
+            return false;
+        }
+
+        if (obj.Contents.Exists(item => IsStoredItem(world, obj, item)))
         {
             return true;
         }
@@ -145,7 +157,23 @@ internal static class ContainerLootMath
 
     private static bool IsStoredItem(
         WorldState world, WorldObjectState obj, ItemInstance item) =>
-        !IsCampfire(world, obj) || IsQueuedCampfireFuel(obj, item) || IsSpitMeat(item);
+        !IsInstalledHouseMaterial(obj, item) &&
+        (!IsCampfire(world, obj) || IsQueuedCampfireFuel(obj, item) || IsSpitMeat(item));
+
+    private static bool IsInstalledHouseMaterial(WorldObjectState obj, ItemInstance item)
+    {
+        if (!BuildingRules.IsCompletedBuilding(obj) || obj.InstalledBuildMaterials == null) return false;
+        var material = System.Array.IndexOf(BuildSiteMath.AllMaterials, item.DefinitionId);
+        if (material < 0 || obj.InstalledBuildMaterials[material] <= 0) return false;
+        var ordinal = 0;
+        foreach (var candidate in obj.Contents)
+        {
+            if (candidate.DefinitionId != item.DefinitionId) continue;
+            ordinal++;
+            if (ReferenceEquals(candidate, item)) return ordinal <= obj.InstalledBuildMaterials[material];
+        }
+        return false;
+    }
 
     /// <summary>§151.3 (bug #293): мясо на вертеле — тоже содержимое станции.
     /// Оно лежит в том же persisted-списке, что топливо и доставленный
@@ -260,6 +288,7 @@ internal static class ContainerLootMath
         for (var index = 0; index < obj.Contents.Count; index++)
         {
             var item = obj.Contents[index];
+            if (IsInstalledHouseMaterial(obj, item)) continue;
             var merged = false;
             if (InventoryState.IsStackable(item.DefinitionId))
             {

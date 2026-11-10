@@ -17,6 +17,14 @@ MonoBehaviour:
     UserAgreesToHaveItInsideThePluginsFolder: 0
     GoogleLiveSyncIsUptoDate: 1
     mTerms:
+    - Term: blueprint.status.planned
+      TermType: 0
+      Description:
+      Languages:
+      - "Changes planned. Builders will add or dismantle the marked pieces."
+      - "Изменения запланированы. Строители достроят или разберут отмеченные детали."
+      Flags: 0101
+      Languages_Touch: []
     - Term: blueprint.status.applying
       TermType: 0
       Description:

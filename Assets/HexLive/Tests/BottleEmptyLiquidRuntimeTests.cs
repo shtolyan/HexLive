@@ -12,7 +12,8 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using Object=UnityEngine.Object;
 
-namespace HexLive.Tests;
+namespace HexLive.Tests
+{
 public sealed class BottleEmptyLiquidRuntimeTests
 {
     [UnityTest]
@@ -52,5 +53,6 @@ public sealed class BottleEmptyLiquidRuntimeTests
             if(had)cache[key]=old;else cache.Remove(key);
         }
     }
+}
 }
 #endif

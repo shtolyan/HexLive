@@ -1554,7 +1554,7 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         if (!dead && HexLive.Simulation.Runtime.Spec121.ManualDarkOrdersEnabled &&
             canOrderSocial)
         {
-            if (sameSide && !target.IsUnconscious)
+            if (!target.IsUnconscious)
             {
                 _entries.Add(new ContextMenuEntry(Loc.Get("menu.dark.prey"),
                     () => OpenConfirmMenu(mousePos, NpcTitle(npcId),
@@ -1562,7 +1562,7 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
                         () => EnqueueOrder(carrier!.Id.Value, new PreyPersonCommand(
                             new EntityId(carrier.Id.Value), new EntityId(npcId))))));
             }
-            else if (!sameSide && !lying)
+            if (!sameSide && !lying)
             {
                 _entries.Add(new ContextMenuEntry(Loc.Get("menu.dark.abuse"),
                     () => OpenConfirmMenu(mousePos, NpcTitle(npcId),

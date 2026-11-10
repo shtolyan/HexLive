@@ -54,11 +54,9 @@ public sealed class PredationSystem : ISimulationSystem
             {
                 if ((predator.Mind.ManualControl && (predator.Mind.ManualAttackNpcId != other.Id || other.IsUnconscious(world.Tick))) ||
                     other.Id == predator.Id || other.Health <= 0f ||
-                    // §72: Prey is the STARVATION cannibalism of §56 — eating
-                    // your own housemate. Hunting the other faction is the Raid
-                    // goal and its own resolver; keep the two from bleeding
-                    // into each other.
-                    !FactionRelations.AreAllies(predator, other) ||
+                    // §56.7: only the explicit player's named target bypasses
+                    // faction selection. Autonomous predation remains allied.
+                    (!predator.Mind.ManualControl && !FactionRelations.AreAllies(predator, other)) ||
                     other.CurrentJunction is not { } otherJunction ||
                     // §106: не сцепляться через кромку с купальщицей — иначе до
                     // ближайшего перестроения плана хищник кусал бы её с берега.

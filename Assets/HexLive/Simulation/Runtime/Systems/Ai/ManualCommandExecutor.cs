@@ -1881,13 +1881,8 @@ internal static partial class ManualCommandExecutor
             return;
         }
 
-        // §56 — каннибализм СВОИХ; чужака бьют приказом атаки (§72 налёт).
-        if (!FactionRelations.AreAllies(npc, victim))
-        {
-            Reject(world, npc.Id, "Prey", "NotAlly", admission);
-            return;
-        }
-
+        // §56.7: explicit manual prey may target any faction. The autonomous
+        // starvation goal still selects allies; physical admission stays shared.
         if (victim.CarriedByNpcId is not null ||
             victim.CurrentJunction is not { } victimJunction)
         {

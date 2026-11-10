@@ -58,7 +58,7 @@ public sealed class ManualMenuTargetsTests
     }
 
     [Test]
-    public void NonDefaultCampPlayerHuntsHerOwnCampAndNotTheFirstOne()
+    public void NonDefaultCampPlayerCanExplicitlyHuntEitherCamp()
     {
         var world = Build(777);
         var player = Girl(world, Faction.Colony3);
@@ -77,8 +77,8 @@ public sealed class ManualMenuTargetsTests
                 "Девушка первого лагеря игроку Colony3 — чужая.");
         });
 
-        // Что предлагало СТАРОЕ меню (гейты на буквальной Faction.Colony):
-        // травлю собственной соседки и охоту на чужую. Приём отбивает оба.
+        // Abuse still excludes allies; an explicit prey order now permits
+        // either faction, independently of the player's camp number (#665).
         var abuseOnMate = ManualCommandExecutor.Apply(
             world, new AbusePersonCommand(player.Id, mate.Id));
         var preyOnStranger = ManualCommandExecutor.Apply(
@@ -92,8 +92,9 @@ public sealed class ManualMenuTargetsTests
         {
             Assert.That(abuseOnMate.Reason, Is.EqualTo("NotHostile"),
                 "Сцена §81 против своей — мёртвый пункт старого меню.");
-            Assert.That(preyOnStranger.Reason, Is.EqualTo("NotAlly"),
-                "Охота §56 на чужую — второй мёртвый пункт старого меню.");
+            Assert.That(preyOnStranger.Status,
+                Is.EqualTo(ManualCommandAdmissionStatus.Accepted),
+                $"Explicit foreign prey was rejected: {preyOnStranger.Reason}");
             Assert.That(preyOnMate.Status,
                 Is.EqualTo(ManualCommandAdmissionStatus.Accepted),
                 $"Prey по своей отклонён: {preyOnMate.Reason}");

@@ -57,6 +57,7 @@
     <Compile Include="../../Assets/HexLive/UnityPresentation/Input/NpcPickMath.cs" />
     <Compile Include="../../Assets/HexLive/UnityPresentation/Input/PointerTargetSet.cs" />
     <Compile Include="../../Assets/HexLive/UnityPresentation/Rendering/NpcGroundSupport.cs" />
+    <Compile Include="../../Assets/HexLive/UnityPresentation/Rendering/HutHoverRevealMath.cs" />
     <Compile Include="../../Assets/HexLive/UnityPresentation/Wearing/PresentationSpeed.cs" />
     <Compile Include="../../Assets/HexLive/UnityPresentation/UI/LobbyWardrobeRules.cs" />
     <Compile Include="../../Assets/HexLive/UnityPresentation/UI/ContextMenuEntry.cs" />

@@ -205,7 +205,7 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             return;
         }
 
-        if (!CommandMode || PointerBlocked())
+        if (!NpcSelection.HasSelection || PointerBlocked())
         {
             ClearHover();
             return;
@@ -431,6 +431,18 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
 
         PickTarget(snapshot, mousePos, out _hoveredNpcId, out _hoveredMobId, out var objectHit);
+        // Hover reveal is visual and also works while the selected colonist uses AI.
+        // The ground tile keeps the cutaway stable after its roof no longer hits the ray.
+        var hasGround = TryPickGroundPoint(mousePos, out _, out var hoverTile);
+        // Roofs need no context verb to be a visual hover surface. Keep this
+        // separate from command picking so clicking a roof gains no empty menu.
+        _pickHutEligible ??= view => _worldRenderer != null &&
+            _worldRenderer.IsHutHoverSurface(view.ObjectId) && !IsBeyondSmallPropCull(view);
+        _pickHutDefers ??= _ => false;
+        var houseHit = WorldObjectPicker.Pick(_camera.ScreenPointToRay(mousePos),
+            _pickHutEligible, _pickHutDefers, out _);
+        _worldRenderer?.SetHutHover(houseHit != null ? houseHit.ObjectId : objectHit != null ? objectHit.ObjectId : -1,
+            hasGround ? hoverTile : (TileCoord?)null);
         var mobRenderers = _worldRenderer?.WildlifeRenderers(_hoveredMobId);
         _hasHoveredMob = mobRenderers != null && _hoveredNpcId < 0 && objectHit == null;
         if (!_hasHoveredMob) mobRenderers = null;
@@ -533,6 +545,7 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
 
     private void ClearHover()
     {
+        _worldRenderer?.SetHutHover(-1, null);
         _hoverNextPickTime = 0f;
         _hovered?.SetHighlighted(false);
         _hovered = null;
@@ -548,6 +561,8 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
     // мусорить в Update.
     private System.Func<WorldObjectView, bool>? _pickEligible;
     private System.Func<WorldObjectView, bool>? _pickDefers;
+    private System.Func<WorldObjectView, bool>? _pickHutEligible;
+    private System.Func<WorldObjectView, bool>? _pickHutDefers;
 
     private WorldObjectView? PickObjectUnderCursor(Vector2 mousePos, out float bestDistance)
     {

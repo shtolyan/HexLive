@@ -134,18 +134,53 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private readonly struct HutCutawayView
     {
+        public readonly int OwnerId;
         public readonly TileCoord Tile;
         public readonly HexLive.UnityPresentation.Environment.HutAssembly Assembly;
 
         public HutCutawayView(
-            TileCoord tile, HexLive.UnityPresentation.Environment.HutAssembly assembly)
+            int ownerId, TileCoord tile, HexLive.UnityPresentation.Environment.HutAssembly assembly)
         {
+            OwnerId = ownerId;
             Tile = tile;
             Assembly = assembly;
         }
     }
 
     private readonly List<HutCutawayView> _hutCutawayViews = new();
+    private readonly Dictionary<int, ObjectSnapshot> _cutawayOwners = new();
+    private readonly Dictionary<int, int> _cutawayPieceOwners = new();
+    private int _hoveredHutObjectId = -1;
+    private TileCoord? _hoveredHutGroundTile;
+
+    public bool IsHutHoverSurface(int objectId) =>
+        _cutawayOwners.ContainsKey(objectId) || _cutawayPieceOwners.ContainsKey(objectId);
+
+    public void SetHutHover(int objectId, TileCoord? groundTile)
+    {
+        _hoveredHutObjectId = objectId;
+        _hoveredHutGroundTile = groundTile;
+    }
+
+    private int HoverRevealOwner(WorldSnapshot snapshot, NpcSnapshot? selected)
+    {
+        if(selected == null || selected.Health <= 0f || !IsPlayerOwned(selected))return -1;
+        var camp = _runner != null ? PlayerCampView.Of(_runner,snapshot)
+            : HexLive.Simulation.Agents.Faction.Colony;
+        int owner = _cutawayPieceOwners.TryGetValue(_hoveredHutObjectId,out var proxy) ? proxy : _hoveredHutObjectId;
+        if(_cutawayOwners.TryGetValue(owner,out var direct))
+            return HutHoverRevealMath.CanReveal(snapshot,direct,camp,true) ? owner : -1;
+        if(_hoveredHutGroundTile is not {} tile || (_cullActive && !_cullVisibleTiles.Contains(tile)))return -1;
+        foreach(var pair in _cutawayOwners)
+        {
+            bool covers = pair.Value.DefinitionId == ContentIds.HutPlan
+                ? _planRaisedOwners.Contains(pair.Key) && _planFootprints.TryGetValue(pair.Key,out var footprint) && Covers(footprint,tile)
+                : pair.Value.Tile == tile;
+            if(covers && HutHoverRevealMath.CanReveal(snapshot,pair.Value,camp,true))return pair.Key;
+        }
+        return -1;
+    }
+
 
     // §120: the same feature for a house that HAS no monolith. One entry per
     // module the cutaway may take away — walls, windows, doors, corner supports
@@ -935,12 +970,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _cutawayCamera ??= Camera.main;
         var hasInteriorSelection = false;
         var selectedTile = TileCoord.Zero;
+        NpcSnapshot? selected = null;
         if (Input.NpcSelection.HasSelection)
         {
             var selectedId = Input.NpcSelection.SelectedId;
             foreach (var npc in snapshot.Npcs)
             {
                 if (npc.Id.Value != selectedId) continue;
+                selected = npc;
                 // §141: «она в доме» — про ТЕЛО, а не про поле тайла. Дом
                 // раскрывался не в тот момент, когда она входит: поле
                 // догоняет тело, и на пороге получалось «и в доме, и не в
@@ -951,17 +988,18 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
+        var hoverOwner = HoverRevealOwner(snapshot, selected);
         var cameraPosition = _cutawayCamera != null
             ? _cutawayCamera.transform.position
             : Vector3.zero;
         foreach (var hut in _hutCutawayViews)
         {
-            var reveal = hasInteriorSelection && hut.Tile.Equals(selectedTile) &&
+            var reveal = ((hasInteriorSelection && hut.Tile.Equals(selectedTile)) || hut.OwnerId == hoverOwner) &&
                 _cutawayCamera != null;
             hut.Assembly.SetInteriorCutaway(reveal, cameraPosition);
         }
 
-        UpdatePlanCutaways(hasInteriorSelection, selectedTile, cameraPosition);
+        UpdatePlanCutaways(hasInteriorSelection, selectedTile, cameraPosition, hoverOwner);
     }
 
     /// <summary>
@@ -978,7 +1016,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     /// </para>
     /// </summary>
     private void UpdatePlanCutaways(
-        bool hasInteriorSelection, TileCoord selectedTile, Vector3 cameraPosition)
+        bool hasInteriorSelection, TileCoord selectedTile, Vector3 cameraPosition, int hoverOwner = -1)
     {
         if (_planCutawayModules.Count == 0) return;
         var hasCamera = _cutawayCamera != null;
@@ -995,9 +1033,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             if (owned.Count == 0) continue;
 
-            var reveal = hasInteriorSelection && hasCamera &&
-                _planFootprints.TryGetValue(ownerKey, out var footprint) &&
-                Covers(footprint, selectedTile);
+            var reveal = hasCamera && (ownerKey == hoverOwner ||
+                (hasInteriorSelection && _planFootprints.TryGetValue(ownerKey, out var footprint) &&
+                 Covers(footprint, selectedTile)));
             if (!reveal)
             {
                 for (var i = 0; i < owned.Count; i++)
@@ -1664,6 +1702,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var liveObjectIds = _liveObjectIdScratch;
         liveObjectIds.Clear();
         _hutCutawayViews.Clear();
+        _cutawayOwners.Clear();
+        _cutawayPieceOwners.Clear();
         _planBuildingOwners.Clear();
         _unfinishedPlanBuildingOwners.Clear();
         _planOwnerAnchors.Clear();
@@ -1675,6 +1715,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
         foreach (var worldObject in snapshot.Objects)
         {
             liveObjectIds.Add(worldObject.Id.Value);
+            if(worldObject.DefinitionId is ContentIds.HutPlan or ContentIds.Hut1Hex)
+                _cutawayOwners[worldObject.Id.Value] = worldObject;
+            if(worldObject.ArchitectureOwnerObjectId is {} cutawayOwner)
+                _cutawayPieceOwners[worldObject.Id.Value] = cutawayOwner;
 
             // §120: known before any view is created, because whether an
             // architecture piece draws itself depends on it.
@@ -2018,7 +2062,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             if (worldObject.DefinitionId == ContentIds.Hut1Hex && parts.Hut != null)
             {
-                _hutCutawayViews.Add(new HutCutawayView(worldObject.Tile, parts.Hut));
+                _hutCutawayViews.Add(new HutCutawayView(worldObject.Id.Value, worldObject.Tile, parts.Hut));
             }
 
             // §Wardrobe-anim: hide/show the ground garment as its owner picks it

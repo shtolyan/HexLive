@@ -74,6 +74,19 @@ public sealed class BlueprintArchitectureRenderContext
     public void Prepare(BuildingBlueprintDraft displayed)
     {
         _poses.Clear(); _prepared = displayed;
+        if (!_world)
+        {
+            // A reused local context pins the owner frame, not its first list
+            // of elements. Add/move/undo must all use the CURRENT native plan.
+            var group = _owners[0];
+            var local = displayed.Clone();
+            var anchor = BlueprintBuildingPlan.AnchorTile(group.Source);
+            local.HasAnchor = true; local.AnchorQ = anchor.Q; local.AnchorR = anchor.R;
+            var modules = BlueprintBuildingPlan.Modules(local).ToDictionary(m => m.Key, StringComparer.Ordinal);
+            foreach (var element in local.Elements)
+                AddPose(element.Id, element.Kind, modules[BlueprintBuildingPlan.SlotKey(element)], group.Destination, group.Yaw, 0f);
+            return;
+        }
         var byId = displayed.Elements.ToDictionary(e => e.Id, StringComparer.Ordinal);
         var owned = new HashSet<string>(StringComparer.Ordinal);
         foreach (var group in _owners)
@@ -93,8 +106,6 @@ public sealed class BlueprintArchitectureRenderContext
             foreach (var pair in current)
                 AddPose(pair.entry.DisplayId, pair.element.Kind, modules[BlueprintBuildingPlan.SlotKey(pair.element)], group.Destination, group.Yaw, _world ? _elevationOffset?.Invoke(group.Destination) ?? 0f : 0f);
         }
-        if (!_world) return;
-
         // Matches FreeArchitectureRules.RefreshGeometryAndBills: all independent
         // pieces use one absolute source group. House floors must NOT enter its
         // centroid/seam assignment. Moved old house elements become new free slots.

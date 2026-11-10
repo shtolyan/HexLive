@@ -9,6 +9,7 @@ using HexLive.Simulation.Common;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime.Blueprints;
 using HexLive.UnityPresentation.Environment;
+using HexLive.UnityPresentation.HutTest.BlueprintEditor;
 using HexLive.UnityPresentation.Spatial;
 using HexLive.UnityPresentation.UI;
 using NUnit.Framework;
@@ -123,6 +124,65 @@ public sealed class WorldHouseGeometryRuntimeTests
                 var expectedLift = element.Kind == BlueprintElementKind.RoofSector ? BlueprintArchitectureFactory.RoofEaveHeight : 0f;
                 Assert.That(a.transform.position.y, Is.EqualTo(.25f + expectedLift).Within(.0001f), "Own terrain frame stays independent too.");
             }
+        }
+        finally
+        {
+            foreach (var root in roots) if (root != null) Object.DestroyImmediate(root);
+            foreach (var item in saved) { if (item.Value.had) cache[item.Key] = item.Value.value; else cache.Remove(item.Key); }
+        }
+    }
+
+    [TestCase(false)] [TestCase(true)]
+    public void ReusedLocalEditorContextKeepsAddedAndMovedSupportOnTheActualModuleGeometry(bool moveExisting)
+    {
+        var cache = (IDictionary)typeof(BlueprintArchitectureFactory).GetField("ModelPrefabs", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+        var saved = new Dictionary<string, (bool had, object value)>(); var roots = new List<GameObject>();
+        var draft = BuiltInBuildingBlueprints.Hut1Hex(); draft.Furniture.Clear();
+        var anchor = BlueprintBuildingPlan.AnchorTile(draft);
+        var context = BlueprintArchitectureRenderContext.Local(draft);
+        var destination = new TileCoord(-6, -26); const float yaw = 120f;
+        var rotation = Quaternion.Euler(0f, SimulationUnityMapper.ToUnityFootprintYawDegrees(yaw), 0f);
+        var anchorWorld = BlueprintGeometry.ToWorld(BlueprintGeometry.HexCenter(anchor));
+        var editorRoot = new GameObject("664 reused local constructor"); roots.Add(editorRoot);
+        editorRoot.transform.SetPositionAndRotation(SimulationUnityMapper.ToUnityTilePosition(destination)
+            - rotation * new Vector3(anchorWorld.X, 0f, anchorWorld.Y), rotation);
+        var editor = editorRoot.AddComponent<BlueprintPreviewRenderer>();
+        var actualRoot = new GameObject("664 actual edited local module"); roots.Add(actualRoot);
+        actualRoot.transform.position = SimulationUnityMapper.ToUnityTilePosition(destination);
+        try
+        {
+            foreach (var id in new[] { "architecture.support.wood", "architecture.floor.board", "architecture.wall.wood", "architecture.window.wood", "architecture.door.wood", "architecture.roof.palm" })
+            {
+                saved[id] = (cache.Contains(id), cache[id]);
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/HexLiveContent/RuntimeSource/Objects/" + id + ".fbx");
+                Assert.That(prefab, Is.Not.Null); cache[id] = prefab;
+            }
+            editor.Rebuild(draft, BlueprintEditorMode.Architecture, architectureContext: context);
+            var support = moveExisting ? draft.Elements.First(e => e.Kind == BlueprintElementKind.Support)
+                : new BlueprintElementData { Id = "new_local_support", Kind = BlueprintElementKind.Support };
+            support.Node = BlueprintGeometry.HexCorner(new TileCoord(1, 0), 0);
+            if (!moveExisting) draft.Elements.Add(support);
+            // Same draft and SAME context after a real renderer rebuild: no
+            // stale initial-slot cache and no fallback preview-only factory.
+            editor.Rebuild(draft, BlueprintEditorMode.Architecture, architectureContext: context);
+            Assert.That(editor.TryGetObject(support.Id, out var preview), Is.True);
+            var authoritative = draft.Clone(); authoritative.HasAnchor = true;
+            authoritative.AnchorQ = anchor.Q; authoritative.AnchorR = anchor.R;
+            var module = BlueprintBuildingPlan.Modules(authoritative).Single(m => m.Key == BlueprintBuildingPlan.SlotKey(support));
+            var view = actualRoot.AddComponent<ArchitectureModuleView>();
+            var piece = new ObjectSnapshot { Id = new ObjectId(1001), DefinitionId = "architecture.support.wood", Tile = destination,
+                RotationDegrees = yaw, ArchitectureOwnerObjectId = 900 };
+            piece.ArchitectureElements.Add(new ArchitectureElementSnapshot { DefinitionId = piece.DefinitionId, SlotKey = module.Key,
+                LocalX = module.LocalX, LocalZ = module.LocalZ, LocalYaw = module.LocalYaw,
+                RequiredSticks = module.Sticks, DeliveredSticks = module.Sticks, RequiredRope = module.Rope, DeliveredRope = module.Rope,
+                Buildable = true, WorkRequired = 1, WorkDone = 1 });
+            view.Sync(piece);
+            var actual = BoundsOf(actualRoot); var shown = BoundsOf(preview);
+            Assert.That(Vector3.Distance(actual.center, shown.center), Is.LessThan(.002f), "actual local edit centre");
+            Assert.That(Vector3.Distance(actual.size, shown.size), Is.LessThan(.002f), "actual local edit size");
+            for (var stage = 1; stage <= 3; stage++)
+                Assert.That(BlueprintArchitectureFactory.ResourceCount(preview, stage),
+                    Is.EqualTo(BlueprintArchitectureFactory.ResourceCount(actualRoot, stage)), "local edit stage units " + stage);
         }
         finally
         {

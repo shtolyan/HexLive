@@ -14,10 +14,12 @@ public static class NpcBodyPicker
     {
         public SkinnedMeshRenderer Skin;
         public Transform Head,Pelvis,LeftFoot,RightFoot,LeftKnee,RightKnee;
+        public Transform LeftShoulder,RightShoulder,LeftElbow,RightElbow,LeftHand,RightHand,LeftPalm,RightPalm;
         public bool Ready => Skin!=null&&Head!=null&&Pelvis!=null&&LeftFoot!=null&&RightFoot!=null;
         public void Resolve(NpcActorView view)
         {
             Head=Pelvis=LeftFoot=RightFoot=LeftKnee=RightKnee=null;
+            LeftShoulder=RightShoulder=LeftElbow=RightElbow=LeftHand=RightHand=LeftPalm=RightPalm=null;
             Skin=view.PrimaryBodySkin;
             if(Skin==null) return;
             foreach(var bone in Skin.bones)
@@ -31,6 +33,14 @@ public static class NpcBodyPicker
                     case "rfoot":RightFoot=bone;break;
                     case "lshin":LeftKnee=bone;break;
                     case "rshin":RightKnee=bone;break;
+                    case "lshldrbend":LeftShoulder=bone;break;
+                    case "rshldrbend":RightShoulder=bone;break;
+                    case "lforearmbend":LeftElbow=bone;break;
+                    case "rforearmbend":RightElbow=bone;break;
+                    case "lhand":LeftHand=bone;break;
+                    case "rhand":RightHand=bone;break;
+                    case "lmid2":LeftPalm=bone;break;
+                    case "rmid2":RightPalm=bone;break;
                 }
             }
         }
@@ -65,6 +75,19 @@ public static class NpcBodyPicker
             else Span(pelvis,foot,radius);
         }
         Leg(left,body.LeftKnee);Leg(right,body.RightKnee);
+        // Outstretched arms lie far outside the torso/leg volumes. Read the
+        // cached live bones on every ray, including the palm beyond the wrist;
+        // a normal miss must not turn into an expensive skinned-mesh bake.
+        void Arm(Transform shoulder,Transform elbow,Transform hand,Transform palm)
+        {
+            var radius=height*.045f+Margin;
+            if(shoulder!=null&&elbow!=null) Span(shoulder.position,elbow.position,radius);
+            else if(shoulder!=null&&hand!=null) Span(shoulder.position,hand.position,radius);
+            if(elbow!=null&&hand!=null) Span(elbow.position,hand.position,radius);
+            if(hand!=null) Span(hand.position,palm!=null?palm.position:hand.position,radius);
+        }
+        Arm(body.LeftShoulder,body.LeftElbow,body.LeftHand,body.LeftPalm);
+        Arm(body.RightShoulder,body.RightElbow,body.RightHand,body.RightPalm);
         distance=nearest;return hit;
     }
 }

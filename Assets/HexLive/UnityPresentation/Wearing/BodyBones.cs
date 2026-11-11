@@ -635,15 +635,8 @@ public sealed class BodyBones : MonoBehaviour
         }
     }
 
-    // §72: восстановленная логика molly_copy (в §31B.3 её сознательно срезали —
-    // девушкам она не нужна). Бельё в Pelvis закрывает тело всегда; Wear/Outerwear
-    // закрывают его по той же авторской маске, по которой прячут бельё. Ремень или
-    // открытая юбка могут занимать слот, но не закрывать кожу. §127.11 временно
-    // переопределяет это правило внутри парной сцены.
-    //
-    // Гендерного гейта нет и не нужно: у всех четырёх девушек поле genitals
-    // пустое (fileID: 0), заполнено оно только у Kshishtof, так что ранний
-    // выход по null оставляет их поведение ровно прежним.
+    // §169: pelvis coverage is independent of layer and underwear masks.
+    // Only actors with a separately authored genital mesh need this rule.
     private void UpdateGenitals()
     {
         if (genitals == null)
@@ -652,7 +645,7 @@ public sealed class BodyBones : MonoBehaviour
         }
 
         var covered =
-            _byLayer[VisualWearLayer.Underwear].ContainsKey(VisualWearSlot.Pelvis) ||
+            ClothingLayerCoversGenitals(VisualWearLayer.Underwear) ||
             ClothingLayerCoversGenitals(VisualWearLayer.Wear) ||
             ClothingLayerCoversGenitals(VisualWearLayer.Outerwear);
 
@@ -662,7 +655,7 @@ public sealed class BodyBones : MonoBehaviour
     private bool ClothingLayerCoversGenitals(VisualWearLayer layer)
     {
         return _byLayer[layer].TryGetValue(VisualWearSlot.Pelvis, out var wear) &&
-               wear.HeedHideUnderwearSlot(VisualWearSlot.Pelvis);
+               wear.HidesGenitals;
     }
 
     /// <summary>§127.11: paired scenes explicitly expose the authored male

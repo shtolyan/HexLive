@@ -14,6 +14,7 @@ public sealed class Wear : MonoBehaviour
     [SerializeField] private List<VisualWearSlot> slots = new();
     [SerializeField] private List<VisualWearSlot> noHideUnderwearSlots = new();
     [SerializeField] private List<VisualWearSlot> hideWearSlots = new();
+    [SerializeField] private bool showGenitals;
     [SerializeField] private VisualWearLayer layer;
     [SerializeField] private VisualGender gender = VisualGender.Female;
     // §169.10: offline fits address canonical geometry, including skin aliases.
@@ -59,6 +60,11 @@ public sealed class Wear : MonoBehaviour
     public VisualGender Gender => gender;
 
     public IReadOnlyList<VisualWearSlot> Slots => slots;
+
+    public bool CoversPelvis => slots.Contains(VisualWearSlot.Pelvis);
+    public bool HidesGenitals => CoversPelvis && !showGenitals;
+
+    public void SetHidesGenitals(bool value) => showGenitals = !value;
 
     /// <summary>
     /// Simulation item represented by this fitted visual. Runtime-only: the

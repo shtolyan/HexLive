@@ -4672,7 +4672,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             root.transform.position = GetObjectAnchorPosition(snapshot, worldObject);
             bool door = worldObject.DefinitionId == PortalWorld.DoorDefinitionId;
             if (door && ModernApartmentView.TryGetReturnDoorPose(worldObject.Tile, snapshot.Seed, GroundY(worldObject.Tile),
-                    out var doorPosition, out var doorRotation))
+                    out var doorPosition, out var doorRotation, PortalWorld.DoorVisitSerial(worldObject.Variant)))
                 root.transform.SetPositionAndRotation(doorPosition, doorRotation);
             var model = Instantiate(prefab, root.transform, false);
             if (worldObject.DefinitionId == ContentIds.StorageChest)
@@ -6701,12 +6701,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
     {
         if (worldObject.DefinitionId == PortalWorld.DoorDefinitionId &&
             ModernApartmentView.TryGetReturnDoorPose(worldObject.Tile, snapshot.Seed, GroundY(worldObject.Tile),
-                out var doorPosition, out _))
+                out var doorPosition, out _, PortalWorld.DoorVisitSerial(worldObject.Variant)))
             return doorPosition;
 
-        if (worldObject.Variant == PortalWorld.ApartmentFurnitureVariant &&
+        if (PortalWorld.TryGetApartmentFurnitureVisit(worldObject.Variant, out var visitSerial) &&
             PortalWorld.TryGetApartmentFurniturePlacement(worldObject.DefinitionId, worldObject.Tile, snapshot.Seed,
-                out var furniturePosition, out _))
+                out var furniturePosition, out _, visitSerial))
             return SimulationUnityMapper.ToUnityPosition(furniturePosition, ObjectGroundY(worldObject));
 
         if (worldObject.Junctions.Count > 0)

@@ -192,7 +192,8 @@ public static class WorldSaveSerializer
     // v91 (§176): portal settings, midnight cursor, door/visitor ids and generated room objects.
     // v92 (§176): surface parent and slot for loose items, at the end of each object record.
     // v93 (§128.5): a carried backpack keeps the physical instances in its pockets.
-    public const int BlobVersion = 93;
+    // v94 (§176): apartment visit serial and the expanded reserved grid.
+    public const int BlobVersion = 94;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -218,6 +219,9 @@ public static class WorldSaveSerializer
                 $"Cannot write save blob version {version}; supported writer range is " +
                 $"{OldestReadableBlobVersion}..{BlobVersion}.");
         }
+
+        if (version < 94 && world.Portal.VisitSerial != 0)
+            throw new InvalidDataException("The previous save layout cannot represent a regenerated apartment.");
 
         w.Write(version);
         w.Write(world.Seed);
@@ -570,6 +574,7 @@ public static class WorldSaveSerializer
             w.Write(portal.OperatorOpened);
             w.Write(portal.GeneratedObjects.Count);
             foreach (var id in portal.GeneratedObjects) w.Write(id.Value);
+            if (version >= 94) w.Write(portal.VisitSerial);
         }
         w.Write(EndMarker);
     }
@@ -756,7 +761,7 @@ public static class WorldSaveSerializer
 
         ReadJunctionFlagSet(world, r, static junction => junction.Blocked = true);
         ReadJunctionFlagSet(world, r, static junction => junction.Door = true);
-        PortalWorld.RestoreApartmentWalls(world);
+        if (version < 94) PortalWorld.RestoreApartmentWalls(world, preserveLegacyJunctions: version >= 91);
 
         // §148: разведанное. Старый сейв (до v54) его не нёс — тогда остров
         // открывается заново, но ходить по нему уже некуда торопиться.
@@ -1130,6 +1135,7 @@ public static class WorldSaveSerializer
         portal.Mode = PortalSpawnMode.Camp;
         portal.Camp = Faction.Colony;
         portal.LastOpeningDay = PortalWorld.OpeningDayAt(world.Tick);
+        portal.VisitSerial = 0;
         portal.ExteriorDoor = null;
         portal.InteriorDoor = null;
         portal.Visitor = null;
@@ -1166,6 +1172,15 @@ public static class WorldSaveSerializer
                 portal.GeneratedObjects.Add(new ObjectId(id));
             }
 
+            if (version >= 94)
+            {
+                portal.VisitSerial = r.ReadInt32();
+                if (portal.VisitSerial < 0 || outside != 0 &&
+                    (PortalWorld.DoorVisitSerial(world.Entities.Objects[new ObjectId(outside)].Variant) != portal.VisitSerial ||
+                     PortalWorld.DoorVisitSerial(world.Entities.Objects[new ObjectId(inside)].Variant) != portal.VisitSerial))
+                    throw new InvalidDataException("Invalid portal visit serial.");
+            }
+
             bool ValidPortalDoor(int id, bool apartment) =>
                 world.Entities.Objects.TryGetValue(new ObjectId(id), out var door) &&
                 door.DefinitionId == PortalWorld.DoorDefinitionId &&
@@ -1177,6 +1192,7 @@ public static class WorldSaveSerializer
             throw new InvalidDataException("Save blob end marker missing — truncated or corrupt save.");
         }
 
+        PortalWorld.ClearClosedApartmentOnLoad(world);
         MigrateRetiredContent(world, version);
         LeafDryingMath.InitializeCarried(world);
         foreach (var obj in world.Entities.Objects.Values)

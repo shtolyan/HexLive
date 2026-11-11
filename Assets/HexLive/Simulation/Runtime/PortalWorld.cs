@@ -25,6 +25,7 @@ public sealed class PortalVisitState
     public PortalSpawnMode Mode { get; set; } = PortalSpawnMode.Camp;
     public Faction Camp { get; set; } = Faction.Colony;
     public int LastOpeningDay { get; set; } = -1;
+    public int VisitSerial { get; set; }
     public ObjectId? ExteriorDoor { get; set; }
     public ObjectId? InteriorDoor { get; set; }
     public EntityId? Visitor { get; set; }
@@ -41,9 +42,13 @@ public static class PortalWorld
     public const string ResidentProfileId = "portal.apartment_resident";
     public const string PlacedFurnitureVariant = "modern.placed";
     public const string ApartmentFurnitureVariant = "modern.apartment";
+    private const string VisitVariantPrefix = "visit.";
     public const string ApartmentShelfDefinitionId = "furniture.modern_shelf";
     public static readonly TileCoord ApartmentCenter = new(1024, 0);
     public static readonly FragmentId ApartmentFragment = new(176);
+
+    [ThreadStatic]
+    private static (int Seed, int Serial, PortalApartmentLayout Layout) _apartmentCache;
 
     private static readonly (int Q, int R, PortalApartmentRoom Room)[] Layout =
     {
@@ -60,7 +65,6 @@ public static class PortalWorld
     {
         "tool.kitchen_knife", "tool.baseball_bat", "food.apple", "food.banana",
         "item.dollar_bills", "item.kitchen_ladle", ContentIds.Bottle,
-        "clothing.shorts_classic", "clothing.halter_vamp", "clothing.croptop_fit",
         "item.photo_frame", "item.ballpoint_pen", "item.alarm_clock", "item.drinking_glass",
         "item.ceramic_saucer", ContentIds.TeddyBear,
         ContentIds.SteelHatchet, ContentIds.Flashlight, ContentIds.DisposableLighter,
@@ -87,15 +91,45 @@ public static class PortalWorld
         new(1, 0), new(0, 1), new(-1, 1), new(-1, 0), new(0, -1), new(1, -1),
     };
 
-    // The enclosing hex disk is reserved exclusively for the apartment's seeded footprint.
+    // The reserved grid is shared by all visits and never belongs to the island.
     public static bool IsApartmentTile(TileCoord tile) =>
-        HexSpatialMath.HexDistance(tile, ApartmentCenter) <= 2;
+        HexSpatialMath.HexDistance(tile, ApartmentCenter) <= PortalApartmentLayout.Radius;
 
     public static PortalDestinationKind DestinationAt(TileCoord tile) => IsApartmentTile(tile)
         ? PortalDestinationKind.Apartment : PortalDestinationKind.None;
 
-    public static PortalApartmentRoom RoomAt(TileCoord tile, int seed)
+    public static PortalApartmentLayout GeneratedApartment(int seed, int visitSerial)
     {
+        if (visitSerial <= 0) return null;
+        if (_apartmentCache.Layout == null || _apartmentCache.Seed != seed || _apartmentCache.Serial != visitSerial)
+            _apartmentCache = (seed, visitSerial, PortalApartmentLayout.Create(seed, visitSerial));
+        return _apartmentCache.Layout;
+    }
+
+    public static int DoorVisitSerial(string variant) =>
+        TryReadVisit(variant, VisitVariantPrefix, out var serial) ? serial : 0;
+
+    public static bool TryGetApartmentFurnitureVisit(string variant, out int serial)
+    {
+        if (variant == ApartmentFurnitureVariant)
+        {
+            serial = 0;
+            return true;
+        }
+        return TryReadVisit(variant, ApartmentFurnitureVariant + ".", out serial);
+    }
+
+    private static bool TryReadVisit(string variant, string prefix, out int serial)
+    {
+        serial = 0;
+        return variant != null && variant.StartsWith(prefix, StringComparison.Ordinal) &&
+            int.TryParse(variant.Substring(prefix.Length), System.Globalization.NumberStyles.None,
+                System.Globalization.CultureInfo.InvariantCulture, out serial) && serial > 0;
+    }
+
+    public static PortalApartmentRoom RoomAt(TileCoord tile, int seed, int visitSerial = 0)
+    {
+        if (GeneratedApartment(seed, visitSerial) is { } generated) return generated.RoomAt(tile);
         if (!IsApartmentTile(tile)) return PortalApartmentRoom.None;
         var local = Rotate(tile.Q - ApartmentCenter.Q, tile.R - ApartmentCenter.R, (6 - Rotation(seed)) % 6);
         foreach (var cell in Layout)
@@ -104,8 +138,13 @@ public static class PortalWorld
         return PortalApartmentRoom.None;
     }
 
-    public static IEnumerable<TileCoord> ApartmentTiles(int seed)
+    public static IEnumerable<TileCoord> ApartmentTiles(int seed, int visitSerial = 0)
     {
+        if (GeneratedApartment(seed, visitSerial) is { } generated)
+        {
+            foreach (var tile in generated.Tiles) yield return tile;
+            yield break;
+        }
         foreach (var cell in Layout) yield return At(cell.Q, cell.R, seed);
         yield return KitchenAlcove(seed);
     }
@@ -113,8 +152,9 @@ public static class PortalWorld
     private static TileCoord KitchenAlcove(int seed) => ((uint)seed / 6 & 1) == 0
         ? At(0, -2, seed) : At(-1, -1, seed);
 
-    public static bool HasWall(TileCoord tile, TileCoord neighbor, int seed)
+    public static bool HasWall(TileCoord tile, TileCoord neighbor, int seed, int visitSerial = 0)
     {
+        if (GeneratedApartment(seed, visitSerial) is { } generated) return generated.HasWall(tile, neighbor);
         var room = RoomAt(tile, seed);
         if (room == PortalApartmentRoom.None || HexSpatialMath.HexDistance(tile, neighbor) != 1) return false;
         var other = RoomAt(neighbor, seed);
@@ -131,36 +171,39 @@ public static class PortalWorld
         return (permutation % 3 + ((int)room - 1) * step) % 3;
     }
 
-    public static bool TryGetReturnDoorEdge(TileCoord doorTile, int seed, out TileCoord exteriorNeighbor)
+    public static bool TryGetReturnDoorEdge(TileCoord doorTile, int seed, out TileCoord exteriorNeighbor,
+        int visitSerial = 0)
     {
         exteriorNeighbor = default;
-        if (RoomAt(doorTile, seed) == PortalApartmentRoom.None || IsApartmentFurnitureTile(doorTile, seed)) return false;
-        var start = Math.Min(5, (int)(MathUtil.Hash01(seed, doorTile.Q, doorTile.R, 17607) * 6f));
+        if (RoomAt(doorTile, seed, visitSerial) == PortalApartmentRoom.None ||
+            IsApartmentFurnitureTile(doorTile, seed, visitSerial)) return false;
+        var start = Math.Min(5, (int)(MathUtil.Hash01(seed, doorTile.Q, doorTile.R, unchecked(17607 + visitSerial)) * 6f));
         for (var i = 0; i < EdgeDirections.Length; i++)
         {
             var direction = EdgeDirections[(i + start) % EdgeDirections.Length];
             var neighbor = new TileCoord(doorTile.Q + direction.Q, doorTile.R + direction.R);
-            if (RoomAt(neighbor, seed) != PortalApartmentRoom.None) continue;
+            if (RoomAt(neighbor, seed, visitSerial) != PortalApartmentRoom.None) continue;
             exteriorNeighbor = neighbor;
             return true;
         }
         return false;
     }
 
-    public static bool TryGetWindowEdge(TileCoord tile, int seed, TileCoord exitTile, out TileCoord exteriorNeighbor)
+    public static bool TryGetWindowEdge(TileCoord tile, int seed, TileCoord exitTile, out TileCoord exteriorNeighbor,
+        int visitSerial = 0)
     {
         exteriorNeighbor = default;
-        var room = RoomAt(tile, seed);
-        if (room == PortalApartmentRoom.None || IsApartmentFurnitureTile(tile, seed)) return false;
-        var hasExitEdge = TryGetReturnDoorEdge(exitTile, seed, out var exitNeighbor);
-        foreach (var candidate in ApartmentTiles(seed))
+        var room = RoomAt(tile, seed, visitSerial);
+        if (room == PortalApartmentRoom.None || IsApartmentFurnitureTile(tile, seed, visitSerial)) return false;
+        var hasExitEdge = TryGetReturnDoorEdge(exitTile, seed, out var exitNeighbor, visitSerial);
+        foreach (var candidate in ApartmentTiles(seed, visitSerial))
         {
-            if (RoomAt(candidate, seed) != room || IsApartmentFurnitureTile(candidate, seed)) continue;
+            if (RoomAt(candidate, seed, visitSerial) != room || IsApartmentFurnitureTile(candidate, seed, visitSerial)) continue;
             for (var i = 0; i < EdgeDirections.Length; i++)
             {
                 var direction = EdgeDirections[(EdgeDirections.Length - i) % EdgeDirections.Length];
                 var neighbor = new TileCoord(candidate.Q + direction.Q, candidate.R + direction.R);
-                if (RoomAt(neighbor, seed) != PortalApartmentRoom.None ||
+                if (RoomAt(neighbor, seed, visitSerial) != PortalApartmentRoom.None ||
                     hasExitEdge && candidate == exitTile && neighbor == exitNeighbor) continue;
                 if (candidate != tile) return false;
                 exteriorNeighbor = neighbor;
@@ -171,10 +214,21 @@ public static class PortalWorld
     }
 
     public static bool TryGetApartmentFurniturePlacement(string definitionId, TileCoord tile, int seed,
-        out Float2 position, out float rotationDegrees)
+        out Float2 position, out float rotationDegrees, int visitSerial = 0)
     {
         position = default;
         rotationDegrees = default;
+        if (GeneratedApartment(seed, visitSerial) is { } generated)
+        {
+            foreach (var placement in generated.Furniture)
+            {
+                if (placement.DefinitionId != definitionId || placement.Tile != tile) continue;
+                position = placement.Position;
+                rotationDegrees = placement.RotationDegrees;
+                return true;
+            }
+            return false;
+        }
         foreach (var furniture in Furnishings)
         {
             if (furniture.Id != definitionId || FurnitureTile(furniture.Q, furniture.R, seed) != tile) continue;
@@ -208,8 +262,10 @@ public static class PortalWorld
     private static TileCoord FurnitureTile(int q, int r, int seed) =>
         q == 0 && r == -2 ? KitchenAlcove(seed) : At(q, r, seed);
 
-    public static bool IsApartmentFurnitureTile(TileCoord tile, int seed) =>
-        Furnishings.Any(furniture => FurnitureTile(furniture.Q, furniture.R, seed) == tile);
+    public static bool IsApartmentFurnitureTile(TileCoord tile, int seed, int visitSerial = 0) =>
+        GeneratedApartment(seed, visitSerial) is { } generated
+            ? generated.IsFurnitureTile(tile)
+            : Furnishings.Any(furniture => FurnitureTile(furniture.Q, furniture.R, seed) == tile);
 
     private static bool IsInteriorDoorway(TileCoord tile, int seed) =>
         tile == At(0, -1, seed) || tile == At(1, 0, seed);
@@ -230,41 +286,70 @@ public static class PortalWorld
     internal static FragmentBootstrap CreateApartmentFragment(int seed) => new()
     {
         Id = ApartmentFragment.Value,
-        Tiles = ApartmentTiles(seed).Select(tile => new TileBootstrap
+        Tiles = ReservedApartmentTiles(seed).Select(tile => new TileBootstrap
         {
             Q = tile.Q, R = tile.R, Indoor = true, Elevation = 1,
         }).ToList(),
     };
 
-    internal static void RestoreApartmentWalls(WorldState world)
+    private static IEnumerable<TileCoord> ReservedApartmentTiles(int seed)
+    {
+        // Append to the old list so all legacy junction ids retain their order.
+        var seen = new HashSet<TileCoord>();
+        foreach (var tile in ApartmentTiles(seed))
+            if (seen.Add(tile)) yield return tile;
+        for (var radius = 0; radius <= PortalApartmentLayout.Radius; radius++)
+        foreach (var tile in Ring(ApartmentCenter, radius))
+            if (seen.Add(tile)) yield return tile;
+    }
+
+    internal static void RestoreApartmentWalls(WorldState world, bool preserveLegacyJunctions = false) =>
+        ApplyApartmentLayout(world, 0, preserveLegacyJunctions);
+
+    private static void ApplyApartmentLayout(WorldState world, int visitSerial, bool preserveLegacyJunctions = false)
     {
         if (!world.Fragments.Items.TryGetValue(ApartmentFragment, out var fragment)) return;
+        var active = new HashSet<TileCoord>(ApartmentTiles(world.Seed, visitSerial));
+        const TileFlags roomFlags = TileFlags.Walkable | TileFlags.Indoor | TileFlags.Roofed;
+        foreach (var tile in fragment.Tiles.Values)
+        {
+            var nextFlags = active.Contains(tile.Coord)
+                ? (tile.Flags & ~TileFlags.Blocked) | roomFlags
+                : (tile.Flags & ~(roomFlags | TileFlags.HasFloor)) | TileFlags.Blocked;
+            if (tile.Flags == nextFlags) continue;
+            tile.Flags = nextFlags;
+            WorldTopology.NoteTile(world, tile.Coord);
+        }
+
         var marked = new HashSet<JunctionId>();
         foreach (var tile in fragment.Tiles.Values)
         foreach (var id in tile.Junctions)
         {
             if (!marked.Add(id)) continue;
             var point = world.Junctions.Items[id];
-            if (point.Tiles.Count == 1 && point.Neighbors.Count < 6)
-            {
-                WorldTopology.SetBlocked(world, point, true);
-                continue;
-            }
-            for (var i = 0; i < point.Tiles.Count; i++)
-            for (var j = i + 1; j < point.Tiles.Count; j++)
-            {
-                var first = point.Tiles[i];
-                var second = point.Tiles[j];
-                var room = RoomAt(first, world.Seed);
-                var neighborRoom = RoomAt(second, world.Seed);
-                if (room == neighborRoom) continue;
-                var midpoint = (HexSpatialMath.TileToWorld(first) + HexSpatialMath.TileToWorld(second)) * .5f;
-                const float halfDoorClearWidth = .213f;
-                if (HasWall(first, second, world.Seed) ||
-                    HexSpatialMath.Distance(point.WorldPosition, midpoint) > halfDoorClearWidth + .001f)
-                    WorldTopology.SetBlocked(world, point, true);
-            }
+            if (preserveLegacyJunctions && point.Tiles.Any(active.Contains)) continue;
+            WorldTopology.SetBlocked(world, point, ApartmentJunctionBlocked(point, world.Seed, visitSerial));
         }
+    }
+
+    private static bool ApartmentJunctionBlocked(Junction point, int seed, int visitSerial)
+    {
+        if (point.Tiles.Any(tile => RoomAt(tile, seed, visitSerial) == PortalApartmentRoom.None) ||
+            point.Tiles.Count == 1 && point.Neighbors.Count < 6) return true;
+
+        for (var i = 0; i < point.Tiles.Count; i++)
+        for (var j = i + 1; j < point.Tiles.Count; j++)
+        {
+            var first = point.Tiles[i];
+            var second = point.Tiles[j];
+            if (RoomAt(first, seed, visitSerial) == RoomAt(second, seed, visitSerial)) continue;
+            var midpoint = (HexSpatialMath.TileToWorld(first) + HexSpatialMath.TileToWorld(second)) * .5f;
+            const float halfDoorClearWidth = .213f;
+            if (HasWall(first, second, seed, visitSerial) ||
+                HexSpatialMath.Distance(point.WorldPosition, midpoint) > halfDoorClearWidth + .001f)
+                return true;
+        }
+        return false;
     }
 
     internal static void AddDoorDefinition(WorldState world)
@@ -301,6 +386,7 @@ public static class PortalWorld
     }
 
     public static bool IsFurniture(string definitionId) =>
+        definitionId == ContentIds.ModernWardrobe ||
         definitionId != null && Array.Exists(Furnishings, furniture => furniture.Id == definitionId);
 
     private static bool AtCamp(TileCoord tile, TileCoord home) =>
@@ -406,8 +492,8 @@ public static class PortalWorld
         if (day <= portal.LastOpeningDay) return;
 
         portal.LastOpeningDay = day;
-        Close(world);
-        if (portal.Mode != PortalSpawnMode.Disabled) Open(world, day, portal.Mode, portal.Camp, operatorOpened: false);
+        if (portal.Mode == PortalSpawnMode.Disabled || Open(world, day, portal.Mode, portal.Camp, operatorOpened: false) != null)
+            Close(world);
     }
 
     public static string OpenImmediately(WorldState world, Faction camp)
@@ -423,34 +509,35 @@ public static class PortalWorld
 
     private static string Open(WorldState world, int day, PortalSpawnMode mode, Faction camp, bool operatorOpened)
     {
-        if (!TryExterior(world, day, mode, camp, out var exterior)) return "NoSafePortalLocation";
+        var portal = world.Portal;
+        if (portal.VisitSerial == int.MaxValue) return "PortalDestinationBlocked";
+        var serial = portal.VisitSerial + 1;
+        if (!TryExterior(world, serial, mode, camp, out var exterior)) return "NoSafePortalLocation";
         var doorOptions = new List<PopulationArrivalMath.Landing>();
-        foreach (var tile in ApartmentTiles(world.Seed))
+        foreach (var tile in ApartmentTiles(world.Seed, serial))
         {
-            if (!TryGetReturnDoorEdge(tile, world.Seed, out var exteriorNeighbor)) continue;
+            if (!TryGetReturnDoorEdge(tile, world.Seed, out var exteriorNeighbor, serial)) continue;
             var center = HexSpatialMath.TileToWorld(tile);
             var towardWall = HexSpatialMath.Normalize(HexSpatialMath.TileToWorld(exteriorNeighbor) - center);
-            if (TryTilePoint(world, tile, out var point, near: center + towardWall * .85f) &&
-                StructurePlacement.CenterJunction(world, tile) is { } centerJunction &&
-                Connectivity.ReachableWithoutTrace(world, centerJunction, point.Junction, canJump: false))
+            if (TryTilePoint(world, tile, out var point, near: center + towardWall * .85f, plannedVisit: serial))
                 doorOptions.Add(point);
         }
         if (doorOptions.Count == 0) return "PortalDestinationBlocked";
         var interior = doorOptions[Math.Min(doorOptions.Count - 1,
-            (int)(MathUtil.Hash01(world.Seed, day, 0, 17602) * doorOptions.Count))];
+            (int)(MathUtil.Hash01(world.Seed, serial, 0, 17602) * doorOptions.Count))];
 
         Close(world);
-        ClearApartment(world);
-        var portal = world.Portal;
+        portal.VisitSerial = serial;
         portal.OperatorOpened = operatorOpened;
-        portal.ExteriorDoor = SpawnDoor(world, exterior, day);
-        portal.InteriorDoor = SpawnDoor(world, interior, day);
-        PopulateApartment(world, day, interior.Tile);
-        Trace.EmitSystem(world, "PortalOpened", $"Day={day} Tile={exterior.Tile} Operator={operatorOpened}");
+        ApplyApartmentLayout(world, serial);
+        portal.ExteriorDoor = SpawnDoor(world, exterior, serial);
+        portal.InteriorDoor = SpawnDoor(world, interior, serial);
+        PopulateApartment(world, serial, interior);
+        Trace.EmitSystem(world, "PortalOpened", $"Day={day} Visit={serial} Tile={exterior.Tile} Operator={operatorOpened}");
         return null;
     }
 
-    private static bool TryExterior(WorldState world, int day, PortalSpawnMode mode, Faction camp,
+    private static bool TryExterior(WorldState world, int visitSerial, PortalSpawnMode mode, Faction camp,
         out PopulationArrivalMath.Landing landing)
     {
         landing = default;
@@ -485,7 +572,7 @@ public static class PortalWorld
         // The worldgen tile order is fixed. Scan from a seeded offset and
         // accept a dry connected tile away from predator territory.
         var ordered = world.Tiles.Items.Keys.ToArray();
-        var start = Math.Min(ordered.Length - 1, (int)(MathUtil.Hash01(world.Seed, day, ordered.Length, 17603) * ordered.Length));
+        var start = Math.Min(ordered.Length - 1, (int)(MathUtil.Hash01(world.Seed, visitSerial, ordered.Length, 17603) * ordered.Length));
         for (var i = 0; i < ordered.Length; i++)
         {
             var tile = ordered[(start + i) % ordered.Length];
@@ -521,10 +608,12 @@ public static class PortalWorld
     }
 
     private static bool TryTilePoint(WorldState world, TileCoord tile, out PopulationArrivalMath.Landing landing,
-        EntityId? ignoreNpc = null, Float2? near = null)
+        EntityId? ignoreNpc = null, Float2? near = null, int plannedVisit = 0)
     {
         landing = default;
-        if (!world.Tiles.Items.TryGetValue(tile, out var state) || !state.Flags.HasFlag(TileFlags.Walkable))
+        if (!world.Tiles.Items.TryGetValue(tile, out var state) ||
+            (plannedVisit > 0 ? RoomAt(tile, world.Seed, plannedVisit) == PortalApartmentRoom.None :
+                !state.Flags.HasFlag(TileFlags.Walkable)))
             return false;
 
         var center = near ?? HexSpatialMath.TileToWorld(tile);
@@ -533,11 +622,19 @@ public static class PortalWorld
         foreach (var id in state.Junctions)
         {
             var point = world.Junctions.Items[id];
-            if (point.Blocked || point.Door || point.Tiles.Count != 1) continue;
-            if (world.Occupancy.JunctionOwner.TryGetValue(id, out var occupier) &&
-                occupier.HasValue && occupier != ignoreNpc) continue;
-            if (world.Reservations.Junctions.TryGetValue(id, out var reservation) &&
-                reservation.Owner != ignoreNpc && reservation.EndTick >= world.Tick) continue;
+            if (point.Tiles.Count != 1) continue;
+            if (plannedVisit > 0)
+            {
+                if (ApartmentJunctionBlocked(point, world.Seed, plannedVisit)) continue;
+            }
+            else
+            {
+                if (point.Blocked || point.Door) continue;
+                if (world.Occupancy.JunctionOwner.TryGetValue(id, out var occupier) &&
+                    occupier.HasValue && occupier != ignoreNpc) continue;
+                if (world.Reservations.Junctions.TryGetValue(id, out var reservation) &&
+                    reservation.Owner != ignoreNpc && reservation.EndTick >= world.Tick) continue;
+            }
             var offset = center - point.WorldPosition;
             var pointDistance = offset.X * offset.X + offset.Y * offset.Y;
             if (pointDistance >= distance) continue;
@@ -549,10 +646,10 @@ public static class PortalWorld
         return true;
     }
 
-    private static ObjectId SpawnDoor(WorldState world, PopulationArrivalMath.Landing point, int day)
+    private static ObjectId SpawnDoor(WorldState world, PopulationArrivalMath.Landing point, int serial)
     {
         var door = WorldObjectMutations.SpawnObject(world, DoorDefinitionId, point.Fragment, point.Tile, point.Junction);
-        door.Variant = day.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        door.Variant = VisitVariantPrefix + serial.ToString(System.Globalization.CultureInfo.InvariantCulture);
         return door.Id;
     }
 
@@ -592,18 +689,10 @@ public static class PortalWorld
         {
             if (!world.Entities.Objects.TryGetValue(portal.InteriorDoor.GetValueOrDefault(), out var exit) ||
                 exit.Junctions.Count != 1) return "PortalUnavailable";
-            var options = new List<PopulationArrivalMath.Landing>();
-            foreach (var tile in ApartmentTiles(world.Seed))
-            {
-                if (tile == exit.Tile || IsApartmentFurnitureTile(tile, world.Seed) ||
-                    !TryTilePoint(world, tile, out var point) ||
-                    !Connectivity.Reachable(world, point.Junction, exit.Junctions[0], npc.Body.CanJump))
-                    continue;
-                options.Add(point);
-            }
+            var options = ApartmentLandings(world, portal.VisitSerial, exit.Tile, exit.Junctions[0], npc.Body.CanJump);
             if (options.Count == 0) return "PortalExitBlocked";
             destination = options[Math.Min(options.Count - 1,
-                (int)(MathUtil.Hash01(world.Seed, portal.LastOpeningDay, npc.Id.Value, 17604) * options.Count))];
+                (int)(MathUtil.Hash01(world.Seed, portal.VisitSerial, npc.Id.Value, 17604) * options.Count))];
         }
 
         if (!SpatialMutations.TryOccupyJunction(world, destination.Junction, npc.Id)) return "PortalExitBlocked";
@@ -676,101 +765,100 @@ public static class PortalWorld
         portal.InteriorDoor = null;
         portal.Visitor = null;
         portal.OperatorOpened = false;
+        ClearApartment(world);
+    }
+
+    internal static void ClearClosedApartmentOnLoad(WorldState world)
+    {
+        if (!world.Portal.InteriorDoor.HasValue && world.Fragments.Items.ContainsKey(ApartmentFragment))
+            ClearApartment(world);
     }
 
     private static void ClearApartment(WorldState world)
     {
         var portal = world.Portal;
-        foreach (var id in portal.GeneratedObjects)
-            if (world.Entities.Objects.TryGetValue(id, out var obj) && obj.Fragment == ApartmentFragment)
-                WorldObjectMutations.DespawnObject(world, id);
-        portal.GeneratedObjects.Clear();
-        if (portal.Resident is not { } resident) return;
-        portal.Resident = null;
-        if (world.Entities.Npcs.TryGetValue(resident, out var npc) && npc.Fragment == ApartmentFragment)
+        if (portal.Resident is { } resident && world.Entities.Npcs.TryGetValue(resident, out var npc) &&
+            npc.Fragment == ApartmentFragment)
             AdminWorldCommands.Execute(world, new AdminCommand { Kind = "delete_npc", NpcId = resident.Value });
+        portal.Resident = null;
+        portal.GeneratedObjects.Clear();
+
+        var abandoned = world.Entities.Objects.Values.Where(obj => obj.Fragment == ApartmentFragment)
+            .Select(obj => obj.Id).ToArray();
+        foreach (var id in abandoned) WorldObjectMutations.DespawnObject(world, id);
+        var bodies = world.Entities.Corpses.Values.Where(body => body.Fragment == ApartmentFragment)
+            .Select(body => body.Id).ToArray();
+        foreach (var id in bodies) world.Entities.Corpses.Remove(id);
     }
 
-    private static void PopulateApartment(WorldState world, int day, TileCoord door)
+    private static List<PopulationArrivalMath.Landing> ApartmentLandings(WorldState world, int serial,
+        TileCoord exitTile, JunctionId exit, bool canJump)
+    {
+        var landings = new List<PopulationArrivalMath.Landing>();
+        foreach (var tile in ApartmentTiles(world.Seed, serial))
+        {
+            if (tile == exitTile || IsApartmentFurnitureTile(tile, world.Seed, serial) ||
+                !TryTilePoint(world, tile, out var point) ||
+                !Connectivity.Reachable(world, point.Junction, exit, canJump)) continue;
+            landings.Add(point);
+        }
+        return landings;
+    }
+
+    private static void PopulateApartment(WorldState world, int serial, PopulationArrivalMath.Landing door)
     {
         WorldObjectState table = null;
         WorldObjectState shelf = null;
-        foreach (var furniture in Furnishings)
+        foreach (var furniture in GeneratedApartment(world.Seed, serial).Furniture)
         {
-            var tile = FurnitureTile(furniture.Q, furniture.R, world.Seed);
-            if (world.Content.ObjectDefinitions.ContainsKey(furniture.Id) &&
-                TryGetApartmentFurniturePlacement(furniture.Id, tile, world.Seed, out var position, out var yaw) &&
-                TryTilePoint(world, tile, out var anchor, near: position))
-            {
-                var piece = WorldObjectMutations.SpawnObject(world, furniture.Id, ApartmentFragment, tile, anchor.Junction);
-                piece.Variant = ApartmentFurnitureVariant;
-                piece.RotationDegrees = yaw;
-                world.Portal.GeneratedObjects.Add(piece.Id);
-                if (furniture.Id == "furniture.modern_table") table = piece;
-                if (furniture.Id == ApartmentShelfDefinitionId) shelf = piece;
-                if (furniture.Id == ContentIds.ModernFridge) ModernFoodCatalog.StockRefrigerator(world, piece, day);
-            }
+            if (!world.Content.ObjectDefinitions.ContainsKey(furniture.DefinitionId) ||
+                !TryTilePoint(world, furniture.Tile, out var anchor, near: furniture.Position)) continue;
+            var piece = WorldObjectMutations.SpawnObject(world, furniture.DefinitionId, ApartmentFragment,
+                furniture.Tile, anchor.Junction);
+            piece.Variant = ApartmentFurnitureVariant + "." + serial.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            piece.RotationDegrees = furniture.RotationDegrees;
+            world.Portal.GeneratedObjects.Add(piece.Id);
+            if (furniture.DefinitionId == "furniture.modern_table") table = piece;
+            if (furniture.DefinitionId == ApartmentShelfDefinitionId) shelf = piece;
+            if (furniture.DefinitionId == ContentIds.ModernFridge) ModernFoodCatalog.StockRefrigerator(world, piece, serial);
+            if (furniture.DefinitionId == ContentIds.ModernWardrobe)
+                PortalApartmentPopulation.StockWardrobe(world, piece, serial);
         }
 
-        var eligible = HouseholdLoot.Where(id => world.Content.ObjectDefinitions.ContainsKey(id) &&
-            (!id.StartsWith("clothing.", StringComparison.Ordinal) || GarmentLibrary.IsPortalWearAvailable(id))).ToList();
-        var lootTiles = new[] { At(0, -1, world.Seed), At(-1, 1, world.Seed), At(1, 1, world.Seed), At(2, -1, world.Seed) };
+        var landings = ApartmentLandings(world, serial, door.Tile, door.Junction, canJump: false);
+        PortalApartmentPopulation.TrySpawnResident(world, serial, landings);
+
+        var eligible = HouseholdLoot.Where(world.Content.ObjectDefinitions.ContainsKey).ToList();
+        var lootPoints = landings.Where(point => SpatialQueries.IsJunctionFree(world, point.Junction))
+            .OrderBy(point => MathUtil.Hash01(world.Seed, serial, point.Junction.Value, 17611)).Take(5).ToArray();
         var tools = eligible.Where(ModernLootCatalog.IsApartmentTool).ToArray();
-        if (tools.Length > 0)
+        var nextPoint = 0;
+        if (tools.Length > 0 && lootPoints.Length > 0)
         {
-            foreach (var tile in lootTiles)
-            {
-                if (tile == door || !TryTilePoint(world, tile, out var point)) continue;
-                var tool = Math.Min(tools.Length - 1, (int)(MathUtil.Hash01(world.Seed, day, 0, 17610) * tools.Length));
-                SpawnLoot(tools[tool], point.Tile, point.Junction);
-                break;
-            }
+            var tool = Math.Min(tools.Length - 1, (int)(MathUtil.Hash01(world.Seed, serial, 0, 17610) * tools.Length));
+            var point = lootPoints[nextPoint++];
+            SpawnLoot(tools[tool], point.Tile, point.Junction);
         }
         PopulateSurface(table, slots: 2, maxItems: 2, salt: 17608);
         PopulateSurface(shelf, slots: 4, maxItems: 3, salt: 17609);
-        for (var i = 0; i < lootTiles.Length && eligible.Count > 0; i++)
+        for (var i = nextPoint; i < lootPoints.Length && eligible.Count > 0; i++)
         {
-            if (lootTiles[i] == door || !TryTilePoint(world, lootTiles[i], out var point)) continue;
-            var pick = Math.Min(eligible.Count - 1, (int)(MathUtil.Hash01(world.Seed, day, i, 17605) * eligible.Count));
+            var point = lootPoints[i];
+            var pick = Math.Min(eligible.Count - 1, (int)(MathUtil.Hash01(world.Seed, serial, i, 17605) * eligible.Count));
             SpawnLoot(eligible[pick], point.Tile, point.Junction);
         }
-
-        var residentTile = At(1, 1, world.Seed);
-        if (residentTile == door) residentTile = At(1, 0, world.Seed);
-        if (MathUtil.Hash01(world.Seed, day, 0, 17606) >= .45f ||
-            !TryTilePoint(world, residentTile, out var residentPoint) ||
-            world.Entities.Npcs.Count >= (world.CreationConfig?.PopulationLimit ?? PopulationArrivalMath.MaxLivingNpcsFor(world.Mode)))
-            return;
-
-        var residentId = new EntityId(200_000_000 + day);
-        if (world.Entities.Npcs.ContainsKey(residentId) || world.Entities.Corpses.ContainsKey(residentId)) return;
-        var resident = ColonyArrivalSystem.CreateArrival(world, residentId, Faction.Castaway, residentPoint);
-        resident.ProfileId = ResidentProfileId;
-        world.PlayerControlledNpcs.Remove(residentId.Value);
-        resident.Inventory.Items.Clear();
-        resident.Traits.Clear();
-        resident.Traits.Add(TraitKind.Coward);
-        resident.Needs.Stress = .8f;
-        resident.WornItems.RemoveAll(item => world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var def) &&
-            def.Layer != WearLayer.Underwear);
-        foreach (var id in new[] { "clothing.shorts_classic", "clothing.halter_vamp" })
-            if (world.Content.ObjectDefinitions.ContainsKey(id) && GarmentLibrary.IsPortalWearAvailable(id))
-                resident.WornItems.Add(new ItemInstance(id) { OwnerId = residentId.Value });
-        EquipmentMath.Recalculate(world, resident);
-        world.Portal.Resident = resident.Id;
 
         void PopulateSurface(WorldObjectState support, int slots, int maxItems, int salt)
         {
             if (support == null) return;
-            var count = 1 + Math.Min(maxItems - 1, (int)(MathUtil.Hash01(world.Seed, day, 0, salt) * maxItems));
+            var count = 1 + Math.Min(maxItems - 1, (int)(MathUtil.Hash01(world.Seed, serial, 0, salt) * maxItems));
             var empty = Enumerable.Range(0, slots).ToList();
             for (var i = 0; i < count; i++)
             {
-                var small = eligible.Where(id => !ModernLootCatalog.IsBulkyTool(id) &&
-                    !id.StartsWith("clothing.", StringComparison.Ordinal)).ToArray();
+                var small = eligible.Where(id => !ModernLootCatalog.IsBulkyTool(id)).ToArray();
                 if (small.Length == 0) return;
-                var itemPick = Math.Min(small.Length - 1, (int)(MathUtil.Hash01(world.Seed, day, 2 * i + 1, salt) * small.Length));
-                var slotPick = Math.Min(empty.Count - 1, (int)(MathUtil.Hash01(world.Seed, day, 2 * i + 2, salt) * empty.Count));
+                var itemPick = Math.Min(small.Length - 1, (int)(MathUtil.Hash01(world.Seed, serial, 2 * i + 1, salt) * small.Length));
+                var slotPick = Math.Min(empty.Count - 1, (int)(MathUtil.Hash01(world.Seed, serial, 2 * i + 2, salt) * empty.Count));
                 var loot = SpawnLoot(small[itemPick], support.Tile, support.Junctions[0]);
                 SurfacePlacementMath.TryPlace(world, loot, support, (byte)empty[slotPick]);
                 empty.RemoveAt(slotPick);

@@ -15,7 +15,7 @@ public static class PortalContentPolicy
     {
         "portal.modern_door",
         "furniture.modern_bed", ContentIds.ModernFridge, "furniture.modern_table", "furniture.modern_chair",
-        "furniture.modern_sofa", "furniture.modern_tv", "furniture.modern_shelf",
+        "furniture.modern_sofa", "furniture.modern_tv", "furniture.modern_shelf", ContentIds.ModernWardrobe,
         ContentIds.KitchenKnife, ContentIds.BaseballBat, ContentIds.SteelHatchet, ContentIds.Flashlight,
         ContentIds.DisposableLighter, ContentIds.WindproofLighter, ContentIds.ClawHammer, ContentIds.FoldingSaw,
         ContentIds.Apple, ContentIds.Banana, ContentIds.DollarBills, ContentIds.KitchenLadle,

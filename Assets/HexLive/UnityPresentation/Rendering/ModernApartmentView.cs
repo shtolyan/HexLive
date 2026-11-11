@@ -59,16 +59,19 @@ namespace HexLive.UnityPresentation.Rendering
             _seed = snapshot.Seed;
             _visit = exit.Variant;
             _exitId = exit.Id.Value;
-            int.TryParse(_visit, out int visit);
-            bool hasExitEdge = PortalWorld.TryGetReturnDoorEdge(exit.Tile, _seed, out var exitNeighbor);
+            int serial = PortalWorld.DoorVisitSerial(_visit);
+            int.TryParse(_visit, out int legacyDay);
+            int paletteSeed = serial > 0 ? serial : legacyDay;
+            bool hasExitEdge = PortalWorld.TryGetReturnDoorEdge(exit.Tile, _seed, out var exitNeighbor, serial);
             _room = new GameObject("Modern apartment");
             _room.transform.SetParent(transform, false);
-            var layout = new HashSet<TileCoord>(PortalWorld.ApartmentTiles(_seed));
+            var tiles = PortalWorld.ApartmentTiles(_seed, serial);
+            var layout = new HashSet<TileCoord>(tiles);
             var litRooms = new HashSet<PortalApartmentRoom>();
-            foreach (TileCoord tile in PortalWorld.ApartmentTiles(_seed))
+            foreach (TileCoord tile in tiles)
             {
-                var room = PortalWorld.RoomAt(tile, _seed);
-                int palette = PortalWorld.WallpaperIndex(_seed, visit, room);
+                var room = PortalWorld.RoomAt(tile, _seed, serial);
+                int palette = PortalWorld.WallpaperIndex(_seed, paletteSeed, room);
                 Vector3 center = SimulationUnityMapper.ToUnityTilePosition(tile, groundHeight(tile));
                 Place(prefabs["architecture.modern_floor_" + Palettes[palette]],
                     center + Vector3.up * FloorLift, Quaternion.identity);
@@ -78,7 +81,7 @@ namespace HexLive.UnityPresentation.Rendering
                 {
                     var neighbor = new TileCoord(tile.Q + delta.Q, tile.R + delta.R);
                     bool exterior = !layout.Contains(neighbor);
-                    var otherRoom = PortalWorld.RoomAt(neighbor, _seed);
+                    var otherRoom = PortalWorld.RoomAt(neighbor, _seed, serial);
                     if (otherRoom == room) continue;
                     if (!exterior && (tile.Q > neighbor.Q || tile.Q == neighbor.Q && tile.R > neighbor.R)) continue;
                     var (midpoint, rotation) = EdgePose(tile, neighbor, center.y);
@@ -92,7 +95,7 @@ namespace HexLive.UnityPresentation.Rendering
                             ApplyWallpaper(WallpaperShell(jamb), innerWall, palette);
                             continue;
                         }
-                        if (PortalWorld.TryGetWindowEdge(tile, _seed, exit.Tile, out var windowNeighbor) &&
+                        if (PortalWorld.TryGetWindowEdge(tile, _seed, exit.Tile, out var windowNeighbor, serial) &&
                             neighbor == windowNeighbor)
                         {
                             var jamb = Place(prefabs[WindowJambId], midpoint, rotation);
@@ -107,9 +110,9 @@ namespace HexLive.UnityPresentation.Rendering
                         continue;
                     }
 
-                    int otherPalette = PortalWorld.WallpaperIndex(_seed, visit, otherRoom);
+                    int otherPalette = PortalWorld.WallpaperIndex(_seed, paletteSeed, otherRoom);
                     var outerWall = prefabs["architecture.modern_wall_" + Palettes[otherPalette]];
-                    if (PortalWorld.HasWall(tile, neighbor, _seed))
+                    if (PortalWorld.HasWall(tile, neighbor, _seed, serial))
                     {
                         PlaceHalf(innerWall, midpoint - outward * WallHalfPanelOffset, rotation);
                         PlaceHalf(outerWall, midpoint + outward * WallHalfPanelOffset, rotation);
@@ -219,9 +222,9 @@ namespace HexLive.UnityPresentation.Rendering
         }
 
         internal static bool TryGetReturnDoorPose(TileCoord tile, int seed, float y, out Vector3 position,
-            out Quaternion rotation)
+            out Quaternion rotation, int visitSerial = 0)
         {
-            if (PortalWorld.TryGetReturnDoorEdge(tile, seed, out var neighbor))
+            if (PortalWorld.TryGetReturnDoorEdge(tile, seed, out var neighbor, visitSerial))
             {
                 (position, rotation) = EdgePose(tile, neighbor, y);
                 return true;

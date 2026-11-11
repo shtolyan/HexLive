@@ -102,8 +102,11 @@ public sealed class AssetRegistryStoreTests
     }
 
     [TestCase("object", "tool.flashlight")]
+    [TestCase("object", "furniture.modern_wardrobe")]
     [TestCase("building", "architecture.modern_opening")]
     [TestCase("wear", "clothing.halter_vamp")]
+    [TestCase("wear", "clothing.halter_vamp_burgundy")]
+    [TestCase("wear", "clothing.croptop_fit_1_blue")]
     [TestCase("config", "paintmaps.garment_09ed605d5ca9ce194bb16e5b7659ed70_46302d2607153dc1a50379b2_marta_5237")]
     public async Task ExactPortalOwnerWithBothLabelsCanBeServed(string type, string id)
     {
@@ -115,7 +118,7 @@ public sealed class AssetRegistryStoreTests
         Assert.That(_store.Resolve(type, id, "StandaloneOSX", "unity6000-content1"), Is.Not.Null);
     }
 
-    [TestCase("wear", "clothing.halter_vamp_burgundy", "modern", "portal", false)]
+    [TestCase("wear", "clothing.helmet_tactical", "modern", "portal", false)]
     [TestCase("wear", "clothing.top_primal", "modern", "portal", false)]
     [TestCase("object", "clothing.halter_vamp", "modern", "portal", false)]
     [TestCase("building", "architecture.modern_unapproved", "primal", "", false)]

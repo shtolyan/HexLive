@@ -320,17 +320,18 @@ public sealed partial class ExecutionSystem
 
     /// <summary>
     /// §133: снять вещь и повесить её на гардероб/сушилку, если та указана и в
-    /// ней ещё есть место; иначе положить саму вещь у ног. Вызывающий код
+    /// ней ещё есть место. Купание может временно положить вещь у ног. Вызывающий код
     /// переносит только карманы этой вещи (§52). Владение сохраняется (§133).
     /// </summary>
     internal static WorldObjectState StowGarmentWithContents(
-        WorldState world, NPCState npc, ItemInstance garment, ObjectId? stowObjectId)
+        WorldState world, NPCState npc, ItemInstance garment, ObjectId? stowObjectId,
+        bool allowGround = true)
     {
         if (stowObjectId is not { } stowId ||
             !world.Entities.Objects.TryGetValue(stowId, out var station) ||
             station.Junctions.Count == 0 || RackIsFull(world, station))
         {
-            return DropGarmentWithContents(world, npc, garment);
+            return allowGround ? DropGarmentWithContents(world, npc, garment) : null;
         }
 
         if (!CampPropertyMath.CanUse(world, npc, station)) return null;
@@ -348,6 +349,11 @@ public sealed partial class ExecutionSystem
         hung.WaterKind = garment.WaterKind;
         hung.LastAddedWaterKind = garment.LastAddedWaterKind;
         hung.Owner = garment.OwnerId != 0 ? new EntityId(garment.OwnerId) : npc.Id;
+        if (garment.Contents is { Count: > 0 } packed)
+        {
+            hung.Contents.AddRange(packed);
+            packed.Clear();
+        }
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "GarmentStowed",
@@ -362,12 +368,13 @@ public sealed partial class ExecutionSystem
     // Commit the worn garment and its exact derived pocket cells together.
     // Until placement succeeds both stores remain authoritative and save-safe.
     internal static WorldObjectState StowWornGarmentWithContents(
-        WorldState world, NPCState npc, ItemInstance garment, ObjectId? station)
+        WorldState world, NPCState npc, ItemInstance garment, ObjectId? station,
+        bool allowGround = true)
     {
         if (!InventoryMath.TryPlanGarmentStow(world, npc, garment, out var pockets))
             return null;
         using var events = world.Events.DeferPublication();
-        var laid = StowGarmentWithContents(world, npc, garment, station);
+        var laid = StowGarmentWithContents(world, npc, garment, station, allowGround);
         if (laid is null) return null;
         InventoryMath.RemoveReference(npc.WornItems, garment);
         foreach (var pocket in pockets)
@@ -513,8 +520,7 @@ public sealed partial class ExecutionSystem
 
             if (npc.CurrentJunction is not { } here || !here.Equals(stand))
             {
-                // Дорога домой закрыта — не стоять же одетой в пекле: снимаем
-                // здесь, как раньше (тот же «крайний случай»).
+                // If the route closes, the garment can still be folded here.
                 if (npc.Movement.Status != MovementStatus.Blocked)
                 {
                     return;
@@ -527,21 +533,18 @@ public sealed partial class ExecutionSystem
                 if (SimTrace.Enabled)
                 {
                     Trace.Debug(world, npc.Id, "UndressAtHomeAborted",
-                        "route home blocked; undressing where she stands");
+                        "route home blocked; checking carried space");
                 }
             }
         }
 
         if (npc.Execution.Status == ExecutionStatus.None)
         {
-            if (itemId is null || !npc.WornItems.Contains(itemId))
+            var garment = npc.WornItems.Find(item => item.DefinitionId == itemId);
+            if (garment is null ||
+                step.TargetObject is null && !PlayerInventoryMath.CanStowWorn(world, npc, garment))
             {
-                npc.Plan.Status = PlanStatus.Failed;
-                if (SimTrace.Enabled)
-                {
-                    Trace.Debug(world, npc.Id, "ExecFailed",
-                        $"UndressItem: '{itemId ?? "-"}' is not worn");
-                }
+                FailHeatUndress(world, npc);
                 return;
             }
 
@@ -588,21 +591,20 @@ public sealed partial class ExecutionSystem
                 return;
             }
 
-            // Beat 2 finished: the garment gathered up off the body lands on
-            // the floor (preserving the doffed instance's wetness/durability).
             var wornItem = npc.Execution.HeldGarment ??
-                npc.WornItems.Find(i => i.DefinitionId == itemId) ??
-                new ItemInstance(itemId);
-            // Spec §52: the exact pocket instances ride inside the garment.
-            // §133: дошла до гардероба/сушилки — вещь вешается туда, а не
-            // остаётся лежать под ногами.
-            var laid = StowWornGarmentWithContents(world, npc, wornItem, step.TargetObject);
-            if (laid is null)
+                npc.WornItems.Find(i => i.DefinitionId == itemId);
+            if (step.TargetObject is not { } station ||
+                StowWornGarmentWithContents(world, npc, wornItem, station, allowGround: false) is null)
             {
-                PlanningSystem.SetGoalCooldown(world, npc, GoalType.Undress);
-                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Undress: no garment placement");
-                npc.Mind.CurrentGoal = GoalType.None;
-                return;
+                if (!PlayerInventoryMath.CanStowWorn(world, npc, wornItem))
+                {
+                    FailHeatUndress(world, npc);
+                    return;
+                }
+
+                InventoryMath.RemoveReference(npc.WornItems, wornItem);
+                npc.Inventory.Items.Add(wornItem);
+                EquipmentMath.Recalculate(world, npc);
             }
 
             npc.Execution.HeldGarment = null;
@@ -629,6 +631,13 @@ public sealed partial class ExecutionSystem
                     "Goal->None Plan->Completed (undressed)");
             }
         }
+    }
+
+    private static void FailHeatUndress(WorldState world, NPCState npc)
+    {
+        PlanningSystem.SetGoalCooldown(world, npc, GoalType.Undress);
+        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Undress: no garment storage");
+        npc.Mind.CurrentGoal = GoalType.None;
     }
 
     private static void RunDropInventoryItem(WorldState world, NPCState npc)

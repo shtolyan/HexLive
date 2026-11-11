@@ -734,7 +734,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
 
             if (npc.Mind.CurrentGoal == GoalType.Undress)
             {
-                var removable = DecisionSystem.FindRemovableItem(npc, world);
+                var spot = StowMath.FindUndressSpot(world, npc, requireStation: true);
+                var removable = DecisionSystem.FindRemovableItem(npc, world, spot is not null);
                 if (removable is null)
                 {
                     npc.Plan.Status = PlanStatus.Failed;
@@ -749,13 +750,13 @@ public sealed partial class PlanningSystem : ISimulationSystem
 
                 npc.Plan.TargetItemDefinitionId = removable;
 
-                // §133: снятое не бросают там, где застала жара, — идут домой и
-                // вешают в гардероб (или на сушилку). На месте раздеваются лишь
-                // в крайнем случае: когда печёт уже опасно или дома нет.
-                StowMath.UndressSpot? spot = null;
-                if (npc.Needs.ThermalDiscomfort < Spec133.UndressAtHomeMaxDiscomfort)
+                // §133: severe heat prefers folding the garment in place when
+                // the new capacity can hold it and all of its pockets.
+                var garment = npc.WornItems.Find(item => item.DefinitionId == removable);
+                if (npc.Needs.ThermalDiscomfort >= Spec133.UndressAtHomeMaxDiscomfort &&
+                    PlayerInventoryMath.CanStowWorn(world, npc, garment))
                 {
-                    spot = StowMath.FindUndressSpot(world, npc);
+                    spot = null;
                 }
 
                 if (spot is { } homeSpot &&

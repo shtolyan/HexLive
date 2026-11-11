@@ -2,6 +2,7 @@ using System.IO;
 using System.Linq;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Persistence;
@@ -105,6 +106,112 @@ public sealed class GarmentPocketStowTests
         });
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public void HeatWithoutAStationUsesCarriedSpaceOrKeepsTheCoatOn(bool hasSpace)
+    {
+        var (world, npc, coat, _) = Setup();
+        RemoveClothingStations(world);
+        world.Content.ObjectDefinitions[Coat].Interactions.Add(new InteractionDefinition
+        {
+            Type = InteractionType.Dress, Effects = { WarmthDelta = .5f }
+        });
+        if (hasSpace) npc.Inventory.Items.Clear();
+        npc.Needs.ThermalDiscomfort = .9f;
+        npc.Mind.CurrentGoal = GoalType.Undress;
+        npc.Plan.Status = PlanStatus.None;
+        var objects = world.Entities.Objects.Count;
+
+        new PlanningSystem().Run(world);
+        if (hasSpace)
+        {
+            Assert.That(npc.Plan.Steps.Single().TargetObject, Is.Null);
+            var execution = new ExecutionSystem();
+            execution.Run(world);
+            world.Tick = npc.Execution.EndTick;
+            execution.Run(world);
+            Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Completed));
+            Assert.That(npc.Inventory.Items.Single(), Is.SameAs(coat));
+            Assert.That(npc.WornItems, Is.Empty);
+        }
+        else
+        {
+            Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Failed));
+            Assert.That(npc.WornItems.Single(), Is.SameAs(coat));
+        }
+        Assert.That(world.Entities.Objects.Count, Is.EqualTo(objects));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void HeatRechecksWardrobeSpaceAtTheEndOfTheAnimation(bool wardrobeFills)
+    {
+        var (world, npc, coat, wardrobe) = Setup();
+        npc.Mind.CurrentGoal = GoalType.Undress;
+        npc.Plan.Goal = GoalType.Undress;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Plan.TargetItemDefinitionId = Coat;
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.UndressItem, TargetObject = wardrobe.Id });
+        var execution = new ExecutionSystem();
+        execution.Run(world);
+        Assert.That(npc.Execution.Status, Is.EqualTo(ExecutionStatus.InProgress));
+        if (wardrobeFills)
+            for (var i = 0; i < Spec133.WardrobeCapacity; i++)
+                WorldObjectMutations.SpawnObject(world, Coat, wardrobe.Fragment, wardrobe.Tile, wardrobe.Junctions[0]);
+        var objects = world.Entities.Objects.Count;
+        var carried = npc.Inventory.Items.ToArray();
+
+        world.Tick = npc.Execution.EndTick;
+        execution.Run(world);
+        if (wardrobeFills)
+        {
+            Assert.That(npc.WornItems.Single(), Is.SameAs(coat));
+            Assert.That(npc.Inventory.Items.Zip(carried, ReferenceEquals).All(same => same), Is.True);
+            Assert.That(npc.Inventory.Items.Count, Is.EqualTo(carried.Length));
+            Assert.That(world.Entities.Objects.Count, Is.EqualTo(objects));
+        }
+        else
+        {
+            var hung = world.Entities.Objects.Values.Single(obj => obj.DefinitionId == Coat);
+            Assert.That(npc.WornItems, Is.Empty);
+            Assert.That(hung.Junctions[0], Is.EqualTo(wardrobe.Junctions[0]));
+            Assert.That(hung.Contents.Count, Is.EqualTo(4));
+            Assert.That(world.Entities.Objects.Count, Is.EqualTo(objects + 1));
+        }
+        Assert.That(npc.Execution.HeldGarment, Is.Null);
+    }
+
+    [Test]
+    public void AutonomousWearWithoutAStationKeepsTheCurrentCoatWhenItsReplacementCannotFit()
+    {
+        var (world, npc, coat, _) = Setup();
+        RemoveClothingStations(world);
+        world.Content.ObjectDefinitions[Coat].Covers.Add(BodyPart.Torso);
+        var replacement = new ObjectDefinition { Id = "test.replacement_coat", Layer = WearLayer.Wear };
+        replacement.Covers.Add(BodyPart.Torso);
+        world.Content.ObjectDefinitions[replacement.Id] = replacement;
+        var candidate = WorldObjectMutations.SpawnObject(world, replacement.Id, npc.Fragment, npc.Tile,
+            npc.CurrentJunction.Value);
+        npc.Plan.Goal = GoalType.Dress;
+        var carried = npc.Inventory.Items.ToArray();
+        var objects = world.Entities.Objects.Count;
+
+        Assert.That(ExecutionSystem.CompleteDress(world, npc, candidate, replacement,
+            new InteractionDefinition { Type = InteractionType.Dress }, ""), Is.False);
+        Assert.That(world.Entities.Objects[candidate.Id], Is.SameAs(candidate));
+        Assert.That(npc.WornItems.Single(), Is.SameAs(coat));
+        Assert.That(npc.Inventory.Items.Zip(carried, ReferenceEquals).All(same => same), Is.True);
+        Assert.That(npc.Inventory.Items.Count, Is.EqualTo(carried.Length));
+        Assert.That(world.Entities.Objects.Count, Is.EqualTo(objects));
+    }
+
+    private static void RemoveClothingStations(WorldState world)
+    {
+        foreach (var station in world.Entities.Objects.Values
+                     .Where(obj => obj.DefinitionId is ContentIds.Wardrobe or ContentIds.DryingRack).ToArray())
+            WorldObjectMutations.DespawnObject(world, station.Id);
+    }
+
     [Test]
     public void WardrobeReceivesExactlyTheSamePhysicalPocketInstances_Bug640()
     {
@@ -166,8 +273,9 @@ public sealed class GarmentPocketStowTests
         Assert.That(world.Entities.Objects.Count, Is.EqualTo(objects), "Visual alias must not spawn a duplicate");
     }
 
-    [Test]
-    public void HangCompletionUsesTheSamePocketTransaction()
+    [TestCase(false)]
+    [TestCase(true)]
+    public void HangCompletionUsesTheSamePocketTransaction(bool rackFull)
     {
         var (world, npc, garment, wardrobe) = Setup();
         garment.Wetness = .9f;
@@ -187,7 +295,18 @@ public sealed class GarmentPocketStowTests
         npc.Execution.EndTick = world.Tick;
         wardrobe.IsOccupied = true;
         wardrobe.CurrentUser = npc.Id;
+        if (rackFull)
+            for (var i = 0; i < Spec133.WardrobeCapacity; i++)
+                WorldObjectMutations.SpawnObject(world, Coat, wardrobe.Fragment, wardrobe.Tile, wardrobe.Junctions[0]);
+        var objects = world.Entities.Objects.Count;
         new ExecutionSystem().Run(world);
+        if (rackFull)
+        {
+            Assert.That(world.Entities.Objects.Count, Is.EqualTo(objects));
+            Assert.That(npc.WornItems.Single(), Is.SameAs(garment));
+            Assert.That(wardrobe.IsOccupied, Is.False);
+            return;
+        }
         var hung = world.Entities.Objects.Values.Single(o => o.DefinitionId == Coat);
         Assert.That(pockets.All(p => hung.Contents.Any(i => ReferenceEquals(i, p))), Is.True);
         Assert.That(npc.WornItems.Any(i => ReferenceEquals(i, garment)), Is.False);

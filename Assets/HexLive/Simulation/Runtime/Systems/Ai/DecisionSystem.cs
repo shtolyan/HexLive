@@ -2652,7 +2652,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // фоновым StowClothes.
         var stowClothesAvail = !stowThreatened && npc.Body.CanUseToolsOrWeapons &&
             npc.Mind.RedressGarments.Count == 0 &&
-            StowMath.FindUndressSpot(world, npc) is not null &&
+            StowMath.FindUndressSpot(world, npc, requireStation: true) is not null &&
             (StrayGarmentMath.FindStray(world, npc) is not null ||
              StrayGarmentMath.FindPocketGarment(world, npc) is not null);
         AddGoalScore(npc, world.Tick, GoalType.StowClothes, 0.18f, stowClothesAvail);
@@ -2856,7 +2856,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var undressAvail = !npc.Mind.OutfitLocked &&
             ctx.EffectiveTemp > 24f && npc.Needs.ThermalDiscomfort >= 0.4f &&
             !ModestyMath.OutsiderKnown(world, npc) &&
-            FindRemovableItem(npc, world) is not null;
+            FindRemovableItem(npc, world,
+                StowMath.FindUndressSpot(world, npc, requireStation: true) is not null) is not null;
         AddGoalScore(npc, world.Tick, GoalType.Undress, npc.Needs.ThermalDiscomfort, undressAvail);
 
         var gardenWindow = buildPeacetime && ctx.CanUseToolsOrWeapons &&

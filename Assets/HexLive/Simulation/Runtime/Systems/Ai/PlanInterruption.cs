@@ -323,6 +323,19 @@ public static class PlanInterruption
                 restoredLaundry = true;
             }
 
+            if (npc.Plan.Goal is GoalType.StowClothes or GoalType.Undress)
+            {
+                InventoryMath.RetainOwnedItem(npc, held);
+                if (npc.Execution.HeldGarmentContents.Count > 0 &&
+                    InventoryMath.ContainsReference(npc.Inventory.Items, held) &&
+                    world.Content.ObjectDefinitions.TryGetValue(held.DefinitionId, out var definition) &&
+                    definition.Layer == WearLayer.Bags)
+                {
+                    held.GetOrCreateContents().AddRange(npc.Execution.HeldGarmentContents);
+                    npc.Execution.HeldGarmentContents.Clear();
+                }
+            }
+
             var stillOwned = restoredLaundry ||
                 npc.Inventory.Items.Exists(item => ReferenceEquals(item, held)) ||
                 npc.WornItems.Exists(item => ReferenceEquals(item, held));

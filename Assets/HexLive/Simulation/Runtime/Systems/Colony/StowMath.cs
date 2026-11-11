@@ -41,7 +41,7 @@ public static class StowMath
     /// Место для раздевания. Приоритет — гардероб, потом сушилка, потом просто
     /// точка у дома. Возвращает null, если дома нет или до него не дойти.
     /// </summary>
-    public static UndressSpot? FindUndressSpot(WorldState world, NPCState npc)
+    public static UndressSpot? FindUndressSpot(WorldState world, NPCState npc, bool requireStation = false)
     {
         if (npc.CurrentJunction is not { } from ||
             ColonyQueries.Home(world, npc.Faction) is not { } home ||
@@ -91,6 +91,8 @@ public static class StowMath
         {
             return new UndressSpot(stand, best.Id);
         }
+
+        if (requireStation) return null;
 
         // Ни гардероба, ни сушилки — но раздеться у дома всё равно лучше, чем на
         // берегу: куча остаётся там, где колония ходит каждый день.

@@ -932,7 +932,7 @@ public sealed partial class DecisionSystem
 
     // Spec 31A.5A: warmest worn item that is safe to take off — armor stays
     // on while any danger memory is fresh.
-    internal static string? FindRemovableItem(NPCState npc, WorldState world)
+    internal static string? FindRemovableItem(NPCState npc, WorldState world, bool stationAvailable = false)
     {
         string? best = null;
         var bestWarmth = -1f;
@@ -971,7 +971,9 @@ public sealed partial class DecisionSystem
                 continue;
             }
 
-            if (warmth > bestWarmth && InventoryMath.TryPlanGarmentStow(world, npc, item, out _))
+            if (warmth > bestWarmth &&
+                (PlayerInventoryMath.CanStowWorn(world, npc, item) ||
+                 stationAvailable && InventoryMath.TryPlanGarmentStow(world, npc, item, out _)))
             {
                 best = itemId;
                 bestWarmth = warmth;

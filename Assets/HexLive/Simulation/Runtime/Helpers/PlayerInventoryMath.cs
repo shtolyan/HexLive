@@ -71,6 +71,14 @@ namespace HexLive.Simulation.Runtime
             return layout.UsedSlots <= layout.Capacity;
         }
 
+        internal static bool CanStowWorn(WorldState world, NPCState npc, ItemInstance garment)
+        {
+            var index = InventoryMath.IndexOfReference(npc.WornItems, garment);
+            return index >= 0 && FitsAfter(world, npc,
+                new InventoryItemRef(InventoryItemSource.Worn, index, garment.DefinitionId),
+                InventoryAction.Stow);
+        }
+
         internal static InventoryState BuildProjectedInventory(WorldState world, NPCState npc,
             IReadOnlyList<ItemInstance> carried, IReadOnlyList<ItemInstance> worn)
         {

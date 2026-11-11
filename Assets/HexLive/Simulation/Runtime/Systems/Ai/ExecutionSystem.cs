@@ -2282,8 +2282,14 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         var wetWorn = FindWettestWornItem(npc);
         if (wetWorn is not null && worldObject.Junctions.Count > 0)
         {
-            var hung = StowWornGarmentWithContents(world, npc, wetWorn, worldObject.Id);
-            if (hung is null) return false;
+            var hung = StowWornGarmentWithContents(world, npc, wetWorn, worldObject.Id, allowGround: false);
+            if (hung is null)
+            {
+                PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Hang: no garment storage");
+                npc.Mind.CurrentGoal = GoalType.None;
+                return false;
+            }
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "ItemHung",

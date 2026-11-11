@@ -128,6 +128,59 @@ public sealed class StowClothesTests
         Assert.That(stowed.Owner, Is.EqualTo(npc.Id),
             "Ничейная вещь, принесённая домой, не досталась той, кто её принесла.");
     }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void InterruptedStorageKeepsTheCarriedGarment(bool backpack)
+    {
+        var (engine, npc, _) = StrayFarFromHome();
+        var world = engine.World;
+        PlanInterruption.TryAbort(world, npc, InterruptionCause.PlayerCommand, "test setup");
+        var id = backpack ? npc.WornItems.Single(item =>
+            world.Content.ObjectDefinitions[item.DefinitionId].Layer == WearLayer.Bags).DefinitionId : Shirt;
+        var garment = new ItemInstance(id) { OwnerId = npc.Id.Value, Durability = .42f };
+        var bottle = new ItemInstance(ContentIds.Bottle) { ResourceAmount = 3f, WaterKind = WaterKind.Rain };
+        npc.Mind.CurrentGoal = GoalType.StowClothes;
+        npc.Plan.Goal = GoalType.StowClothes;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Execution.HeldGarment = garment;
+        npc.Execution.HeldGarmentContents.Add(bottle);
+        var objects = world.Entities.Objects.Count;
+
+        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "station unavailable");
+
+        Assert.That(npc.Execution.HeldGarment, Is.Null);
+        Assert.That(npc.Inventory.Items.Any(item => ReferenceEquals(item, garment)), Is.True);
+        if (backpack)
+        {
+            Assert.That(garment.Contents.Single(), Is.SameAs(bottle));
+            Assert.That(npc.Inventory.Items.Any(item => ReferenceEquals(item, bottle)), Is.False);
+        }
+        else
+        {
+            Assert.That(npc.Inventory.Items.Any(item => ReferenceEquals(item, bottle)), Is.True);
+        }
+        Assert.That(world.Entities.Objects.Count, Is.EqualTo(objects));
+    }
+
+    [Test]
+    public void StoredBackpackKeepsItsNestedContents()
+    {
+        var (engine, npc, _) = StrayFarFromHome();
+        var world = engine.World;
+        var bagId = npc.WornItems.Single(item =>
+            world.Content.ObjectDefinitions[item.DefinitionId].Layer == WearLayer.Bags).DefinitionId;
+        var backpack = new ItemInstance(bagId);
+        var bottle = new ItemInstance(ContentIds.Bottle) { ResourceAmount = 3f, WaterKind = WaterKind.Rain };
+        backpack.GetOrCreateContents().Add(bottle);
+        var wardrobe = world.Entities.Objects.Values.First(obj => obj.DefinitionId == ContentIds.Wardrobe);
+
+        var stored = ExecutionSystem.StowGarmentWithContents(world, npc, backpack, wardrobe.Id, allowGround: false);
+
+        Assert.That(stored.Contents.Single(), Is.SameAs(bottle));
+        Assert.That(stored.Junctions[0], Is.EqualTo(wardrobe.Junctions[0]));
+        Assert.That(backpack.Contents, Is.Empty);
+    }
 }
 
 }

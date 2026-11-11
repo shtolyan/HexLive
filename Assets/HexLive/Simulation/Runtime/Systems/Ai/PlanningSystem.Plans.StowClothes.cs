@@ -19,12 +19,12 @@ public sealed partial class PlanningSystem
     /// </summary>
     private void BuildStowClothesPlan(WorldState world, NPCState npc)
     {
+        var storage = StowMath.FindUndressSpot(world, npc, requireStation: true);
         // Bug #314: одежда из карманов сдаётся домой без ноги «дойти и
         // поднять» — вещь сразу в руку, план из одной ноги к гардеробу.
-        if (npc.CurrentJunction is not null &&
+        if (storage is { } home &&
             npc.Execution.HeldGarment is null &&
-            StrayGarmentMath.FindPocketGarment(world, npc) is { } pocket &&
-            StowMath.FindUndressSpot(world, npc) is { } home)
+            StrayGarmentMath.FindPocketGarment(world, npc) is { } pocket)
         {
             npc.Inventory.Items.Remove(pocket);
             npc.Execution.HeldGarment = pocket;
@@ -48,7 +48,7 @@ public sealed partial class PlanningSystem
             return;
         }
 
-        if (npc.CurrentJunction is not { } from ||
+        if (storage is null || npc.CurrentJunction is not { } from ||
             StrayGarmentMath.FindStray(world, npc) is not { } stray ||
             stray.Junctions.Count == 0)
         {

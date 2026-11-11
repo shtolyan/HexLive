@@ -38,21 +38,17 @@ public sealed partial class ExecutionSystem
                 return;
             }
 
+            if (StowMath.FindUndressSpot(world, npc, requireStation: true) is not { } spot)
+            {
+                FailStowClothes(world, npc, "StowClothes: no garment storage");
+                return;
+            }
+
             if (step.TargetObject is not { } garmentId ||
                 !TryPickGarmentIntoHand(world, npc, garmentId))
             {
                 // Кто-то успел раньше — это не беда и не провал.
                 PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "StowClothes: garment gone");
-                npc.Mind.CurrentGoal = GoalType.None;
-                return;
-            }
-
-            if (StowMath.FindUndressSpot(world, npc) is not { } spot)
-            {
-                // Дома не стало (или до него не дойти): вещь в руке, и класть её
-                // обратно посреди поля бессмысленно — прерывание положит её под
-                // ноги штатным путём.
-                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "StowClothes: no home spot");
                 npc.Mind.CurrentGoal = GoalType.None;
                 return;
             }
@@ -66,7 +62,7 @@ public sealed partial class ExecutionSystem
             {
                 Trace.Debug(world, npc.Id, "StowClothesCarrying",
                     $"{npc.Execution.HeldGarment.DefinitionId} -> Stand={spot.Stand.Value} " +
-                    $"Stow={(spot.StowObject is { } s ? s.Value.ToString() : "homeGround")}");
+                    $"Stow={spot.StowObject.Value.Value}");
             }
 
             return;
@@ -77,36 +73,28 @@ public sealed partial class ExecutionSystem
         {
             if (npc.Movement.Status == MovementStatus.Blocked)
             {
-                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "StowClothes: route home blocked");
-                npc.Mind.CurrentGoal = GoalType.None;
+                FailStowClothes(world, npc, "StowClothes: route home blocked");
             }
 
             return;
         }
 
         var held = npc.Execution.HeldGarment;
-        npc.Execution.HeldGarment = null;
-        var laid = StowGarmentWithContents(world, npc, held, npc.Plan.TargetObjectId);
+        var laid = StowGarmentWithContents(world, npc, held, npc.Plan.TargetObjectId, allowGround: false);
         if (laid is null)
         {
-            // Complete ownership transfer before clearing transient hand data.
-            InventoryMath.RetainOwnedItem(npc, held);
-            foreach (var pocket in npc.Execution.HeldGarmentContents)
-                InventoryMath.RetainOwnedItem(npc, pocket);
-            npc.Execution.HeldGarmentContents.Clear();
-            PlanningSystem.SetGoalCooldown(world, npc, GoalType.StowClothes);
-            PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "StowClothes: no garment placement");
-            npc.Mind.CurrentGoal = GoalType.None;
+            FailStowClothes(world, npc, "StowClothes: no garment placement");
             return;
         }
-        if (laid != null && npc.Execution.HeldGarmentContents.Count > 0)
+        npc.Execution.HeldGarment = null;
+        if (npc.Execution.HeldGarmentContents.Count > 0)
         {
             laid.Contents.AddRange(npc.Execution.HeldGarmentContents);
         }
 
         npc.Execution.HeldGarmentContents.Clear();
         Trace.Emit(world, npc.Id, "ClothesStowed",
-            $"{held.DefinitionId} brought home Obj={(laid is null ? "-" : laid.Id.Value.ToString())}");
+            $"{held.DefinitionId} brought home Obj={laid.Id.Value}");
 
         SpatialMutations.ReleaseJunctionReservation(world, target, npc.Id);
         npc.Execution.Status = ExecutionStatus.None;
@@ -124,6 +112,13 @@ public sealed partial class ExecutionSystem
             Goal = GoalType.StowClothes,
             EndTick = world.Tick + AiBalance.FailureCooldownTicks
         });
+    }
+
+    private static void FailStowClothes(WorldState world, NPCState npc, string reason)
+    {
+        PlanningSystem.SetGoalCooldown(world, npc, GoalType.StowClothes);
+        PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, reason);
+        npc.Mind.CurrentGoal = GoalType.None;
     }
 }
 

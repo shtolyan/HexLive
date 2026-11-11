@@ -5,6 +5,7 @@ using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Persistence;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Social;
@@ -31,6 +32,49 @@ public sealed class DirectiveTests
         Assert.That(target.Execution.CurrentTalkTopic, Is.EqualTo(TalkTopic.DirectiveYes));
         Assert.That(DirectiveMath.Pull(kind, kind == DirectiveKind.Bathe ? GoalType.Bathe : GoalType.WashClothes),
             Is.EqualTo(Spec167.Pull));
+    }
+
+    [Test]
+    public void ASeatedListenerAnswersTheHygieneRequestAndKeepsThePromise()
+    {
+        var engine = Setup(out var actor, out var target);
+        var world = engine.World;
+        Warm(target, actor, affinity: .8f, trust: .8f);
+        target.Needs.Hygiene = .3f;
+        Ask(world, actor, target, TalkTopic.AskBathe);
+
+        ArriveAndAskWhile(world, actor, target, InteractionType.Sit);
+
+        Assert.That(target.Execution.CurrentTalkTopic, Is.EqualTo(TalkTopic.DirectiveYes));
+        Assert.That(target.Mind.Directive?.Kind, Is.EqualTo(DirectiveKind.Bathe));
+        Assert.That(Events(world, "DirectiveAccepted", target), Is.True);
+    }
+
+    [Test]
+    public void BusyListenerGivesAnExplicitNegativeAnswerToTheHygieneRequest()
+    {
+        var engine = Setup(out var actor, out var target);
+        var world = engine.World;
+        Warm(target, actor, affinity: .8f, trust: .8f);
+        Ask(world, actor, target, TalkTopic.AskWashClothes);
+
+        ArriveAndAskWhile(world, actor, target, InteractionType.Craft);
+
+        Assert.That(target.Mind.Directive, Is.Null);
+        Assert.That(Events(world, "DirectiveAsked", actor), Is.True);
+        Assert.That(EventMessage(world, "DirectiveRefused", target), Does.Contain("Reason=Busy"));
+    }
+
+    private static void ArriveAndAskWhile(WorldState world, NPCState actor, NPCState target, InteractionType action)
+    {
+        var approach = world.Junctions.Items[actor.Plan.TargetJunctionId!.Value];
+        actor.Position = approach.WorldPosition;
+        actor.CurrentJunction = approach.Id;
+        actor.Movement.IsMoving = false;
+        actor.Movement.SetStatus(MovementStatus.Arrived);
+        target.Execution.Status = ExecutionStatus.InProgress;
+        target.Execution.CurrentInteraction = action;
+        new ExecutionSystem().Run(world);
     }
 
     [Test]

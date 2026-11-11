@@ -1027,7 +1027,8 @@ public enum InventoryAction
     Wear,
     Stow,
     Drop,
-    ToggleFlashlight
+    ToggleFlashlight,
+    Eat
 }
 
 public sealed class ManageInventoryCommand : ISimulationCommand

@@ -212,12 +212,14 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _invDropAction;
         private VisualElement _invFillAction; // §55.4 (bug #317)
         private Label _invPrimaryActionLabel;
+        private InventoryAction _invPrimaryInventoryAction;
         private Label _invPlantActionLabel;
         private Label _invDropActionLabel;
         private Label _invFillActionLabel;
         private Label _invReadOnlyLabel;
         private int _inventoryActorId = -1;
         private bool _inventoryMutable;
+        private bool _inventoryManual;
         private bool _inventoryHasTwoHands;
         private string _invDraggedId;
         private bool _invDraggedWorn;
@@ -2901,9 +2903,7 @@ namespace HexLive.UnityPresentation.UI
             actions.style.flexDirection = FlexDirection.Row;
             actions.style.marginTop = 12f;
             _invPrimaryAction = InventoryActionButton(
-                () => EnqueueInventoryAction(_invSelectedId == ContentIds.Flashlight
-                    ? InventoryAction.ToggleFlashlight
-                    : _invSelectedWorn ? InventoryAction.Stow : InventoryAction.Wear));
+                () => EnqueueInventoryAction(_invPrimaryInventoryAction));
             _invPrimaryActionLabel = new Label();
             _invPrimaryActionLabel.style.color = Text;
             _invPrimaryActionLabel.style.fontSize = 13f;
@@ -3815,6 +3815,7 @@ namespace HexLive.UnityPresentation.UI
                 _craftSig = null;
             }
             _inventoryActorId = npc.Id.Value;
+            _inventoryManual = npc.IsManualControl;
             _inventoryHasTwoHands = BodyPartFunctionSnapshotMath.HasTwoUsableHands(npc.BodyPartConditions);
             _inventoryMutable = _runner != null && _runner.SupportsNpcCommands &&
                 NpcSelection.Count == 1 &&
@@ -4303,8 +4304,12 @@ namespace HexLive.UnityPresentation.UI
 
             var wearable = def != null && def.Layer.HasValue;
             var outfitChangeBlocked = _outfitLockedNow && (worn || wearable);
+            var canEat = CanEatInventory(def, worn);
+            _invPrimaryInventoryAction = canEat ? InventoryAction.Eat
+                : id == ContentIds.Flashlight ? InventoryAction.ToggleFlashlight
+                : worn ? InventoryAction.Stow : InventoryAction.Wear;
             _invPrimaryAction.style.display = _inventoryMutable &&
-                (id == ContentIds.Flashlight || (worn || wearable) && !outfitChangeBlocked)
+                (canEat || id == ContentIds.Flashlight || (worn || wearable) && !outfitChangeBlocked)
                 ? DisplayStyle.Flex : DisplayStyle.None;
             _invPlantAction.style.display = _inventoryMutable && !worn &&
                 (InventoryPlacementMath.CanPlace(id) || PortableFurniture.CanCarry(id))
@@ -4322,7 +4327,7 @@ namespace HexLive.UnityPresentation.UI
             _invFillActionLabel.text = Loc.Get("inv.action.fill");
             _invReadOnlyLabel.style.display = !_inventoryMutable || outfitChangeBlocked
                 ? DisplayStyle.Flex : DisplayStyle.None;
-            _invPrimaryActionLabel.text = Loc.Get(id == ContentIds.Flashlight
+            _invPrimaryActionLabel.text = Loc.Get(canEat ? "inv.action.eat" : id == ContentIds.Flashlight
                 ? "inv.action.switch_light" : worn ? "inv.action.stow" : "inv.action.wear");
             _invPlantActionLabel.text = Loc.Get(InventoryPlacementVerb(_invSelectedId));
             _invDropActionLabel.text = Loc.Get("inv.action.drop");
@@ -4333,6 +4338,9 @@ namespace HexLive.UnityPresentation.UI
             _invDetailView.BringToFront();
             _invDetailView.schedule.Execute(PositionInventoryDetail);
         }
+
+        private bool CanEatInventory(ObjectDefinition def, bool worn) =>
+            _inventoryMutable && _inventoryManual && !worn && FoodMath.CanEat(def);
 
         // §55.4 (bug #317): «Наполнить» доступна у неполной бутылки при
         // кокосовой воде в карманах — зеркало симового VesselTransferMath

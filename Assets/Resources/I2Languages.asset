@@ -32660,6 +32660,14 @@ MonoBehaviour:
       - Мягкий плюшевый мишка с маленьким красным сердцем.
       Flags: 0101
       Languages_Touch: []
+    - Term: inv.action.eat
+      TermType: 0
+      Description:
+      Languages:
+      - Eat
+      - Съесть
+      Flags: 0101
+      Languages_Touch: []
     - Term: inv.action.switch_light
       TermType: 0
       Description:

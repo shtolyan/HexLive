@@ -2342,6 +2342,12 @@ internal static partial class ManualCommandExecutor
             return;
         }
 
+        if (command.Action == InventoryAction.Eat)
+        {
+            ApplyEatInventory(world, npc, command, admission);
+            return;
+        }
+
         if (!PlayerInventoryCommandExecutor.TryApply(
                 world, npc, command.Item, command.Action, out var reason, command.Count))
         {
@@ -2357,6 +2363,49 @@ internal static partial class ManualCommandExecutor
                 $"Count={command.Count} " +
                 $"GoalPreserved={npc.Mind.CurrentGoal}");
         }
+    }
+
+    private static void ApplyEatInventory(
+        WorldState world, NPCState npc, ManageInventoryCommand command, AdmissionTracker admission)
+    {
+        if (!TryTakeOrder(world, npc.Id, "Inventory", requireManual: true, admission, out _)) return;
+        if (Incapacitated(world, npc))
+        {
+            Reject(world, npc.Id, "Inventory", "Incapacitated", admission);
+            return;
+        }
+        if (command.Count != 1)
+        {
+            Reject(world, npc.Id, "Inventory", "InvalidCount", admission);
+            return;
+        }
+
+        var reference = command.Item;
+        if (reference.Source != InventoryItemSource.Carried ||
+            reference.Index < 0 || reference.Index >= npc.Inventory.Items.Count ||
+            npc.Inventory.Items[reference.Index].DefinitionId != reference.ExpectedDefinitionId)
+        {
+            Reject(world, npc.Id, "Inventory", "StaleItem", admission);
+            return;
+        }
+
+        var selected = npc.Inventory.Items[reference.Index];
+        if (!world.Content.ObjectDefinitions.TryGetValue(selected.DefinitionId, out var definition) ||
+            !FoodMath.CanEat(definition))
+        {
+            Reject(world, npc.Id, "Inventory", "NothingToEat", admission);
+            return;
+        }
+
+        ClearForNewOrder(world, npc, "Съесть выбранную еду", keepCarriedPerson: true);
+        ClearAttackOrder(world, npc);
+        npc.Plan.Goal = GoalType.PlayerOrder;
+        npc.Plan.TargetItemDefinitionId = selected.DefinitionId;
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.ConsumeInventoryItem, Interaction = InteractionType.Eat });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Execution.TargetInventoryItem = selected;
+        npc.Mind.CurrentGoal = GoalType.PlayerOrder;
     }
 
     // §55.4 (bug #317): «Наполнить» — перелить воду вскрытых кокосов в личную

@@ -98,10 +98,19 @@ public sealed class ColonyMenuAcceptanceRuntimeTests
     public void TravelInviteUsesStrictTrustAndReleaseTargetsTheActualLeader(bool html)
     {
         using var f=new Fixture();
+        f.Helper.Social.GetOrCreate(f.Target.Id).Trust=1f;
         f.Target.Social.GetOrCreate(f.Helper.Id).Trust=.60f;
         f.OpenPerson(); Assert.That(f.Entry("menu.travel.invite").Enabled,Is.False);
+        Assert.That(f.Entry("menu.travel.invite").DisabledHint,Does.Contain("60%"));
         f.Click("menu.travel.invite",html); Assert.That(f.Drain(),Is.Empty);
         f.Target.Social.GetOrCreate(f.Helper.Id).Trust=.6001f;
+        var nearby = f.Target.Position;
+        f.Target.Position = f.Helper.Position + new Float2(4.5f, 0f);
+        f.OpenPerson();
+        Assert.That(f.Entry("menu.travel.invite").DisabledHint,
+            Is.EqualTo(Loc.Get("toast.order_rejected.TravelTargetTooFar")));
+        f.Click("menu.travel.invite",html); Assert.That(f.Drain(),Is.Empty);
+        f.Target.Position = nearby;
         f.OpenPerson(); Assert.That(f.Entry("menu.travel.invite").Enabled,Is.True);
         f.Click("menu.travel.invite",html);
         var invite=f.One<RequestTravelPartyCommand>();

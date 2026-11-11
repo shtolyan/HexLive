@@ -20,9 +20,9 @@ internal static partial class ManualCommandExecutor
              !admission.AssignedNpcIds.Contains(target.Id.Value)))
         { Reject(world,leader.Id,"RequestTravelParty","ControlledByOther",admission); return; }
         if (target.Social.GetOrCreate(leader.Id).Trust <= TravelPartyMath.RequiredTrust)
-        { Reject(world,leader.Id,"RequestTravelParty","RelationshipTooLow",admission); return; }
-        if (Spatial.HexSpatialMath.Distance(leader.Position,target.Position) > InteractionReach.Talk)
-        { Reject(world,leader.Id,"RequestTravelParty","TooFarToTalk",admission); return; }
+        { Reject(world,leader.Id,"RequestTravelParty","TravelTrustTooLow",admission); return; }
+        if (leader.Fragment != target.Fragment || !TravelPartyMath.IsWithinInviteRange(leader.Position,target.Position))
+        { Reject(world,leader.Id,"RequestTravelParty","TravelTargetTooFar",admission); return; }
         ClearForNewOrder(world,target,"Accepted travel invitation");
         target.Mind.CurrentGoal = GoalType.None;
         target.Mind.TravelLeaderNpcId = leader.Id;

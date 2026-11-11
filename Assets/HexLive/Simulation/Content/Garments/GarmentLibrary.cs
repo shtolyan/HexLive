@@ -39,8 +39,8 @@ namespace HexLive.Simulation.Content
             }
         }
 
-        // §154.2: new spawns draw only from this view. Active retains retired
-        // definitions for objects already referenced by a save.
+        // §154.2: ordinary island spawns draw only from this view. Active retains
+        // retired definitions for saves and the §176 portal's separate wardrobe.
         public static IReadOnlyList<GarmentParams> Spawnable
         {
             get
@@ -71,7 +71,7 @@ namespace HexLive.Simulation.Content
 
             _active = list;
             _byId = null;
-            _spawnable = list.Where(value => value != null && !value.Retired).ToList();
+            _spawnable = list.Where(OrdinarySpawnable).ToList();
         }
 
         // §84 / #380: authoring assets and legacy exports have no sex field.
@@ -128,11 +128,18 @@ namespace HexLive.Simulation.Content
             return false;
         }
 
+        public static bool IsPortalWearAvailable(string definitionId) =>
+            PortalContentPolicy.IsPortalWear(definitionId) &&
+            Active.Any(garment => garment != null && garment.Id == definitionId && !garment.Retired);
+
+        private static bool OrdinarySpawnable(GarmentParams garment) =>
+            garment != null && !garment.Retired && !PortalContentPolicy.IsPortalWear(garment.Id);
+
         public static void ResetToDefaults()
         {
             _byId = null;
             _active = BuildDefaults();
-            _spawnable = new List<GarmentParams>(_active);
+            _spawnable = _active.Where(OrdinarySpawnable).ToList();
         }
 
         private static void EnsureSeeded()
@@ -143,7 +150,7 @@ namespace HexLive.Simulation.Content
             }
 
             _active = BuildDefaults();
-            _spawnable = new List<GarmentParams>(_active);
+            _spawnable = _active.Where(OrdinarySpawnable).ToList();
         }
 
         // Materialize the active table into the shared definition dictionary.
@@ -756,7 +763,7 @@ namespace HexLive.Simulation.Content
                 new("clothing.corset_skinny", "Laced Corset", WearLayer.Wear, 0.08f, 0.15f, 0.00f, dress, 1, GarmentSex.Female, BodyPart.Torso),
                 new("clothing.jeans_skinny", "Skinny Jeans", WearLayer.Wear, 0.12f, 0.05f, 0.00f, dress, 4, GarmentSex.Female, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
                 new("clothing.top_alloy", "Plated Top", WearLayer.Wear, 0.06f, 0.09f, 0.00f, dress, 2, GarmentSex.Female, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
-                new("clothing.skirt_alloy", "Plated Skirt", WearLayer.Wear, 0.06f, 0.07f, 0.00f, dress, 2, GarmentSex.Female, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.skirt_alloy", "Plated Skirt", WearLayer.Wear, 0.06f, 0.07f, 0.00f, dress, 2, GarmentSex.Female, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR) { Retired = true },
                 new("clothing.top_classic", "Ring Top", WearLayer.Wear, 0.06f, 0.01f, 0.00f, dress, 2, GarmentSex.Female, BodyPart.Torso),
                 new("clothing.shorts_classic", "Ring Shorts", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 2, GarmentSex.Female, BodyPart.Pelvis),
                 new("clothing.gloves_classic", "Ring Gloves", WearLayer.Wear, 0.03f, 0.05f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.ArmL, BodyPart.ArmR),
@@ -797,7 +804,7 @@ namespace HexLive.Simulation.Content
                 new("clothing.jacket_biker", "Biker Jacket", WearLayer.Outerwear, 0.32f, 0.14f, 0.00f, dress, 4, GarmentSex.Female, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
                 new("clothing.boots_leather", "Leather Boots", WearLayer.Outerwear, 0.14f, 0.11f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
                 new("clothing.belt_fighter", "Wide Belt", WearLayer.Outerwear, 0.01f, 0.04f, 0.00f, dress, 2, GarmentSex.Female, BodyPart.Torso),
-                new("clothing.footwear_fighter", "Wrapped Sandals", WearLayer.Outerwear, 0.08f, 0.05f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.footwear_fighter", "Wrapped Sandals", WearLayer.Outerwear, 0.08f, 0.05f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { Retired = true },
                 new("clothing.boots_leather_lb_black_red_leather", "Leather Boots (LB Black Red Leather)", WearLayer.Outerwear, 0.14f, 0.11f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.boots_leather" },
                 new("clothing.boots_leather_lb_black_white_leather", "Leather Boots (LB Black White Leather)", WearLayer.Outerwear, 0.14f, 0.11f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.boots_leather" },
                 new("clothing.boots_leather_lb_black_yellow_leather", "Leather Boots (LB Black Yellow Leather)", WearLayer.Outerwear, 0.14f, 0.11f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.boots_leather" },
@@ -911,16 +918,16 @@ namespace HexLive.Simulation.Content
                 new("clothing.sandals_summer3_style_03_tan", "Sandals, Style III (Style 03 Tan)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer3" },
                 new("clothing.sandals_summer3_style_03_white", "Sandals, Style III (Style 03 White)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer3" },
                 new("clothing.sandals_summer3_style_03_yellow", "Sandals, Style III (Style 03 Yellow)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer3" },
-                new("clothing.sandals_summer4", "Sandals, Style IV", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
-                new("clothing.sandals_summer4_style_04_black", "Sandals, Style IV (Style 04 Black)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer4" },
-                new("clothing.sandals_summer4_style_04_cherry", "Sandals, Style IV (Style 04 Cherry)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer4" },
-                new("clothing.sandals_summer4_style_04_red", "Sandals, Style IV (Style 04 Red)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer4" },
-                new("clothing.sandals_summer4_style_04_salmon", "Sandals, Style IV (Style 04 Salmon)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer4" },
-                new("clothing.sandals_summer4_style_04_silver", "Sandals, Style IV (Style 04 Silver)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer4" },
-                new("clothing.sandals_summer4_style_04_sky", "Sandals, Style IV (Style 04 Sky)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer4" },
-                new("clothing.sandals_summer4_style_04_tan", "Sandals, Style IV (Style 04 Tan)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer4" },
-                new("clothing.sandals_summer4_style_04_white", "Sandals, Style IV (Style 04 White)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer4" },
-                new("clothing.sandals_summer4_style_04_yellow", "Sandals, Style IV (Style 04 Yellow)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer4" },
+                new("clothing.sandals_summer4", "Sandals, Style IV", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { Retired = true },
+                new("clothing.sandals_summer4_style_04_black", "Sandals, Style IV (Style 04 Black)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer4", Retired = true },
+                new("clothing.sandals_summer4_style_04_cherry", "Sandals, Style IV (Style 04 Cherry)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer4", Retired = true },
+                new("clothing.sandals_summer4_style_04_red", "Sandals, Style IV (Style 04 Red)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer4", Retired = true },
+                new("clothing.sandals_summer4_style_04_salmon", "Sandals, Style IV (Style 04 Salmon)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer4", Retired = true },
+                new("clothing.sandals_summer4_style_04_silver", "Sandals, Style IV (Style 04 Silver)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer4", Retired = true },
+                new("clothing.sandals_summer4_style_04_sky", "Sandals, Style IV (Style 04 Sky)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer4", Retired = true },
+                new("clothing.sandals_summer4_style_04_tan", "Sandals, Style IV (Style 04 Tan)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer4", Retired = true },
+                new("clothing.sandals_summer4_style_04_white", "Sandals, Style IV (Style 04 White)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer4", Retired = true },
+                new("clothing.sandals_summer4_style_04_yellow", "Sandals, Style IV (Style 04 Yellow)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sandals_summer4", Retired = true },
                 new("clothing.sneakers_canvas", "Canvas Sneakers", WearLayer.Outerwear, 0.08f, 0.05f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
                 new("clothing.sneakers_canvas_rs5_mat02", "Canvas Sneakers (RS5 MAT02)", WearLayer.Outerwear, 0.08f, 0.05f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sneakers_canvas" },
                 new("clothing.sneakers_canvas_rs5_mat03", "Canvas Sneakers (RS5 MAT03)", WearLayer.Outerwear, 0.08f, 0.05f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sneakers_canvas" },

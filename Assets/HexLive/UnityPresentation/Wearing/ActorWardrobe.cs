@@ -38,6 +38,14 @@ public static class ActorWardrobe
             return;
         }
 
+        var localModern = LocalModernContent.WearPrefab(simDefinitionId);
+        if (localModern != null)
+        {
+            Cache[simDefinitionId] = new List<Wear> { localModern };
+            Loading.Remove(simDefinitionId);
+            return;
+        }
+
         Garments.ContentQueue.Begin(Garments.ContentQueue.Kind.Wear);
         // A crafted sim garment may borrow another garment's bundle
         // (WearArtAliases). Cache stays keyed by the SIM id — the rest of the
@@ -98,6 +106,11 @@ public static class ActorWardrobe
         // Lazy misses remain retryable: completion fills Cache; no permanent
         // empty result is stored while this object's own blob travels.
         PrewarmAsync(simDefinitionId);
+        if (Cache.TryGetValue(simDefinitionId, out cached))
+        {
+            visuals = cached;
+            return true;
+        }
         visuals = Empty;
         return false;
     }

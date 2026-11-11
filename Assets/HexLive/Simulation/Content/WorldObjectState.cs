@@ -22,6 +22,10 @@ public sealed class WorldObjectState
 
     public TileCoord Tile { get; set; } = TileCoord.Zero;
 
+    // §176: a loose item can rest in a slot on a world object on the same tile.
+    public ObjectId? SurfaceObjectId { get; internal set; }
+    public byte SurfaceSlot { get; internal set; }
+
     public List<JunctionId> Junctions { get; } = new();
 
     // Spec §66: the yaw a BUILT piece stands at (degrees CCW from +X — the same

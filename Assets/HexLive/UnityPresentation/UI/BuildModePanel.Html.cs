@@ -61,7 +61,7 @@ namespace HexLive.UnityPresentation.UI
             var cards = new JArray();
             void Card(string id, string nameTerm, string descriptionTerm, string glyph) => cards.Add(new JObject
             {
-                ["id"] = id, ["name"] = Loc.Get(nameTerm), ["desc"] = Loc.Get(descriptionTerm),
+                ["id"] = id, ["name"] = Loc.Get(nameTerm), ["desc"] = FurnitureDescription(id, descriptionTerm),
                 ["icon"] = builder?.HtmlIcon(CatalogIconId(id)), ["glyph"] = glyph,
             });
 
@@ -75,7 +75,7 @@ namespace HexLive.UnityPresentation.UI
             }
             else
             {
-                var entries = BuildCatalogDefinition.ForMode(BuildCatalogMode.Furniture).ToArray();
+                var entries = AvailableFurnitureEntries().ToArray();
                 foreach (var categoryId in entries.Select(entry => entry.CategoryId).Distinct())
                     categories.Add(new JObject { ["id"] = categoryId, ["label"] = Loc.Get(CategoryTerm(categoryId)) });
                 foreach (var entry in entries.Where(entry => entry.CategoryId == _activeCategoryId))
@@ -90,7 +90,7 @@ namespace HexLive.UnityPresentation.UI
                 var (nameTerm, descriptionTerm) = CardTerms(chosen);
                 selection = new JObject
                 {
-                    ["name"] = Loc.Get(nameTerm), ["desc"] = Loc.Get(descriptionTerm),
+                    ["name"] = Loc.Get(nameTerm), ["desc"] = FurnitureDescription(chosen, descriptionTerm),
                     ["availability"] = _activeCardId.Length > 0 ? (_ghostValid ? "ready" : "blocked") : null,
                     ["canDelete"] = _selectedCanCancel,
                     ["canEdit"] = _selectedSiteId is not null && !string.IsNullOrEmpty(_selectedBlueprintJson),

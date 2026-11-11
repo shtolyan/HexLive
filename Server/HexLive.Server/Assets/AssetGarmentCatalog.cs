@@ -270,7 +270,7 @@ public sealed class AssetGarmentCatalog
                          value => String(value, "id"), StringComparer.Ordinal))
             {
                 output.Add(garment.DeepClone());
-                spawnable++;
+                if (!PortalContentPolicy.IsPortalWear(String(garment, "id"))) spawnable++;
             }
         }
         else
@@ -286,7 +286,7 @@ public sealed class AssetGarmentCatalog
 
                 output.Add(ToSimData(record.Id, entry.Simulation, record.State == "retired"));
                 if (record.State == "retired") retired++;
-                else spawnable++;
+                else if (!PortalContentPolicy.IsPortalWear(record.Id)) spawnable++;
             }
         }
 
@@ -294,10 +294,15 @@ public sealed class AssetGarmentCatalog
         // Recipes belong to the same active wear metadata as its gameplay appearance.
         var recipes = (root["recipes"] as JsonArray ?? new JsonArray()).OfType<JsonObject>()
             .ToDictionary(r => r["output"]!.GetValue<string>(), r => (JsonObject)r.DeepClone(), StringComparer.Ordinal);
+        foreach (var id in PortalContentPolicy.Wear) recipes.Remove(id);
         foreach (var record in wearRecords)
         {
             var entry = BuildEntry(record, baseGarments);
-            if (record.State != "active") { recipes.Remove(record.Id); continue; }
+            if (record.State != "active" || PortalContentPolicy.IsPortalWear(record.Id))
+            {
+                recipes.Remove(record.Id);
+                continue;
+            }
             if (entry.Simulation?.Craft is { } craft) recipes[record.Id] = craft.Recipe(record.Id);
         }
         root["recipes"] = new JsonArray(recipes.OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => (JsonNode)p.Value).ToArray());

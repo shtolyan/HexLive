@@ -10,11 +10,28 @@ internal static class HandPropVisual
         var model = CreateModel(itemId, hand, leftHanded);
         if (model != null && itemId == Simulation.Content.ContentIds.Torch)
             Environment.PortableTorchVisual.Attach(model);
+        if (model != null && itemId == Simulation.Content.ContentIds.Flashlight)
+            Environment.PortableFlashlightVisual.Attach(model, held: true);
         return model;
     }
 
     private static GameObject CreateModel(string itemId, Transform hand, bool leftHanded)
     {
+        bool modern = Simulation.Content.ModernLootCatalog.IsModernProp(itemId);
+        if (modern && itemId is not (Simulation.Content.ContentIds.KitchenKnife or
+            Simulation.Content.ContentIds.BaseballBat))
+        {
+            // These objects have no independent GearConfig. A placement root keeps
+            // the art's native import rotation intact under the acting hand.
+            var prefab = Rendering.ModernApartmentView.LoadPrefab(itemId);
+            if (prefab == null || !ObjectFit.HasRenderableGeometry(prefab)) return null;
+            var grip = new GameObject($"HandProp {itemId}");
+            grip.transform.SetParent(hand, false);
+            Object.Instantiate(prefab, grip.transform, false);
+            ApplyObjectFitScale(grip, itemId, Vector3.one, Vector3.one);
+            return grip;
+        }
+
         // #243: model and grip live in two entries of one atomic object. Do not
         // instantiate a known tool with a fallback grip during the short window
         // in which `main` is ready but `gear-config` is not: _currentPropId
@@ -27,7 +44,7 @@ internal static class HandPropVisual
 
         // Runtime props have one source: object/<id>. A null is an asynchronous
         // state, not permission to freeze a different mesh into this hand.
-        var model = Config.GearLibrary.LoadPrefab(itemId);
+        var model = modern ? Rendering.ModernApartmentView.LoadPrefab(itemId) : Config.GearLibrary.LoadPrefab(itemId);
         if (model == null)
         {
             return null;

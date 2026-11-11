@@ -332,6 +332,16 @@ namespace HexLive.UnityPresentation.Audio
             }
 
             var listener = cam.transform.position;
+            if (cam.TryGetComponent<HexLive.UnityPresentation.Input.RtsCameraController>(out var rig) && rig.IsViewingModernApartment)
+            {
+                // §176: the apartment shares the scene and weather clock, but
+                // the island's coast, birds, insects and rain stay outside it.
+                FmodSfx.StopLoop(ref _waves);
+                SetIslandBedVolumes(0f, 0f, 0f, 8f * Time.unscaledDeltaTime);
+                _nextGeckoAt = 0f;
+                _nextHowlAt = 0f;
+                return;
+            }
 
             // -- прибой --
             if (_renderer.TryGetNearestShorePoint(listener, out var shore))
@@ -363,13 +373,7 @@ namespace HexLive.UnityPresentation.Audio
             EnsureBed(ref _crickets, FmodSfx.Sfx.LoopCrickets);
             EnsureBed(ref _rain, FmodSfx.Sfx.LoopRain);
 
-            var k = 1f - Mathf.Exp(-1.2f * Time.deltaTime);
-            _jungleVol = Mathf.Lerp(_jungleVol, jungleTarget, k);
-            _cricketsVol = Mathf.Lerp(_cricketsVol, cricketsTarget, k);
-            _rainVol = Mathf.Lerp(_rainVol, rainTarget, k);
-            FmodSfx.SetLoopVolume(ref _jungle, FmodSfx.Sfx.LoopJungleDay, _jungleVol);
-            FmodSfx.SetLoopVolume(ref _crickets, FmodSfx.Sfx.LoopCrickets, _cricketsVol);
-            FmodSfx.SetLoopVolume(ref _rain, FmodSfx.Sfx.LoopRain, _rainVol);
+            SetIslandBedVolumes(jungleTarget, cricketsTarget, rainTarget, 1.2f * Time.deltaTime);
 
             // -- ночные солисты: гекконы близко, волчий вой далеко --
             if (day < 0.5f)
@@ -406,6 +410,17 @@ namespace HexLive.UnityPresentation.Audio
                 _nextGeckoAt = 0f;
                 _nextHowlAt = 0f;
             }
+        }
+
+        private void SetIslandBedVolumes(float jungle, float crickets, float rain, float fadeStep)
+        {
+            var k = 1f - Mathf.Exp(-fadeStep);
+            _jungleVol = Mathf.Lerp(_jungleVol, jungle, k);
+            _cricketsVol = Mathf.Lerp(_cricketsVol, crickets, k);
+            _rainVol = Mathf.Lerp(_rainVol, rain, k);
+            FmodSfx.SetLoopVolume(ref _jungle, FmodSfx.Sfx.LoopJungleDay, _jungleVol);
+            FmodSfx.SetLoopVolume(ref _crickets, FmodSfx.Sfx.LoopCrickets, _cricketsVol);
+            FmodSfx.SetLoopVolume(ref _rain, FmodSfx.Sfx.LoopRain, _rainVol);
         }
 
         private static void EnsureBed(ref FmodSfx.Loop loop, string id)

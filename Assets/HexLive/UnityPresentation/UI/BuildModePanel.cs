@@ -121,6 +121,7 @@ namespace HexLive.UnityPresentation.UI
         // Кэш snapshot для валидации и оверлеев.
         private WorldSnapshot? _snapshot;
         private readonly HashSet<Faction> _buildFactions = new();
+        private readonly Dictionary<string, int> _modernFurnitureCounts = new();
         private float _nextSnapshotRefresh;
         private readonly Dictionary<TileCoord, TileSnapshot> _tiles = new();
         private readonly HashSet<TileCoord> _occupiedHexes = new();
@@ -328,6 +329,8 @@ namespace HexLive.UnityPresentation.UI
             // §174.7: in the web client the page draws the tray (BuildModePanel.Html).
             if (_panel != null) _panel.style.display = HtmlUi.Active ? DisplayStyle.None : DisplayStyle.Flex;
             if (_openButton != null) _openButton.style.display = DisplayStyle.None;
+            _nextSnapshotRefresh = 0f;
+            RefreshSnapshotCache();
             SetMode(BuildCatalogMode.Furniture);
             SetStatus("build.mode.hint");
             _nextOverlayRefresh = 0f;
@@ -416,7 +419,7 @@ namespace HexLive.UnityPresentation.UI
             }
             else
             {
-                var entries = BuildCatalogDefinition.ForMode(BuildCatalogMode.Furniture).ToArray();
+                var entries = AvailableFurnitureEntries().ToArray();
                 var categories = entries.Select(entry => entry.CategoryId).Distinct().ToArray();
                 if (categories.Length > 0 && !categories.Contains(_activeCategoryId))
                     _activeCategoryId = categories[0];
@@ -476,7 +479,7 @@ namespace HexLive.UnityPresentation.UI
             var name = new Label(Loc.Get(nameTerm));
             name.AddToClassList("catalog-name");
             card.Add(name);
-            var description = new Label(Loc.Get(descriptionTerm));
+            var description = new Label(FurnitureDescription(cardId, descriptionTerm));
             description.AddToClassList("catalog-description");
             card.Add(description);
             _catalogList!.Add(card);
@@ -489,6 +492,7 @@ namespace HexLive.UnityPresentation.UI
             BuildCatalogCategories.Storage => "blueprint.category.storage",
             BuildCatalogCategories.Workstations => "blueprint.category.workstations",
             BuildCatalogCategories.Outdoor => "blueprint.category.outdoor",
+            BuildCatalogCategories.Modern => "blueprint.category.modern",
             _ => "blueprint.category.other"
         };
 
@@ -501,6 +505,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void SelectCard(string cardId)
         {
+            if (PortalWorld.IsFurniture(cardId) && ModernFurnitureCount(cardId) == 0) return;
             DeselectSite();
             if (cardId == FreeConstructionCardId)
             {
@@ -522,7 +527,7 @@ namespace HexLive.UnityPresentation.UI
             {
                 var (nameTerm, descriptionTerm) = CardTerms(_activeCardId);
                 _selectionLabel.text = Loc.Get(nameTerm);
-                _selectionDescription.text = Loc.Get(descriptionTerm);
+                _selectionDescription.text = FurnitureDescription(_activeCardId, descriptionTerm);
             }
             else if (_selectedSiteId is not null)
             {
@@ -1057,6 +1062,7 @@ namespace HexLive.UnityPresentation.UI
             _occupiedHexes.Clear();
             _plantingOccupiedPoints.Clear();
             if (_snapshot == null) return;
+            RefreshModernFurnitureCounts(_snapshot);
             // Topology snapshot records are reused and their flags refresh in
             // place. Build the tile index once per topology, never per frame.
             if (IsPlantingCard && !ReferenceEquals(_indexedPlantingJunctions, _snapshot.Junctions))
@@ -1126,6 +1132,10 @@ namespace HexLive.UnityPresentation.UI
                     !anchor.Blocked && !anchor.IsSwimmable &&
                     !PlantingPointHasLiveOccupant(anchor.WorldPosition) &&
                     !_plantingOccupiedPoints.Contains(anchor.Id) && CanEditTile(tile);
+            if (PortalWorld.IsFurniture(_activeCardId))
+                return _snapshot != null && ModernFurnitureCount(_activeCardId) > 0 &&
+                    PortalWorld.IsFurniturePlacementCampTile(_snapshot, PlayerCampView.Of(_runner, _snapshot), tile) &&
+                    TileBuildable(tile) && _tiles[tile].HasFloor;
             if (_activeCardId != HutCardId) return TileBuildable(tile);
             var footprint = Simulation.Bootstrap.BuildingBootstrap.FootprintTiles(
                 ContentIds.HutPlan, tile, _ghostYawSteps * 60f);
@@ -1202,7 +1212,41 @@ namespace HexLive.UnityPresentation.UI
             if (PlantGrowthCatalog.TryGetBySeed(catalogId, out _)) return PlantingBlueprintMarker.Create();
             if (catalogId == "furniture.hearth") return HutFurnitureFactory.BuildHearth();
             if (catalogId == ContentIds.Wardrobe) return WardrobeAssembly.BuildFinished();
+            if (PortalWorld.IsFurniture(catalogId))
+            {
+                var prefab = ModernApartmentView.LoadPrefab(catalogId);
+                return prefab != null ? Instantiate(prefab) : null;
+            }
             return BedAssembly.IsAssembled(catalogId) ? BedAssembly.BuildFinished(catalogId) : null;
+        }
+
+        private IEnumerable<BuildCatalogEntryDefinition> AvailableFurnitureEntries() =>
+            BuildCatalogDefinition.ForMode(BuildCatalogMode.Furniture)
+                .Where(entry => !PortalWorld.IsFurniture(entry.DefinitionId) || ModernFurnitureCount(entry.DefinitionId) > 0);
+
+        private int ModernFurnitureCount(string id) => _modernFurnitureCounts.TryGetValue(id, out var count) ? count : 0;
+
+        private string FurnitureDescription(string id, string term) => PortalWorld.IsFurniture(id)
+            ? Loc.Get(term) + " · " + string.Format(Loc.Get("portal.furniture_count"), ModernFurnitureCount(id))
+            : Loc.Get(term);
+
+        private void RefreshModernFurnitureCounts(WorldSnapshot snapshot)
+        {
+            bool changed = false;
+            var faction = PlayerCampView.Of(_runner, snapshot);
+            foreach (var entry in BuildCatalogDefinition.ForCategory(BuildCatalogMode.Furniture, BuildCatalogCategories.Modern))
+            {
+                int count = PortalWorld.AvailableFurnitureCount(snapshot, faction, entry.DefinitionId);
+                if (count == ModernFurnitureCount(entry.DefinitionId)) continue;
+                _modernFurnitureCounts[entry.DefinitionId] = count;
+                changed = true;
+            }
+
+            if (!changed || _catalogMode != BuildCatalogMode.Furniture) return;
+            if (PortalWorld.IsFurniture(_activeCardId) && ModernFurnitureCount(_activeCardId) == 0)
+                DropActiveCard();
+            else
+                RebuildCatalogUi();
         }
 
         /// <summary>Полная постройка плана — тем же BlueprintPreviewRenderer, что
@@ -1306,6 +1350,8 @@ namespace HexLive.UnityPresentation.UI
             var quantized = StampedHexYaw(simYaw);
             var footprint = _activeCardId == HutCardId ||
                             _activeCardId == ContentIds.Wardrobe ||
+                            _activeCardId == ContentIds.Workbench ||
+                            PortalWorld.IsFurniture(_activeCardId) ||
                             _activeCardId == "furniture.hearth";
             return footprint
                 ? SimulationUnityMapper.ToUnityFootprintYawDegrees(quantized)
@@ -1711,7 +1757,8 @@ namespace HexLive.UnityPresentation.UI
                 var offCentre =
                     Mathf.Abs(anchor.X - centre.X) > 0.05f || Mathf.Abs(anchor.Y - centre.Y) > 0.05f;
                 var footprint = offCentre || isHearth ||
-                                site.BuildProduct == ContentIds.Wardrobe;
+                                site.BuildProduct == ContentIds.Wardrobe ||
+                                site.BuildProduct == ContentIds.Workbench;
                 root.transform.rotation = Quaternion.Euler(0f, footprint
                     ? SimulationUnityMapper.ToUnityFootprintYawDegrees(site.RotationDegrees)
                     : SimulationUnityMapper.ToUnityYawDegrees(site.RotationDegrees), 0f);

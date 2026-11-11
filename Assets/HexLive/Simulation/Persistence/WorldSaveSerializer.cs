@@ -189,7 +189,9 @@ public static class WorldSaveSerializer
     // Old negative wood markers migrate to Wood/0; water and leaf state stay independent.
     // v89 (#627): persist object placement Variant after the v85 material tail.
     // v90 (#653): scoped travel-party leader, normalized to AI on load.
-    public const int BlobVersion = 90;
+    // v91 (§176): portal settings, midnight cursor, door/visitor ids and generated room objects.
+    // v92 (§176): surface parent and slot for loose items, at the end of each object record.
+    public const int BlobVersion = 92;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -554,6 +556,20 @@ public static class WorldSaveSerializer
                 w.Write(receipt.Name); w.Write((int)receipt.Camp);
             }
         }
+        if (version >= 91)
+        {
+            var portal = world.Portal;
+            w.Write((int)portal.Mode);
+            w.Write((int)portal.Camp);
+            w.Write(portal.LastOpeningDay);
+            w.Write(portal.ExteriorDoor?.Value ?? 0);
+            w.Write(portal.InteriorDoor?.Value ?? 0);
+            w.Write(portal.Visitor?.Value ?? 0);
+            w.Write(portal.Resident?.Value ?? 0);
+            w.Write(portal.OperatorOpened);
+            w.Write(portal.GeneratedObjects.Count);
+            foreach (var id in portal.GeneratedObjects) w.Write(id.Value);
+        }
         w.Write(EndMarker);
     }
 
@@ -739,6 +755,7 @@ public static class WorldSaveSerializer
 
         ReadJunctionFlagSet(world, r, static junction => junction.Blocked = true);
         ReadJunctionFlagSet(world, r, static junction => junction.Door = true);
+        PortalWorld.RestoreApartmentWalls(world);
 
         // §148: разведанное. Старый сейв (до v54) его не нёс — тогда остров
         // открывается заново, но ходить по нему уже некуда торопиться.
@@ -766,6 +783,7 @@ public static class WorldSaveSerializer
             var obj = ReadObject(r, version);
             world.Entities.RegisterObject(obj);
         }
+        if (version >= 92) Runtime.SurfacePlacementMath.RepairLoadedLinks(world);
 
         if (version < 74) MigrateProduceOrigins(world);
 
@@ -1107,6 +1125,52 @@ public static class WorldSaveSerializer
                 if (world.Entities.Npcs.ContainsKey(new EntityId(receipt.NpcId))) world.PlayerControlledNpcs.Add(receipt.NpcId);
             }
         }
+        var portal = world.Portal;
+        portal.Mode = PortalSpawnMode.Camp;
+        portal.Camp = Faction.Colony;
+        portal.LastOpeningDay = PortalWorld.OpeningDayAt(world.Tick);
+        portal.ExteriorDoor = null;
+        portal.InteriorDoor = null;
+        portal.Visitor = null;
+        portal.Resident = null;
+        portal.OperatorOpened = false;
+        portal.GeneratedObjects.Clear();
+        if (version >= 91)
+        {
+            portal.Mode = (PortalSpawnMode)r.ReadInt32();
+            portal.Camp = (Faction)r.ReadInt32();
+            portal.LastOpeningDay = r.ReadInt32();
+            var outside = r.ReadInt32();
+            var inside = r.ReadInt32();
+            var visitor = r.ReadInt32();
+            var resident = r.ReadInt32();
+            portal.OperatorOpened = r.ReadBoolean();
+            if (!Enum.IsDefined(typeof(PortalSpawnMode), portal.Mode) || !FactionRelations.IsGirlCamp(portal.Camp) ||
+                portal.LastOpeningDay < -1 ||
+                outside < 0 || inside < 0 || visitor < 0 || resident < 0 ||
+                (outside == 0) != (inside == 0) || ((visitor != 0 || portal.OperatorOpened) && outside == 0) ||
+                (outside != 0 && (!ValidPortalDoor(outside, apartment: false) || !ValidPortalDoor(inside, apartment: true))))
+                throw new InvalidDataException("Invalid portal visit state.");
+            portal.ExteriorDoor = outside == 0 ? null : new ObjectId(outside);
+            portal.InteriorDoor = inside == 0 ? null : new ObjectId(inside);
+            portal.Visitor = visitor == 0 ? null : new EntityId(visitor);
+            portal.Resident = resident == 0 ? null : new EntityId(resident);
+            var generatedCount = ReadBoundedCount(r, 32, "portal room objects");
+            var ids = new HashSet<int>();
+            for (var i = 0; i < generatedCount; i++)
+            {
+                var id = r.ReadInt32();
+                if (id <= 0 || id == outside || id == inside || !ids.Add(id))
+                    throw new InvalidDataException("Invalid generated portal object id.");
+                portal.GeneratedObjects.Add(new ObjectId(id));
+            }
+
+            bool ValidPortalDoor(int id, bool apartment) =>
+                world.Entities.Objects.TryGetValue(new ObjectId(id), out var door) &&
+                door.DefinitionId == PortalWorld.DoorDefinitionId &&
+                (door.Fragment == PortalWorld.ApartmentFragment) == apartment;
+        }
+
         if (r.ReadInt32() != EndMarker)
         {
             throw new InvalidDataException("Save blob end marker missing — truncated or corrupt save.");
@@ -1520,6 +1584,11 @@ public static class WorldSaveSerializer
             }
         }
         if (version >= 89) w.Write(obj.Variant ?? string.Empty);
+        if (version >= 92)
+        {
+            WriteNullableObject(w, obj.SurfaceObjectId);
+            if (obj.SurfaceObjectId.HasValue) w.Write(obj.SurfaceSlot);
+        }
     }
 
     private static WorldObjectState ReadObject(BinaryReader r, int version)
@@ -1670,6 +1739,11 @@ public static class WorldSaveSerializer
         }
 
         if (version >= 89) obj.Variant = r.ReadString();
+        if (version >= 92)
+        {
+            obj.SurfaceObjectId = ReadNullableObject(r);
+            if (obj.SurfaceObjectId.HasValue) obj.SurfaceSlot = r.ReadByte();
+        }
         return obj;
     }
 

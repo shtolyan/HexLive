@@ -587,8 +587,8 @@ namespace HexLive.UnityPresentation.Environment
         {
             var wood = new Color(0.43f, 0.27f, 0.14f);
             var board = new Color(0.58f, 0.43f, 0.25f);
-            var x = 0.42f;
-            var z = 0.30f;
+            var x = 0.30f;
+            var z = 0.42f;
             for (var i = 0; i < 4; i++)
             {
                 AddPiece(root, $"stick_workbench_{i:00}", PrimitiveType.Cube,
@@ -597,28 +597,28 @@ namespace HexLive.UnityPresentation.Environment
                     Vector3.zero, wood);
             }
             AddPiece(root, "stick_workbench_04", PrimitiveType.Cube,
-                new Vector3(0.44f, 0.045f, 0.045f), new Vector3(0f, 0.28f, -z),
+                new Vector3(0.045f, 0.045f, 0.44f), new Vector3(-x, 0.28f, 0f),
                 Vector3.zero, wood);
             AddPiece(root, "stick_workbench_05", PrimitiveType.Cube,
-                new Vector3(0.44f, 0.045f, 0.045f), new Vector3(0f, 0.28f, z),
+                new Vector3(0.045f, 0.045f, 0.44f), new Vector3(x, 0.28f, 0f),
                 Vector3.zero, wood);
             AddPiece(root, "board_workbench_brace_left", PrimitiveType.Cube,
-                new Vector3(0.035f, 0.32f, 0.055f), new Vector3(-x, 0.42f, 0f),
-                new Vector3(42f, 0f, 0f), board);
+                new Vector3(0.055f, 0.32f, 0.035f), new Vector3(0f, 0.42f, -z),
+                new Vector3(0f, 0f, 42f), board);
             AddPiece(root, "board_workbench_brace_right", PrimitiveType.Cube,
-                new Vector3(0.035f, 0.32f, 0.055f), new Vector3(x, 0.42f, 0f),
-                new Vector3(-42f, 0f, 0f), board);
+                new Vector3(0.055f, 0.32f, 0.035f), new Vector3(0f, 0.42f, z),
+                new Vector3(0f, 0f, -42f), board);
             AddPiece(root, "rope_workbench_00", PrimitiveType.Sphere,
-                new Vector3(0.07f, 0.04f, 0.07f), new Vector3(-x, 0.72f, 0f),
+                new Vector3(0.07f, 0.04f, 0.07f), new Vector3(0f, 0.72f, -z),
                 Vector3.zero, new Color(0.72f, 0.58f, 0.34f));
             AddPiece(root, "rope_workbench_01", PrimitiveType.Sphere,
-                new Vector3(0.07f, 0.04f, 0.07f), new Vector3(x, 0.72f, 0f),
+                new Vector3(0.07f, 0.04f, 0.07f), new Vector3(0f, 0.72f, z),
                 Vector3.zero, new Color(0.72f, 0.58f, 0.34f));
             for (var i = 0; i < 4; i++)
             {
                 AddPiece(root, $"board_workbench_{i:00}", PrimitiveType.Cube,
-                    new Vector3(0.49f, 0.025f, 0.09f),
-                    new Vector3(0f, 0.755f, -0.27f + i * 0.18f), Vector3.zero, board);
+                    new Vector3(0.09f, 0.025f, 0.49f),
+                    new Vector3(-0.27f + i * 0.18f, 0.755f, 0f), Vector3.zero, board);
             }
         }
 

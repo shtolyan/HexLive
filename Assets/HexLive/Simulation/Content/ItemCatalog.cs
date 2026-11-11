@@ -702,6 +702,68 @@ namespace HexLive.Simulation.Content
                     // log split in the same time whichever blade she carried.
                     HarvestSpeedMult = 0.75f,
                 },
+                [ContentIds.KitchenKnife] = new GearStats
+                {
+                    Id = ContentIds.KitchenKnife,
+                    Damage = .26f,
+                    CutFraction = .92f,
+                    BloodLossMultiplier = 1.15f,
+                    HitDelaySeconds = .75f,
+                    AttackDurationSeconds = 1.86f,
+                    CooldownSeconds = .88f,
+                    AttackSpeed = 1f,
+                    MeleePriority = 16,
+                    HarvestSpeedMult = 1.25f,
+                    Capabilities = GearCapability.Cut | GearCapability.Butcher |
+                                   GearCapability.OpenCoconut | GearCapability.ButcherAnimal,
+                },
+                [ContentIds.BaseballBat] = new GearStats
+                {
+                    Id = ContentIds.BaseballBat,
+                    Damage = .32f,
+                    CutFraction = 0f,
+                    BloodLossMultiplier = 0f,
+                    HitDelaySeconds = .75f,
+                    AttackDurationSeconds = 1.86f,
+                    CooldownSeconds = 1.14f,
+                    AttackSpeed = .8f,
+                    MeleePriority = 22,
+                    TwoHanded = true,
+                },
+                [ContentIds.SteelHatchet] = new GearStats
+                {
+                    Id = ContentIds.SteelHatchet, Damage = .40f, CutFraction = .75f, BloodLossMultiplier = 1f,
+                    HitDelaySeconds = .75f, AttackDurationSeconds = 1.86f, CooldownSeconds = .95f,
+                    AttackSpeed = .9f, MeleePriority = 25, HarvestSpeedMult = 1.75f,
+                    Capabilities = GearCapability.Cut | GearCapability.ChopWood |
+                                   GearCapability.OpenCoconut | GearCapability.RemoveStump,
+                },
+                [ContentIds.ClawHammer] = new GearStats
+                {
+                    Id = ContentIds.ClawHammer, Damage = .28f, CutFraction = .04f, BloodLossMultiplier = .15f,
+                    HitDelaySeconds = .75f, AttackDurationSeconds = 1.86f, CooldownSeconds = 1.14f,
+                    AttackSpeed = .9f, MeleePriority = 9, Capabilities = GearCapability.Hammer,
+                },
+                [ContentIds.FoldingSaw] = new GearStats
+                {
+                    Id = ContentIds.FoldingSaw, Damage = .18f, CutFraction = .65f, BloodLossMultiplier = 1f,
+                    HitDelaySeconds = .75f, AttackDurationSeconds = 1.86f, CooldownSeconds = 1.14f,
+                    AttackSpeed = .9f, MeleePriority = 7, HarvestSpeedMult = 2.4f,
+                    Capabilities = GearCapability.Saw,
+                },
+                [ContentIds.DisposableLighter] = new GearStats
+                {
+                    Id = ContentIds.DisposableLighter, Damage = .15f, Capabilities = GearCapability.Ignite,
+                },
+                [ContentIds.WindproofLighter] = new GearStats
+                {
+                    Id = ContentIds.WindproofLighter, Damage = .15f, Capabilities = GearCapability.Ignite,
+                    HarvestSpeedMult = 1.25f,
+                },
+                [ContentIds.DrinkingGlass] = new GearStats
+                {
+                    Id = ContentIds.DrinkingGlass, Damage = .15f, Capabilities = GearCapability.CarryWater,
+                },
                 [Axe] = new GearStats
                 {
                     Id = Axe,

@@ -31,4 +31,25 @@ public sealed class RetiredGarmentTests
             }
         });
     }
+
+    [TestCase("clothing.footwear_fighter", 1)]
+    [TestCase("clothing.sandals_summer4", 10)]
+    [TestCase("clothing.skirt_alloy", 1)]
+    public void RejectedModernModelsCannotSpawnFromLegacyCatalogs(string prototypeId, int variants)
+    {
+        TestWorld.CreateEngine();
+
+        var defaults = GarmentLibrary.Defaults.Where(garment =>
+            garment.Id == prototypeId || garment.PrototypeId == prototypeId).ToArray();
+        var loaded = GarmentLibrary.Active.Where(garment =>
+            garment.Id == prototypeId || garment.PrototypeId == prototypeId).ToArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(defaults, Has.Length.EqualTo(variants));
+            Assert.That(defaults.All(garment => garment.Retired), Is.True);
+            Assert.That(loaded.Select(garment => garment.Id), Is.EquivalentTo(defaults.Select(garment => garment.Id)));
+            Assert.That(loaded.All(garment => !GarmentLibrary.IsSpawnable(garment.Id)), Is.True);
+        });
+    }
 }

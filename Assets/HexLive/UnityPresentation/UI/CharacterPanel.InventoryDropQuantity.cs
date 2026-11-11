@@ -126,6 +126,7 @@ public sealed partial class CharacterPanel
     private void RequestInventoryDrop()
     {
         if (!_inventoryMutable || _runner == null || _invSelectedId == null ||
+            PortableFurniture.CanCarry(_invSelectedId) ||
             _inventoryActorId < 0) return;
         var snapshot = _runner.IsReady ? _runner.CreateSnapshot() : null;
         var npc = snapshot != null ? FindNpc(snapshot, _inventoryActorId) : null;

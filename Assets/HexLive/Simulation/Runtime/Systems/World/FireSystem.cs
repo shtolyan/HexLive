@@ -26,7 +26,8 @@ public sealed class FireSystem : ISimulationSystem
 
     public void Run(WorldState world)
     {
-        PortableFireMath.BurnCarried(world);
+        foreach (var npc in world.Entities.Npcs.Values)
+            PortableFireMath.AdvanceLights(npc.Inventory.Items, world.SlowIntervalTicks);
         // §156: обход по бодрым чанкам. При выключенной механике это весь
         // ростер в его собственном порядке — то есть прежняя игра.
         ChunkMath.CollectTickable(world, _tickable);
@@ -34,7 +35,12 @@ public sealed class FireSystem : ISimulationSystem
         {
             var elapsed = world.Tick - System.Math.Min(world.Tick - world.SlowIntervalTicks,
                 ChunkMath.SleepWindowStart(world, obj.Tile));
-            PortableFireMath.BurnItems(obj.Contents, elapsed);
+            PortableFireMath.AdvanceLights(obj.Contents, elapsed);
+            if (obj.DefinitionId == ContentIds.Flashlight && !obj.IsCraftProject)
+            {
+                FlashlightMath.DrainGround(obj, elapsed);
+                continue;
+            }
             if (obj.DefinitionId == ContentIds.Torch && !obj.IsCraftProject)
             {
                 obj.Durability = System.Math.Max(0f, obj.Durability - elapsed / PortableFireMath.TorchLifetimeTicks);

@@ -39,7 +39,8 @@ public static class SimulationCommandCodec
     // 8: §123.5 ManageInventory carries the authoritative drop quantity.
     // 10: §138.6 append-only CraftByOutput (48).
     // 11: §173.2 inventory seed placement (49).
-    public const int WireVersion = 11;
+    // 12: §176 manual placement of one carried furniture item (57).
+    public const int WireVersion = 12;
 
     // Защита от мусора в потоке: злонамеренный клиент не должен уметь
     // заказать аллокацию на гигабайт одним ushort'ом.
@@ -103,6 +104,7 @@ public static class SimulationCommandCodec
         BeginGiftSession = 54,
         EndGiftSession = 55,
         PlacePlantingSite = 56, // #638 append-only
+        PlaceInventoryFurniture = 57, // §176 append-only
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -177,6 +179,14 @@ public static class SimulationCommandCodec
                 WriteItemRef(w, c.Item);
                 w.Write(c.TargetJunction.Value);
                 WireIo.WriteTile(w, c.TargetTile);
+                break;
+            case PlaceInventoryFurnitureCommand c:
+                w.Write((ushort)CommandType.PlaceInventoryFurniture);
+                WriteEntity(w, c.Npc);
+                WriteItemRef(w, c.Item);
+                w.Write(c.TargetJunction.Value);
+                WireIo.WriteTile(w, c.TargetTile);
+                w.Write(c.RotationDegrees);
                 break;
             case GatherAllOnHexCommand c:
                 w.Write((ushort)CommandType.GatherAllOnHex);
@@ -489,6 +499,9 @@ public static class SimulationCommandCodec
                 return new PlantInventorySeedCommand(
                     ReadEntity(r), ReadItemRef(r), new JunctionId(r.ReadInt32()),
                     WireIo.ReadTile(r));
+            case CommandType.PlaceInventoryFurniture:
+                return new PlaceInventoryFurnitureCommand(ReadEntity(r), ReadItemRef(r), new JunctionId(r.ReadInt32()),
+                    WireIo.ReadTile(r), r.ReadSingle());
             case CommandType.GatherAllOnHex:
                 return new GatherAllOnHexCommand(
                     ReadEntity(r), new ObjectId(r.ReadInt32()),

@@ -1,0 +1,321 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 598" role="img" aria-labelledby="title desc">
+<title id="title">Мебель и стыки современной квартиры</title>
+<desc id="desc">Гексы в натуральном масштабе, мебель на центральном узле, перегородки на общих рёбрах.</desc>
+<rect width="920" height="598" rx="14" fill="#f7f6ef"/>
+<g fill="#20292a" font-family="system-ui, sans-serif">
+<text x="30" y="36" font-size="24" font-weight="700">Мебель и стыки современной квартиры</text>
+<text x="30" y="61" font-size="14">Гекс радиусом 1.50 wu, узлы с шагом 0.375 wu, размер по реальному FBX</text>
+<polygon points="81.00,237.00 143.35,201.00 143.35,129.00 81.00,93.00 18.65,129.00 18.65,201.00" fill="#e8eee9" stroke="#8b9c90"/>
+<circle cx="81.00" cy="219.00" r="1.4" fill="#9cad9f"/>
+<circle cx="96.59" cy="210.00" r="1.4" fill="#9cad9f"/>
+<circle cx="112.18" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="127.77" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="65.41" cy="210.00" r="1.4" fill="#9cad9f"/>
+<circle cx="81.00" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="96.59" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="112.18" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="127.77" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="49.82" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="65.41" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="81.00" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="96.59" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="112.18" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="127.77" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="34.23" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="49.82" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="65.41" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="81.00" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="96.59" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="112.18" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="127.77" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="34.23" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="49.82" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="65.41" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="81.00" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="96.59" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="112.18" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="34.23" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="49.82" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="65.41" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="81.00" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="96.59" cy="120.00" r="1.4" fill="#9cad9f"/>
+<circle cx="34.23" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="49.82" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="65.41" cy="120.00" r="1.4" fill="#9cad9f"/>
+<circle cx="81.00" cy="111.00" r="1.4" fill="#9cad9f"/>
+<rect x="58.92" y="121.61" width="44.16" height="87.79" fill="#edb487" fill-opacity=".73" stroke="#b76238"/>
+<path d="M81 195V120 l-3 5 m3 -5 l3 5" stroke="#2c6783" fill="none" stroke-width="1.4"/>
+<circle cx="81" cy="165" r="3" fill="#172d3c"/>
+<text x="81" y="253" text-anchor="middle" font-size="14" font-weight="600">Кровать</text>
+<text x="81" y="272" text-anchor="middle" font-size="12" fill="#4c5755">0.92 × 1.83 wu</text>
+<polygon points="207.00,237.00 269.35,201.00 269.35,129.00 207.00,93.00 144.65,129.00 144.65,201.00" fill="#e8eee9" stroke="#8b9c90"/>
+<circle cx="207.00" cy="219.00" r="1.4" fill="#9cad9f"/>
+<circle cx="222.59" cy="210.00" r="1.4" fill="#9cad9f"/>
+<circle cx="238.18" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="253.77" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="191.41" cy="210.00" r="1.4" fill="#9cad9f"/>
+<circle cx="207.00" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="222.59" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="238.18" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="253.77" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="175.82" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="191.41" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="207.00" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="222.59" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="238.18" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="253.77" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="160.23" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="175.82" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="191.41" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="207.00" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="222.59" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="238.18" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="253.77" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="160.23" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="175.82" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="191.41" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="207.00" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="222.59" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="238.18" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="160.23" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="175.82" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="191.41" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="207.00" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="222.59" cy="120.00" r="1.4" fill="#9cad9f"/>
+<circle cx="160.23" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="175.82" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="191.41" cy="120.00" r="1.4" fill="#9cad9f"/>
+<circle cx="207.00" cy="111.00" r="1.4" fill="#9cad9f"/>
+<rect x="192.31" y="149.35" width="29.38" height="33.48" fill="#edb487" fill-opacity=".73" stroke="#b76238"/>
+<path d="M207 195V120 l-3 5 m3 -5 l3 5" stroke="#2c6783" fill="none" stroke-width="1.4"/>
+<circle cx="207" cy="165" r="3" fill="#172d3c"/>
+<text x="207" y="253" text-anchor="middle" font-size="14" font-weight="600">Холодильник</text>
+<text x="207" y="272" text-anchor="middle" font-size="12" fill="#4c5755">0.61 × 0.70 wu</text>
+<polygon points="333.00,237.00 395.35,201.00 395.35,129.00 333.00,93.00 270.65,129.00 270.65,201.00" fill="#e8eee9" stroke="#8b9c90"/>
+<circle cx="333.00" cy="219.00" r="1.4" fill="#9cad9f"/>
+<circle cx="348.59" cy="210.00" r="1.4" fill="#9cad9f"/>
+<circle cx="364.18" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="379.77" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="317.41" cy="210.00" r="1.4" fill="#9cad9f"/>
+<circle cx="333.00" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="348.59" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="364.18" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="379.77" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="301.82" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="317.41" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="333.00" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="348.59" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="364.18" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="379.77" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="286.23" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="301.82" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="317.41" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="333.00" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="348.59" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="364.18" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="379.77" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="286.23" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="301.82" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="317.41" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="333.00" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="348.59" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="364.18" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="286.23" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="301.82" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="317.41" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="333.00" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="348.59" cy="120.00" r="1.4" fill="#9cad9f"/>
+<circle cx="286.23" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="301.82" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="317.41" cy="120.00" r="1.4" fill="#9cad9f"/>
+<circle cx="333.00" cy="111.00" r="1.4" fill="#9cad9f"/>
+<rect x="314.76" y="139.56" width="36.48" height="50.88" fill="#edb487" fill-opacity=".73" stroke="#b76238"/>
+<path d="M333 195V120 l-3 5 m3 -5 l3 5" stroke="#2c6783" fill="none" stroke-width="1.4"/>
+<circle cx="333" cy="165" r="3" fill="#172d3c"/>
+<text x="333" y="253" text-anchor="middle" font-size="14" font-weight="600">Стол</text>
+<text x="333" y="272" text-anchor="middle" font-size="12" fill="#4c5755">0.76 × 1.06 wu</text>
+<polygon points="459.00,237.00 521.35,201.00 521.35,129.00 459.00,93.00 396.65,129.00 396.65,201.00" fill="#e8eee9" stroke="#8b9c90"/>
+<circle cx="459.00" cy="219.00" r="1.4" fill="#9cad9f"/>
+<circle cx="474.59" cy="210.00" r="1.4" fill="#9cad9f"/>
+<circle cx="490.18" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="505.77" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="443.41" cy="210.00" r="1.4" fill="#9cad9f"/>
+<circle cx="459.00" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="474.59" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="490.18" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="505.77" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="427.82" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="443.41" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="459.00" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="474.59" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="490.18" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="505.77" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="412.23" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="427.82" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="443.41" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="459.00" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="474.59" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="490.18" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="505.77" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="412.23" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="427.82" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="443.41" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="459.00" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="474.59" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="490.18" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="412.23" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="427.82" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="443.41" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="459.00" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="474.59" cy="120.00" r="1.4" fill="#9cad9f"/>
+<circle cx="412.23" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="427.82" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="443.41" cy="120.00" r="1.4" fill="#9cad9f"/>
+<circle cx="459.00" cy="111.00" r="1.4" fill="#9cad9f"/>
+<rect x="448.68" y="152.47" width="20.64" height="24.60" fill="#edb487" fill-opacity=".73" stroke="#b76238"/>
+<path d="M459 195V120 l-3 5 m3 -5 l3 5" stroke="#2c6783" fill="none" stroke-width="1.4"/>
+<circle cx="459" cy="165" r="3" fill="#172d3c"/>
+<text x="459" y="253" text-anchor="middle" font-size="14" font-weight="600">Стул</text>
+<text x="459" y="272" text-anchor="middle" font-size="12" fill="#4c5755">0.43 × 0.51 wu</text>
+<polygon points="585.00,237.00 647.35,201.00 647.35,129.00 585.00,93.00 522.65,129.00 522.65,201.00" fill="#e8eee9" stroke="#8b9c90"/>
+<circle cx="585.00" cy="219.00" r="1.4" fill="#9cad9f"/>
+<circle cx="600.59" cy="210.00" r="1.4" fill="#9cad9f"/>
+<circle cx="616.18" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="631.77" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="569.41" cy="210.00" r="1.4" fill="#9cad9f"/>
+<circle cx="585.00" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="600.59" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="616.18" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="631.77" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="553.82" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="569.41" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="585.00" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="600.59" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="616.18" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="631.77" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="538.23" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="553.82" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="569.41" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="585.00" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="600.59" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="616.18" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="631.77" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="538.23" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="553.82" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="569.41" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="585.00" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="600.59" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="616.18" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="538.23" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="553.82" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="569.41" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="585.00" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="600.59" cy="120.00" r="1.4" fill="#9cad9f"/>
+<circle cx="538.23" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="553.82" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="569.41" cy="120.00" r="1.4" fill="#9cad9f"/>
+<circle cx="585.00" cy="111.00" r="1.4" fill="#9cad9f"/>
+<rect x="567.00" y="121.08" width="37.44" height="87.84" fill="#edb487" fill-opacity=".73" stroke="#b76238"/>
+<path d="M585 195V120 l-3 5 m3 -5 l3 5" stroke="#2c6783" fill="none" stroke-width="1.4"/>
+<circle cx="585" cy="165" r="3" fill="#172d3c"/>
+<text x="585" y="253" text-anchor="middle" font-size="14" font-weight="600">Диван</text>
+<text x="585" y="272" text-anchor="middle" font-size="12" fill="#4c5755">0.78 × 1.83 wu</text>
+<polygon points="711.00,237.00 773.35,201.00 773.35,129.00 711.00,93.00 648.65,129.00 648.65,201.00" fill="#e8eee9" stroke="#8b9c90"/>
+<circle cx="711.00" cy="219.00" r="1.4" fill="#9cad9f"/>
+<circle cx="726.59" cy="210.00" r="1.4" fill="#9cad9f"/>
+<circle cx="742.18" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="757.77" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="695.41" cy="210.00" r="1.4" fill="#9cad9f"/>
+<circle cx="711.00" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="726.59" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="742.18" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="757.77" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="679.82" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="695.41" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="711.00" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="726.59" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="742.18" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="757.77" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="664.23" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="679.82" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="695.41" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="711.00" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="726.59" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="742.18" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="757.77" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="664.23" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="679.82" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="695.41" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="711.00" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="726.59" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="742.18" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="664.23" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="679.82" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="695.41" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="711.00" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="726.59" cy="120.00" r="1.4" fill="#9cad9f"/>
+<circle cx="664.23" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="679.82" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="695.41" cy="120.00" r="1.4" fill="#9cad9f"/>
+<circle cx="711.00" cy="111.00" r="1.4" fill="#9cad9f"/>
+<rect x="699.19" y="138.36" width="22.18" height="53.28" fill="#edb487" fill-opacity=".73" stroke="#b76238"/>
+<path d="M711 195V120 l-3 5 m3 -5 l3 5" stroke="#2c6783" fill="none" stroke-width="1.4"/>
+<circle cx="711" cy="165" r="3" fill="#172d3c"/>
+<text x="711" y="253" text-anchor="middle" font-size="14" font-weight="600">Телевизор</text>
+<text x="711" y="272" text-anchor="middle" font-size="12" fill="#4c5755">0.46 × 1.11 wu</text>
+<polygon points="837.00,237.00 899.35,201.00 899.35,129.00 837.00,93.00 774.65,129.00 774.65,201.00" fill="#e8eee9" stroke="#8b9c90"/>
+<circle cx="837.00" cy="219.00" r="1.4" fill="#9cad9f"/>
+<circle cx="852.59" cy="210.00" r="1.4" fill="#9cad9f"/>
+<circle cx="868.18" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="883.77" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="821.41" cy="210.00" r="1.4" fill="#9cad9f"/>
+<circle cx="837.00" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="852.59" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="868.18" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="883.77" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="805.82" cy="201.00" r="1.4" fill="#9cad9f"/>
+<circle cx="821.41" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="837.00" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="852.59" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="868.18" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="883.77" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="790.23" cy="192.00" r="1.4" fill="#9cad9f"/>
+<circle cx="805.82" cy="183.00" r="1.4" fill="#9cad9f"/>
+<circle cx="821.41" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="837.00" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="852.59" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="868.18" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="883.77" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="790.23" cy="174.00" r="1.4" fill="#9cad9f"/>
+<circle cx="805.82" cy="165.00" r="1.4" fill="#9cad9f"/>
+<circle cx="821.41" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="837.00" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="852.59" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="868.18" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="790.23" cy="156.00" r="1.4" fill="#9cad9f"/>
+<circle cx="805.82" cy="147.00" r="1.4" fill="#9cad9f"/>
+<circle cx="821.41" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="837.00" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="852.59" cy="120.00" r="1.4" fill="#9cad9f"/>
+<circle cx="790.23" cy="138.00" r="1.4" fill="#9cad9f"/>
+<circle cx="805.82" cy="129.00" r="1.4" fill="#9cad9f"/>
+<circle cx="821.41" cy="120.00" r="1.4" fill="#9cad9f"/>
+<circle cx="837.00" cy="111.00" r="1.4" fill="#9cad9f"/>
+<rect x="829.80" y="148.20" width="14.40" height="33.60" fill="#edb487" fill-opacity=".73" stroke="#b76238"/>
+<path d="M837 195V120 l-3 5 m3 -5 l3 5" stroke="#2c6783" fill="none" stroke-width="1.4"/>
+<circle cx="837" cy="165" r="3" fill="#172d3c"/>
+<text x="837" y="253" text-anchor="middle" font-size="14" font-weight="600">Стеллаж</text>
+<text x="837" y="272" text-anchor="middle" font-size="12" fill="#4c5755">0.30 × 0.70 wu</text>
+<polygon points="183.00,534.00 245.35,498.00 245.35,426.00 183.00,390.00 120.65,426.00 120.65,498.00" fill="#d8bd92" stroke="#495d62" stroke-width="2"/>
+<polygon points="307.71,534.00 370.06,498.00 370.06,426.00 307.71,390.00 245.35,426.00 245.35,498.00" fill="#9eb6c9" stroke="#495d62" stroke-width="2"/>
+<polygon points="245.35,426.00 307.71,390.00 307.71,318.00 245.35,282.00 183.00,318.00 183.00,390.00" fill="#a9bfad" stroke="#495d62" stroke-width="2"/>
+<path d="M245.35 426.00V451.78 M245.35 472.22V498.00" stroke="#62392b" stroke-width="6"/>
+<path d="M218 462H278 l-7 -5 m7 5 l-7 5" stroke="#2c6783" fill="none" stroke-width="3"/>
+<text x="393" y="337" font-size="17" font-weight="650">Стыки комнат</text>
+<text x="393" y="361" font-size="14">Плитки стыкуются по ребру 1.50 wu.</text>
+<text x="393" y="385" font-size="14">Открытая дверь оставляет проход 0.426 × 1.452 wu.</text>
+<text x="393" y="409" font-size="14">Возвратная дверь занимает проём 0.50 × 1.50 wu.</text>
+<text x="393" y="433" font-size="14">Окно с городом установлено в проём 1.048 × 1.08 wu.</text>
+<text x="393" y="457" font-size="14">Точка отмечает опору модели, синий штрих — ось +Y.</text>
+<text x="30" y="565" font-size="12" fill="#4c5755">Три пары отделки пола и стен согласованы по размеру, соседние комнаты могут иметь разные материалы.</text>
+</g></svg>

@@ -435,6 +435,12 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
 
             Audio.SoundManager.Instance?.OnSimEvent(e);
 
+            if (e.Type == "PortalResidentStartled" && !UI.LoadingScreen.IsReplaying &&
+                CreateSnapshot()?.Npcs.Exists(npc => PortalWorld.IsApartmentTile(npc.Tile) && CanControlNpc(npc.Id)) == true)
+            {
+                UI.VoiceResponsePanel.PublishNpc(Localization.Loc.Get("portal.resident.question"), 5f);
+            }
+
             // §121: отказ на приказ игрока — короткая подпись в панели
             // персонажа. В историю колонии он не идёт нарочно: это ответ на
             // клик, а не событие в жизни острова.

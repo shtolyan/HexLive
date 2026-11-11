@@ -249,6 +249,17 @@ internal static class GroundItemPlacement
             foreach(var obj in scratch.Objects)
             {
                 if(scratch.Sockets.Contains(obj.Junctions[0]) || !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId,out var def) || !IsLoose(def)) continue;
+                // Carryable furniture is placed as one solid object, with a
+                // footprint of its own instead of the loose-item stacking profile.
+                if (PortableFurniture.CanCarry(obj.DefinitionId))
+                {
+                    if (!world.Junctions.Items.TryGetValue(obj.Junctions[0], out var furnitureAnchor)) continue;
+                    var radius = PortableFurniture.FootprintRadius(obj.DefinitionId);
+                    var furniture = new GroundPileBounds(-radius, 0f, -radius, radius, 0f, radius)
+                        .At(new GroundPilePose(furnitureAnchor.WorldPosition.X, 0f, furnitureAnchor.WorldPosition.Y));
+                    if (bounds.OverlapsXZ(furniture)) { valid = false; break; }
+                    continue;
+                }
                 // Separate item instances remain independently pickable; only
                 // harvest leaves may overlap each other, never an inventory pile.
                 if(compactLeaves && obj.IsHarvestScatter && obj.DefinitionId==ContentIds.PalmLeaf) continue;

@@ -171,7 +171,7 @@ public sealed class Handshake
     // 26: §173.2 — exact inventory-seed planting command and target junction.
     // 27: #487 — exact encoder vocabulary, independent of either side's code defaults.
     // 28: #644 — snapshot v45 has ushort object flags and real property/consent.
-    public const int ProtocolVersion = 28; // matched client/server required
+    public const int ProtocolVersion = 29; // matched client/server required
 
     public string WorldId { get; set; } = string.Empty;
     public string CreationConfig { get; set; } = string.Empty;

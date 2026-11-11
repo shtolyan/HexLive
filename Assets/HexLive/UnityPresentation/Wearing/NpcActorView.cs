@@ -4070,6 +4070,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         // Клинковое — режет; всё прочее (молоток, кирка, копьё) — тупой удар.
         return weaponId is HexLive.Simulation.Content.GearCatalog.Knife
+            or HexLive.Simulation.Content.ContentIds.KitchenKnife
+            or HexLive.Simulation.Content.ContentIds.SteelHatchet
+            or HexLive.Simulation.Content.ContentIds.FoldingSaw
             or HexLive.Simulation.Content.GearCatalog.Machete
             or HexLive.Simulation.Content.GearCatalog.Axe
             or HexLive.Simulation.Content.GearCatalog.Saw
@@ -4241,8 +4244,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // on Sit, and hold the relevant item in the currently functional hand.
     public void SyncBottleLiquid(float fill, HexLive.Simulation.Agents.WaterKind appearance)
     {
-        if (_currentPropId == "tool.bottle" && _handProp != null)
-            HexLive.UnityPresentation.Environment.BottleLiquidVisual.Sync(_handProp, fill, appearance);
+        if (_currentPropId is "tool.bottle" or HexLive.Simulation.Content.ContentIds.DrinkingGlass && _handProp != null)
+            HexLive.UnityPresentation.Environment.BottleLiquidVisual.Sync(_handProp, fill, appearance,
+                openGlass: _currentPropId == HexLive.Simulation.Content.ContentIds.DrinkingGlass);
     }
 
     public void SyncHeldLeafDryness(float dryness) => _handLeafTint?.Sync(dryness);

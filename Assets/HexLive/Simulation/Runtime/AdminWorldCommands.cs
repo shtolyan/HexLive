@@ -6,6 +6,7 @@ using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Social;
 
 namespace HexLive.Simulation.Runtime
 {
@@ -15,6 +16,7 @@ public sealed class AdminCommand
     public string OperationId { get; set; } = string.Empty;
     public string Kind { get; set; } = string.Empty;
     public int NpcId { get; set; }
+    public int OtherNpcId { get; set; }
     public int ObjectId { get; set; }
     public string Target { get; set; } = string.Empty;
     public string DefinitionId { get; set; } = string.Empty;
@@ -25,6 +27,8 @@ public sealed class AdminCommand
     public int Count { get; set; } = 1;
     public float Value { get; set; }
     public bool Add { get; set; }
+    public bool? Enabled { get; set; }
+    public bool Mutual { get; set; }
     public float? GroundX { get; set; }
     public float? GroundZ { get; set; }
     public int? TileQ { get; set; }
@@ -47,11 +51,12 @@ public sealed class AdminCommandResult
 public static class AdminWorldCommands
 {
     public static readonly string[] Kinds = { "heal", "restore_limb", "fit_prosthetic",
-        "repair_prosthetic", "set_need", "set_attribute", "give_item", "remove_item",
+        "repair_prosthetic", "set_need", "set_attribute", "set_skill", "set_trait", "set_relationship", "give_item", "remove_item",
         "clear_inventory", "give_garment", "equip_garment", "rename_npc", "set_faction", "assign_npc", "spawn_npc", "delete_npc",
-        "create_building", "complete_building", "stock_building", "repair_building", "demolish_building" };
+        "create_building", "complete_building", "stock_building", "repair_building", "demolish_building", "open_portal" };
     public static readonly string[] Needs = { "Hunger", "Thirst", "Energy", "Comfort", "Social",
         "Compassion", "ThermalDiscomfort", "Stamina", "Breath", "Hygiene", "Blood", "Stress" };
+    public static readonly string[] RelationshipFields = Enum.GetNames(typeof(RelationshipField));
     public static bool IsDestructive(string kind) => kind is "remove_item" or "clear_inventory"
         or "delete_npc" or "demolish_building";
 
@@ -59,6 +64,14 @@ public static class AdminWorldCommands
     {
         if (c.Kind == null || c.Target == null || c.DefinitionId == null || c.Text == null)
             return AdminCommandResult.Reject(c, "InvalidInput");
+        if (c.Kind == "open_portal")
+        {
+            var camp = world.Portal.Camp;
+            if (c.Target.Length != 0 && !PortalWorld.TryParseCamp(c.Target, out camp))
+                return AdminCommandResult.Reject(c, "InvalidCamp");
+            var portalProblem = PortalWorld.OpenImmediately(world, camp);
+            return portalProblem == null ? AdminCommandResult.Ok(c) : AdminCommandResult.Reject(c, portalProblem);
+        }
         if (AdminWorldObjects.Handles(c.Kind)) return AdminWorldObjects.Execute(world, c);
         if (!world.Entities.Npcs.TryGetValue(new EntityId(c.NpcId), out var npc) || npc.Health <= 0)
             return AdminCommandResult.Reject(c, "NpcNotAlive");
@@ -87,6 +100,9 @@ public static class AdminWorldCommands
                 var v = c.Value + (c.Add ? npc.Attributes.Get(attribute) : 0);
                 if (v < 0 || v > 1) return AdminCommandResult.Reject(c, "ValueOutOfRange");
                 npc.Attributes.Set(attribute, v); problem = string.Empty; break;
+            case "set_skill": problem = SetSkill(npc, c); break;
+            case "set_trait": problem = SetTrait(npc, c); break;
+            case "set_relationship": problem = SetRelationship(world, npc, c); break;
             case "give_garment": case "equip_garment": problem = AdminGarments.Execute(world, npc, c); break;
             case "set_need": problem = SetNeed(npc, c); break;
             case "give_item": case "remove_item": case "clear_inventory": problem = Inventory(world, npc, c); break;
@@ -111,6 +127,92 @@ public static class AdminWorldCommands
     }
 
     public static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+
+    private static string SetSkill(NPCState npc, AdminCommand command)
+    {
+        if (!Enum.TryParse<SkillKind>(command.Target, true, out var skill) ||
+            !Enum.IsDefined(typeof(SkillKind), skill) || !Finite(command.Value))
+            return "InvalidSkill";
+        var value = command.Value + (command.Add ? npc.Skills.Get(skill) : 0);
+        if (!(value >= 0 && value <= 1)) return "ValueOutOfRange";
+        npc.Skills.Set(skill, value);
+        return string.Empty;
+    }
+
+    private static string SetTrait(NPCState npc, AdminCommand command)
+    {
+        if (!TraitSet.TryParse(command.Target, out var trait) || !command.Enabled.HasValue)
+            return "InvalidTrait";
+
+        if (!command.Enabled.Value)
+        {
+            npc.Traits.Remove(trait);
+            return string.Empty;
+        }
+
+        TraitKind? opposite = trait switch
+        {
+            TraitKind.Slob => TraitKind.Neat,
+            TraitKind.Neat => TraitKind.Slob,
+            TraitKind.Lazy => TraitKind.Diligent,
+            TraitKind.Diligent => TraitKind.Lazy,
+            TraitKind.Coward => TraitKind.Brave,
+            TraitKind.Brave => TraitKind.Coward,
+            _ => null,
+        };
+        if (opposite.HasValue) npc.Traits.Remove(opposite.Value);
+        npc.Traits.Add(trait);
+        return string.Empty;
+    }
+
+    private enum RelationshipField { Trust, Familiarity, Affinity, Authority }
+
+    private static string SetRelationship(WorldState world, NPCState npc, AdminCommand command)
+    {
+        if (!RelationshipFields.Contains(command.Target, StringComparer.OrdinalIgnoreCase) ||
+            !Enum.TryParse<RelationshipField>(command.Target, true, out var field) || !Finite(command.Value))
+            return "InvalidRelationship";
+
+        var otherId = new EntityId(command.OtherNpcId);
+        if (otherId == npc.Id || !world.Entities.Npcs.TryGetValue(otherId, out var other) || other.Health <= 0)
+            return "InvalidRelationshipTarget";
+
+        var minimum = field is RelationshipField.Trust or RelationshipField.Affinity ? -1f : 0f;
+        var value = NextValue(npc.Social, otherId);
+        var reverse = command.Mutual ? NextValue(other.Social, npc.Id) : 0;
+        if (!(value >= minimum && value <= 1) || !(reverse >= minimum && reverse <= 1))
+            return "ValueOutOfRange";
+
+        Set(npc.Social.GetOrCreate(otherId), value);
+        if (command.Mutual) Set(other.Social.GetOrCreate(npc.Id), reverse);
+        return string.Empty;
+
+        float NextValue(SocialState social, EntityId target)
+        {
+            if (!command.Add || !social.Relationships.TryGetValue(target, out var relation))
+                return command.Value;
+            return command.Value + (field switch
+            {
+                RelationshipField.Trust => relation.Trust,
+                RelationshipField.Familiarity => relation.Familiarity,
+                RelationshipField.Affinity => relation.Affinity,
+                RelationshipField.Authority => relation.Authority,
+                _ => 0,
+            });
+        }
+
+        void Set(RelationshipData relation, float amount)
+        {
+            switch (field)
+            {
+                case RelationshipField.Trust: relation.Trust = amount; break;
+                case RelationshipField.Familiarity: relation.Familiarity = amount; break;
+                case RelationshipField.Affinity: relation.Affinity = amount; break;
+                case RelationshipField.Authority: relation.Authority = amount; break;
+            }
+        }
+    }
+
     private static bool TryParts(string target, bool limbsOnly, out BodyPart[] parts)
     {
         parts = Array.Empty<BodyPart>();

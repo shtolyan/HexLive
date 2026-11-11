@@ -36,6 +36,8 @@ public sealed class FactionHomeBootstrap
 
 public sealed class SimulationBootstrapSettings
 {
+    public bool EnablePortalTopology { get; set; }
+
     public float TickDeltaTime { get; set; } = 0.25f;
 
     public int MediumTickInterval { get; set; } = 4;

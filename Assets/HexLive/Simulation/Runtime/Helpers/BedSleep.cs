@@ -130,10 +130,8 @@ public static class BedSleep
     }
 
     private static bool IsIntegratedHutBed(WorldState world, WorldObjectState bed) =>
-        bed.DefinitionId == ContentIds.BedBasic &&
-        (bed.Variant == ContentIds.HutBedVariant ||
-         world.Tiles.Items.TryGetValue(bed.Tile, out var tile) &&
-         tile.Flags.HasFlag(TileFlags.HasFloor));
+        PortableFurniture.IsBuiltInBed(bed.DefinitionId, bed.Variant,
+            world.Tiles.Items.TryGetValue(bed.Tile, out var tile) && tile.Flags.HasFlag(TileFlags.HasFloor));
 
     private static Float2 IntegratedHutBedVisualPosition(
         WorldState world, WorldObjectState bed, Float2 interactionAnchor)

@@ -101,6 +101,62 @@ public sealed class AssetRegistryStoreTests
         Assert.That(_store.TryGetVerifiedBlob(candidate.Variants[0].Sha256, out _, out _), Is.False);
     }
 
+    [TestCase("object", "tool.flashlight")]
+    [TestCase("building", "architecture.modern_opening")]
+    [TestCase("wear", "clothing.halter_vamp")]
+    [TestCase("config", "paintmaps.garment_09ed605d5ca9ce194bb16e5b7659ed70_46302d2607153dc1a50379b2_marta_5237")]
+    public async Task ExactPortalOwnerWithBothLabelsCanBeServed(string type, string id)
+    {
+        var candidate = Candidate(type, id, "portal-asset", hasIcon: type is "object" or "wear");
+        candidate.Metadata["contentOrigin"] = JsonSerializer.SerializeToElement("modern");
+        candidate.Metadata["acquisition"] = JsonSerializer.SerializeToElement("portal");
+        var published = await _store.PublishAsync(candidate);
+        Assert.That(published.Record.State, Is.EqualTo("active"));
+        Assert.That(_store.Resolve(type, id, "StandaloneOSX", "unity6000-content1"), Is.Not.Null);
+    }
+
+    [TestCase("wear", "clothing.halter_vamp_burgundy", "modern", "portal", false)]
+    [TestCase("wear", "clothing.top_primal", "modern", "portal", false)]
+    [TestCase("object", "clothing.halter_vamp", "modern", "portal", false)]
+    [TestCase("building", "architecture.modern_unapproved", "primal", "", false)]
+    [TestCase("object", "item.clothes_hanger", "modern", "portal", false)]
+    [TestCase("object", "tool.flashlight", "modern", "", false)]
+    [TestCase("object", "tool.flashlight", "primal", "portal", false)]
+    [TestCase("wear", "clothing.halter_vamp", "modern", "portal", true)]
+    public void PartialLabelsAndUnapprovedPortalOwnersCannotActivate(
+        string type, string id, string origin, string acquisition, bool legacy)
+    {
+        var candidate = Candidate(type, id, "portal-asset", hasIcon: type is "object" or "wear");
+        candidate.Metadata["contentOrigin"] = JsonSerializer.SerializeToElement(origin);
+        if (acquisition.Length != 0) candidate.Metadata["acquisition"] = JsonSerializer.SerializeToElement(acquisition);
+        if (legacy) candidate.Metadata["legacyWardrobe"] = JsonSerializer.SerializeToElement(true);
+        Assert.That(async () => await _store.PublishAsync(candidate), Throws.TypeOf<InvalidDataException>());
+        Assert.That(_store.RegistryRevision, Is.Zero);
+    }
+
+    [Test]
+    public async Task PortalWearIsAvailableToLoadWithoutEnteringOrdinaryCatalogOrRecipes()
+    {
+        const string id = "clothing.halter_vamp";
+        var basePath = Path.Combine(_root, "base.json");
+        File.WriteAllText(basePath, "{\"garments\":[],\"recipes\":[{\"output\":\"clothing.halter_vamp\"}]}");
+        var catalog = new AssetGarmentCatalog(_store, basePath);
+        var candidate = Candidate("wear", id, "portal-wear", hasIcon: true);
+        candidate.Metadata["contentOrigin"] = JsonSerializer.SerializeToElement("modern");
+        candidate.Metadata["acquisition"] = JsonSerializer.SerializeToElement("portal");
+        candidate.Metadata["simulation"] = JsonSerializer.SerializeToElement(new GarmentSimulationMetadata
+        {
+            DisplayName = "Buckled halter", PrototypeId = id,
+        });
+
+        await _store.PublishAsync(candidate);
+        var materialized = catalog.Materialize();
+        var root = JsonNode.Parse(materialized.Json)!;
+        Assert.That(materialized.SpawnableWear, Is.Zero);
+        Assert.That(root["garments"]!.AsArray().Single()!["id"]!.GetValue<string>(), Is.EqualTo(id));
+        Assert.That(root["recipes"]!.AsArray(), Is.Empty);
+    }
+
     [Test]
     public async Task StagedWearCannotChangeTheMaterializedWardrobeOrCrafting()
     {

@@ -52,6 +52,13 @@ namespace HexLive.UnityPresentation.Wearing.Garments
                 completed?.Invoke();
                 return;
             }
+            var localModern = LocalModernContent.WearDefinition(itemId);
+            if (localModern != null)
+            {
+                Add(localModern);
+                completed?.Invoke();
+                return;
+            }
             if (Waiters.TryGetValue(itemId, out var pending))
             {
                 if (completed != null)
@@ -141,10 +148,11 @@ namespace HexLive.UnityPresentation.Wearing.Garments
         /// <summary>Materials for this item, or null to keep the prototype's.</summary>
         public static Material[] MaterialsOf(string itemId)
         {
-            if (string.IsNullOrEmpty(itemId) || !ById.TryGetValue(itemId, out var def))
+            if (string.IsNullOrEmpty(itemId)) return null;
+            if (!ById.TryGetValue(itemId, out var def))
             {
                 PrewarmAsync(itemId);
-                return null;
+                if (!ById.TryGetValue(itemId, out def)) return null;
             }
 
             return def.variantMaterials != null && def.variantMaterials.Length > 0

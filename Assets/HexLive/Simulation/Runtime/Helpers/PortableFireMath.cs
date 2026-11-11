@@ -24,7 +24,13 @@ internal static class PortableFireMath
             GearCatalog.BestToolFor(npc.Inventory.Items, GearCapability.Ignite, npc.Body.IntactHands);
         if (tool == null || !InventoryMath.ContainsReference(npc.Inventory.Items, tool) ||
             (GearCatalog.For(tool.DefinitionId).Capabilities & GearCapability.Ignite) == 0) return;
-        tool.Durability = System.Math.Max(0f, tool.Durability - IgnitionWear);
+        float wear = tool.DefinitionId switch
+        {
+            ContentIds.DisposableLighter => .04f,
+            ContentIds.WindproofLighter => .01f,
+            _ => IgnitionWear,
+        };
+        tool.Durability = System.Math.Max(0f, tool.Durability - wear);
         if (tool.Durability <= 0.000001f)
         {
             InventoryMath.RemoveReference(npc.Inventory.Items, tool);
@@ -32,17 +38,16 @@ internal static class PortableFireMath
         }
     }
 
-    internal static void BurnCarried(WorldState world)
-    {
-        foreach (var npc in world.Entities.Npcs.Values)
-            BurnItems(npc.Inventory.Items, world.SlowIntervalTicks);
-    }
-
-    internal static void BurnItems(System.Collections.Generic.List<ItemInstance> items, int ticks)
+    internal static void AdvanceLights(System.Collections.Generic.List<ItemInstance> items, int ticks)
     {
         for (var i = items.Count - 1; i >= 0; i--)
         {
             var item = items[i];
+            if (item.DefinitionId == ContentIds.Flashlight)
+            {
+                FlashlightMath.DrainItem(item, ticks);
+                continue;
+            }
             if (item.DefinitionId != ContentIds.Torch) continue;
             item.Durability = System.Math.Max(0f, item.Durability - ticks / TorchLifetimeTicks);
             if (item.Durability <= 0f) items.RemoveAt(i);

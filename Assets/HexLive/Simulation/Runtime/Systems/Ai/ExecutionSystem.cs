@@ -1197,6 +1197,19 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
     {
+        if (completedInteraction.Type == InteractionType.TravelPortal)
+        {
+            worldObject.IsOccupied = false;
+            worldObject.CurrentUser = null;
+            var reason = PortalWorld.Travel(world, npc, worldObject);
+            if (reason == null) return true;
+
+            PlanInterruption.TryAbortKeepingCarriedPerson(world, npc, InterruptionCause.ExecutionFailure, reason);
+            npc.Mind.CurrentGoal = GoalType.None;
+            Trace.Emit(world, npc.Id, "PortalTravelRefused", reason);
+            return false;
+        }
+
         if (completedInteraction.Type == InteractionType.FillBottle)
         {
             // §134: an already-running order loaded from an old save cannot
@@ -1530,6 +1543,20 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 worldObject.CurrentUser = null;
             }
         }
+        else if (completedInteraction.Type == InteractionType.SwitchFlashlight)
+        {
+            var refusal = FlashlightMath.GroundSwitchRefusal(npc, worldObject, completedInteraction.Id);
+            worldObject.IsOccupied = false;
+            worldObject.CurrentUser = null;
+            if (refusal != null)
+            {
+                AgentCommandLedger.Finish(world, npc, "failed", refusal);
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, refusal);
+                npc.Mind.CurrentGoal = GoalType.None;
+                return false;
+            }
+            worldObject.ResourceAmount = completedInteraction.Id == FlashlightMath.SwitchOnInteractionId ? 1f : 0f;
+        }
         else if (completedInteraction.Type == InteractionType.Ignite)
         {
             if (worldObject.ResourceAmount > 0f ||
@@ -1812,6 +1839,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
     {
+        if (PortableFurniture.CanCarry(worldObject.DefinitionId) && (npc.Plan.Goal != GoalType.PlayerOrder ||
+            PortableFurniture.PickupRefusal(world, npc, worldObject, allowOwnReservation: true) != null)) return false;
         if (!CampPropertyMath.CanUse(world, npc, worldObject)) return false;
 
         if (worldObject.IsCraftProject)
@@ -3004,7 +3033,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         var away = HexSpatialMath.Normalize(new Float2(
             npc.Position.X - anchorPosition.X,
             npc.Position.Y - anchorPosition.Y));
-        if (HexSpatialMath.Distance(away, Float2.Zero) <= 0.0001f)
+        if (PortalWorld.TryGetModernSeatFacing(worldObject.DefinitionId, worldObject.RotationDegrees, out var facing))
+        {
+            var radians = facing * System.MathF.PI / 180f;
+            away = new Float2(System.MathF.Cos(radians), System.MathF.Sin(radians));
+        }
+        else if (HexSpatialMath.Distance(away, Float2.Zero) <= 0.0001f)
         {
             // A malformed/legacy object can have its approach point on the
             // anchor.  Fall back to the authored furniture yaw rather than

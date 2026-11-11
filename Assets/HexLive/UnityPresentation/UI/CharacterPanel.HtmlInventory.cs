@@ -271,11 +271,12 @@ namespace HexLive.UnityPresentation.UI
             var wearable = def != null && def.Layer.HasValue;
             var outfitBlocked = _outfitLockedNow && (worn || wearable);
             var actions = new JArray();
+            if (_inventoryMutable && !worn && id == ContentIds.Flashlight) actions.Add("switch_light");
             if (_inventoryMutable && (worn || wearable) && !outfitBlocked) actions.Add(worn ? "stow" : "wear");
-            if (_inventoryMutable && !worn && InventoryPlacementMath.CanPlace(id))
-                actions.Add(id == ContentIds.Torch ? "place" : "plant");
+            if (_inventoryMutable && !worn && (InventoryPlacementMath.CanPlace(id) || PortableFurniture.CanCarry(id)))
+                actions.Add(InventoryPlacementVerb(id) == "inv.action.place" ? "place" : "plant");
             if (_inventoryMutable && CanFillVessel(id, worn, water, sourceIndex) && _inventoryHasTwoHands) actions.Add("fill");
-            if (_inventoryMutable && !(_outfitLockedNow && worn)) actions.Add("drop");
+            if (_inventoryMutable && !(_outfitLockedNow && worn) && !PortableFurniture.CanCarry(id)) actions.Add("drop");
 
             return new JObject
             {
@@ -388,6 +389,7 @@ namespace HexLive.UnityPresentation.UI
                         case "stow": EnqueueInventoryAction(InventoryAction.Stow); break;
                         case "drop": EnqueueInventoryAction(InventoryAction.Drop, count); break;
                         case "fill": EnqueueFillVessel(); break;
+                        case "switch_light": EnqueueInventoryAction(InventoryAction.ToggleFlashlight); break;
                         case "plant":
                         case "place": BeginSelectedSeedPlacement(); break;
                     }

@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using HexLive.Simulation.Content;
 
 namespace HexLive.Server.Assets
 {
@@ -895,21 +896,34 @@ public sealed partial class AssetRegistryStore
         }
     }
 
-    // §152: staging may hold modern assets, but the live registry cannot activate them.
+    // §152/§176: selected live Modern owners have an explicit portal acquisition path.
     private static void ValidateActiveOrigin(
         string type, string id, string state, Dictionary<string, JsonElement> metadata)
     {
         if (state != "active") return;
 
-        if (metadata.TryGetValue("contentOrigin", out var origin) &&
-            (origin.ValueKind != JsonValueKind.String || !origin.ValueEquals("primal")))
-        {
-            throw new InvalidDataException($"Cannot activate {type}/{id}: contentOrigin must be 'primal'.");
-        }
         if (metadata.TryGetValue("legacyWardrobe", out var legacy) && legacy.ValueKind == JsonValueKind.True)
         {
             throw new InvalidDataException($"Cannot activate {type}/{id}: legacyWardrobe is staged content.");
         }
+
+        var approvedPortalOwner = PortalContentPolicy.IsApproved(type, id);
+        var hasOrigin = metadata.TryGetValue("contentOrigin", out var origin);
+        var portalAcquisition = metadata.TryGetValue("acquisition", out var acquisition) &&
+            acquisition.ValueKind == JsonValueKind.String && acquisition.ValueEquals(PortalContentPolicy.Acquisition);
+        if (approvedPortalOwner || portalAcquisition || PortalContentPolicy.IsModernWorldOwner(type, id))
+        {
+            if (!approvedPortalOwner || !portalAcquisition ||
+                origin.ValueKind != JsonValueKind.String || !origin.ValueEquals(PortalContentPolicy.Origin))
+                throw new InvalidDataException($"Cannot activate {type}/{id}: a portal owner requires its approved identity and Modern portal labels.");
+            if (type == "wear" && metadata.TryGetValue("simulation", out var simulation) &&
+                simulation.ValueKind == JsonValueKind.Object && simulation.TryGetProperty("craft", out var craft) &&
+                craft.ValueKind != JsonValueKind.Null)
+                throw new InvalidDataException($"Cannot activate {type}/{id}: portal garments cannot have a crafting recipe.");
+            return;
+        }
+        if (hasOrigin && (origin.ValueKind != JsonValueKind.String || !origin.ValueEquals("primal")))
+            throw new InvalidDataException($"Cannot activate {type}/{id}: contentOrigin must be 'primal'.");
     }
 
     private static void ValidateIdentity(string type, string id)

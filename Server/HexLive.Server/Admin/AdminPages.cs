@@ -221,6 +221,24 @@ recovery address on file.</p>
 through colony days for <em>everyone</em> watching and multiplies the stream every viewer receives.
 Connected clients cannot do it — only this panel can.</p></div>");
 
+        var portal = host.ReadPortalSettings();
+        body.Append("<h2>Midnight portal</h2><div class='card'><form method='post' action='/admin/portal'>")
+            .Append("<label for='portal-mode'>Location mode</label><select name='mode' id='portal-mode'>");
+        foreach (var choice in new[] { (HexLive.Simulation.Runtime.PortalSpawnMode.Camp, "Selected camp"),
+            (HexLive.Simulation.Runtime.PortalSpawnMode.Random, "Random safe location"),
+            (HexLive.Simulation.Runtime.PortalSpawnMode.Disabled, "Disabled") })
+            body.Append("<option value='").Append(choice.Item1).Append("'")
+                .Append(portal.Mode == choice.Item1 ? " selected" : "").Append(">")
+                .Append(choice.Item2).Append("</option>");
+        body.Append("</select><label for='portal-camp'>Camp</label><select name='camp' id='portal-camp'>");
+        foreach (var camp in portal.Camps.DefaultIfEmpty(portal.Camp))
+            body.Append("<option value='").Append(camp).Append("'")
+                .Append(portal.Camp == camp ? " selected" : "").Append(">Camp ")
+                .Append(camp == HexLive.Simulation.Agents.Faction.Colony ? 1 : (int)camp).Append("</option>");
+        body.Append("</select><div class='row' style='margin-top:12px'><button>Save portal settings</button>")
+            .Append("<button formaction='/admin/portal/open'>Open now at this camp</button>")
+            .Append("<span class='dim'>Location changes apply at the next midnight.</span></div></form></div>");
+
         if (centralAccess)
             body.Append("<h2>Access</h2><div class='card'><a href='https://keys.62-146-235-120.sslip.io/'>Ключи и права</a> · <a href='/admin/voice/history'>История команд</a></div>");
         else

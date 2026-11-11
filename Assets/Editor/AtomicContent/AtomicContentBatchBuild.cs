@@ -9,6 +9,7 @@ using HexLive.UnityPresentation.Wearing.Garments;
 using HexLive.UnityPresentation.Config;
 using HexLive.UnityPresentation.Environment;
 using HexLive.Simulation.Content;
+using HexLive.Simulation.Runtime;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
@@ -224,6 +225,9 @@ public static class AtomicContentBatchBuild
         AuditAll();
         BuildAll();
     }
+
+    /// <summary>Builds the §176 world props and the two edited Primal owners.</summary>
+    public static void BuildPortalWebGL() => Run(buildAll: true, portalOnly: true);
 
     public static void BuildStagedModernWebGL()
     {
@@ -632,7 +636,7 @@ public static class AtomicContentBatchBuild
     }
 
     private static void Run(bool buildAll, JArray stagedWardrobe = null,
-        Dictionary<string, string> modernInputHashes = null)
+        Dictionary<string, string> modernInputHashes = null, bool portalOnly = false)
     {
         var succeeded = false;
         try
@@ -643,6 +647,10 @@ public static class AtomicContentBatchBuild
             var runtimeProfile = Optional(arguments, "-content-runtime-profile") ?? RuntimeProfile;
             Directory.CreateDirectory(output);
             var groupedMode = Optional(arguments, "-content-staged-batch");
+            if (portalOnly && (platform != "WebGL" || arguments.Contains("-content-staged-batch") ||
+                arguments.Contains("-content-exclude-types") || arguments.Contains("-content-reopen-staged-output") ||
+                Directory.EnumerateFileSystemEntries(output).Any()))
+                throw new InvalidOperationException("Portal content requires a new WebGL output and its complete owner set");
             if (arguments.Contains("-content-staged-batch") && (stagedWardrobe == null ||
                 groupedMode is not ("smoke" or "full") || Directory.EnumerateFileSystemEntries(output).Any()))
                 throw new InvalidOperationException("Grouped mode requires a fresh dedicated Modern staging output and smoke or full");
@@ -677,8 +685,11 @@ public static class AtomicContentBatchBuild
                     StringComparer.Ordinal);
                 if (stagedWardrobe != null && excludedTypes.Count != 0)
                     throw new InvalidOperationException("A staged Modern wardrobe requires its complete inventory");
-                var recipes = stagedWardrobe == null
-                    ? DiscoverAllRecipes().Where(recipe => !excludedTypes.Contains(recipe.Type)).ToList()
+                var recipes = portalOnly ? DiscoverPortalRecipes()
+                    : stagedWardrobe == null
+                    ? DiscoverAllRecipes().Where(recipe => !excludedTypes.Contains(recipe.Type) &&
+                        !PortalContentPolicy.IsApproved(recipe.Type, recipe.Id) &&
+                        !PortalContentPolicy.IsModernWorldOwner(recipe.Type, recipe.Id)).ToList()
                     : stagedWardrobe.Select(row => new Recipe
                     {
                         Type = (string)row["type"], Id = (string)row["id"], Inputs = () => ResolvePeople(row)
@@ -696,7 +707,7 @@ public static class AtomicContentBatchBuild
                 }
                 var failures = new JArray();
                 var builtCount = 0;
-                var complete = groupedMode == null ? null : new HashSet<Recipe>();
+                var complete = groupedMode == null && !portalOnly ? null : new HashSet<Recipe>();
                 void BuildSingle(Recipe recipe)
                 {
                     try
@@ -726,19 +737,23 @@ public static class AtomicContentBatchBuild
                     }
                 }
 
-                if (groupedMode == null)
+                if (complete == null)
                 {
                     foreach (var recipe in recipes) BuildSingle(recipe);
                 }
                 else
                 {
                     var smoke = groupedMode == "smoke";
-                    var groups = PlanStagedGroups(recipes, stagedWardrobe, smoke);
+                    var groups = portalOnly ? PlanPortalGroups(recipes) : PlanStagedGroups(recipes, stagedWardrobe, smoke);
                     var proof = BuildStagedGroups(groups, output, platform, runtimeProfile, target, smoke, BuildSingle, complete);
-                    RequireModernBuildInputs(modernInputHashes);
-                    proof["catalogSHA256"] = modernInputHashes[StagedWardrobeRoot + "release-catalog.json"];
-                    proof["fitManifestSHA256"] = modernInputHashes[StagedWardrobeRoot + "release-fit.json"];
-                    proof["releaseSelectionSHA256"] = modernInputHashes[StagedWardrobeRoot + "release-selection.json"];
+                    if (portalOnly) proof["mode"] = "portal";
+                    else
+                    {
+                        RequireModernBuildInputs(modernInputHashes);
+                        proof["catalogSHA256"] = modernInputHashes[StagedWardrobeRoot + "release-catalog.json"];
+                        proof["fitManifestSHA256"] = modernInputHashes[StagedWardrobeRoot + "release-fit.json"];
+                        proof["releaseSelectionSHA256"] = modernInputHashes[StagedWardrobeRoot + "release-selection.json"];
+                    }
                     File.WriteAllText(Path.Combine(output, "grouped-build-receipt.json"),
                         proof.ToString(Formatting.Indented) + "\n", new UTF8Encoding(false));
                     if (smoke)
@@ -764,7 +779,12 @@ public static class AtomicContentBatchBuild
                     ["failed"] = failures.Count,
                     ["failures"] = failures,
                 };
-                if (stagedWardrobe != null)
+                if (portalOnly)
+                {
+                    summary["stage"] = "portal";
+                    summary["unityVersion"] = Application.unityVersion;
+                }
+                else if (stagedWardrobe != null)
                 {
                     summary["contentOrigin"] = "modern";
                     summary["stage"] = "prepared-only";
@@ -785,7 +805,7 @@ public static class AtomicContentBatchBuild
                 }
                 if (stagedWardrobe != null)
                     ValidatePeoplePayloads(output, platform, stagedWardrobe);
-                else if (UsePeopleCatalog)
+                else if (!portalOnly && UsePeopleCatalog)
                     ValidatePeoplePayloads(output, platform);
             }
             succeeded = true;
@@ -1041,6 +1061,43 @@ public static class AtomicContentBatchBuild
         return groups;
     }
 
+    private static List<StagedGroup> PlanPortalGroups(List<Recipe> recipes)
+    {
+        var groups = new List<StagedGroup>();
+        var closure = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        foreach (var recipe in recipes)
+        {
+            try
+            {
+                var inputs = recipe.Inputs();
+                if (recipe.Type == "object" && (string.IsNullOrEmpty(inputs.Icon) ||
+                    AssetDatabase.LoadAssetAtPath<Sprite>(inputs.Icon) == null))
+                    throw new InvalidOperationException("Portal release requires the imported icon for " + recipe.Id);
+                var (roots, _) = PrepareBundleEntries(recipe.Type, recipe.Id, inputs);
+                var dependencies = new HashSet<string>(roots, StringComparer.OrdinalIgnoreCase);
+                foreach (var root in roots)
+                {
+                    if (!closure.TryGetValue(root, out var paths))
+                        closure[root] = paths = AssetDatabase.GetDependencies(root, true);
+                    dependencies.UnionWith(paths);
+                }
+                var entry = new StagedGroupEntry { Recipe = recipe, Roots = roots, Dependencies = dependencies };
+                var group = groups.FirstOrDefault(candidate => candidate.CanAdd(entry));
+                if (group == null)
+                {
+                    group = new StagedGroup();
+                    groups.Add(group);
+                }
+                group.Add(entry);
+            }
+            finally
+            {
+                CleanupGeneratedMetadata();
+            }
+        }
+        return groups;
+    }
+
     private static void BuildStagedGroup(StagedGroup group, string work, string output, string platform,
         string runtimeProfile, BuildTarget target, HashSet<Recipe> complete)
     {
@@ -1058,13 +1115,9 @@ public static class AtomicContentBatchBuild
                     generated.Add(_temporaryMetadata);
                     _temporaryMetadata = null;
                 }
-                var assets = recipe.Type == "wear" ? new[] { inputs.Main, inputs.Metadata, inputs.Icon } :
-                    new[] { inputs.Main, inputs.Metadata };
-                var names = recipe.Type == "wear" ? new[] { "main", "metadata", "icon" } :
-                    new[] { "main", "metadata" };
-                if (inputs.Entries.Length != 0 || !assets.SequenceEqual(entry.Roots, StringComparer.Ordinal))
+                var (assets, names) = PrepareBundleEntries(recipe.Type, recipe.Id, inputs);
+                if (!assets.SequenceEqual(entry.Roots, StringComparer.Ordinal))
                     throw new InvalidOperationException("Grouped recipe roots changed: " + recipe.Id);
-                for (int i = 0; i < assets.Length; i++) ValidateAsset(assets[i], names[i]);
                 jobs.Add((entry, inputs, new AssetBundleBuild
                 {
                     assetBundleName = BundleBuildName(recipe.Type, recipe.Id),
@@ -1162,9 +1215,7 @@ public static class AtomicContentBatchBuild
     }
 
 
-    private static void BuildObject(
-        string type, string id, string platform, string runtimeProfile,
-        BuildTarget target, string output, BuildInputs inputs)
+    private static (string[] Assets, string[] Names) PrepareBundleEntries(string type, string id, BuildInputs inputs)
     {
         ValidateAsset(inputs.Main, "main");
         ValidateAsset(inputs.Metadata, "metadata");
@@ -1187,8 +1238,6 @@ public static class AtomicContentBatchBuild
             ValidateAsset(inputs.Icon, "icon");
         }
 
-        Directory.CreateDirectory(output);
-        DeleteOldOutput(output);
         var assetNames = new List<string> { inputs.Main, inputs.Metadata };
         var entryNames = new List<string> { "main", "metadata" };
         if (!string.IsNullOrEmpty(inputs.Icon))
@@ -1209,6 +1258,16 @@ public static class AtomicContentBatchBuild
             assetNames.Add(extra.asset);
             entryNames.Add(extra.name);
         }
+        return (assetNames.ToArray(), entryNames.ToArray());
+    }
+
+    private static void BuildObject(
+        string type, string id, string platform, string runtimeProfile,
+        BuildTarget target, string output, BuildInputs inputs)
+    {
+        var (assetNames, entryNames) = PrepareBundleEntries(type, id, inputs);
+        Directory.CreateDirectory(output);
+        DeleteOldOutput(output);
 
         // Unity derives the internal CAB identity from the AssetBundle name.
         // Reusing "payload.bundle" for every independently built object made
@@ -1220,8 +1279,8 @@ public static class AtomicContentBatchBuild
         var build = new AssetBundleBuild
         {
             assetBundleName = bundleBuildName,
-            assetNames = assetNames.ToArray(),
-            addressableNames = entryNames.ToArray(),
+            assetNames = assetNames,
+            addressableNames = entryNames,
         };
         // A missing IL2CPP module makes Unity fall back to incompatible
         // Editor reference DLLs (NativeList/ReadOnly CS7036). Require the real
@@ -1406,7 +1465,23 @@ public static class AtomicContentBatchBuild
         });
     }
 
-    private static void DiscoverObjectRecipes(Action<string, string, Func<BuildInputs>> add)
+    private static List<Recipe> DiscoverPortalRecipes()
+    {
+        var expected = PortalContentPolicy.Objects.Select(id => "object/" + id)
+            .Concat(PortalContentPolicy.Buildings.Select(id => "building/" + id))
+            .Concat(new[] { "object/chair.basic", "object/" + ContentIds.Workbench })
+            .ToHashSet(StringComparer.Ordinal);
+        var recipes = new List<Recipe>();
+        DiscoverObjectRecipes((type, id, inputs) =>
+            recipes.Add(new Recipe { Type = type, Id = id, Inputs = inputs }), portalOnly: true);
+        var discovered = recipes.Select(recipe => recipe.Type + "/" + recipe.Id);
+        if (!expected.SetEquals(discovered))
+            throw new InvalidOperationException("Missing portal release owners: " +
+                string.Join(", ", expected.Except(discovered).OrderBy(id => id, StringComparer.Ordinal)));
+        return recipes;
+    }
+
+    private static void DiscoverObjectRecipes(Action<string, string, Func<BuildInputs>> add, bool portalOnly = false)
     {
         var worldConfigs = AssetDatabase.FindAssets(
                 "t:WorldObjectConfig", new[] { RuntimeSourceRoot + "/WorldObjects" })
@@ -1436,15 +1511,23 @@ public static class AtomicContentBatchBuild
         ids.UnionWith(construction["definitions"].Select(entry => (string)entry["id"]));
         ids.UnionWith(worldConfigs.Keys);
         ids.UnionWith(gearConfigs.Keys);
+        const string modernArtManifest = "Assets/HexLiveContent/Portal/modern-apartment-art.json";
+        if (File.Exists(modernArtManifest))
+        {
+            var modernArt = JObject.Parse(File.ReadAllText(modernArtManifest));
+            ids.UnionWith(modernArt["records"].Select(record => (string)record["id"]));
+        }
         foreach (var id in ids.OrderBy(value => value, StringComparer.Ordinal))
         {
+            var type = ObjectType(id);
+            var isPortalOwner = PortalContentPolicy.IsApproved(type, id);
+            if (portalOnly && !isPortalOwner && id is not ("chair.basic" or ContentIds.Workbench)) continue;
             var main = FindObjectMain(id);
             if (main == null)
             {
                 continue;
             }
             var capturedMain = main;
-            var type = ObjectType(id);
             worldConfigs.TryGetValue(id, out var worldConfig);
             gearConfigs.TryGetValue(id, out var gearConfig);
             add(type, id, () =>
@@ -1466,6 +1549,11 @@ public static class AtomicContentBatchBuild
                     ["legacyResourcePath"] = "HexLive/Objects/" + id,
                     ["legacyResourceFolders"] = folders,
                 };
+                if (isPortalOwner || PortalContentPolicy.IsModernWorldOwner(type, id))
+                    metadata["contentOrigin"] = PortalContentPolicy.Origin;
+                else if (portalOnly) metadata["contentOrigin"] = "primal";
+                if (isPortalOwner)
+                    metadata["acquisition"] = PortalContentPolicy.Acquisition;
                 var inputs = new BuildInputs
                 {
                     Main = capturedMain,

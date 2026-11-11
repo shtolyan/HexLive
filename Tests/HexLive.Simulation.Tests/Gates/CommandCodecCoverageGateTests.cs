@@ -113,6 +113,9 @@ public sealed class CommandCodecCoverageGateTests
             new InventoryItemRef(
                 InventoryItemSource.Carried, 7, ContentIds.HerbSeed),
             new JunctionId(1703), new TileCoord(-17, 30)),
+        new PlaceInventoryFurnitureCommand(new EntityId(176),
+            new InventoryItemRef(InventoryItemSource.Carried, 6, ContentIds.BedBasic),
+            new JunctionId(1764), new TileCoord(19, -7), 240f),
         new BeginGiftSessionCommand(new EntityId(54), new EntityId(45)),
         new EndGiftSessionCommand(new EntityId(55), new EntityId(45)),
         new TransferInventoryCommand(

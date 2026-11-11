@@ -1068,6 +1068,10 @@ public static class PrototypeContentCatalog
                         // Spec 31C.7A: a proper breather, not a fidget.
                         DurationTicks = 70,
                         Effects = { ComfortDelta = SimBalance.ChairComfort }
+                    },
+                    new InteractionDefinition
+                    {
+                        Id = "pickup.chair.basic", Type = InteractionType.PickUp, DurationTicks = 4,
                     }
                 },
                 Tags = { "Chair" }
@@ -1126,6 +1130,10 @@ public static class PrototypeContentCatalog
                         // the timed interaction. NeedsDecaySystem owns both the
                         // unified sleep-comfort formula and the single 4-hour
                         // bed Energy clock.
+                    },
+                    new InteractionDefinition
+                    {
+                        Id = "pickup.bed.basic", Type = InteractionType.PickUp, DurationTicks = 4,
                     }
                 },
                 Tags = { "Bed", "Obstacle" }
@@ -1392,6 +1400,7 @@ public static class PrototypeContentCatalog
         GarmentLibrary.AppendDefinitions(defs);
 
         HumanMeatCatalog.AppendDefinitions(defs);
+        ModernLootCatalog.AppendDefinitions(defs);
         return defs;
     }
 

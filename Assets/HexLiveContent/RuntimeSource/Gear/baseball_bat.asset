@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7146726166aa464c8ed031473ef4889a, type: 3}
+  m_Name: baseball_bat
+  m_EditorClassIdentifier:
+  gearId: tool.baseball_bat
+  prefab: {fileID: 0}
+  prefabResourcePath:
+  usableAsWeapon: 1
+  damageProfileAuthored: 1
+  damage: 0.32
+  cutFraction: 0
+  bloodLossMultiplier: 0
+  hitDelaySeconds: 0.75
+  attackDurationSeconds: 1.86
+  cooldownSeconds: 1.14
+  attackSpeed: 0.8
+  meleePriority: 22
+  harvestSpeedMult: 1
+  twoHanded: 1
+  capabilities: []
+  craftable: 0
+  craftIngredients: []
+  handPoseAuthored: 1
+  handLocalPosition: {x: 0.054, y: -0.033, z: -0.076}
+  handLocalEuler: {x: -27.667, y: 97.515, z: 87.548}
+  handLocalScale: {x: 1, y: 1, z: 1}
+  handHasLeftOverride: 0
+  leftHandLocalPosition: {x: 0, y: 0, z: 0}
+  leftHandLocalEuler: {x: 0, y: 0, z: 0}
+  strikes: []
+  attackClips:
+  - {fileID: -203655887218126122, guid: a1cc1951777d74c508fb2386210e2817, type: 3}
+  armedIdle: {fileID: -203655887218126122, guid: 4b1c7d0af5eb04d6e9a1658453475d94, type: 3}
+  armedWalk: {fileID: -203655887218126122, guid: 9e708ac3817d44062afa1909114df08c, type: 3}
+  workClip: {fileID: 0}
+  twoHandedCarry: 1
+  carryPose: {fileID: -203655887218126122, guid: 5dd0fd96d3fa64b62bc3c1272fde5a39, type: 3}
+  carryPoseTime: 0
+  offHandGripIk: 1
+  offHandGripFraction: 0.24

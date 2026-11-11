@@ -319,6 +319,9 @@ public sealed class ObjectSnapshot
 
     public TileCoord Tile { get; set; } = TileCoord.Zero;
 
+    public int? SurfaceObjectId { get; set; }
+    public byte SurfaceSlot { get; set; }
+
     // Spec §66: the yaw a built piece stands at (sim angle, degrees CCW from
     // +X). The view maps it through SimulationUnityMapper.ToUnityYawDegrees.
     public float RotationDegrees { get; set; }

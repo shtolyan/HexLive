@@ -152,6 +152,8 @@ public static class WorldSnapshotExporter
             exported.Id = obj.Id;
             exported.DefinitionId = obj.DefinitionId;
             exported.Tile = obj.Tile;
+            exported.SurfaceObjectId = obj.SurfaceObjectId?.Value;
+            exported.SurfaceSlot = obj.SurfaceSlot;
             exported.IsHarvestScatter = obj.IsHarvestScatter;
             exported.RotationDegrees = obj.RotationDegrees; // §66: built pieces carry a yaw
             exported.ResourceAmount = obj.ResourceAmount;

@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Debug;
+using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
 
 namespace HexLive.UnityPresentation.Input
@@ -25,6 +26,17 @@ namespace HexLive.UnityPresentation.Input
     [DisallowMultipleComponent]
     public sealed class RtsCameraController : MonoBehaviour
     {
+        private int _portalObservedNpc = -1;
+        private int _portalObservedTick = -1;
+        private bool _portalObservedApartment;
+        private bool _portalBackdrop;
+        private CameraClearFlags _islandClearFlags;
+        private Color _islandBackground;
+
+        // The orbit camera is often outside the room while its focus stays inside it.
+        public bool IsViewingModernApartment => _hasSmoothedPivot &&
+            HexSpatialMath.HexDistance(WorldToTile(_smoothedPivot.x, _smoothedPivot.z), PortalWorld.ApartmentCenter) <= 24;
+
         [Header("Runner")]
         [SerializeField] private SimulationRunnerBehaviour _runner;
 
@@ -377,6 +389,8 @@ namespace HexLive.UnityPresentation.Input
                 _worldRenderer = FindAnyObjectByType<HexWorldRenderer>();
             }
 
+            FollowPortalTravel();
+
             var keyboard = Keyboard.current;
             if (!UI.AdminVoicePanel.BlocksGameInput && !UI.GameMenu.IsOpen && keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
             {
@@ -439,6 +453,7 @@ namespace HexLive.UnityPresentation.Input
             }
 
             RefreshOverviewProfile();
+            RefreshPortalBackdrop();
 
             // Bug #279: окна закрываются на pointer-DOWN внутри Update-фазы
             // UI Toolkit, а гейт мира читается в LateUpdate — на кадре
@@ -1291,8 +1306,11 @@ namespace HexLive.UnityPresentation.Input
             var max = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
             var found = 0;
             var ids = NpcSelection.SelectedIds;
+            var primary = snapshot.Npcs.Find(npc => npc.Id.Value == NpcSelection.PrimaryId);
             for (var i = 0; i < ids.Count; i++)
             {
+                if (primary != null && snapshot.Npcs.Find(npc => npc.Id.Value == ids[i]) is { } member &&
+                    PortalWorld.IsApartmentTile(member.Tile) != PortalWorld.IsApartmentTile(primary.Tile)) continue;
                 if (!TryGetOrbitTarget(snapshot, ids[i], out var target)) continue;
                 min = Vector3.Min(min, target);
                 max = Vector3.Max(max, target);
@@ -1305,6 +1323,55 @@ namespace HexLive.UnityPresentation.Input
             radius = Mathf.Max(0.65f, 0.5f * Mathf.Sqrt(
                 extent.x * extent.x + extent.y * extent.y + extent.z * extent.z) + 0.75f);
             return true;
+        }
+
+        private void FollowPortalTravel()
+        {
+            if (!NpcSelection.HasSelection || _runner == null || !_runner.IsReady)
+            {
+                _portalObservedNpc = -1;
+                return;
+            }
+            int primary = NpcSelection.PrimaryId;
+            if (_portalObservedNpc == primary && _portalObservedTick == _runner.CurrentTick) return;
+            var snapshot = _runner.CreateSnapshot();
+            var npc = snapshot?.Npcs.Find(candidate => candidate.Id.Value == primary);
+            if (npc == null) return;
+            bool inApartment = PortalWorld.IsApartmentTile(npc.Tile);
+            bool moved = _portalObservedNpc == npc.Id.Value && _portalObservedApartment != inApartment;
+            _portalObservedNpc = npc.Id.Value;
+            _portalObservedTick = snapshot.Tick;
+            _portalObservedApartment = inApartment;
+            if (!moved || !CanTargetPerson(npc)) return;
+
+            // §176: use the new simulation position immediately. The actor view
+            // can still contain the island transform on the teleport frame.
+            var pivot = SnapToGround(SimulationUnityMapper.ToUnityPosition(npc.Position, 0f));
+            pivot.y += SimulationUnityMapper.HexRadius * _orbitNeckFactor;
+            _mode = Mode.Free;
+            _pendingFrameSelection = false;
+            _hasSmoothedTarget = false;
+            _requestedDistance = FitDistance(inApartment ? 3f : 1f);
+            SnapRig(pivot);
+        }
+
+        private void RefreshPortalBackdrop()
+        {
+            _camera ??= GetComponent<Camera>();
+            if (_camera == null || _portalBackdrop == IsViewingModernApartment) return;
+            _portalBackdrop = !_portalBackdrop;
+            if (_portalBackdrop)
+            {
+                _islandClearFlags = _camera.clearFlags;
+                _islandBackground = _camera.backgroundColor;
+                _camera.clearFlags = CameraClearFlags.SolidColor;
+                _camera.backgroundColor = new Color(.035f, .042f, .054f);
+            }
+            else
+            {
+                _camera.clearFlags = _islandClearFlags;
+                _camera.backgroundColor = _islandBackground;
+            }
         }
 
         private float FitDistance(float radius)
@@ -1377,6 +1444,12 @@ namespace HexLive.UnityPresentation.Input
                 _requestedDistance = FitDistance(radius);
             }
 
+            SnapRig(pivot);
+            return true;
+        }
+
+        private void SnapRig(Vector3 pivot)
+        {
             SetFreePivotAt(pivot);
             _currentDistance = _requestedDistance;
             _smoothedYaw = _currentYaw;
@@ -1413,7 +1486,6 @@ namespace HexLive.UnityPresentation.Input
                 pivot - rotation * Vector3.forward * _currentDistance -
                 rotation * Vector3.up * uiLift + rotation * Vector3.right * uiSide,
                 rotation);
-            return true;
         }
 
         private void ExitOrbit()

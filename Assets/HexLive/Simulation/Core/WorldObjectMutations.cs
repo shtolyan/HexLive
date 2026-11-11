@@ -81,6 +81,8 @@ public static class WorldObjectMutations
             return;
         }
 
+        SurfacePlacementMath.Detach(world, worldObject);
+
         if (world.Caches.ObjectsByTile.TryGetValue(worldObject.Tile, out var from))
         {
             from.Remove(worldObject.Id);
@@ -109,6 +111,7 @@ public static class WorldObjectMutations
             return false;
         }
 
+        SurfacePlacementMath.Detach(world, worldObject);
         world.Entities.UnregisterObject(worldObject);
 
         if (world.Caches.ObjectsByTile.TryGetValue(worldObject.Tile, out var objects))

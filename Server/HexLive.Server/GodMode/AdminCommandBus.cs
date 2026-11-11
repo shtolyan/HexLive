@@ -42,7 +42,7 @@ public sealed class AdminCommandBus
             if (File.Exists(path))
             {
                 var receipt = JsonSerializer.Deserialize<Receipt>(File.ReadAllText(path), Json)!;
-                return receipt.Epoch == epoch && receipt.Command == serialized ? receipt.Reply
+                return receipt.Epoch == epoch && SameCommand(receipt.Command, serialized) ? receipt.Reply
                     : new Reply(false, "OperationIdConflict", command.OperationId);
             }
             return session.Host.Read(world =>
@@ -60,6 +60,15 @@ public sealed class AdminCommandBus
             });
         }
     }
+
+    private static bool SameCommand(string saved, string current)
+    {
+        // Receipts written before new optional fields lack their serialized defaults.
+        if (saved == current) return true;
+        var previous = JsonSerializer.Deserialize<AdminCommand>(saved, Json);
+        return previous != null && JsonSerializer.Serialize(previous, Json) == current;
+    }
+
     // Only the viewer calls this. No MCP tool exposes confirmation.
     public object Confirm(string client, string token, string id, bool accept)
         => _access.WithAuthorization<object>(client, token, () =>

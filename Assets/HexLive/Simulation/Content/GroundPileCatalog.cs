@@ -159,7 +159,13 @@ public static class GroundPileCatalog
         // three local axis extents to <=T. Orthogonal base rotation therefore
         // bounds each world extent by sqrt(3)*T. Presentation recenters XZ and
         // seats Y before applying slots; source pivots cannot escape this cube.
-        foreach(var id in new[] {"food.coconut_open","food.meat_raw","food.meat_cooked","item.bandage","item.pill","item.plaster","med.splint","resource.arrow","resource.board","resource.cloth","resource.fiber","resource.herb_leaf","resource.herb_seed","resource.hide","resource.log","resource.mechanical_part","resource.rope","resource.stone","resource.yucca_seed","food.coconut","food.coconut_pierced","tool.axe_stone","tool.bottle",ContentIds.LeatherFlask,"tool.bow","tool.hammer","tool.knife","tool.lighter","tool.machete","tool.pickaxe_stone","tool.saw","tool.sharp_stone","tool.spear",ContentIds.Flint,ContentIds.CrudeSaw,ContentIds.Firestarter,ContentIds.Torch})
+        foreach(var id in new[] {"food.coconut_open","food.meat_raw","food.meat_cooked","item.bandage","item.pill","item.plaster","med.splint","resource.arrow","resource.board","resource.cloth","resource.fiber","resource.herb_leaf","resource.herb_seed","resource.hide","resource.log","resource.mechanical_part","resource.rope","resource.stone","resource.yucca_seed","food.coconut","food.coconut_pierced","tool.axe_stone","tool.bottle",ContentIds.LeatherFlask,"tool.bow","tool.hammer","tool.knife","tool.lighter","tool.machete","tool.pickaxe_stone","tool.saw","tool.sharp_stone","tool.spear",ContentIds.Flint,ContentIds.CrudeSaw,ContentIds.Firestarter,ContentIds.Torch,
+            ContentIds.Apple, ContentIds.Banana, ContentIds.StrawberryYogurt, ContentIds.CheeseWedge, ContentIds.ChocolateBar,
+            ContentIds.HamSandwich, ContentIds.Orange, ContentIds.CannedPeaches,
+            ContentIds.KitchenKnife, ContentIds.BaseballBat, ContentIds.DollarBills, ContentIds.KitchenLadle,
+            ContentIds.SteelHatchet, ContentIds.Flashlight, ContentIds.DisposableLighter, ContentIds.WindproofLighter,
+            ContentIds.ClawHammer, ContentIds.FoldingSaw, ContentIds.TeddyBear,
+            ContentIds.PhotoFrame, ContentIds.BallpointPen, ContentIds.AlarmClock, ContentIds.DrinkingGlass, ContentIds.CeramicSaucer, ContentIds.ClothesHanger})
         {
             var target=TargetWorldSize(id);var extent=(float)Math.Sqrt(3d)*target;
             var layout=id==ContentIds.HerbSeed||id==ContentIds.YuccaSeed?10:
@@ -400,7 +406,7 @@ public static class GroundPileCatalog
         // source-sha256: 0fe9c93a2c62b72b592256ac2a52c80ad58c5f37f6c9d98121a24b0eefce65f0 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_collar_fur_color05.asset.meta
         // source-sha256: 0bf4ee3d9ea783ddb5bf9cd2ef46f9ac9996709264c6ff819985af77859ae77c Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_collar_fur_color06.asset
         // source-sha256: ce8cfc115b05ed2470ad1b76022c51728ed069e72477b3e0827f8ffc1dc60103 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_collar_fur_color06.asset.meta
-        // source-sha256: af30a32aa032c872b6ca1b2e6b1ee2f2a6849b0a5352a6802722a89241accaa5 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_footwear_fighter.asset
+        // source-sha256: db2a015f199b2cefa0aa870cc0b90eadc0904656473e4d49bcb263f91227f807 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_footwear_fighter.asset
         // source-sha256: 845d504571859cf2df7680085b199d83beea0aa2dcd65826a25f5cd48a308bcf Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_footwear_fighter.asset.meta
         // source-sha256: f9c3841fb6d9b08409c26bcd344bc82c8c509771ede43dbc9dab642cc45faf2d Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_glasses_nerd.asset
         // source-sha256: 3ca2eeae4c1f40a946565a0a1507d89c8d664c5030d9cd2487fb95481fd15dde Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_glasses_nerd.asset.meta
@@ -550,25 +556,25 @@ public static class GroundPileCatalog
         // source-sha256: a290bc7994bb158ba1a4f1b96f533929e14797d8e1758853ec1edae82f0433bd Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer3_style_03_white.asset.meta
         // source-sha256: 35fe3e9904aee6fb15422e53f244856553a21c32b5f3f470cfebf471e17ccff8 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer3_style_03_yellow.asset
         // source-sha256: 6e6e24a652639b3ab3377e8f8569974bb4ecb71dfcbee6dc70c164c3ade58350 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer3_style_03_yellow.asset.meta
-        // source-sha256: 11456d63b4ab035ef3905a03ff39f3ab7334950e7d2d7e5be7841717670e524a Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4.asset
+        // source-sha256: c5875a9085a0a263f69c262da6ac0728840208938696250f39e02e4dd4c668cf Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4.asset
         // source-sha256: 9043abc81c659cd9545c67cce9b480129aa9a7e6ee5232e906d4685e18fcf0f4 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4.asset.meta
-        // source-sha256: e83241d560f2e696440f20d626849cb051c5508e115350918680a7733f4736e9 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_black.asset
+        // source-sha256: 0896040759b2783799830a8fa9b5b0adf1c0035453e44a590020da2de9bcd8fb Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_black.asset
         // source-sha256: 23716f90b1957a2c2ff54d6ebffad09604504915c7e7eb232a4711dcff116637 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_black.asset.meta
-        // source-sha256: 73269ad0d8dfbfda4aea5ea8d34555170614de5f0d23a00a3cf4b9baebb63c53 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_cherry.asset
+        // source-sha256: 2619f805b2075ba4e75a6dfe5a1182d01a2c64ff3d849f298f06b9f22e6b3960 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_cherry.asset
         // source-sha256: e931c39d59d1e025f69d8255954062199a65d4c78ef7e942f8f2e00aa7a80f2e Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_cherry.asset.meta
-        // source-sha256: 80fa44a24a6a3c5ae198bcd0f5e2528e5554e5eb98e8aa78b15a8bbed996f833 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_red.asset
+        // source-sha256: 7430b27824fa98429eb951609912c275774a79b185f912b65a614f0c05561e92 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_red.asset
         // source-sha256: 1c90dbe5aa650ca6df86132c45b36147f0ff389de9b51bfe0d0526926c02315d Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_red.asset.meta
-        // source-sha256: be846d2e2cf49f059e644332fa3b2b2f638a6a85767db66dca9b170324646c0d Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_salmon.asset
+        // source-sha256: 8451f7bff5ba22bd54982a9badb3aed702181120acefdb05cf278ac9480a3e14 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_salmon.asset
         // source-sha256: 509bdd5e3da27b254d458d2804129d0ba6dfc34add50472ac91e89be3151f71c Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_salmon.asset.meta
-        // source-sha256: 59bd88b498f1803eb54e09edbd3e5b01d9a7f3f5aab75db418870ad04cd72380 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_silver.asset
+        // source-sha256: 8a0755a9c91dae561e9257c0958b64c8c94e6c827bd6875c0f46159170a98152 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_silver.asset
         // source-sha256: 6acb93ddab33faa094dcbf0c25ac9870f9799da047a44c6e7f7309d90601b6ab Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_silver.asset.meta
-        // source-sha256: e58fa9c1b22799343c0b2b4964c3165514206f116adf53d9d0181c3ffaea1501 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_sky.asset
+        // source-sha256: f3801c4c3cb5894dbb83b2b428a820a747931d11c9ff9c1d0ca4fea3f972bd6e Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_sky.asset
         // source-sha256: 834f83955a1401d171013d4eb0dd970e77c0fe3250b2eb44c031694ab5135be6 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_sky.asset.meta
-        // source-sha256: 4b8fdfcea273d18ce7551fb4acf9981060eaab357d279944f82e73471afb99ed Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_tan.asset
+        // source-sha256: 4e07870f1d6bca5561a745f6d200ba24e0e3741c842a85decc60c61794e185fb Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_tan.asset
         // source-sha256: 6a21217a2008d25af4f65669bc601a33efc5569eca26865da59f0647d961c20d Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_tan.asset.meta
-        // source-sha256: d0314b9816b8cbbe273ee03c764f8caada34e1b893293f5fe462ddb75e4d366d Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_white.asset
+        // source-sha256: 37f0f87bd14b400d5d03962206683a829e34d418bba395a52f504527b1f1b3ef Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_white.asset
         // source-sha256: fad068c02ad06d031648f116fa67c347eaf9b18bd01908728b7e7dff016551c3 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_white.asset.meta
-        // source-sha256: bbc21fe613412b781fd0e878ccc21facc34409b85c156e36128a6c1cb998da8d Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_yellow.asset
+        // source-sha256: ccba235d4aa4ce397eef82a5aa8c3db8c19aadcdc2da5d938fe2b7c05965f87e Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_yellow.asset
         // source-sha256: 794bbbeb08c620927cbc92f4ed86d050e3f5491acf6cc481f232fee188ff0f51 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_sandals_summer4_style_04_yellow.asset.meta
         // source-sha256: 974cd1a00c068c49d27f935c3cbebadedbd63f8dd8f5c24318f02995b90ccd28 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_shoes_tod.asset
         // source-sha256: 6bea36ec47079988a26860c628294d6bbcffa9dc7ac269c200ae7ad47535bb1a Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Outerwear/clothing_shoes_tod.asset.meta
@@ -1402,7 +1408,7 @@ public static class GroundPileCatalog
         // source-sha256: 54e348e7c9736185e3f4783cadad7d437e6a93bb326138fcbdbdfb6e0dc6b82b Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Wear/clothing_shorts_vamp_blk_lea.asset.meta
         // source-sha256: 763c6d33391fbd63b84a277c9fc365fe6eb62078b575fd416ac6a4755eaef643 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Wear/clothing_shorts_vamp_blk_lea_lace.asset
         // source-sha256: d3959768bfb6e05c4c1c36155e9f14b8f1a71dd0261703d4cb89c625ed2e3ceb Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Wear/clothing_shorts_vamp_blk_lea_lace.asset.meta
-        // source-sha256: 1311137a49bd9608c23190a2aef1674f2018bebfbb385b9a900ce799148a7998 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Wear/clothing_skirt_alloy.asset
+        // source-sha256: 65508d32859dbfe914e40a653d3cdca59e3fd9e2bcf9a59c2296c44f868dc885 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Wear/clothing_skirt_alloy.asset
         // source-sha256: 16f11538924839ec508580122171c53373d4baf5b301912ad2c45c5c8f124d5e Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Wear/clothing_skirt_alloy.asset.meta
         // source-sha256: ce75f467a70ee6f8167b0881a5613f6943871b7575e5c89ef0a9bb93c2adfbc8 Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Wear/clothing_skirt_amy.asset
         // source-sha256: ab05b274e594d4a54f1c7ed1ff47043c52cdb1027f4347f315c9be2f0a5c338d Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Wear/clothing_skirt_amy.asset.meta
@@ -3358,6 +3364,7 @@ public static class GroundPileCatalog
         public static float TargetWorldSize(string definitionId)
         {
             var r = HexSpatialMath.HexRadius;
+            if (definitionId == "chair.basic") return .410f;
             // §173: the first coconut leaf is a low yucca-like strap crown;
             // the next two palm stages use the adult source at 28% / 50% in
             // PalmTreeFactory. Herb and yucca keep their current authored
@@ -3372,6 +3379,21 @@ public static class GroundPileCatalog
             // shared by ground/hand/spit. The old torso budget included a head.
             if (HumanMeatCatalog.IsHumanPart(definitionId))
                 return PreparedHumanPartGeometry.SourceSpan(definitionId) * r * (11f / 30f) * 2.4f / 1.7f;
+            // Measured from the portal apartment FBXs at their authored size.
+            // Ground drops and in-hand previews retain the same dimensions.
+            float apartmentSize = definitionId switch
+            {
+                "furniture.modern_bed" => 1.829f,
+                "furniture.modern_fridge" => 1.575f,
+                "furniture.modern_table" => 1.06f,
+                "furniture.modern_chair" => 0.92f,
+                "furniture.modern_sofa" => 1.83f,
+                "furniture.modern_tv" => 1.11f,
+                "furniture.modern_shelf" => 1.50f,
+                "portal.modern_door" => 1.5f,
+                _ => 0f,
+            };
+            if (apartmentSize > 0f) return apartmentSize;
             // §54.2: PalmTreeFactory returns before generic fitting; palm_final
             // keeps its authored 1:1 dimensions.
             if (definitionId.Contains("tree")) return r * 2.2f;
@@ -3379,6 +3401,10 @@ public static class GroundPileCatalog
             // A meat chunk reads bigger than a coconut half — 1.5× the standard
             // food size. Ground, hand and the roasting spit all share this.
             if (definitionId == "food.meat_raw" || definitionId == "food.meat_cooked") return r * 0.18f;
+            if (definitionId == ContentIds.HamSandwich) return r * 0.15f;
+            if (definitionId == ContentIds.CannedPeaches) return r * 0.11f;
+            if (definitionId == ContentIds.StrawberryYogurt) return r * 0.105f;
+            if (definitionId == ContentIds.CheeseWedge || definitionId == ContentIds.ChocolateBar) return r * 0.13f;
             if (definitionId.StartsWith("food.")) return r * 0.12f;
             // Spec §54.2: a log/stick is a full palm-trunk segment long (big, like
             // Stranded Deep) — measured by its long axis; the crown and leaf are
@@ -3405,6 +3431,20 @@ public static class GroundPileCatalog
             if (definitionId == ContentIds.Torch) return r * 0.4f;
             if (definitionId == ContentIds.Flint) return r * 0.10f;
             if (definitionId == ContentIds.Firestarter) return r * 0.12f;
+            if (definitionId == ContentIds.BaseballBat) return r * 0.56f;
+            if (definitionId == ContentIds.SteelHatchet) return .435f;
+            if (definitionId is ContentIds.Flashlight or ContentIds.TeddyBear) return .24f;
+            if (definitionId == ContentIds.DisposableLighter) return .085f;
+            if (definitionId == ContentIds.WindproofLighter) return .080f;
+            if (definitionId == ContentIds.ClawHammer) return .34f;
+            if (definitionId == ContentIds.FoldingSaw) return .46f;
+            if (definitionId == ContentIds.KitchenKnife || definitionId == ContentIds.KitchenLadle) return r * 0.22f;
+            if (definitionId == ContentIds.PhotoFrame) return r * 0.19f;
+            if (definitionId == ContentIds.BallpointPen) return r * 0.10f;
+            if (definitionId == ContentIds.AlarmClock) return r * 0.15f;
+            if (definitionId == ContentIds.DrinkingGlass) return r * 0.105f;
+            if (definitionId == ContentIds.CeramicSaucer) return r * 0.13f;
+            if (definitionId == ContentIds.ClothesHanger) return r * 0.28f;
             // A one-litre bottle is shorter than a hand tool. Keep this in the
             // shared fit table so the ground and hand cannot drift apart again.
             if (definitionId == ContentIds.LeatherFlask) return r * 0.16f;

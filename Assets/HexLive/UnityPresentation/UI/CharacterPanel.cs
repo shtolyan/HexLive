@@ -2901,8 +2901,9 @@ namespace HexLive.UnityPresentation.UI
             actions.style.flexDirection = FlexDirection.Row;
             actions.style.marginTop = 12f;
             _invPrimaryAction = InventoryActionButton(
-                () => EnqueueInventoryAction(_invSelectedWorn
-                    ? InventoryAction.Stow : InventoryAction.Wear));
+                () => EnqueueInventoryAction(_invSelectedId == ContentIds.Flashlight
+                    ? InventoryAction.ToggleFlashlight
+                    : _invSelectedWorn ? InventoryAction.Stow : InventoryAction.Wear));
             _invPrimaryActionLabel = new Label();
             _invPrimaryActionLabel.style.color = Text;
             _invPrimaryActionLabel.style.fontSize = 13f;
@@ -4303,12 +4304,13 @@ namespace HexLive.UnityPresentation.UI
             var wearable = def != null && def.Layer.HasValue;
             var outfitChangeBlocked = _outfitLockedNow && (worn || wearable);
             _invPrimaryAction.style.display = _inventoryMutable &&
-                (worn || wearable) && !outfitChangeBlocked
+                (id == ContentIds.Flashlight || (worn || wearable) && !outfitChangeBlocked)
                 ? DisplayStyle.Flex : DisplayStyle.None;
             _invPlantAction.style.display = _inventoryMutable && !worn &&
-                InventoryPlacementMath.CanPlace(id)
+                (InventoryPlacementMath.CanPlace(id) || PortableFurniture.CanCarry(id))
                 ? DisplayStyle.Flex : DisplayStyle.None;
-            _invDropAction.style.display = _inventoryMutable && !(_outfitLockedNow && worn)
+            _invDropAction.style.display = _inventoryMutable && !(_outfitLockedNow && worn) &&
+                !PortableFurniture.CanCarry(id)
                 ? DisplayStyle.Flex : DisplayStyle.None;
             // §55.4 (bug #317): «Наполнить» — только у неполной бутылки, когда
             // в карманах есть кокосовая вода для перелива.
@@ -4320,9 +4322,9 @@ namespace HexLive.UnityPresentation.UI
             _invFillActionLabel.text = Loc.Get("inv.action.fill");
             _invReadOnlyLabel.style.display = !_inventoryMutable || outfitChangeBlocked
                 ? DisplayStyle.Flex : DisplayStyle.None;
-            _invPrimaryActionLabel.text = Loc.Get(worn
-                ? "inv.action.stow" : "inv.action.wear");
-            _invPlantActionLabel.text = Loc.Get(_invSelectedId == ContentIds.Torch ? "inv.action.place" : "inv.action.plant");
+            _invPrimaryActionLabel.text = Loc.Get(id == ContentIds.Flashlight
+                ? "inv.action.switch_light" : worn ? "inv.action.stow" : "inv.action.wear");
+            _invPlantActionLabel.text = Loc.Get(InventoryPlacementVerb(_invSelectedId));
             _invDropActionLabel.text = Loc.Get("inv.action.drop");
             _invReadOnlyLabel.text = Loc.Get(outfitChangeBlocked
                 ? "inv.outfit_locked" : "inv.readonly");
@@ -4378,7 +4380,7 @@ namespace HexLive.UnityPresentation.UI
         {
             if (!_inventoryMutable || _runner == null || _invSelectedId == null ||
                 _inventoryActorId < 0 || _invSelectedWorn ||
-                !InventoryPlacementMath.CanPlace(_invSelectedId))
+                (!InventoryPlacementMath.CanPlace(_invSelectedId) && !PortableFurniture.CanCarry(_invSelectedId)))
             {
                 return;
             }
@@ -4407,6 +4409,9 @@ namespace HexLive.UnityPresentation.UI
 
             CloseInventory();
         }
+
+        private static string InventoryPlacementVerb(string id) =>
+            id == ContentIds.Torch || PortableFurniture.CanCarry(id) ? "inv.action.place" : "inv.action.plant";
 
         private void EnqueueInventoryAction(InventoryAction action, int count = 1)
         {
@@ -4652,7 +4657,13 @@ namespace HexLive.UnityPresentation.UI
                 rows.Add(MakeWaterContainerBlock(info.DefinitionId, waterState));
             }
 
-            if ((def == null || def.Layer.HasValue) &&
+            if (info.DefinitionId == ContentIds.Flashlight &&
+                durability.TryGetValue(info.DefinitionId, out var charge))
+            {
+                rows.Add(MakeStatRow(Loc.Get("inv.battery_charge"), $"{Mathf.RoundToInt(charge * 100f)}%",
+                    DurabilityColor(charge)));
+            }
+            else if ((def == null || def.Layer.HasValue) &&
                 durability.TryGetValue(info.DefinitionId, out var itemDurability))
             {
                 rows.Add(MakeClothingHpBlock(
@@ -4916,7 +4927,7 @@ namespace HexLive.UnityPresentation.UI
             header.style.justifyContent = Justify.SpaceBetween;
             header.style.marginBottom = 8f;
 
-            var label = new Label(Loc.Get("inv.water_left"));
+            var label = new Label(Loc.Get(state.Kind == WaterKind.Cola ? "inv.cola_left" : "inv.water_left"));
             label.style.color = Text;
             label.style.fontSize = 12.5f;
             label.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -8055,7 +8066,7 @@ namespace HexLive.UnityPresentation.UI
                 _outsiderRosterHeader.text = Loc.Get("roster.outsiders");
             if (_invDropActionLabel != null) _invDropActionLabel.text = Loc.Get("inv.action.drop");
             if (_invFillActionLabel != null) _invFillActionLabel.text = Loc.Get("inv.action.fill");
-            if (_invPlantActionLabel != null) _invPlantActionLabel.text = Loc.Get(_invSelectedId == ContentIds.Torch ? "inv.action.place" : "inv.action.plant");
+            if (_invPlantActionLabel != null) _invPlantActionLabel.text = Loc.Get(InventoryPlacementVerb(_invSelectedId));
             if (_invReadOnlyLabel != null) _invReadOnlyLabel.text = Loc.Get("inv.readonly");
             if (_invPrimaryActionLabel != null && _invSelectedId != null)
                 _invPrimaryActionLabel.text = Loc.Get(_invSelectedWorn

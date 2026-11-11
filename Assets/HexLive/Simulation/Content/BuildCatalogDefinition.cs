@@ -47,6 +47,7 @@ namespace HexLive.Simulation.Content
         public const string Storage = "storage";
         public const string Workstations = "workstations";
         public const string Outdoor = "outdoor";
+        public const string Modern = "modern";
     }
 
     /// <summary>
@@ -165,8 +166,24 @@ namespace HexLive.Simulation.Content
                 "blueprint.catalog.plant_herb.name", "blueprint.catalog.plant_herb.description", "♧", 260),
             new(ContentIds.WaterCollector, BuildCatalogMode.Furniture,
                 BuildCatalogCategories.Outdoor, BuildCatalogPlacementKind.Furniture,
-                "blueprint.catalog.water_collector.name", "blueprint.catalog.water_collector.description", "▽", 220)
+                "blueprint.catalog.water_collector.name", "blueprint.catalog.water_collector.description", "▽", 220),
+
+            ModernFurniture("furniture.modern_bed", "▰", 310),
+            ModernFurniture("furniture.modern_fridge", "▥", 320),
+            ModernFurniture("furniture.modern_table", "▤", 330),
+            ModernFurniture("furniture.modern_chair", "▱", 340),
+            ModernFurniture("furniture.modern_sofa", "▰", 350),
+            ModernFurniture("furniture.modern_tv", "▣", 360),
+            ModernFurniture("furniture.modern_shelf", "▤", 370),
         };
+
+        private static BuildCatalogEntryDefinition ModernFurniture(string id, string glyph, int order)
+        {
+            string term = "item." + id.Replace('.', '_');
+            return new(id, BuildCatalogMode.Furniture, BuildCatalogCategories.Modern,
+                BuildCatalogPlacementKind.Furniture, term + ".name", term + ".desc", glyph, order,
+                requiresCompletedFloor: true, markerPolicy: BuildMarkerPolicy.Hidden);
+        }
 
         private static readonly Dictionary<string, BuildCatalogEntryDefinition> ById =
             EntriesInternal.ToDictionary(entry => entry.DefinitionId, StringComparer.Ordinal);

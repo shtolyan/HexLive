@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
+using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Input;
@@ -52,6 +53,7 @@ namespace HexLive.UnityPresentation.UI
         private readonly HashSet<TileCoord> _emittedItemTiles = new();
         private readonly List<int> _staleMarkerIds = new();
         private int _lastTick = int.MinValue;
+        private bool _apartmentFrame;
         private int _lastSeed = int.MinValue;
         private float _nextPresentationRefreshAt;
         private float _nextFullRebuildAt;
@@ -228,7 +230,8 @@ namespace HexLive.UnityPresentation.UI
 #else
             const bool holdFullRebuild = false;
 #endif
-            if (snapshot.Tick == _lastTick || holdFullRebuild)
+            bool apartment = _cameraController != null && _cameraController.IsViewingModernApartment;
+            if (apartment == _apartmentFrame && (snapshot.Tick == _lastTick || holdFullRebuild))
             {
                 // Selection and the camera keep moving while the simulation is
                 // paused. Repaint their state at 4 Hz rather than rebuilding
@@ -254,6 +257,7 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _lastTick = snapshot.Tick;
+            _apartmentFrame = apartment;
             _nextPresentationRefreshAt = Time.unscaledTime + PresentationRefreshSeconds;
             _nextFullRebuildAt = Time.unscaledTime + WebFullRebuildSeconds;
             if (_lastSeed != snapshot.Seed)
@@ -266,6 +270,7 @@ namespace HexLive.UnityPresentation.UI
             for (var i = 0; i < snapshot.Tiles.Count; i++)
             {
                 var tile = snapshot.Tiles[i];
+                if (PortalWorld.IsApartmentTile(tile.Coord) != _apartmentFrame) continue;
                 var visible = _worldRenderer.IsTileVisibleToPlayer(tile.Coord);
                 _frame.AddTile(new TacticalMapTile(
                     tile.Coord, tile.Water, tile.Explored, visible, tile.Elevation));
@@ -300,6 +305,7 @@ namespace HexLive.UnityPresentation.UI
             for (var i = 0; i < snapshot.Objects.Count; i++)
             {
                 var worldObject = snapshot.Objects[i];
+                if (PortalWorld.IsApartmentTile(worldObject.Tile) != _apartmentFrame) continue;
                 var homeCamp = worldObject.DefinitionId == ContentIds.Campfire ||
                     worldObject.BuildProduct == ContentIds.Campfire;
                 var visible = _frame.VisibleTiles.Contains(worldObject.Tile);
@@ -388,6 +394,7 @@ namespace HexLive.UnityPresentation.UI
             foreach (var pair in _rememberedMarkers)
             {
                 var marker = pair.Value;
+                if (PortalWorld.IsApartmentTile(marker.Tile) != _apartmentFrame) continue;
                 var live = _frame.VisibleTiles.Contains(marker.Tile);
                 if (marker.Kind == TacticalMapMarkerKind.Item)
                 {
@@ -527,6 +534,7 @@ namespace HexLive.UnityPresentation.UI
         private void AddPerson(
             NpcSnapshot npc, WorldSnapshot snapshot, SimulationRunnerBehaviour runner, bool dead)
         {
+            if (PortalWorld.IsApartmentTile(npc.Tile) != _apartmentFrame) return;
             // §149 r2 (#232): «своя» на карте — весь лагерь выданной девушки,
             // а не только она сама; иначе соседки рисовались нейтралами, а в
             // BigIsland — врагами (IsHostileToColony посчитан против лагеря №1).
@@ -542,7 +550,8 @@ namespace HexLive.UnityPresentation.UI
             if (!visible)
             {
                 if (!dead && !controlled && _worldRenderer != null &&
-                    _worldRenderer.TryGetLastSeenNpcTile(npc.Id.Value, out var lastSeen))
+                    _worldRenderer.TryGetLastSeenNpcTile(npc.Id.Value, out var lastSeen) &&
+                    PortalWorld.IsApartmentTile(lastSeen) == _apartmentFrame)
                 {
                     _frame.UnknownPeople.Add(new TacticalMapUnknownPerson(
                         npc.Id.Value, lastSeen));

@@ -50,7 +50,7 @@ namespace HexLive.Simulation.Bootstrap
             var over = Override;
             if (over != null) return over(seed);
 
-            return mode switch
+            var definition = mode switch
             {
                 GameMode.BigIsland => CreateBigIsland(seed),
                 GameMode.HugeIsland => CreateHugeIsland(seed),
@@ -58,6 +58,8 @@ namespace HexLive.Simulation.Bootstrap
                 GameMode.Islands => CreateIslands(seed),
                 _ => CreateFeud(seed)
             };
+            definition.Simulation.EnablePortalTopology = true;
+            return definition;
         }
 
         private static WorldBootstrapDefinition CreateFeud(

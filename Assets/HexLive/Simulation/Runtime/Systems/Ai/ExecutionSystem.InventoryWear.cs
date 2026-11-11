@@ -1171,6 +1171,8 @@ public sealed partial class ExecutionSystem
         var boiled = bottle.WaterKind == WaterKind.Boiled;
         var thirstTotal = raw ? SimBalance.DrinkThirstRaw : SimBalance.DrinkThirstBoiled;
         var comfortTotal = boiled ? SimBalance.DrinkComfortBoiled : 0f;
+        if (bottle.WaterKind == WaterKind.Cola)
+            comfortTotal = .015f;
         if (bottle.WaterKind == WaterKind.Coconut &&
             world.Content.ObjectDefinitions.TryGetValue(
                 ContentIds.CoconutPierced, out var coconutDefinition) &&

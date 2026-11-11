@@ -41,6 +41,16 @@ internal static class PlayerInventoryCommandExecutor
             return false;
         }
 
+        if (action == InventoryAction.ToggleFlashlight)
+        {
+            if (reference.Source != InventoryItemSource.Carried || item.DefinitionId != ContentIds.Flashlight)
+            {
+                reason = "InvalidAction";
+                return false;
+            }
+            return FlashlightMath.TryToggleCarried(npc, item, out reason);
+        }
+
         if (npc.Mind.OutfitLocked &&
             (action == InventoryAction.Wear || reference.Source == InventoryItemSource.Worn))
         {

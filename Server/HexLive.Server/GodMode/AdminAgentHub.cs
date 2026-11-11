@@ -138,19 +138,24 @@ public sealed class AdminAgentHub
             var id = arguments.TryGetProperty("npcId", out var n) && n.TryGetInt32(out var selected) ? selected : turn.NpcId;
             if (!w.Entities.Npcs.TryGetValue(new EntityId(id), out var npc)) { turn.MutationsStopped = true; return (object)new { accepted = false, reason = "NpcNotFound" }; }
             return new { npcId = id, name = npc.DisplayName, faction = npc.Faction.ToString(), health = npc.Health, sex = npc.Sex.ToString(), worn = npc.WornItems,
-                needs = npc.Needs, attributes = npc.Attributes, inventory = npc.Inventory.Items,
+                needs = npc.Needs, attributes = npc.Attributes, skills = npc.Skills,
+                traits = TraitSet.All.Where(npc.Traits.Has).Select(t => t.ToString()).ToArray(),
+                relationships = npc.Social.Relationships.OrderBy(r => r.Key.Value).Take(500)
+                    .Select(r => new { otherNpcId = r.Key.Value, r.Value.Trust, r.Value.Familiarity, r.Value.Affinity, r.Value.Authority }).ToArray(),
+                inventory = npc.Inventory.Items,
                 body = npc.Body.Parts.Select(p => new { part = p.Key.ToString(), health = p.Value, severed = npc.Body.IsSevered(p.Key),
                     prosthetic = npc.Body.Condition(p.Key).Prosthetic }).ToArray() };
         });
         if (name == "admin_catalog") return host.Read(w => (object)new
         {
-            presets = new[] { "colonist" }, factions = Enum.GetNames<Faction>(),
+            presets = w.CreationConfig?.PlayersOnly == true ? Array.Empty<string>() : new[] { "colonist" }, factions = Enum.GetNames<Faction>(),
             buildings = new[] { ContentIds.Hut1Hex, ContentIds.BedBasic, ContentIds.Workbench, ContentIds.Campfire,
                 ContentIds.DryingRack, ContentIds.Wardrobe, ContentIds.WaterCollector },
             objects = w.Entities.Objects.Values.OrderBy(o => o.Id.Value).Take(1000)
                 .Select(o => new { id = o.Id.Value, definitionId = o.DefinitionId, buildProduct = o.BuildProduct,
                     tile = o.Tile, durability = o.Durability }).ToArray(),
             commands = AdminWorldCommands.Kinds, needs = AdminWorldCommands.Needs, attributes = Enum.GetNames<AttributeKind>(),
+            skills = Enum.GetNames<SkillKind>(), traits = Enum.GetNames<TraitKind>(), relationships = AdminWorldCommands.RelationshipFields,
             npcs = w.Entities.Npcs.Values.OrderBy(n => n.Id.Value).Select(n => new { id = n.Id.Value, name = n.DisplayName, faction = n.Faction.ToString() }).Take(500).ToArray(),
             garments = GarmentLibrary.Spawnable.Where(g => w.Content.ObjectDefinitions.ContainsKey(g.Id)).Select(g => new
                 { id = g.Id, name = g.DisplayName, category = g.Category.ToString(), kind = AdminGarments.Kind(g), sex = g.Sex.ToString(), layer = g.Layer.ToString(), capacity = g.Capacity }).ToArray(),

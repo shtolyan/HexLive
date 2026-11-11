@@ -96,7 +96,7 @@ public static class WorldSnapshotCodec
     // v42: per-vessel visual provenance and exact held-bottle fill (§55.5).
     // v43: persistent craft project current/last worker (§119, #422).
     // v44: §54.21 / #429 distinguishes harvest scatter from inventory piles.
-    public const int WireVersion = 45; // #644: ObjectParts is ushort; old readers must refuse.
+    public const int WireVersion = 46; // §176: optional surface parent and slot in object records.
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -435,6 +435,7 @@ public static class WorldSnapshotCodec
         DoorClosed = 1 << 7,
         PropertyOwner = 1 << 8,
         PropertyFaction = 1 << 9,
+        Surface = 1 << 10,
     }
 
     // Definition ids repeat across every object; both ends derive the same table
@@ -512,6 +513,7 @@ public static class WorldSnapshotCodec
         if (!o.IsDoorOpen) parts |= ObjectParts.DoorClosed;
         if (o.PropertyOwnerNpcId.HasValue) parts |= ObjectParts.PropertyOwner;
         if (o.PropertyOwnerFaction.HasValue) parts |= ObjectParts.PropertyFaction;
+        if (o.SurfaceObjectId.HasValue) parts |= ObjectParts.Surface;
 
         w.Write((ushort)parts);
         w.Write(o.Id.Value);
@@ -641,6 +643,12 @@ public static class WorldSnapshotCodec
             if (o.CraftLastWorkerId.HasValue) w.Write(o.CraftLastWorkerId.Value);
             w.Write(o.CraftIngredients.Count);
             foreach (var ingredient in o.CraftIngredients) WireIo.WriteString(w, ingredient);
+        }
+
+        if ((parts & ObjectParts.Surface) != 0)
+        {
+            w.Write(o.SurfaceObjectId.Value);
+            w.Write(o.SurfaceSlot);
         }
     }
 
@@ -802,6 +810,10 @@ public static class WorldSnapshotCodec
                 o.CraftCurrentWorkerId = null;
                 o.CraftLastWorkerId = null;
             }
+
+            var onSurface = (parts & ObjectParts.Surface) != 0;
+            o.SurfaceObjectId = onSurface ? r.ReadInt32() : (int?)null;
+            o.SurfaceSlot = onSurface ? r.ReadByte() : (byte)0;
         }
     }
 

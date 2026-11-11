@@ -320,10 +320,25 @@ public sealed class WorldStateFactory
             AddFragment(world, fragmentBootstrap);
         }
 
+        if (bootstrap.Simulation.EnablePortalTopology)
+        {
+            var apartment = PortalWorld.CreateApartmentFragment(world.Seed);
+            if (world.Fragments.Items.ContainsKey(PortalWorld.ApartmentFragment))
+                throw new InvalidOperationException("Portal fragment id is already in use.");
+            foreach (var tile in apartment.Tiles)
+                if (world.Tiles.Items.ContainsKey(new TileCoord(tile.Q, tile.R)))
+                    throw new InvalidOperationException("Portal apartment overlaps existing world geometry.");
+            AddFragment(world, apartment);
+            foreach (var tile in world.Fragments.Items[PortalWorld.ApartmentFragment].Tiles.Values)
+                tile.Flags |= TileFlags.Roofed;
+            PortalWorld.AddDoorDefinition(world);
+        }
+
         BuildAdjacency(world);
         BlockEdgeJunctions(world);
         BlockCliffAndSeaJunctions(world);
         OpenSwimRing(world);
+        PortalWorld.RestoreApartmentWalls(world);
         return world;
     }
 
@@ -371,7 +386,7 @@ public sealed class WorldStateFactory
         var allPoints = new List<(TileCoord tile, JunctionId junction, FragmentId fragment)>();
         foreach (var junction in world.Junctions.Items.Values)
         {
-            if (junction.Blocked || junction.Tiles.Count == 0 ||
+            if (junction.Fragment == PortalWorld.ApartmentFragment || junction.Blocked || junction.Tiles.Count == 0 ||
                 SpatialQueries.IsAllWaterJunction(world, junction.Id) ||
                 !SpatialQueries.IsJunctionFree(world, junction.Id))
             {
@@ -542,7 +557,7 @@ public sealed class WorldStateFactory
         var allPoints = new List<(TileCoord tile, JunctionId junction, FragmentId fragment)>();
         foreach (var junction in world.Junctions.Items.Values)
         {
-            if (junction.Blocked || junction.Tiles.Count == 0 ||
+            if (junction.Fragment == PortalWorld.ApartmentFragment || junction.Blocked || junction.Tiles.Count == 0 ||
                 SpatialQueries.IsAllWaterJunction(world, junction.Id) ||
                 !SpatialQueries.IsJunctionFree(world, junction.Id))
             {

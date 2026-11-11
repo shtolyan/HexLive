@@ -27,6 +27,12 @@ internal static class PlayerInventoryDropExecutor
             return false;
         }
 
+        if (PortableFurniture.CanCarry(reference.ExpectedDefinitionId))
+        {
+            reason = "FurnitureNeedsPlacement";
+            return false;
+        }
+
         if (!GroundItemPlacement.CanPlaceBatch(world,npc,items,out reason)) return false;
 
         var originalItems = npc.Inventory.Items.ToArray();

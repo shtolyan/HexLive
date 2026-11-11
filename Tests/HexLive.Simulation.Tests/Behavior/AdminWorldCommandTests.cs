@@ -87,6 +87,73 @@ public sealed class AdminWorldCommandTests
         Assert.That(AdminWorldCommands.Execute(world, new AdminCommand { NpcId = npc.Id.Value, Kind = "set_attribute", Target = "Strength", Value = float.NaN }).Accepted, Is.False);
         Assert.That(npc.Attributes.Strength, Is.EqualTo(strength));
     }
+
+    [Test]
+    public void TraitAndSkillCommandsValidateAndSurviveSave()
+    {
+        var world = TestWorld.CreateWorld();
+        var npc = world.Entities.Npcs.Values.First();
+        npc.Traits.Add(TraitKind.Slob);
+        var trait = new AdminCommand { NpcId = npc.Id.Value, Kind = "set_trait", Target = "Neat" };
+        Assert.That(AdminWorldCommands.Execute(world, trait).Reason, Is.EqualTo("InvalidTrait"));
+        Assert.That(npc.Traits.Has(TraitKind.Slob), Is.True);
+        trait.Enabled = true;
+        Assert.That(AdminWorldCommands.Execute(world, trait).Accepted, Is.True);
+        Assert.That(npc.Traits.Has(TraitKind.Slob), Is.False);
+        Assert.That(npc.Traits.Has(TraitKind.Neat), Is.True);
+        trait.Target = "Slob";
+        trait.Enabled = false;
+        Assert.That(AdminWorldCommands.Execute(world, trait).Accepted, Is.True);
+        Assert.That(npc.Traits.Has(TraitKind.Neat), Is.True);
+
+        var skill = new AdminCommand { NpcId = npc.Id.Value, Kind = "set_skill", Target = "Cooking", Value = .75f };
+        Assert.That(AdminWorldCommands.Execute(world, skill).Accepted, Is.True);
+        skill.Add = true;
+        skill.Value = .5f;
+        Assert.That(AdminWorldCommands.Execute(world, skill).Reason, Is.EqualTo("ValueOutOfRange"));
+
+        using var blob = new MemoryStream();
+        using (var w = new BinaryWriter(blob, System.Text.Encoding.UTF8, true)) WorldSaveSerializer.Write(world, w);
+        blob.Position = 0;
+        var restored = TestWorld.CreateWorld();
+        using (var r = new BinaryReader(blob, System.Text.Encoding.UTF8, true)) WorldSaveSerializer.Read(restored, r);
+        var saved = restored.Entities.Npcs[npc.Id];
+        Assert.That(saved.Traits.Has(TraitKind.Neat), Is.True);
+        Assert.That(saved.Skills.Cooking, Is.EqualTo(.75f));
+    }
+
+    [Test]
+    public void RelationshipIsDirectionalAndMutualChangesValidateBeforeMutation()
+    {
+        var world = TestWorld.CreateWorld();
+        var npcs = world.Entities.Npcs.Values.Take(2).ToArray();
+        var first = npcs[0];
+        var second = npcs[1];
+        first.Social.Relationships.Clear();
+        second.Social.Relationships.Clear();
+
+        var relation = new AdminCommand { NpcId = first.Id.Value, OtherNpcId = second.Id.Value,
+            Kind = "set_relationship", Target = "Trust", Value = -.25f };
+        Assert.That(AdminWorldCommands.Execute(world, relation).Accepted, Is.True);
+        Assert.That(first.Social.Relationships[second.Id].Trust, Is.EqualTo(-.25f));
+        Assert.That(second.Social.Relationships.ContainsKey(first.Id), Is.False);
+
+        second.Social.GetOrCreate(first.Id).Trust = .875f;
+        relation.Mutual = relation.Add = true;
+        relation.Value = .25f;
+        Assert.That(AdminWorldCommands.Execute(world, relation).Reason, Is.EqualTo("ValueOutOfRange"));
+        Assert.That(first.Social.Relationships[second.Id].Trust, Is.EqualTo(-.25f));
+        Assert.That(second.Social.Relationships[first.Id].Trust, Is.EqualTo(.875f));
+        relation.Value = .125f;
+        Assert.That(AdminWorldCommands.Execute(world, relation).Accepted, Is.True);
+        Assert.That(first.Social.Relationships[second.Id].Trust, Is.EqualTo(-.125f));
+        Assert.That(second.Social.Relationships[first.Id].Trust, Is.EqualTo(1));
+
+        relation.OtherNpcId = first.Id.Value;
+        Assert.That(AdminWorldCommands.Execute(world, relation).Reason, Is.EqualTo("InvalidRelationshipTarget"));
+        Assert.That(first.Social.Relationships.ContainsKey(first.Id), Is.False);
+    }
+
     [Test]
     public void RandomGarment_GiveAndEquipUseSameCatalogAndPreserveDisplacedItems()
     {

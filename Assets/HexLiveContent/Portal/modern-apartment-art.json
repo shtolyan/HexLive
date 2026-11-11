@@ -1,0 +1,630 @@
+{
+  "schemaVersion": 1,
+  "origin": "modern",
+  "stage": "authoring",
+  "hexRadius": 1.5,
+  "hexApothem": 1.2990381,
+  "junctionStep": 0.375,
+  "records": [
+    {
+      "type": "object",
+      "id": "furniture.modern_bed",
+      "main": "Assets/HexLiveContent/RuntimeSource/Objects/furniture.modern_bed.fbx",
+      "metadata": {
+        "contentOrigin": "modern",
+        "hasIcon": true,
+        "legacyResourcePath": "HexLive/Objects/furniture.modern_bed",
+        "legacyResourceFolder": "HexLive/Objects"
+      },
+      "shape": "low",
+      "materials": [
+        "ApartmentWalnut",
+        "ApartmentWalnutLight",
+        "ApartmentCotton",
+        "ApartmentSage",
+        "ApartmentSageLight",
+        "ApartmentIvory"
+      ],
+      "triangles": 528,
+      "blenderBounds": {
+        "min": [
+          -0.46000000834465027,
+          -0.925000011920929,
+          0.0
+        ],
+        "max": [
+          0.46000000834465027,
+          0.9039999842643738,
+          0.7049999833106995
+        ]
+      },
+      "icon": "Assets/HexLiveContent/Icons/furniture.modern_bed.png",
+      "targetWorldSize": 1.8289999961853027
+    },
+    {
+      "type": "object",
+      "id": "furniture.modern_fridge",
+      "main": "Assets/HexLiveContent/RuntimeSource/Objects/furniture.modern_fridge.fbx",
+      "metadata": {
+        "contentOrigin": "modern",
+        "hasIcon": true,
+        "legacyResourcePath": "HexLive/Objects/furniture.modern_fridge",
+        "legacyResourceFolder": "HexLive/Objects"
+      },
+      "shape": "standing",
+      "materials": [
+        "ApartmentCharcoal",
+        "ApartmentSteel",
+        "ApartmentPaleSteel",
+        "ApartmentScreen",
+        "ApartmentSageLight"
+      ],
+      "triangles": 464,
+      "blenderBounds": {
+        "min": [
+          -0.3059999942779541,
+          -0.3714999854564667,
+          0.0
+        ],
+        "max": [
+          0.3059999942779541,
+          0.32600000500679016,
+          1.5750000476837158
+        ]
+      },
+      "icon": "Assets/HexLiveContent/Icons/furniture.modern_fridge.png",
+      "targetWorldSize": 1.5750000476837158
+    },
+    {
+      "type": "object",
+      "id": "furniture.modern_table",
+      "main": "Assets/HexLiveContent/RuntimeSource/Objects/furniture.modern_table.fbx",
+      "metadata": {
+        "contentOrigin": "modern",
+        "hasIcon": true,
+        "legacyResourcePath": "HexLive/Objects/furniture.modern_table",
+        "legacyResourceFolder": "HexLive/Objects"
+      },
+      "shape": "low",
+      "materials": [
+        "ApartmentWalnut",
+        "ApartmentWalnutLight"
+      ],
+      "triangles": 264,
+      "blenderBounds": {
+        "min": [
+          -0.3799999952316284,
+          -0.5299999713897705,
+          0.0
+        ],
+        "max": [
+          0.3799999952316284,
+          0.5299999713897705,
+          0.7625000476837158
+        ]
+      },
+      "icon": "Assets/HexLiveContent/Icons/furniture.modern_table.png",
+      "targetWorldSize": 1.059999942779541,
+      "placementSurfaceHeight": 0.7625
+    },
+    {
+      "type": "object",
+      "id": "furniture.modern_chair",
+      "main": "Assets/HexLiveContent/RuntimeSource/Objects/furniture.modern_chair.fbx",
+      "metadata": {
+        "contentOrigin": "modern",
+        "hasIcon": true,
+        "legacyResourcePath": "HexLive/Objects/furniture.modern_chair",
+        "legacyResourceFolder": "HexLive/Objects"
+      },
+      "shape": "standing",
+      "materials": [
+        "ApartmentWalnut",
+        "ApartmentTerra",
+        "ApartmentWalnutLight"
+      ],
+      "triangles": 440,
+      "blenderBounds": {
+        "min": [
+          -0.2150000035762787,
+          -0.2515000104904175,
+          0.0
+        ],
+        "max": [
+          0.2150000035762787,
+          0.26100000739097595,
+          0.9200000166893005
+        ]
+      },
+      "icon": "Assets/HexLiveContent/Icons/furniture.modern_chair.png",
+      "targetWorldSize": 0.9200000166893005
+    },
+    {
+      "type": "object",
+      "id": "furniture.modern_sofa",
+      "main": "Assets/HexLiveContent/RuntimeSource/Objects/furniture.modern_sofa.fbx",
+      "metadata": {
+        "contentOrigin": "modern",
+        "hasIcon": true,
+        "legacyResourcePath": "HexLive/Objects/furniture.modern_sofa",
+        "legacyResourceFolder": "HexLive/Objects"
+      },
+      "shape": "low",
+      "materials": [
+        "ApartmentWalnut",
+        "ApartmentSage",
+        "ApartmentSageLight",
+        "ApartmentTerra"
+      ],
+      "triangles": 572,
+      "blenderBounds": {
+        "min": [
+          -0.375,
+          -0.9150000214576721,
+          0.0
+        ],
+        "max": [
+          0.4049999713897705,
+          0.9150000214576721,
+          0.8190000057220459
+        ]
+      },
+      "icon": "Assets/HexLiveContent/Icons/furniture.modern_sofa.png",
+      "targetWorldSize": 1.8300000429153442
+    },
+    {
+      "type": "object",
+      "id": "furniture.modern_tv",
+      "main": "Assets/HexLiveContent/RuntimeSource/Objects/furniture.modern_tv.fbx",
+      "metadata": {
+        "contentOrigin": "modern",
+        "hasIcon": true,
+        "legacyResourcePath": "HexLive/Objects/furniture.modern_tv",
+        "legacyResourceFolder": "HexLive/Objects"
+      },
+      "shape": "low",
+      "materials": [
+        "ApartmentWalnut",
+        "ApartmentWalnutLight",
+        "ApartmentCharcoal",
+        "ApartmentScreen",
+        "ApartmentScreenLight"
+      ],
+      "triangles": 660,
+      "blenderBounds": {
+        "min": [
+          -0.2459999918937683,
+          -0.5550000071525574,
+          0.0
+        ],
+        "max": [
+          0.2160000056028366,
+          0.5550000071525574,
+          0.9320000410079956
+        ]
+      },
+      "icon": "Assets/HexLiveContent/Icons/furniture.modern_tv.png",
+      "targetWorldSize": 1.1100000143051147
+    },
+    {
+      "type": "object",
+      "id": "portal.modern_door",
+      "main": "Assets/HexLiveContent/RuntimeSource/Objects/portal.modern_door.fbx",
+      "metadata": {
+        "contentOrigin": "modern",
+        "hasIcon": true,
+        "legacyResourcePath": "HexLive/Objects/portal.modern_door",
+        "legacyResourceFolder": "HexLive/Objects"
+      },
+      "shape": "door",
+      "materials": [
+        "ApartmentIvory",
+        "ApartmentWalnutLight",
+        "ApartmentWalnut",
+        "ApartmentCharcoal",
+        "ApartmentSteel"
+      ],
+      "triangles": 708,
+      "blenderBounds": {
+        "min": [
+          -0.25,
+          -0.052000001072883606,
+          0.0
+        ],
+        "max": [
+          0.25,
+          0.052000001072883606,
+          1.5
+        ]
+      },
+      "icon": "Assets/HexLiveContent/Icons/portal.modern_door.png",
+      "meshNodes": [
+        "door_glow",
+        "door_panel"
+      ]
+    },
+    {
+      "type": "object",
+      "id": "architecture.modern_wall_cream",
+      "main": "Assets/HexLiveContent/RuntimeSource/Objects/architecture.modern_wall_cream.fbx",
+      "metadata": {
+        "contentOrigin": "modern",
+        "hasIcon": false,
+        "legacyResourcePath": "HexLive/Objects/architecture.modern_wall_cream",
+        "legacyResourceFolder": "HexLive/Objects"
+      },
+      "shape": "wall",
+      "materials": [
+        "ApartmentCream",
+        "ApartmentIvory",
+        "ApartmentCreamStripe"
+      ],
+      "triangles": 204,
+      "blenderBounds": {
+        "min": [
+          -0.75,
+          -0.06549999862909317,
+          0.0
+        ],
+        "max": [
+          0.75,
+          0.06549999862909317,
+          2.3499999046325684
+        ]
+      }
+    },
+    {
+      "type": "object",
+      "id": "architecture.modern_floor_cream",
+      "main": "Assets/HexLiveContent/RuntimeSource/Objects/architecture.modern_floor_cream.fbx",
+      "metadata": {
+        "contentOrigin": "modern",
+        "hasIcon": false,
+        "legacyResourcePath": "HexLive/Objects/architecture.modern_floor_cream",
+        "legacyResourceFolder": "HexLive/Objects"
+      },
+      "shape": "floor",
+      "materials": [
+        "ApartmentWalnut",
+        "ApartmentWalnutLight"
+      ],
+      "triangles": 123,
+      "blenderBounds": {
+        "min": [
+          -1.299038052558899,
+          -1.5,
+          -0.04800000041723251
+        ],
+        "max": [
+          1.299038052558899,
+          1.5,
+          0.0
+        ]
+      }
+    },
+    {
+      "type": "object",
+      "id": "architecture.modern_wall_blue",
+      "main": "Assets/HexLiveContent/RuntimeSource/Objects/architecture.modern_wall_blue.fbx",
+      "metadata": {
+        "contentOrigin": "modern",
+        "hasIcon": false,
+        "legacyResourcePath": "HexLive/Objects/architecture.modern_wall_blue",
+        "legacyResourceFolder": "HexLive/Objects"
+      },
+      "shape": "wall",
+      "materials": [
+        "ApartmentBlue",
+        "ApartmentIvory",
+        "ApartmentBlueStripe"
+      ],
+      "triangles": 84,
+      "blenderBounds": {
+        "min": [
+          -0.75,
+          -0.06549999862909317,
+          0.0
+        ],
+        "max": [
+          0.75,
+          0.06549999862909317,
+          2.3499999046325684
+        ]
+      }
+    },
+    {
+      "type": "object",
+      "id": "architecture.modern_floor_blue",
+      "main": "Assets/HexLiveContent/RuntimeSource/Objects/architecture.modern_floor_blue.fbx",
+      "metadata": {
+        "contentOrigin": "modern",
+        "hasIcon": false,
+        "legacyResourcePath": "HexLive/Objects/architecture.modern_floor_blue",
+        "legacyResourceFolder": "HexLive/Objects"
+      },
+      "shape": "floor",
+      "materials": [
+        "ApartmentBlueFloor",
+        "ApartmentBlueFloorLight"
+      ],
+      "triangles": 100,
+      "blenderBounds": {
+        "min": [
+          -1.299038052558899,
+          -1.5,
+          -0.04800000041723251
+        ],
+        "max": [
+          1.299038052558899,
+          1.5,
+          0.0
+        ]
+      }
+    },
+    {
+      "type": "object",
+      "id": "architecture.modern_wall_green",
+      "main": "Assets/HexLiveContent/RuntimeSource/Objects/architecture.modern_wall_green.fbx",
+      "metadata": {
+        "contentOrigin": "modern",
+        "hasIcon": false,
+        "legacyResourcePath": "HexLive/Objects/architecture.modern_wall_green",
+        "legacyResourceFolder": "HexLive/Objects"
+      },
+      "shape": "wall",
+      "materials": [
+        "ApartmentGreen",
+        "ApartmentIvory",
+        "ApartmentGreenStripe"
+      ],
+      "triangles": 228,
+      "blenderBounds": {
+        "min": [
+          -0.75,
+          -0.06549999862909317,
+          0.0
+        ],
+        "max": [
+          0.75,
+          0.06549999862909317,
+          2.3499999046325684
+        ]
+      }
+    },
+    {
+      "type": "object",
+      "id": "architecture.modern_floor_green",
+      "main": "Assets/HexLiveContent/RuntimeSource/Objects/architecture.modern_floor_green.fbx",
+      "metadata": {
+        "contentOrigin": "modern",
+        "hasIcon": false,
+        "legacyResourcePath": "HexLive/Objects/architecture.modern_floor_green",
+        "legacyResourceFolder": "HexLive/Objects"
+      },
+      "shape": "floor",
+      "materials": [
+        "ApartmentGreenFloor",
+        "ApartmentGreenFloorLight"
+      ],
+      "triangles": 100,
+      "blenderBounds": {
+        "min": [
+          -1.299038052558899,
+          -1.5,
+          -0.04800000041723251
+        ],
+        "max": [
+          1.299038052558899,
+          1.5,
+          0.0
+        ]
+      }
+    },
+    {
+      "type": "object",
+      "id": "architecture.modern_opening",
+      "main": "Assets/HexLiveContent/RuntimeSource/Objects/architecture.modern_opening.fbx",
+      "metadata": {
+        "contentOrigin": "modern",
+        "hasIcon": false,
+        "legacyResourcePath": "HexLive/Objects/architecture.modern_opening",
+        "legacyResourceFolder": "HexLive/Objects"
+      },
+      "shape": "opening",
+      "materials": [
+        "ApartmentCream",
+        "ApartmentWalnutLight",
+        "ApartmentWalnut",
+        "ApartmentSteel"
+      ],
+      "triangles": 128,
+      "blenderBounds": {
+        "min": [
+          -0.75,
+          -0.05700000002980232,
+          0.0
+        ],
+        "max": [
+          0.75,
+          0.06750000268220901,
+          2.3499999046325684
+        ]
+      },
+      "meshNodes": [
+        "wall_shell",
+        "door_frame"
+      ],
+      "wallAperture": [
+        0.5,
+        0,
+        1.5
+      ],
+      "clearPassage": [
+        0.426,
+        1.452
+      ]
+    },
+    {
+      "type": "object",
+      "id": "architecture.modern_window",
+      "main": "Assets/HexLiveContent/RuntimeSource/Objects/architecture.modern_window.fbx",
+      "metadata": {
+        "contentOrigin": "modern",
+        "hasIcon": false,
+        "legacyResourcePath": "HexLive/Objects/architecture.modern_window",
+        "legacyResourceFolder": "HexLive/Objects"
+      },
+      "shape": "window",
+      "materials": [
+        "ApartmentIvory",
+        "ApartmentCitySky",
+        "ApartmentCityHaze",
+        "ApartmentCityFar",
+        "ApartmentCityLights",
+        "ApartmentCityNear"
+      ],
+      "triangles": 696,
+      "blenderBounds": {
+        "min": [
+          -0.5320000052452087,
+          -0.04699999839067459,
+          0.8579999804496765
+        ],
+        "max": [
+          0.5320000052452087,
+          0.04699999839067459,
+          1.9539999961853027
+        ]
+      },
+      "meshNodes": [
+        "window_frame",
+        "city_backdrop"
+      ]
+    },
+    {
+      "type": "object",
+      "id": "architecture.modern_exit_jamb",
+      "main": "Assets/HexLiveContent/RuntimeSource/Objects/architecture.modern_exit_jamb.fbx",
+      "metadata": {
+        "contentOrigin": "modern",
+        "hasIcon": false,
+        "legacyResourcePath": "HexLive/Objects/architecture.modern_exit_jamb",
+        "legacyResourceFolder": "HexLive/Objects"
+      },
+      "shape": "aperture",
+      "materials": [
+        "ApartmentCream"
+      ],
+      "triangles": 36,
+      "blenderBounds": {
+        "min": [
+          -0.75,
+          -0.04749999940395355,
+          0.0
+        ],
+        "max": [
+          0.75,
+          0.04749999940395355,
+          2.3499999046325684
+        ]
+      },
+      "meshNodes": [
+        "wall_shell"
+      ],
+      "wallAperture": [
+        0.5,
+        0,
+        1.5
+      ]
+    },
+    {
+      "type": "object",
+      "id": "furniture.modern_shelf",
+      "main": "Assets/HexLiveContent/RuntimeSource/Objects/furniture.modern_shelf.fbx",
+      "metadata": {
+        "contentOrigin": "modern",
+        "hasIcon": true,
+        "legacyResourcePath": "HexLive/Objects/furniture.modern_shelf",
+        "legacyResourceFolder": "HexLive/Objects"
+      },
+      "shape": "standing",
+      "materials": [
+        "ApartmentWalnut",
+        "ApartmentWalnutLight"
+      ],
+      "triangles": 528,
+      "blenderBounds": {
+        "min": [
+          -0.15000000596046448,
+          -0.3499999940395355,
+          0.0
+        ],
+        "max": [
+          0.15000000596046448,
+          0.3499999940395355,
+          1.5
+        ]
+      },
+      "icon": "Assets/HexLiveContent/Icons/furniture.modern_shelf.png",
+      "targetWorldSize": 1.5,
+      "placementSlotsUnity": {
+        "shelf_low": [
+          0.03,
+          0.22,
+          0.12
+        ],
+        "shelf_mid_low": [
+          0.03,
+          0.58,
+          -0.08
+        ],
+        "shelf_mid_high": [
+          0.03,
+          0.94,
+          0.1
+        ],
+        "shelf_top": [
+          0.03,
+          1.3,
+          -0.12
+        ]
+      }
+    },
+    {
+      "type": "object",
+      "id": "architecture.modern_window_jamb",
+      "main": "Assets/HexLiveContent/RuntimeSource/Objects/architecture.modern_window_jamb.fbx",
+      "metadata": {
+        "contentOrigin": "modern",
+        "hasIcon": false,
+        "legacyResourcePath": "HexLive/Objects/architecture.modern_window_jamb",
+        "legacyResourceFolder": "HexLive/Objects"
+      },
+      "shape": "aperture",
+      "materials": [
+        "ApartmentCream"
+      ],
+      "triangles": 48,
+      "blenderBounds": {
+        "min": [
+          -0.75,
+          -0.04749999940395355,
+          0.0
+        ],
+        "max": [
+          0.75,
+          0.04749999940395355,
+          2.3499999046325684
+        ]
+      },
+      "meshNodes": [
+        "wall_shell"
+      ],
+      "wallAperture": [
+        1.048,
+        0.866,
+        1.946
+      ]
+    }
+  ]
+}

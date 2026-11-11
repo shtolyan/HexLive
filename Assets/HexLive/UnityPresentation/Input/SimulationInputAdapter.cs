@@ -72,6 +72,7 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
     private readonly Dictionary<TileCoord, List<PlantingJunction>>
         _plantingJunctionsByTile = new();
     private readonly HashSet<JunctionId> _plantingObjectJunctions = new();
+    private readonly HashSet<JunctionId> _furnitureBlockedJunctions = new();
 
     private int _plantingActorId = -1;
     private int _plantingSourceIndex = -1;
@@ -80,6 +81,10 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
     private TileCoord _plantingCandidateTile;
     private Float2 _plantingCandidatePosition;
     private bool _plantingCandidateValid;
+    private GameObject? _furniturePlacementPreview;
+    private int _furnitureYawSteps;
+    private int? _furnitureBlockedStamp;
+    private bool IsPlacingFurniture => PortableFurniture.CanCarry(_plantingSeedDefinitionId);
 
     private readonly struct PlantingJunction
     {
@@ -116,12 +121,12 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             candidate.Id.Value == actorId);
         if (actor == null || !_runner!.CanControlNpc(actor.Id) ||
             !HasCarriedSeedAtSource(actor, sourceIndex, seedDefinitionId) ||
-            !InventoryPlacementMath.CanPlace(seedDefinitionId))
+            (!InventoryPlacementMath.CanPlace(seedDefinitionId) && !PortableFurniture.CanCarry(seedDefinitionId)))
         {
             return false;
         }
 
-        _plantingJunctionsByTile.Clear();
+        CancelPlantingPlacement();
         foreach (var junction in snapshot!.Junctions)
         {
             foreach (var tile in junction.Tiles)
@@ -251,6 +256,7 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             candidates.Count == 0)
         {
             PlantingPlacementMarker.Hide();
+            if (_furniturePlacementPreview != null) _furniturePlacementPreview.SetActive(false);
             return true;
         }
 
@@ -274,6 +280,7 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         if (junction == null || ground == null)
         {
             PlantingPlacementMarker.Hide();
+            if (_furniturePlacementPreview != null) _furniturePlacementPreview.SetActive(false);
             return true;
         }
 
@@ -302,11 +309,84 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             (!junction.Occupied || actorAtPoint) &&
             (!junction.Reserved || actorAtPoint);
 
+        var position = SimulationUnityMapper.ToUnityPosition(closest.Position, TileTopY(ground));
+        if (IsPlacingFurniture)
+        {
+            const float reach = PortableFurniture.ReachWorldUnits;
+            _plantingCandidateValid &= !actorAtPoint &&
+                DistanceSquared(actor.Position, closest.Position) <= reach * reach &&
+                PortalWorld.DestinationAt(actor.Tile) == PortalWorld.DestinationAt(tile) &&
+                PortableFurniture.FitsInsideTile(_plantingSeedDefinitionId, tile, closest.Position) &&
+                FurnitureFootprintFree(runner, snapshot, tile, closest.Position, candidates);
+            if (UnityEngine.InputSystem.Keyboard.current?.rKey.wasPressedThisFrame == true)
+                _furnitureYawSteps = (_furnitureYawSteps + 1) % 6;
+            if (PortalWorld.IsApartmentTile(tile)) position.y += ModernApartmentView.FloorLift;
+            else if (ground.HasFloor)
+                position.y += HexLive.UnityPresentation.Environment.HutAssembly.FloorSurfaceLift;
+            UpdateFurniturePlacementPreview(position);
+        }
         PlantingPlacementMarker.Show(
-            SimulationUnityMapper.ToUnityPosition(
-                closest.Position, TileTopY(ground)),
-            _plantingCandidateValid);
+            position, _plantingCandidateValid);
         return true;
+    }
+
+    private bool FurnitureFootprintFree(SimulationRunnerBehaviour runner, WorldSnapshot snapshot, TileCoord tile,
+        Float2 position, List<PlantingJunction> candidates)
+    {
+        if (_furnitureBlockedStamp != snapshot.JunctionsBlockedStamp)
+        {
+            _furnitureBlockedStamp = snapshot.JunctionsBlockedStamp;
+            _furnitureBlockedJunctions.Clear();
+            foreach (var point in snapshot.Junctions)
+                if (point.Blocked) _furnitureBlockedJunctions.Add(point.Id);
+        }
+
+        float radius = PortableFurniture.FootprintRadius(_plantingSeedDefinitionId);
+        float radiusSquared = radius * radius;
+        foreach (var candidate in candidates)
+            if (_furnitureBlockedJunctions.Contains(candidate.Id) &&
+                DistanceSquared(candidate.Position, position) <= radiusSquared) return false;
+        foreach (var person in snapshot.Npcs)
+            if (person.Health > 0f && DistanceSquared(person.Position, position) <= radiusSquared) return false;
+        foreach (var obj in snapshot.Objects)
+        {
+            if (PortalWorld.IsApartmentTile(tile) && obj.DefinitionId == PortalWorld.DoorDefinitionId &&
+                PortalWorld.IsApartmentTile(obj.Tile) &&
+                PortalWorld.TryGetWindowEdge(tile, snapshot.Seed, obj.Tile, out _)) return false;
+            if (obj.Tile != tile) continue;
+            if (!string.IsNullOrEmpty(obj.BuildProduct) || obj.DefinitionId == PortalWorld.DoorDefinitionId)
+                return false;
+            if (obj.ArchitectureOwnerObjectId.HasValue) continue;
+            if (PortableFurniture.CanCarry(obj.DefinitionId) ||
+                runner.TryGetObjectDefinition(obj.DefinitionId, out var definition) && definition != null &&
+                (definition.HasTag("Furniture") || definition.HasTag("Bed") || definition.HasTag("Chair")))
+                return false;
+        }
+        return true;
+    }
+
+    private void UpdateFurniturePlacementPreview(Vector3 position)
+    {
+        if (!_plantingCandidateValid)
+        {
+            if (_furniturePlacementPreview != null) _furniturePlacementPreview.SetActive(false);
+            return;
+        }
+        if (_furniturePlacementPreview == null)
+        {
+            var prefab = ModernApartmentView.LoadPrefab(_plantingSeedDefinitionId);
+            if (prefab == null) return;
+            _furniturePlacementPreview = new GameObject("Furniture placement preview");
+            Instantiate(prefab, _furniturePlacementPreview.transform, false);
+            foreach (var renderer in _furniturePlacementPreview.GetComponentsInChildren<Renderer>())
+            {
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+            }
+        }
+        _furniturePlacementPreview.transform.SetPositionAndRotation(position, Quaternion.Euler(0f,
+            SimulationUnityMapper.ToUnityFootprintYawDegrees(_furnitureYawSteps * 60f), 0f));
+        _furniturePlacementPreview.SetActive(true);
     }
 
     private void CancelPlantingPlacement()
@@ -318,6 +398,11 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         _plantingCandidateValid = false;
         _plantingJunctionsByTile.Clear();
         _plantingObjectJunctions.Clear();
+        _furnitureBlockedJunctions.Clear();
+        _furnitureBlockedStamp = null;
+        _furnitureYawSteps = 0;
+        if (_furniturePlacementPreview != null) Destroy(_furniturePlacementPreview);
+        _furniturePlacementPreview = null;
         PlantingPlacementMarker.Hide();
     }
 
@@ -817,14 +902,13 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
                 _plantingCandidateJunction is { } target)
             {
                 var actor = new EntityId(_plantingActorId);
-                EnqueueOrder(_plantingActorId, new PlantInventorySeedCommand(
-                    actor,
-                    new InventoryItemRef(
-                        InventoryItemSource.Carried,
-                        _plantingSourceIndex,
-                        _plantingSeedDefinitionId),
-                    target,
-                    _plantingCandidateTile));
+                var source = new InventoryItemRef(InventoryItemSource.Carried, _plantingSourceIndex,
+                    _plantingSeedDefinitionId);
+                ISimulationCommand command = IsPlacingFurniture
+                    ? new PlaceInventoryFurnitureCommand(actor, source, target, _plantingCandidateTile,
+                        _furnitureYawSteps * 60f)
+                    : new PlantInventorySeedCommand(actor, source, target, _plantingCandidateTile);
+                EnqueueOrder(_plantingActorId, command);
                 DestinationMarker.Show(SimulationUnityMapper.ToUnityPosition(
                     _plantingCandidatePosition,
                     GroundMarkerY(_plantingCandidatePosition)));
@@ -1137,6 +1221,13 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             if (isContainer && interaction.Type == InteractionType.Loot) continue;
             if (clicked != null && clicked.CraftWorkRequired > 0 &&
                 (interaction.Type == InteractionType.PickUp || interaction.Type == InteractionType.Craft)) continue;
+            if (clicked != null && interaction.Type == InteractionType.PickUp &&
+                PortableFurniture.CanCarry(clicked.DefinitionId) &&
+                !PortableFurniture.CanShowPickup(clicked,
+                    snapshot?.Tiles.Exists(tile => tile.Coord == clicked.Tile && tile.HasFloor) == true)) continue;
+            if (clicked != null && interaction.Type == InteractionType.SwitchFlashlight &&
+                (interaction.Id == FlashlightMath.SwitchOffInteractionId) !=
+                    FlashlightMath.IsOn(clicked.ResourceAmount, clicked.Durability)) continue;
 
             // §54.14 (bug #292): готовая постройка не предлагает строить себя.
             // У костра глагол Build стоит в каталоге ДВАЖДЫ (build.upgrade и
@@ -1161,18 +1252,25 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             var interactionId = interaction.Id;
             var emptyDrink = type == InteractionType.Drink && clicked != null &&
                 ItemCatalog.IsDrainedWaterShell(clicked.DefinitionId, clicked.ResourceAmount);
-            if (emptyDrink) ok = false;
+            var emptyBattery = type == InteractionType.SwitchFlashlight && clicked != null && clicked.Durability <= 0f;
+            if (emptyDrink || emptyBattery) ok = false;
             // Bug #312: взять чужое на приватной земле чужого лагеря — это
             // «Украсть», красным. Предикат тот же, что применит симуляция
             // (TheftMath), посчитан по снапшоту: якоря лагерей + владелец.
             var theft = IsTheftTarget(snapshot, clicked, actingNpc, type);
+            var verb = interactionId == PortalWorld.TravelInteractionId && clicked != null
+                ? Loc.Get(PortalWorld.IsApartmentTile(clicked.Tile) ? "portal.return" : "portal.enter")
+                : type == InteractionType.SwitchFlashlight
+                    ? Loc.Get(interactionId == FlashlightMath.SwitchOnInteractionId ? "menu.flashlight_on" : "menu.flashlight_off")
+                : InteractionVerb(interaction);
             _entries.Add(new ContextMenuEntry(
-                emptyDrink ? Loc.Get("menu.drink_empty") : theft && type == InteractionType.PickUp ? Loc.Get("menu.steal") : InteractionVerb(interaction),
+                emptyDrink ? Loc.Get("menu.drink_empty") : theft && type == InteractionType.PickUp ? Loc.Get("menu.steal") : verb,
                 () => EnqueueOrder(actorId,
                     new InteractCommand(
                         actor, new ObjectId(objectId), type, interactionId)),
                 ok,
-                emptyDrink ? Loc.Get("menu.drink_empty") : ok ? null : Loc.Get(usableHands == 0 ? "menu.needs_hand" : "menu.missing_tool"))
+                emptyDrink ? Loc.Get("menu.drink_empty") : emptyBattery ? Loc.Get("toast.order_rejected.BatteryEmpty") :
+                ok ? null : Loc.Get(usableHands == 0 ? "menu.needs_hand" : "menu.missing_tool"))
             { Danger = theft });
 
             // §121.10 (баг #270): рядом с «Подобрать» — «Собрать все». Собрать
@@ -1183,7 +1281,8 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             // по одному предмету за раз.
             // Bug #331: у вертела «собрать все» лишено смысла — мясо и так
             // берётся по кусочку (сам пункт называется «Взять кусочек»).
-            if (type == InteractionType.PickUp && interactionId != "take.from.spit")
+            if (type == InteractionType.PickUp && interactionId != "take.from.spit" &&
+                !PortableFurniture.CanCarry(view.ContextDefinitionId))
             {
                 _entries.Add(new ContextMenuEntry(
                     theft ? Loc.Get("menu.steal_all") : Loc.Get("menu.gather_all"),
@@ -1595,7 +1694,8 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         }
         // §118.4 r2 (#166): СВОИХ берут на руки всегда — спят они или нет, здоровы
         // или переломаны. Чужой на ногах в руки не даётся: это уже не носилки.
-        else if (lying || sameSide)
+        else if (lying || sameSide || carrier != null && PortalWorld.IsApartmentTile(carrier.Tile) &&
+                 PortalWorld.IsApartmentTile(target.Tile) && target.ProfileId == PortalWorld.ResidentProfileId)
         {
             var canCarry = carrier != null && _selectedColonyIds.Count == 1 &&
                 carrier.CarriedNpcId is null &&
@@ -1606,7 +1706,7 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.carry_person"),
                 () => EnqueueOrder(carrier!.Id.Value, new CarryPersonCommand(
                     new EntityId(carrier.Id.Value), new EntityId(npcId))),
-                canCarry, canCarry ? null : blockedReason));
+                canCarry, canCarry ? null : blockedReason) { Danger = !lying && !sameSide });
         }
         // §128 r2 (#164): обыскать можно ЛЮБОГО лежащего — мёртвую, спящую,
         // без сознания. Раньше пункт показывался только для живой в отключке, и

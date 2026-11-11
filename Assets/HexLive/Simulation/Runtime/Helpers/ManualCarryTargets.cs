@@ -33,6 +33,8 @@ internal static class ManualCarryTargets
 
         return dead ||
             FactionRelations.AreAllies(carrier, person) ||
+            person.ProfileId == PortalWorld.ResidentProfileId &&
+                person.Fragment == PortalWorld.ApartmentFragment && carrier.Fragment == person.Fragment ||
             person.IsLyingDown(world.Tick);
     }
 }

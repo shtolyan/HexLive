@@ -98,6 +98,8 @@ public static class ItemIcons
         {
             return null;
         }
+        var localModern = LocalModernContent.Icon(id);
+        if (localModern != null) return localModern;
         ObserveRegistry();
         if (Missing.Contains(id)) return null;
         if (Cache.TryGetValue(id, out var cached))

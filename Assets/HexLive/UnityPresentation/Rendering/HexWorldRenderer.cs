@@ -106,6 +106,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private struct ObjectViewParts
     {
         public HexLive.UnityPresentation.Environment.CampfireEffect Fire;
+        public HexLive.UnityPresentation.Environment.PortableFlashlightVisual Flashlight;
         public HexLive.UnityPresentation.Environment.BedAssembly Assembly;
         public HexLive.UnityPresentation.Environment.CampfireSpitMeat SpitMeat;
         public GarmentWorldCondition Garment;
@@ -575,6 +576,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private readonly Dictionary<int, Pose> _prevNpcPoses = new();
     private readonly Dictionary<int, Pose> _currNpcPoses = new();
+    private ModernApartmentView? _modernApartment;
     // §71.10: sparse snapshots can skip a junction bend. When the direct
     // chord intersects blocked topology, retain the legal graph polyline so
     // presentation follows the same doorway as the simulation.
@@ -936,7 +938,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         UnityEngine.Profiling.Profiler.BeginSample("Hex.PerFrame");
-        UpdateRain(snapshot.IsRaining);
+        var activeCamera = Camera.main;
+        bool apartmentView = activeCamera != null &&
+            activeCamera.TryGetComponent<HexLive.UnityPresentation.Input.RtsCameraController>(out var rig) &&
+            rig.IsViewingModernApartment;
+        UpdateRain(snapshot.IsRaining && !apartmentView);
         UpdateEnvironmentWetness(snapshot.IsRaining);
         // §40.18-B: our owned wave params -> the water material, so the mesh
         // swell always matches what WaterWave.Height gives the swimmer.
@@ -1653,6 +1659,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         HexLive.UnityPresentation.Diagnostics.WebPerf.EndNamed();
+        if (_tileElevations.ContainsKey(PortalWorld.ApartmentCenter))
+        {
+            _modernApartment ??= gameObject.AddComponent<ModernApartmentView>();
+            _modernApartment.Sync(snapshot, GroundY);
+        }
         HexLive.UnityPresentation.Diagnostics.WebPerf.BeginNamed("Hex.RST.Views");
         foreach (var tile in snapshot.Tiles)
         {
@@ -1834,7 +1845,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _groundPileDefinitions.Clear(); _groundPileLegacy.Clear();
         foreach (var worldObject in snapshot.Objects)
         {
-            if (worldObject.Junctions.Count > 0 &&
+            if (worldObject.SurfaceObjectId == null && worldObject.Junctions.Count > 0 &&
                 !(worldObject.DefinitionId == ContentIds.Torch && worldObject.Variant == InventoryPlacementMath.PlantedTorchVariant) &&
                 GroundPileCatalog.TryGet(worldObject.DefinitionId, false, out _))
                 _groundPileScratch.Add(worldObject);
@@ -1950,7 +1961,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // сделать»: оплакать, обобрать, разделать.
             if (!hasView)
             {
-                objectView = CreateObjectView(worldObject, _junctionPositions, snapshot.Tick);
+                objectView = CreateObjectView(worldObject, _junctionPositions, snapshot);
                 if (objectView == null)
                 {
                     // The object's independent bundle is still travelling — or
@@ -1989,6 +2000,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     // heat and visible flames.
                     Fire = objectView.GetComponentInChildren<
                         HexLive.UnityPresentation.Environment.CampfireEffect>(true),
+                    Flashlight = worldObject.DefinitionId == ContentIds.Flashlight
+                        ? HexLive.UnityPresentation.Environment.PortableFlashlightVisual.Attach(objectView)
+                        : null,
                     Assembly = objectView.GetComponent<HexLive.UnityPresentation.Environment.BedAssembly>(),
                     SpitMeat = objectView.GetComponent<HexLive.UnityPresentation.Environment.CampfireSpitMeat>(),
                     Garment = objectView.GetComponent<GarmentWorldCondition>(),
@@ -2083,15 +2097,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     key, worldObject.DefinitionId, visible: !shouldHide);
             }
 
-            if (worldObject.DefinitionId == "tool.bottle")
+            if (worldObject.DefinitionId is ContentIds.Bottle or ContentIds.DrinkingGlass)
             {
                 var parked = worldObject.Junctions.Count > 0 &&
                     _collectorJunctions.Contains(worldObject.Junctions[0]);
                 HexLive.UnityPresentation.Environment.BottleLiquidVisual.Sync(objectView,
-                    HexLive.Simulation.Runtime.BottleVisualMath.Fill(worldObject.ResourceAmount, parked),
-                    HexLive.Simulation.Runtime.BottleVisualMath.Appearance(
-                        worldObject.LastAddedWaterKind, worldObject.WaterKind));
+                    BottleVisualMath.Fill(worldObject.ResourceAmount, parked, worldObject.DefinitionId),
+                    BottleVisualMath.Appearance(worldObject.LastAddedWaterKind, worldObject.WaterKind),
+                    openGlass: worldObject.DefinitionId == ContentIds.DrinkingGlass);
             }
+            parts.Flashlight?.SetLit(FlashlightMath.IsOn(worldObject.ResourceAmount, worldObject.Durability));
 
             // Spec 29E.3: the campfire burns only while it has fuel.
             if (worldObject.DefinitionId == ContentIds.Torch)
@@ -2133,8 +2148,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 }
             }
 
-            if (parts.GroundPile != null && _groundPileRank.TryGetValue(key, out var groundSlot))
+            if (parts.GroundPile != null && worldObject.SurfaceObjectId.HasValue)
             {
+                parts.GroundPile.ApplyLegacy(key);
+            }
+            else if (parts.GroundPile != null && _groundPileRank.TryGetValue(key, out var groundSlot))
+            {
+                objectView.transform.localRotation = Quaternion.identity;
                 if (worldObject.IsHarvestScatter) parts.GroundPile.ApplyScatter(key,groundSlot);
                 else if (_groundPileLegacy.Contains(worldObject.Junctions[0])) parts.GroundPile.ApplyLegacy(key);
                 else parts.GroundPile.Apply(groundSlot,GroundPileCatalog.Capacity(worldObject.DefinitionId),key);
@@ -2247,6 +2267,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     worldObject.BuildProduct == ContentIds.HutPlan ||
                     IsIntegratedHutBed(worldObject) ||
                     IsIntegratedHutHearth(worldObject) ||
+                    PortableFurniture.CanCarry(worldObject.DefinitionId) ||
+                    worldObject.DefinitionId == ContentIds.Workbench ||
+                    worldObject.BuildProduct == ContentIds.Workbench ||
                     worldObject.DefinitionId == ContentIds.Wardrobe ||
                     worldObject.DefinitionId == ContentIds.DryingRack ||
                     worldObject.BuildProduct == ContentIds.DryingRack ||
@@ -2282,7 +2305,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 objectView.transform.position = supportedPosition;
             }
 
-            var objPos = GetObjectAnchorPosition(snapshot, worldObject);
+            Vector3 objPos;
+            if (TryGetSurfacePose(snapshot, worldObject, out var surfacePose))
+            {
+                objPos = surfacePose.position;
+                objectView.transform.rotation = surfacePose.rotation;
+            }
+            else objPos = GetObjectAnchorPosition(snapshot, worldObject);
 
             if (_currObjectPositions.TryGetValue(key, out var oldObjPos))
             {
@@ -2433,6 +2462,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             var targetPos = targetPose.Position;
 
             var hadPreviousPose = _currNpcPoses.TryGetValue(key, out var oldPose);
+            if (hadPreviousPose && PortalWorld.IsApartmentTile(npc.Tile) != PortalWorld.IsApartmentTile(
+                HexSpatialMath.WorldToTile(new Float2(oldPose.Position.x, oldPose.Position.z))))
+                hadPreviousPose = false;
             if (hadPreviousPose)
             {
                 // A carried patient does not own a MovementStatus of her own,
@@ -4087,13 +4119,29 @@ public sealed class HexWorldRenderer : MonoBehaviour
     {
         pose = default;
         if (npc.CurrentInteraction != "Sit" ||
-            !TryGetTargetObject(snapshot, npc, out var seat) ||
-            (seat.DefinitionId != "stump.palm" && seat.DefinitionId != "chair.basic"))
+            !TryGetTargetObject(snapshot, npc, out var seat))
         {
             return false;
         }
 
-        pose = new Pose(GetObjectAnchorPosition(snapshot, seat), rotation);
+        var offset = seat.DefinitionId switch
+        {
+            "furniture.modern_chair" => new Vector3(0f, .487f, .025f),
+            "furniture.modern_sofa" => new Vector3(.085f, .4205f, -.35f),
+            _ => Vector3.zero,
+        };
+        if (offset == Vector3.zero && seat.DefinitionId != "stump.palm" && seat.DefinitionId != "chair.basic")
+            return false;
+
+        var position = GetObjectAnchorPosition(snapshot, seat);
+        if (offset != Vector3.zero)
+        {
+            // The shared sitting clip is authored for the .30 wu stump.
+            offset.y -= HexLive.UnityPresentation.Environment.StumpFactory.Height;
+            var seatYaw = SimulationUnityMapper.ToUnityFootprintYawDegrees(seat.RotationDegrees);
+            position += Quaternion.Euler(0f, seatYaw, 0f) * offset;
+        }
+        pose = new Pose(position, rotation);
         return true;
     }
 
@@ -4306,6 +4354,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (_tileElevations.ContainsKey(under)) supportTile = under;
         }
         var y = GroundY(supportTile);
+        if (PortalWorld.IsApartmentTile(supportTile)) return y + ModernApartmentView.FloorLift;
         if (IsIntegratedHutBed(worldObject))
         {
             y += HexLive.UnityPresentation.Environment.HutFurnitureFactory.BedRootLift;
@@ -4388,6 +4437,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private float ActorGroundY(TileCoord coord)
     {
+        if (PortalWorld.IsApartmentTile(coord)) return GroundY(coord) + ModernApartmentView.FloorLift;
         if (!_waterCoords.Contains(coord))
         {
             return GroundY(coord) + (_floorTiles.Contains(coord)
@@ -4426,6 +4476,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     {
         var go = new GameObject($"Hex {tile.Coord.Q},{tile.Coord.R}");
         go.transform.SetParent(_tilesRoot, false);
+        if (PortalWorld.IsApartmentTile(tile.Coord)) return go;
         var position = SimulationUnityMapper.ToUnityTilePosition(tile.Coord);
         var world = HexSpatialMath.TileToWorld(tile.Coord);
 
@@ -4596,8 +4647,26 @@ public sealed class HexWorldRenderer : MonoBehaviour
     }
 
     private GameObject CreateObjectView(
-        ObjectSnapshot worldObject, Dictionary<int, Float2> junctionPositions, int snapshotTick)
+        ObjectSnapshot worldObject, Dictionary<int, Float2> junctionPositions, WorldSnapshot snapshot)
     {
+        int snapshotTick = snapshot.Tick;
+        if (worldObject.DefinitionId is PortalWorld.DoorDefinitionId or "chair.basic" ||
+            PortalWorld.IsFurniture(worldObject.DefinitionId))
+        {
+            var prefab = ModernApartmentView.LoadPrefab(worldObject.DefinitionId);
+            if (prefab == null) return null;
+            var root = new GameObject($"Object {worldObject.DefinitionId}");
+            root.transform.SetParent(_objectsRoot, false);
+            root.transform.position = GetObjectAnchorPosition(snapshot, worldObject);
+            bool door = worldObject.DefinitionId == PortalWorld.DoorDefinitionId;
+            if (door && ModernApartmentView.TryGetReturnDoorPose(worldObject.Tile, snapshot.Seed, GroundY(worldObject.Tile),
+                    out var doorPosition, out var doorRotation))
+                root.transform.SetPositionAndRotation(doorPosition, doorRotation);
+            Instantiate(prefab, root.transform, false);
+            if (door) root.AddComponent<ModernPortalGlow>();
+            return root;
+        }
+
         // Architecture pieces of the CANONICAL hut render through their owner's
         // one shared hut mesh, but remain real top-level simulation objects.
         // This marker receives a WorldObjectView bound only to its slot
@@ -4996,8 +5065,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     worldObject.DefinitionId), out _);
         var objectPrefab = isGarment
             ? null
-            : HexLive.UnityPresentation.Environment.WorldPropResources.Load(
-                worldObject.DefinitionId);
+            : ModernLootCatalog.IsModernProp(worldObject.DefinitionId)
+                ? ModernApartmentView.LoadPrefab(worldObject.DefinitionId)
+                : HexLive.UnityPresentation.Environment.WorldPropResources.Load(worldObject.DefinitionId);
         if (objectPrefab != null)
         {
             var prefabRoot = new GameObject($"Object {worldObject.DefinitionId}");
@@ -5016,12 +5086,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     _collectorJunctions.Contains(worldObject.Junctions[0]);
                 var plantedTorch = worldObject.DefinitionId == ContentIds.Torch &&
                     worldObject.Variant == InventoryPlacementMath.PlantedTorchVariant;
-                var groundPile = worldObject.CraftWorkRequired <= 0 && !parkedBottle && !plantedTorch && _groundPileRank.ContainsKey(worldObject.Id.Value) &&
+                var groundPile = worldObject.CraftWorkRequired <= 0 && !parkedBottle && !plantedTorch &&
+                    (worldObject.SurfaceObjectId.HasValue || _groundPileRank.ContainsKey(worldObject.Id.Value)) &&
                     GroundPileCatalog.TryGet(worldObject.DefinitionId,false,out _);
                 // Body portions reserve separate ground anchors, never tidy stacks.
                 if (HumanMeatCatalog.IsHumanPart(worldObject.DefinitionId)) groundPile = false;
                 FitObjectPrefab(instance, worldObject.DefinitionId, worldObject.Id.Value,
-                    scatter: worldObject.CraftWorkRequired <= 0 && !groundPile && !parkedBottle && !plantedTorch && worldObject.RotationDegrees == 0f, pile: groundPile);
+                    scatter: worldObject.CraftWorkRequired <= 0 && !worldObject.SurfaceObjectId.HasValue &&
+                        !groundPile && !parkedBottle && !plantedTorch && worldObject.RotationDegrees == 0f, pile: groundPile);
                 if (groundPile) AttachGroundPile(prefabRoot,instance,worldObject);
                 if (parkedBottle)
                 {
@@ -5144,6 +5216,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
         if (!GroundPileCatalog.TryGet(item.DefinitionId,false,out var profile)) return;
         var pile=root.AddComponent<GroundPileLayout>();
         pile.Initialize(visual.transform,profile);
+        if (item.SurfaceObjectId.HasValue)
+        {
+            pile.ApplyLegacy(item.Id.Value);
+            return;
+        }
         _groundPileRank.TryGetValue(item.Id.Value,out var rank);
         if (item.IsHarvestScatter) pile.ApplyScatter(item.Id.Value,rank);
         else if (item.Junctions.Count > 0 && _groundPileLegacy.Contains(item.Junctions[0])) pile.ApplyLegacy(item.Id.Value);
@@ -5162,7 +5239,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var support = HexSpatialMath.WorldToTile(new Float2(anchor.X + slot.x, anchor.Y + slot.z));
         if (!_tileElevations.ContainsKey(support)) return;
         var surface = GroundY(support);
-        if (_floorTiles.Contains(support)) surface += HexLive.UnityPresentation.Environment.HutAssembly.FloorSurfaceLift;
+        if (PortalWorld.IsApartmentTile(support)) surface += ModernApartmentView.FloorLift;
+        else if (_floorTiles.Contains(support)) surface += HexLive.UnityPresentation.Environment.HutAssembly.FloorSurfaceLift;
         slot.y += surface - ObjectGroundY(item);
         pile.SlotTransform.localPosition = slot;
     }
@@ -6589,8 +6667,34 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // self-time item in the 2026-07-19 deep capture).
     private Dictionary<int, Float2> _junctionAnchorById;
 
+    private bool TryGetSurfacePose(WorldSnapshot snapshot, ObjectSnapshot item, out UnityEngine.Pose pose)
+    {
+        pose = default;
+        if (item.SurfaceObjectId is not { } holderId) return false;
+        var holder = snapshot.Objects.Find(obj => obj.Id.Value == holderId);
+        if (holder == null || !_objectViews.ContainsKey(holderId) ||
+            !SurfacePlacementMath.TryGetSlot(holder.DefinitionId, item.SurfaceSlot, out var offset, out float height))
+            return false;
+
+        var yaw = Quaternion.Euler(0f, SimulationUnityMapper.ToUnityFootprintYawDegrees(holder.RotationDegrees), 0f);
+        var position = GetObjectAnchorPosition(snapshot, holder) + yaw * new Vector3(offset.X, height, offset.Y);
+        var rotation = yaw * Quaternion.Euler(0f, SimulationUnityMapper.ToUnityFootprintYawDegrees(item.RotationDegrees), 0f);
+        pose = new UnityEngine.Pose(position, rotation);
+        return true;
+    }
+
     private Vector3 GetObjectAnchorPosition(WorldSnapshot snapshot, ObjectSnapshot worldObject)
     {
+        if (worldObject.DefinitionId == PortalWorld.DoorDefinitionId &&
+            ModernApartmentView.TryGetReturnDoorPose(worldObject.Tile, snapshot.Seed, GroundY(worldObject.Tile),
+                out var doorPosition, out _))
+            return doorPosition;
+
+        if (worldObject.Variant == PortalWorld.ApartmentFurnitureVariant &&
+            PortalWorld.TryGetApartmentFurniturePlacement(worldObject.DefinitionId, worldObject.Tile, snapshot.Seed,
+                out var furniturePosition, out _))
+            return SimulationUnityMapper.ToUnityPosition(furniturePosition, ObjectGroundY(worldObject));
+
         if (worldObject.Junctions.Count > 0)
         {
             if (_junctionAnchorById == null ||
@@ -6724,8 +6828,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     }
 
     private bool IsIntegratedHutBed(ObjectSnapshot worldObject) =>
-        worldObject.DefinitionId == ContentIds.BedBasic &&
-        (worldObject.Variant == ContentIds.HutBedVariant || _floorTiles.Contains(worldObject.Tile));
+        PortableFurniture.IsBuiltInBed(worldObject.DefinitionId, worldObject.Variant, _floorTiles.Contains(worldObject.Tile));
 
     private bool IsIntegratedHutHearth(ObjectSnapshot worldObject) =>
         worldObject.DefinitionId == ContentIds.Campfire &&

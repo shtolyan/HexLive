@@ -43,6 +43,15 @@ public static class ContentIds
     public const string SeveredLimb = "body.limb_severed";
     public const string MeatRaw = "food.meat_raw";
     public const string MeatCooked = "food.meat_cooked";
+    public const string Apple = "food.apple";
+    public const string Banana = "food.banana";
+    public const string StrawberryYogurt = "food.strawberry_yogurt";
+    public const string CheeseWedge = "food.cheese_wedge";
+    public const string ChocolateBar = "food.chocolate_bar";
+    public const string HamSandwich = "food.ham_sandwich";
+    public const string Orange = "food.orange";
+    public const string CannedPeaches = "food.canned_peaches";
+    public const string ModernFridge = "furniture.modern_fridge";
 
     // ── Ресурсы ──────────────────────────────────────────────────────────
     public const string Log = "resource.log";
@@ -63,6 +72,23 @@ public static class ContentIds
     // ── Инструменты и вещи ───────────────────────────────────────────────
     public const string SharpStone = "tool.sharp_stone";
     public const string Knife = "tool.knife";
+    public const string KitchenKnife = "tool.kitchen_knife";
+    public const string BaseballBat = "tool.baseball_bat";
+    public const string SteelHatchet = "tool.steel_hatchet";
+    public const string Flashlight = "tool.flashlight";
+    public const string DisposableLighter = "tool.disposable_lighter";
+    public const string WindproofLighter = "tool.windproof_lighter";
+    public const string ClawHammer = "tool.claw_hammer";
+    public const string FoldingSaw = "tool.folding_saw";
+    public const string TeddyBear = "item.teddy_bear";
+    public const string DollarBills = "item.dollar_bills";
+    public const string KitchenLadle = "item.kitchen_ladle";
+    public const string PhotoFrame = "item.photo_frame";
+    public const string BallpointPen = "item.ballpoint_pen";
+    public const string AlarmClock = "item.alarm_clock";
+    public const string DrinkingGlass = "item.drinking_glass";
+    public const string CeramicSaucer = "item.ceramic_saucer";
+    public const string ClothesHanger = "item.clothes_hanger";
     public const string AxeStone = "tool.axe_stone";
     public const string PickaxeStone = "tool.pickaxe_stone";
     public const string Spear = "tool.spear";

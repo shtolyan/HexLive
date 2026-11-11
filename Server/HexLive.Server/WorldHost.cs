@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using HexLive.Simulation.Bootstrap;
@@ -735,6 +736,48 @@ public sealed partial class WorldHost : IDisposable
     /// </summary>
     public void SetSpeedAsOperator(float multiplier) =>
         _clock.SetSpeed(Math.Min(200f, Math.Max(0.1f, multiplier)));
+
+    public (PortalSpawnMode Mode, HexLive.Simulation.Agents.Faction Camp,
+        HexLive.Simulation.Agents.Faction[] Camps) ReadPortalSettings() => Read(world =>
+            (world.Portal.Mode, world.Portal.Camp,
+             world.FactionHomes.Keys.Where(FactionRelations.IsGirlCamp).OrderBy(value => value).ToArray()));
+
+    public bool SetPortalSettingsAsOperator(PortalSpawnMode mode, HexLive.Simulation.Agents.Faction camp)
+    {
+        lock (_gate)
+        {
+            var world = _engine.World;
+            if (!Enum.IsDefined(typeof(PortalSpawnMode), mode) || !FactionRelations.IsGirlCamp(camp) ||
+                mode == PortalSpawnMode.Camp && !world.FactionHomes.ContainsKey(camp)) return false;
+            var portal = world.Portal;
+            var previousMode = portal.Mode;
+            var previousCamp = portal.Camp;
+            var previousOverride = portal.OperatorOpened;
+            if (mode == previousMode && camp == previousCamp) return true;
+            portal.Mode = mode;
+            portal.Camp = camp;
+            if (mode == PortalSpawnMode.Disabled) portal.OperatorOpened = false;
+            try { Save(); }
+            catch
+            {
+                portal.Mode = previousMode;
+                portal.Camp = previousCamp;
+                portal.OperatorOpened = previousOverride;
+                throw;
+            }
+            return true;
+        }
+    }
+
+    public string? OpenPortalAsOperator(HexLive.Simulation.Agents.Faction camp)
+    {
+        lock (_gate)
+        {
+            var problem = PortalWorld.OpenImmediately(_engine.World, camp);
+            if (problem == null) Save();
+            return problem;
+        }
+    }
 
     // ── persistence ───────────────────────────────────────────────────────
 

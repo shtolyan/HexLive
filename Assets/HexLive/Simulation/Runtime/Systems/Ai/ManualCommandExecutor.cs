@@ -100,6 +100,9 @@ internal static partial class ManualCommandExecutor
             case PlantInventorySeedCommand plantSeed:
                 ApplyPlantInventorySeed(world, plantSeed, admission);
                 break;
+            case PlaceInventoryFurnitureCommand placeInventoryFurniture:
+                ApplyPlaceInventoryFurniture(world, placeInventoryFurniture, admission);
+                break;
             case GatherAllOnHexCommand gatherAll:
                 ApplyGatherAllOnHex(world, gatherAll, admission);
                 break;
@@ -315,6 +318,7 @@ internal static partial class ManualCommandExecutor
         TransferContainerCommand => "TransferContainer",
         PlaceBuildingPlanCommand => "PlaceBuildingPlan",
         PlaceFurnitureSiteCommand => "PlaceFurnitureSite",
+        PlaceInventoryFurnitureCommand => "PlaceInventoryFurniture",
         PlacePlantingSiteCommand => "PlacePlantingSite",
         PlaceBuildingBlueprintCommand => "PlaceBuildingBlueprint",
         UpdateBuildingBlueprintCommand => "UpdateBuildingBlueprint",
@@ -2780,6 +2784,17 @@ internal static partial class ManualCommandExecutor
             return;
         }
 
+        if (command.Interaction == InteractionType.TravelPortal)
+        {
+            world.Entities.Objects.TryGetValue(command.Target, out var portal);
+            var reason = PortalWorld.TravelRefusal(world, npc, portal);
+            if (reason != null)
+            {
+                Reject(world, npc.Id, "Interact", reason, admission);
+                return;
+            }
+        }
+
         if (command.Interaction == InteractionType.Craft &&
             command.InteractionId == CraftProjectMath.ResumeInteractionId)
         {
@@ -2911,6 +2926,27 @@ internal static partial class ManualCommandExecutor
         }
     }
 
+    private static void ApplyPlaceInventoryFurniture(WorldState world, PlaceInventoryFurnitureCommand command,
+        AdmissionTracker admission)
+    {
+        const string verb = "PlaceInventoryFurniture";
+        if (!TryTakeOrder(world, command.Npc, verb, requireManual: true, admission, out var npc)) return;
+        if (Incapacitated(world, npc))
+        {
+            Reject(world, npc.Id, verb, "Incapacitated", admission);
+            return;
+        }
+
+        var reason = PortableFurniture.Place(world, npc, command);
+        if (reason != null)
+        {
+            Reject(world, npc.Id, verb, reason, admission);
+            return;
+        }
+        ClearForNewOrder(world, npc, "Ручной приказ поставить мебель", keepCarriedPerson: true);
+        ClearAttackOrder(world, npc);
+    }
+
     // ⭐ §121.10: ОДНО тело приказа «сделай с этим предметом вот это» — его
     // зовёт и одиночный Interact, и каждый подход очереди «собрать всё».
     // Разойдись эти две дороги, «собрать» и «собрать все» подходили бы к
@@ -2933,6 +2969,12 @@ internal static partial class ManualCommandExecutor
         if (!world.Entities.Objects.TryGetValue(targetId, out var worldObject))
         {
             Reject(world, npc.Id, verb, "TargetGone", admission);
+            return false;
+        }
+        if (interactionType == InteractionType.PickUp && PortableFurniture.CanCarry(worldObject.DefinitionId) &&
+            PortableFurniture.PickupRefusal(world, npc, worldObject) is { } pickupRefusal)
+        {
+            Reject(world, npc.Id, verb, pickupRefusal, admission);
             return false;
         }
 
@@ -3002,6 +3044,13 @@ internal static partial class ManualCommandExecutor
         if (interaction is null)
         {
             Reject(world, npc.Id, verb, "NoSuchAction", admission);
+            return false;
+        }
+
+        if (interactionType == InteractionType.SwitchFlashlight &&
+            FlashlightMath.GroundSwitchRefusal(npc, worldObject, interaction.Id) is { } switchRefusal)
+        {
+            Reject(world, npc.Id, verb, switchRefusal, admission);
             return false;
         }
 
@@ -3145,7 +3194,8 @@ internal static partial class ManualCommandExecutor
             return false;
         }
 
-        ClearForNewOrder(world, npc, "Новый приказ игрока");
+        ClearForNewOrder(world, npc, "Новый приказ игрока",
+            keepCarriedPerson: interactionType == InteractionType.TravelPortal);
         ClearAttackOrder(world, npc);
 
         var anchor = worldObject.Junctions[0];
@@ -3261,6 +3311,11 @@ internal static partial class ManualCommandExecutor
         }
 
         var definitionId = anchor.DefinitionId;
+        if (PortableFurniture.CanCarry(definitionId))
+        {
+            Reject(world, npc.Id, "GatherAll", "FurnitureNeedsIndividualPickup", admission);
+            return;
+        }
         var tile = anchor.Tile;
         var matches = ManualGatherTargets.Collect(
             world, npc, definitionId, tile, command.Interaction);
@@ -3867,6 +3922,14 @@ internal static partial class ManualCommandExecutor
             admission.Reject(reason);
             Trace.EmitSystem(world, "ManualOrderRejected",
                 $"Order=PlaceFurnitureSite Reason={reason} Tile={command.Tile}");
+        }
+
+        if (PortalWorld.IsFurniture(command.CatalogId))
+        {
+            var reason = PortalWorld.PlaceFurniture(world, command.CatalogId, command.Tile,
+                command.RotationDegrees, admission.BuildFactions);
+            if (reason != null) RejectWorld(reason);
+            return;
         }
 
         // Только строка каталога — произвольный id объекта провод не провезёт

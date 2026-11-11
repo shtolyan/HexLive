@@ -4556,6 +4556,46 @@ MonoBehaviour:
       - "Нельзя строить и изменять постройки в чужом лагере"
       Flags: 0101
       Languages_Touch: []
+    - Term: toast.order_rejected.PlacementBlocked
+      TermType: 0
+      Description:
+      Languages:
+      - There is no room to place this here.
+      - Здесь недостаточно места для установки.
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.FurnitureIntegrated
+      TermType: 0
+      Description:
+      Languages:
+      - This furniture is part of the building or under construction.
+      - Эта мебель встроена в дом или ещё строится.
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.FurnitureNeedsPlacement
+      TermType: 0
+      Description:
+      Languages:
+      - Choose Place to put this furniture down.
+      - Выберите «Поставить», чтобы разместить мебель.
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.FurnitureNeedsIndividualPickup
+      TermType: 0
+      Description:
+      Languages:
+      - Take furniture one piece at a time.
+      - Забирайте мебель по одному предмету.
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.NotFurniture
+      TermType: 0
+      Description:
+      Languages:
+      - This item does not use furniture placement.
+      - Этот предмет нельзя установить как мебель.
+      Flags: 0101
+      Languages_Touch: []
     - Term: toast.order_rejected.ForeignCamp
       TermType: 0
       Description: 
@@ -29844,6 +29884,14 @@ MonoBehaviour:
       - 'Кровать'
       Flags: 0101
       Languages_Touch: []
+    - Term: item.bed_basic.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A bed made of poles with a woven palm-leaf mattress.
+      - Кровать из жердей с плетёной подстилкой из пальмовых листьев.
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.body_limb_severed.name'
       TermType: 0
       Description: 
@@ -29896,8 +29944,16 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - 'Chair'
-      - 'Стул'
+      - Wooden stool
+      - Деревянный табурет
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.chair_basic.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A simple plank seat on three poles tied with rope.
+      - Простой табурет из досок и трёх жердей, связанных верёвкой.
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.construction_site.name'
@@ -32218,6 +32274,694 @@ MonoBehaviour:
       Languages:
       - 'Masha'
       - 'Маша'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.tool_kitchen_knife.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Kitchen knife"
+      - "Кухонный нож"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.tool_kitchen_knife.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A sharp steel knife for cutting and preparing food."
+      - "Острый стальной нож для разделки и подготовки еды."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.tool_baseball_bat.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Baseball bat"
+      - "Бейсбольная бита"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.tool_baseball_bat.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A tapered wooden bat with a wrapped grip."
+      - "Деревянная бита с обмотанной рукоятью."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_strawberry_yogurt.name
+      TermType: 0
+      Description:
+      Languages:
+      - Strawberry yogurt
+      - Клубничный йогурт
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_strawberry_yogurt.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A small cup of strawberry yogurt. It eases hunger and quenches a little thirst.
+      - Стаканчик клубничного йогурта. Утоляет голод и немного жажду.
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_cheese_wedge.name
+      TermType: 0
+      Description:
+      Languages:
+      - Cheese wedge
+      - Кусок сыра
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_cheese_wedge.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A firm wedge of aged cheese with an amber rind.
+      - Кусок выдержанного сыра с янтарной корочкой.
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_chocolate_bar.name
+      TermType: 0
+      Description:
+      Languages:
+      - Chocolate bar
+      - Плитка шоколада
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_chocolate_bar.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A partly unwrapped chocolate bar. A few squares lift the mood.
+      - Шоколадная плитка в надорванной обёртке. Несколько долек поднимают настроение.
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_ham_sandwich.name
+      TermType: 0
+      Description:
+      Languages:
+      - Ham sandwich
+      - Сэндвич с ветчиной
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_ham_sandwich.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A filling sandwich with ham and crisp lettuce between toasted bread.
+      - Сытный сэндвич с ветчиной и хрустящим салатом на поджаренном хлебе.
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_orange.name
+      TermType: 0
+      Description:
+      Languages:
+      - Orange
+      - Апельсин
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_orange.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A juicy orange with a sprig of leaves.
+      - Сочный апельсин с листочком.
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_canned_peaches.name
+      TermType: 0
+      Description:
+      Languages:
+      - Canned peaches
+      - Консервированные персики
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_canned_peaches.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A pull-tab tin of peach halves in sweet syrup.
+      - Банка половинок персика в сладком сиропе с крышкой-кольцом.
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_apple.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Apple"
+      - "Яблоко"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_apple.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A crisp red apple, sweet and juicy."
+      - "Хрустящее красное яблоко, сладкое и сочное."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_banana.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Banana"
+      - "Банан"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_banana.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A ripe yellow banana with a soft, filling centre."
+      - "Спелый жёлтый банан с мягкой сытной мякотью."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.item_dollar_bills.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Dollar bills"
+      - "Долларовые купюры"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.item_dollar_bills.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A small bundle of paper dollars."
+      - "Небольшая пачка бумажных долларов."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.item_kitchen_ladle.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Kitchen ladle"
+      - "Половник"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.item_kitchen_ladle.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A steel ladle with a dark handle."
+      - "Стальной половник с тёмной ручкой."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.tool_steel_hatchet.name
+      TermType: 0
+      Description:
+      Languages:
+      - Steel hatchet
+      - Стальной топорик
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.tool_steel_hatchet.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A compact steel axe for chopping wood and fighting at close range.
+      - Компактный стальной топор для рубки дерева и ближнего боя.
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.tool_flashlight.name
+      TermType: 0
+      Description:
+      Languages:
+      - Battery flashlight
+      - Фонарик на батарейках
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.tool_flashlight.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A handheld spotlight with eight hours of light on a full charge.
+      - Ручной фонарик с направленным светом. Полного заряда хватает на восемь игровых часов.
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.tool_disposable_lighter.name
+      TermType: 0
+      Description:
+      Languages:
+      - Disposable lighter
+      - Одноразовая зажигалка
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.tool_disposable_lighter.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A pocket lighter with enough fuel for about 25 ignitions.
+      - Карманная зажигалка примерно на 25 розжигов.
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.tool_windproof_lighter.name
+      TermType: 0
+      Description:
+      Languages:
+      - Windproof lighter
+      - Ветрозащитная зажигалка
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.tool_windproof_lighter.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A metal lighter with a long-lasting fuel supply.
+      - Металлическая зажигалка с большим запасом топлива.
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.tool_claw_hammer.name
+      TermType: 0
+      Description:
+      Languages:
+      - Claw hammer
+      - Молоток-гвоздодёр
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.tool_claw_hammer.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A steel hammer for building and driving stakes.
+      - Стальной молоток для строительства и забивания кольев.
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.tool_folding_saw.name
+      TermType: 0
+      Description:
+      Languages:
+      - Folding saw
+      - Складная пила
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.tool_folding_saw.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A compact pruning saw for felling palms and cutting boards from logs.
+      - Складная пила для валки пальм и распила брёвен на доски.
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.item_teddy_bear.name
+      TermType: 0
+      Description:
+      Languages:
+      - Teddy bear with a heart
+      - Мишка с сердцем
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.item_teddy_bear.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A soft plush bear holding a little red heart.
+      - Мягкий плюшевый мишка с маленьким красным сердцем.
+      Flags: 0101
+      Languages_Touch: []
+    - Term: inv.action.switch_light
+      TermType: 0
+      Description:
+      Languages:
+      - Toggle flashlight
+      - Переключить фонарик
+      Flags: 0101
+      Languages_Touch: []
+    - Term: inv.battery_charge
+      TermType: 0
+      Description:
+      Languages:
+      - Battery charge
+      - Заряд батареек
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.flashlight_on
+      TermType: 0
+      Description:
+      Languages:
+      - Turn on flashlight
+      - Включить фонарик
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.flashlight_off
+      TermType: 0
+      Description:
+      Languages:
+      - Turn off flashlight
+      - Выключить фонарик
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.BatteryEmpty
+      TermType: 0
+      Description:
+      Languages:
+      - The flashlight battery is empty.
+      - Батарейки фонарика разрядились.
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.item_photo_frame.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Photo frame"
+      - "Фоторамка"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.item_photo_frame.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A walnut frame holding a photograph of a mountain valley."
+      - "Ореховая рамка с фотографией горной долины."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.item_ballpoint_pen.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Ballpoint pen"
+      - "Шариковая ручка"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.item_ballpoint_pen.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A blue retractable pen with a metal pocket clip."
+      - "Синяя ручка с выдвижным стержнем и металлическим зажимом."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.item_alarm_clock.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Alarm clock"
+      - "Будильник"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.item_alarm_clock.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A red bedside clock with twin bells."
+      - "Красный прикроватный будильник с двумя колокольчиками."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.item_drinking_glass.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Drinking glass"
+      - "Стакан"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.item_drinking_glass.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A reusable blue-green glass that holds 400 ml."
+      - "Гранёный стакан из сине-зелёного стекла вмещает 400 мл."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.item_ceramic_saucer.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Ceramic saucer"
+      - "Керамическое блюдце"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.item_ceramic_saucer.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "An ivory saucer with a blue-green glaze around the rim."
+      - "Светлое блюдце с сине-зелёной глазурью по краю."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.item_clothes_hanger.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Clothes hanger"
+      - "Вешалка для одежды"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.item_clothes_hanger.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A wooden hanger with a steel hook and a trouser bar."
+      - "Деревянные плечики со стальным крючком и перекладиной для брюк."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.furniture_modern_bed.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Apartment bed"
+      - "Кровать из квартиры"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.furniture_modern_bed.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A low timber bed with a quilt and two pillows."
+      - "Низкая деревянная кровать с покрывалом и двумя подушками."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.furniture_modern_fridge.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Refrigerator"
+      - "Холодильник"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.furniture_modern_fridge.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A compact two-door fridge with a freezer compartment."
+      - "Компактный двухдверный холодильник с морозильной камерой."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.furniture_modern_shelf.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Shelf rack"
+      - "Стеллаж"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.furniture_modern_shelf.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A four-tier timber shelf for small household items."
+      - "Деревянный стеллаж с четырьмя полками для домашних мелочей."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.furniture_modern_table.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Dining table"
+      - "Обеденный стол"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.furniture_modern_table.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A small walnut table with an open top."
+      - "Небольшой стол с ореховой столешницей."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.furniture_modern_chair.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Dining chair"
+      - "Обеденный стул"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.furniture_modern_chair.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A wooden chair with a padded seat."
+      - "Деревянный стул с мягким сиденьем."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.furniture_modern_sofa.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Sofa"
+      - "Диван"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.furniture_modern_sofa.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A two-seat sofa with woven upholstery and a throw cushion."
+      - "Двухместный диван с тканевой обивкой и декоративной подушкой."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.furniture_modern_tv.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Television"
+      - "Телевизор"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.furniture_modern_tv.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A flat-screen TV on a low media console."
+      - "Плоский телевизор на низкой тумбе."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.portal_modern_door.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Portal door"
+      - "Дверь портала"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.portal_modern_door.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A glowing doorway connecting the island and an apartment."
+      - "Светящаяся дверь между островом и квартирой."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: portal.enter
+      TermType: 0
+      Description:
+      Languages:
+      - "Enter portal"
+      - "Войти в портал"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: portal.return
+      TermType: 0
+      Description:
+      Languages:
+      - "Return to island"
+      - "Вернуться на остров"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: blueprint.category.modern
+      TermType: 0
+      Description:
+      Languages:
+      - "Modern"
+      - "Современное"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: portal.furniture_count
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} in camp"
+      - "{0} в лагере"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: portal.resident.question
+      TermType: 0
+      Description:
+      Languages:
+      - "Who are you? Where did you come from?"
+      - "Кто ты? Откуда ты взялся?"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: inv.cola_left
+      TermType: 0
+      Description:
+      Languages:
+      - "Cola left"
+      - "Осталось колы"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: admin.voice.reason.InvalidSkill
+      TermType: 0
+      Description:
+      Languages:
+      - "Choose a valid skill and numeric value."
+      - "Укажи существующий навык и числовое значение."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: admin.voice.reason.InvalidTrait
+      TermType: 0
+      Description:
+      Languages:
+      - "Choose a valid trait and say whether to add or remove it."
+      - "Укажи существующую черту и скажи, добавить её или снять."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: admin.voice.reason.InvalidRelationship
+      TermType: 0
+      Description:
+      Languages:
+      - "Choose a valid relationship field and numeric value."
+      - "Укажи существующий параметр отношений и числовое значение."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: admin.voice.reason.InvalidRelationshipTarget
+      TermType: 0
+      Description:
+      Languages:
+      - "Choose two different living characters."
+      - "Выбери двух разных живых персонажей."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: admin.voice.reason.PlayersOnlyWorld
+      TermType: 0
+      Description:
+      Languages:
+      - "This world only allows characters created by players."
+      - "В этом мире персонажей создают только игроки."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: admin.voice.reason.InvalidCamp
+      TermType: 0
+      Description:
+      Languages:
+      - "Choose a camp that exists in this world."
+      - "Выбери лагерь, который есть в этом мире."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: admin.voice.reason.PortalDestinationBlocked
+      TermType: 0
+      Description:
+      Languages:
+      - "The apartment has no free entrance."
+      - "В квартире нет свободного места для входа."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: admin.voice.reason.PortalOccupied
+      TermType: 0
+      Description:
+      Languages:
+      - "A character is visiting the apartment. Wait for them to return."
+      - "В квартире сейчас персонаж. Дождись его возвращения."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: admin.voice.reason.NoSafePortalLocation
+      TermType: 0
+      Description:
+      Languages:
+      - "There is no safe place for the portal in this camp."
+      - "В этом лагере нет безопасного места для портала."
       Flags: 0101
       Languages_Touch: []
     CaseInsensitiveTerms: 0

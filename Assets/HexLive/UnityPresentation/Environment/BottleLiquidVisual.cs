@@ -24,12 +24,14 @@ public sealed class BottleLiquidVisual : MonoBehaviour
     private Vector3 _up;
     private float _shown = -1f;
     private float _target;
+    private bool _openGlass;
 
-    public static void Sync(GameObject bottle, float fill, WaterKind appearance)
+    public static void Sync(GameObject bottle, float fill, WaterKind appearance, bool openGlass = false)
     {
         if (bottle == null) return;
         var visual = bottle.GetComponent<BottleLiquidVisual>();
         if (visual == null) visual = bottle.AddComponent<BottleLiquidVisual>();
+        visual._openGlass = openGlass;
         visual.SetContents(fill, appearance);
     }
 
@@ -43,6 +45,7 @@ public sealed class BottleLiquidVisual : MonoBehaviour
         if (_target == 0f || _shown < 0f || !Application.isPlaying) _shown = _target;
         var color = appearance switch
         {
+            WaterKind.Cola => new Color(0.19f, 0.075f, 0.035f, 1f),
             WaterKind.Coconut => new Color(0.74f, 0.79f, 0.56f, 1f),
             WaterKind.Raw => new Color(0.29f, 0.39f, 0.20f, 1f),
             WaterKind.Boiled => new Color(0.37f, 0.65f, 0.75f, 1f),
@@ -80,11 +83,12 @@ public sealed class BottleLiquidVisual : MonoBehaviour
         var axis = bounds.size.z > bounds.size.y && bounds.size.z > bounds.size.x ? 2
             : bounds.size.x > bounds.size.y ? 0 : 1;
         var localUp = axis == 2 ? Vector3.forward : axis == 0 ? Vector3.right : Vector3.up;
-        MakeBodyTransparent(filter, axis);
+        if (!_openGlass) MakeBodyTransparent(filter, axis);
         _up = transform.InverseTransformDirection(filter.transform.TransformDirection(localUp));
-        var basePoint = bounds.center - localUp * (bounds.size[axis] * 0.45f);
+        var basePoint = bounds.center - localUp * (bounds.size[axis] * (_openGlass ? .35f : .45f));
         _bottom = transform.InverseTransformPoint(filter.transform.TransformPoint(basePoint));
-        _height = transform.InverseTransformVector(filter.transform.TransformVector(localUp * bounds.size[axis] * 0.70f)).magnitude;
+        _height = transform.InverseTransformVector(filter.transform.TransformVector(
+            localUp * bounds.size[axis] * (_openGlass ? .77f : .70f))).magnitude;
         var radialA = (axis + 1) % 3;
         var radialB = (axis + 2) % 3;
         // Keep a visible air gap at the shoulder and clear the bottle wall.

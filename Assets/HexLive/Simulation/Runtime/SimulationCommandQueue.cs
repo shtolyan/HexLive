@@ -1001,11 +1001,33 @@ public sealed class PlantInventorySeedCommand : ISimulationCommand
     public EntityId? TargetEntity => Npc;
 }
 
+/// <summary>§176: put one carried furniture item back at the selected nearby world point.</summary>
+public sealed class PlaceInventoryFurnitureCommand : ISimulationCommand
+{
+    public PlaceInventoryFurnitureCommand(EntityId npc, InventoryItemRef item,
+        JunctionId targetJunction, TileCoord targetTile, float rotationDegrees)
+    {
+        Npc = npc;
+        Item = item;
+        TargetJunction = targetJunction;
+        TargetTile = targetTile;
+        RotationDegrees = rotationDegrees;
+    }
+
+    public EntityId Npc { get; }
+    public InventoryItemRef Item { get; }
+    public JunctionId TargetJunction { get; }
+    public TileCoord TargetTile { get; }
+    public float RotationDegrees { get; }
+    public EntityId? TargetEntity => Npc;
+}
+
 public enum InventoryAction
 {
     Wear,
     Stow,
-    Drop
+    Drop,
+    ToggleFlashlight
 }
 
 public sealed class ManageInventoryCommand : ISimulationCommand

@@ -50,7 +50,7 @@ public static class ActionItemResolver
 
         if (npc.Execution.CurrentInteraction is not { } interaction)
         {
-            return PortableFireMath.HeldTorch(world, npc);
+            return FlashlightMath.HeldId(world, npc) ?? PortableFireMath.HeldTorch(world, npc);
         }
 
         switch (interaction)
@@ -161,8 +161,9 @@ public static class ActionItemResolver
                         }
                     }
 
-                    return (Runtime.BuildSiteMath.IsStocked(site) || Runtime.BuildSiteMath.HasReadyWork(world, site)) && InventoryContains(npc, "tool.hammer")
-                        ? "tool.hammer"
+                    return Runtime.BuildSiteMath.IsStocked(site) || Runtime.BuildSiteMath.HasReadyWork(world, site)
+                        ? GearCatalog.BestToolFor(npc.Inventory.Items, GearCapability.Hammer,
+                            npc.Body.IntactHands)?.DefinitionId ?? string.Empty
                         : string.Empty;
                 }
 

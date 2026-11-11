@@ -262,7 +262,11 @@ public enum InteractionType
     // §173: a seed/coconut already lying at the chosen junction is consumed
     // and replaced by the first authored growth stage. Append-only: saves and
     // wire snapshots persist interaction ordinals.
-    Plant
+    Plant,
+    // §176: traverse the active apartment portal after reaching its doorway.
+    TravelPortal,
+    // §176: switch a flashlight after approaching it. The interaction ID gives the desired state.
+    SwitchFlashlight
 }
 
 }

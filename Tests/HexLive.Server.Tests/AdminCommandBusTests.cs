@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using HexLive.Server.Assets;
 using HexLive.Server.GodMode;
@@ -146,6 +147,31 @@ public sealed class AdminCommandBusTests
     }
 
     [Test]
+    public async System.Threading.Tasks.Task ViewerTextTurnCanChangeAndInspectNpcProfile()
+    {
+        using var stt = new DeepgramTokenBroker("");
+        var hub = new AdminAgentHub(_access, _bus, _worlds);
+        var protocol = new AdminViewerProtocol(_access, _bus, hub, stt);
+        var id = Guid.NewGuid().ToString("N");
+        var npcId = Command("set_trait").NpcId;
+        hub.Next("test-agent");
+
+        var frame = JsonSerializer.Serialize(new { kind = "text", token = _token, messageId = id,
+            text = "Сделай выбранного персонажа аккуратным", npcId });
+        using var response = JsonDocument.Parse(await protocol.Handle(_client, frame, CancellationToken.None));
+        Assert.That(response.RootElement.GetProperty("payload").GetProperty("accepted").GetBoolean(), Is.True);
+        hub.Next("test-agent");
+
+        var arguments = JsonSerializer.SerializeToElement(new { kind = "set_trait", target = "Neat", enabled = true,
+            operationId = Guid.NewGuid().ToString("N") });
+        var result = JsonSerializer.SerializeToElement(hub.Tool("test-agent", id, "admin_execute", arguments), AdminCommandBus.Json);
+        Assert.That(result.GetProperty("accepted").GetBoolean(), Is.True);
+        var inspection = JsonSerializer.SerializeToElement(hub.Tool("test-agent", id, "admin_inspect",
+            JsonSerializer.SerializeToElement(new { npcId })), AdminCommandBus.Json);
+        Assert.That(inspection.GetProperty("traits").EnumerateArray().Select(t => t.GetString()), Does.Contain("Neat"));
+    }
+
+    [Test]
     public void UnauthorizedAndRevokedTokensCannotMutate()
     {
         var c = Command("rename_npc"); c.Text = "Forbidden";
@@ -159,6 +185,27 @@ public sealed class AdminCommandBusTests
         var c = Command("set_attribute"); c.Target = "Strength"; c.Value = .1f; c.Add = true;
         _worlds.Host.Read(w => { w.Entities.Npcs.Values.First().Attributes.Strength = .2f; return 0; });
         Assert.That(Execute(c).GetProperty("accepted").GetBoolean(), Is.True);
+        Assert.That(Execute(c).GetProperty("accepted").GetBoolean(), Is.True);
+        Assert.That(_worlds.Host.Read(w => w.Entities.Npcs.Values.First().Attributes.Strength), Is.EqualTo(.3f).Within(.0001f));
+        c.Value = .2f;
+        Assert.That(Execute(c).GetProperty("reason").GetString(), Is.EqualTo("OperationIdConflict"));
+    }
+
+    [Test]
+    public void ReceiptBeforeNpcProfileFieldsStillPreventsReplay()
+    {
+        var c = Command("set_attribute"); c.Target = "Strength"; c.Value = .1f; c.Add = true;
+        _worlds.Host.Read(w => { w.Entities.Npcs.Values.First().Attributes.Strength = .2f; return 0; });
+        Assert.That(Execute(c).GetProperty("accepted").GetBoolean(), Is.True);
+
+        var file = Directory.EnumerateFiles(Path.Combine(_directory, "receipts"), "*.json", SearchOption.AllDirectories).Single();
+        var receipt = JsonNode.Parse(File.ReadAllText(file))!.AsObject();
+        var legacyCommand = JsonNode.Parse(receipt["command"]!.GetValue<string>())!.AsObject();
+        foreach (var field in new[] { "otherNpcId", "enabled", "mutual" })
+            Assert.That(legacyCommand.Remove(field), Is.True, field);
+        receipt["command"] = legacyCommand.ToJsonString();
+        File.WriteAllText(file, receipt.ToJsonString());
+
         Assert.That(Execute(c).GetProperty("accepted").GetBoolean(), Is.True);
         Assert.That(_worlds.Host.Read(w => w.Entities.Npcs.Values.First().Attributes.Strength), Is.EqualTo(.3f).Within(.0001f));
         c.Value = .2f;

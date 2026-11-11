@@ -71,7 +71,8 @@ internal static class ContainerLootMath
             return false;
         }
 
-        if (obj.Contents.Exists(item => IsStoredItem(world, obj, item)))
+        if (obj.DefinitionId == ContentIds.ModernFridge ||
+            obj.Contents.Exists(item => IsStoredItem(world, obj, item)))
         {
             return true;
         }
@@ -113,6 +114,7 @@ internal static class ContainerLootMath
         }
 
         if (obj.DefinitionId == ContentIds.WaterCollector) return 1;
+        if (obj.DefinitionId == ContentIds.ModernFridge) return ModernFoodCatalog.FridgeCapacity;
         if (IsWardrobe(world, obj)) return Spec133.WardrobeCapacity;
         if (IsRack(world, obj)) return SimBalance.RackCapacity;
         return 0;
@@ -578,11 +580,13 @@ internal static class ContainerLootMath
 
         var isRack = IsRack(world, obj);
         var isCollector = obj.DefinitionId == ContentIds.WaterCollector;
+        var isFridge = obj.DefinitionId == ContentIds.ModernFridge;
         foreach (var item in moving)
         {
             if (!world.Content.ObjectDefinitions.TryGetValue(
                     item.DefinitionId, out var definition) ||
                 (isRack && definition.Layer is null) ||
+                (isFridge && !definition.HasTag("Food")) ||
                 (isCollector && !WaterVesselCatalog.IsPortable(item.DefinitionId)))
             {
                 return false;

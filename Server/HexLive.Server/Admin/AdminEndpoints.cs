@@ -322,6 +322,46 @@ public static class AdminEndpoints
             });
         app.MapPost("/admin/speed", speedHandler);
 
+        app.MapPost("/admin/portal", async (HttpContext context) =>
+        {
+            if (!SignedIn(context, sessions)) return Redirect("/admin");
+            var form = await context.Request.ReadFormAsync();
+            if (!Enum.TryParse<HexLive.Simulation.Runtime.PortalSpawnMode>(form["mode"], out var mode) ||
+                !HexLive.Simulation.Runtime.PortalWorld.TryParseCamp(form["camp"].ToString(), out var camp))
+                return Redirect(WithNotice("/admin", "Invalid portal setting."));
+            try
+            {
+                return Redirect(WithNotice("/admin", worlds.Host.SetPortalSettingsAsOperator(mode, camp)
+                    ? "Portal settings saved. The selected location applies at the next midnight."
+                    : "This portal setting is unavailable in the current world."));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Console.Error.WriteLine($"[admin] portal settings save failed: {ex.GetType().Name}");
+                return Redirect(WithNotice("/admin", "Portal settings could not be saved."));
+            }
+        });
+
+        app.MapPost("/admin/portal/open", async (HttpContext context) =>
+        {
+            if (!SignedIn(context, sessions)) return Redirect("/admin");
+            var form = await context.Request.ReadFormAsync();
+            if (!HexLive.Simulation.Runtime.PortalWorld.TryParseCamp(form["camp"].ToString(), out var camp))
+                return Redirect(WithNotice("/admin", "Invalid portal camp."));
+            try
+            {
+                var problem = worlds.Host.OpenPortalAsOperator(camp);
+                return Redirect(WithNotice("/admin", problem == null
+                    ? "Portal opened now."
+                    : "Portal could not open: " + problem));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Console.Error.WriteLine($"[admin] manual portal save failed: {ex.GetType().Name}");
+                return Redirect(WithNotice("/admin", "Portal opened in the current world, but its save failed."));
+            }
+        });
+
         app.MapPost("/admin/password", async (HttpContext context) =>
         {
             if (!SignedIn(context, sessions))

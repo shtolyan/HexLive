@@ -20,6 +20,8 @@ public sealed class WorldState
 
     public int Tick { get; set; }
 
+    public PortalVisitState Portal { get; } = new();
+
     public float TickDeltaTime { get; set; }
 
     public FragmentMap Fragments { get; } = new();

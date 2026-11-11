@@ -797,7 +797,8 @@ public enum WaterKind
     Rain,   // §54.15: collected by the water collector's leaf funnel — clean, no sickness roll
     // §55.4 / bug #347: pierced-coconut water keeps its clean provenance
     // after transfer. Append-only: save blobs and snapshots carry this ordinal.
-    Coconut
+    Coconut,
+    Cola     // modern apartment loot; a reusable bottle keeps its original capacity
 }
 
 }

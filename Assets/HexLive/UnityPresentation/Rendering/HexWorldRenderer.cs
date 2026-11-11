@@ -2630,6 +2630,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (!_waterCoords.Contains(npc.Tile))
                 EnsureBloodStains().OnButchery(
                     SimulationUnityMapper.ToUnityPosition(npc.Position, ActorGroundY(npc.Tile)), tick);
+        }, (part, tick) =>
+        {
+            if (!_waterCoords.Contains(part.Tile))
+                EnsureBloodStains().OnButchery(GetObjectAnchorPosition(snapshot, part), tick, part: true);
         });
         _bloodStains?.Advance(snapshot.Tick);
         _waterBlood?.Advance(snapshot.Tick);

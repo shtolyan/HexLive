@@ -7,6 +7,7 @@ using HexLive.UnityPresentation.Wearing;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
@@ -71,6 +72,96 @@ namespace HexLive.Tests
                 Assert.That((float)args[2],Is.EqualTo(.04f).Within(.00001f));
                 Assert.That((float)args[3],Is.EqualTo(.02f).Within(.00001f));
                 Object.DestroyImmediate(map);
+            }
+        }
+        [UnityTest] public IEnumerator DirtRendersOnTheLimbWithoutBleedingThroughBehindIt()
+        {
+            Assert.That(GraphicsSettings.currentRenderPipeline, Is.Not.Null);
+            actor = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/Prefabs/Actors/Marta.prefab"));
+            actor.GetComponent<Animator>().enabled = false;
+            var bones = actor.GetComponent<BodyBones>();
+            bones.Construct(ActorName.Marta, 713);
+            foreach (var renderer in actor.GetComponentsInChildren<Renderer>()) renderer.enabled = false;
+            var decals = actor.AddComponent<SkinDecals>();
+            decals.Construct(bones, actor.transform, 713, new SkinnedMeshRenderer[0]);
+            decals.Sync(null, new HashSet<string> { "LegL" }, .92f, 0f);
+            var mount = actor.GetComponentsInChildren<Transform>().Single(t => t.name == "Decal dirt.0");
+            var projector = mount.GetComponents<Behaviour>().Single(c => c.GetType().Name == "DecalProjector");
+            var size = (Vector3)projector.GetType().GetProperty("size").GetValue(projector);
+            var radius = .042f * 1.7f * actor.transform.lossyScale.y;
+            Assert.That(size.z, Is.LessThan(radius));
+            var stage = new GameObject("Dirt projection test stage");
+            var target = new RenderTexture(256, 256, 24);
+            var readback = new Texture2D(256, 256, TextureFormat.RGB24, false);
+            var material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            var previous = RenderTexture.active;
+            try
+            {
+                const int layer = 29;
+                material.SetColor("_BaseColor", new Color(.8f, .72f, .64f));
+                void Surface(float x, float distance)
+                {
+                    var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                    quad.layer = layer;
+                    quad.transform.SetParent(stage.transform, false);
+                    quad.transform.SetPositionAndRotation(mount.position + mount.right * (size.x * x) +
+                        mount.forward * (radius * distance), mount.rotation);
+                    quad.transform.localScale = new Vector3(size.x * .46f, size.y * .8f, 1f);
+                    var renderer = quad.GetComponent<Renderer>();
+                    renderer.renderingLayerMask = 1u << 1;
+                    renderer.sharedMaterial = material;
+                }
+                Surface(-.24f, .45f);
+                Surface(.24f, 1.4f);
+                var cameraObject = new GameObject("Dirt projection camera");
+                cameraObject.transform.SetParent(stage.transform, false);
+                var camera = cameraObject.AddComponent<Camera>();
+                camera.enabled = false;
+                camera.cullingMask = 1 << layer;
+                camera.orthographic = true;
+                camera.orthographicSize = size.y * .57f;
+                camera.nearClipPlane = .005f;
+                camera.farClipPlane = 4f;
+                camera.clearFlags = CameraClearFlags.SolidColor;
+                camera.backgroundColor = Color.black;
+                camera.transform.SetPositionAndRotation(mount.position - mount.forward * .2f, mount.rotation);
+                var lightObject = new GameObject("Dirt projection light");
+                lightObject.transform.SetParent(stage.transform, false);
+                var light = lightObject.AddComponent<Light>();
+                light.type = LightType.Directional;
+                light.intensity = 1.5f;
+                light.renderingLayerMask = 1 << 1;
+                light.transform.rotation = mount.rotation;
+                target.Create();
+                Color32[] Capture()
+                {
+                    RenderPipeline.SubmitRenderRequest(camera, new RenderPipeline.StandardRequest { destination = target });
+                    RenderTexture.active = target;
+                    readback.ReadPixels(new Rect(0, 0, 256, 256), 0, 0);
+                    readback.Apply();
+                    return readback.GetPixels32();
+                }
+                projector.enabled = false;
+                yield return null;
+                var clean = Capture();
+                projector.enabled = true;
+                yield return null;
+                var dirty = Capture();
+                var marked = new int[2];
+                for (var i = 0; i < dirty.Length; i++)
+                    if (System.Math.Abs(dirty[i].r - clean[i].r) + System.Math.Abs(dirty[i].g - clean[i].g) +
+                        System.Math.Abs(dirty[i].b - clean[i].b) > 10)
+                        marked[i % 256 < 128 ? 0 : 1]++;
+                Assert.That(marked[0], Is.GreaterThan(30), "The intended surface must still receive visible dirt.");
+                Assert.That(marked[1], Is.LessThan(5), "The surface behind the limb must stay clean.");
+            }
+            finally
+            {
+                RenderTexture.active = previous;
+                Object.DestroyImmediate(material);
+                Object.DestroyImmediate(readback);
+                Object.DestroyImmediate(target);
+                Object.DestroyImmediate(stage);
             }
         }
         [UnityTest] public IEnumerator WoundsChangePixelsInEveryZoneAndHealWithoutTouchingEyes()

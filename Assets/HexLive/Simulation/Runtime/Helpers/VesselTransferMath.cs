@@ -133,7 +133,9 @@ public static class VesselTransferMath
             var available = SourceSips(source);
             var take = System.MathF.Min(BottleInventoryMath.Capacity(bottle) - amount, available);
             if (take <= 0f) continue;
-            var sourceKind = BottleInventoryMath.IsBottle(source) ? source.WaterKind : WaterKind.Coconut;
+            var fromBottle = BottleInventoryMath.IsBottle(source);
+            var sourceKind = fromBottle ? source.WaterKind : WaterKind.Coconut;
+            var appearance = fromBottle ? BottleVisualMath.Appearance(source) : WaterKind.Coconut;
             // Adding raw water contaminates the mixture; safe water cannot launder it.
             kind = kind == WaterKind.Raw || sourceKind == WaterKind.Raw ? WaterKind.Raw
                 : kind == WaterKind.None ? sourceKind : kind;
@@ -144,7 +146,7 @@ public static class VesselTransferMath
                 source.LastAddedWaterKind = WaterKind.None;
             }
             amount += take;
-            bottle.LastAddedWaterKind = sourceKind;
+            bottle.LastAddedWaterKind = appearance;
             if (amount >= BottleInventoryMath.Capacity(bottle)) break;
         }
         if (amount > before)

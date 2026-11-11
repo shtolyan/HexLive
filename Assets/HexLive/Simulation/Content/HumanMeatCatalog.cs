@@ -21,6 +21,7 @@ public static class HumanMeatCatalog
     public const string MaleTorsoCooked = "food.human_torso_male_cooked";
     public const string Head = "resource.human_head";
     public const string ButcherPerson = "butcher.person";
+    public const string ButcheryDropIdsMarker = " drops=";
     public static readonly string[] RawParts = { ArmRaw, LegRaw, TorsoRaw, MaleArmRaw, MaleLegRaw, MaleTorsoRaw };
     public static bool IsHumanPart(string id) => id == Head || IsArm(id) || IsLeg(id) || IsTorso(id);
     public static bool IsArm(string id) => id is ArmRaw or ArmCooked or MaleArmRaw or MaleArmCooked;

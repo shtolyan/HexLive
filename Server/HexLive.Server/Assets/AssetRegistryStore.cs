@@ -355,6 +355,7 @@ public sealed partial class AssetRegistryStore
             }
 
             var proposedMetadata = CloneMetadata(metadata);
+            ValidateActiveOrigin(type, id, state, proposedMetadata);
             if (current.State == state && JsonEquals(current.Metadata, proposedMetadata))
             {
                 return new ContentPublishResult
@@ -819,7 +820,7 @@ public sealed partial class AssetRegistryStore
         }
     }
 
-    private static void ValidateCandidate(ContentPublishCandidate candidate)
+    internal static void ValidateCandidate(ContentPublishCandidate candidate)
     {
         if (candidate is null)
         {
@@ -833,6 +834,7 @@ public sealed partial class AssetRegistryStore
         }
 
         candidate.Metadata ??= new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        ValidateActiveOrigin(candidate.Type, candidate.Id, candidate.State, candidate.Metadata);
         candidate.Variants ??= new List<ContentPublishVariant>();
         if (candidate.State == "active" && candidate.Variants.Count == 0)
         {
@@ -890,6 +892,23 @@ public sealed partial class AssetRegistryStore
                         "Candidate attachment has an invalid SHA-256 or size.", nameof(candidate));
                 }
             }
+        }
+    }
+
+    // §152: staging may hold modern assets, but the live registry cannot activate them.
+    private static void ValidateActiveOrigin(
+        string type, string id, string state, Dictionary<string, JsonElement> metadata)
+    {
+        if (state != "active") return;
+
+        if (metadata.TryGetValue("contentOrigin", out var origin) &&
+            (origin.ValueKind != JsonValueKind.String || !origin.ValueEquals("primal")))
+        {
+            throw new InvalidDataException($"Cannot activate {type}/{id}: contentOrigin must be 'primal'.");
+        }
+        if (metadata.TryGetValue("legacyWardrobe", out var legacy) && legacy.ValueKind == JsonValueKind.True)
+        {
+            throw new InvalidDataException($"Cannot activate {type}/{id}: legacyWardrobe is staged content.");
         }
     }
 

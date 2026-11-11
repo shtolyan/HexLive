@@ -40,6 +40,24 @@ def read_json(path: Path):
     return json.loads(path.read_text(), object_pairs_hook=unique)
 
 
+def require_live_people_source(catalog):
+    if (catalog.get("peopleCatalog") != "primal-v1"
+            or catalog.get("contentOrigin", "primal") != "primal"
+            or catalog.get("stage") == "prepared-only"):
+        raise ValueError("The live WebGL package requires the Primal People catalog")
+    for record in catalog["records"]:
+        content.require_live_origin(record)
+        require_live_source_paths(record)
+    return catalog["records"]
+
+
+def require_live_source_paths(record):
+    paths = [record.get("main"), record.get("definition"), *record.get("dependencies", [])]
+    for path in paths:
+        if path and "assets/hexlivecontent/people/wardrobe/" in path.replace("\\", "/").lower():
+            raise ValueError(f"Staged Wardrobe source in live package: {record['type']}/{record['id']}")
+
+
 @contextmanager
 def editor_environment(project: Path, output: Path):
     """Official UPM helper avoids this machine's 30s initial IPC timeout."""
@@ -116,6 +134,7 @@ def build(args):
 
 
 def package(build_root: Path, destination: Path, people_catalog: Path):
+    people = require_live_people_source(read_json(people_catalog))
     summary = read_json(build_root / "build-all-summary.json")
     inventory = read_json(build_root / "inventory.json")
     receipt = read_json(build_root / "build-receipt.json")
@@ -128,6 +147,7 @@ def package(build_root: Path, destination: Path, people_catalog: Path):
     for path in sorted(build_root.rglob("candidate.json")):
         read_json(path)  # reject duplicate keys before the canonical validator
         value = content.load_candidate(path)
+        content.require_live_origin(value)
         key = (value["type"], value["id"])
         if key in seen:
             raise ValueError(f"Duplicate object {key}")
@@ -140,7 +160,8 @@ def package(build_root: Path, destination: Path, people_catalog: Path):
     expected = {(r["type"], r["id"]) for r in inventory["records"]} | {("config", "simdata")}
     if seen != expected:
         raise ValueError(f"Inventory mismatch: missing={expected-seen}, unexpected={seen-expected}")
-    people = read_json(people_catalog)["records"]
+    for row in inventory["records"]:
+        require_live_source_paths(row)
     people_ids = {(r["type"], r["id"]) for r in people}
     if not people_ids <= seen:
         raise ValueError("Incomplete People inventory")
@@ -185,6 +206,7 @@ def package(build_root: Path, destination: Path, people_catalog: Path):
                 blob["stagedPath"] = "payloads/" + digest
         write_json(destination / "candidates" / (value["type"] + "--" + value["id"] + ".json"), value)
     manifest = {**receipt, "objects": len(candidates), "counts": dict(sorted(Counter(v["type"] for v in candidates).items())),
+        "contentOrigin": "primal",
         "uniqueBlobs": len(blobs), "payloadBytes": sum(blobs.values()), "blobs": blobs,
         "objectKeys": sorted(t + "/" + i for t, i in seen),
         "excludedUnusedLegacyObjects": len(excluded),
@@ -216,11 +238,16 @@ def package(build_root: Path, destination: Path, people_catalog: Path):
 def verify(root: Path):
     root = root.resolve()
     manifest = read_json(root / "manifest.json")
+    if manifest.get("contentOrigin", "primal") != "primal":
+        raise ValueError("The live WebGL package requires Primal content")
+    for row in read_json(root / "inventory.json")["records"]:
+        require_live_source_paths(row)
     keys = set()
     blobs = {}
     for path in sorted((root / "candidates").glob("*.json")):
         candidate = read_json(path)
         content.validate_identity(candidate["type"], candidate["id"])
+        content.require_live_origin(candidate)
         key = candidate["type"] + "/" + candidate["id"]
         if key in keys:
             raise ValueError(f"Duplicate object {key}")

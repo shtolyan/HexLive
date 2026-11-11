@@ -404,6 +404,14 @@ def load_candidate(path: Path) -> dict:
     return value
 
 
+def require_live_origin(record: dict) -> None:
+    metadata = record.get("metadata", {})
+    if (not isinstance(metadata, dict)
+            or metadata.get("contentOrigin", "primal") != "primal"
+            or metadata.get("legacyWardrobe") is True):
+        raise ValueError(f"Staged or unsupported content cannot go live: {record['type']}/{record['id']}")
+
+
 def merge_candidates(paths: list[Path], required_platforms: list[str] | None) -> dict:
     candidates = [load_candidate(path) for path in paths]
     first = candidates[0]
@@ -428,6 +436,7 @@ def merge_candidates(paths: list[Path], required_platforms: list[str] | None) ->
 
     required = required_platforms or list(DEFAULT_REQUIRED_PLATFORMS)
     if merged["state"] == "active":
+        require_live_origin(merged)
         profiles = {variant["runtimeProfile"] for variant in merged["variants"]}
         for profile in profiles:
             present = {

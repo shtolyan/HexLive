@@ -84,7 +84,6 @@ public static class Program
         {
             try
             {
-                var registry = new AssetRegistryStore(options.AssetRoot);
                 var paths = options.PublishCandidatePath is not null
                     ? new[] { options.PublishCandidatePath }
                     : Directory.GetFiles(
@@ -97,10 +96,14 @@ public static class Program
                     throw new InvalidDataException("candidate directory contains no JSON files");
                 }
 
+                var candidates = paths.Select(AssetRegistryStore.ReadCandidateFile).ToArray();
+                foreach (var candidate in candidates)
+                    AssetRegistryStore.ValidateCandidate(candidate);
+
+                var registry = new AssetRegistryStore(options.AssetRoot);
                 var changed = 0;
-                foreach (var path in paths)
+                foreach (var candidate in candidates)
                 {
-                    var candidate = AssetRegistryStore.ReadCandidateFile(path);
                     var published = await registry.PublishAsync(
                         candidate, options.RetainCurrentAssetVariants).ConfigureAwait(false);
                     if (published.Changed)

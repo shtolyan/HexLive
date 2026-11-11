@@ -65,6 +65,7 @@ public static class AtomicContentBatchBuild
     private const string RuntimeSourceRoot = "Assets/HexLiveContent/RuntimeSource";
     private static string _temporaryMetadata;
     private const string PeopleCatalogPath = "Assets/HexLiveContent/People/catalog.json";
+    private const string StagedWardrobeRoot = "Assets/HexLiveContent/People/Wardrobe/";
     // Explicit authoring opt-in. Merely importing new people never switches a live catalog.
     private static bool UsePeopleCatalog => string.Equals(
         Optional(Environment.GetCommandLineArgs(), "-content-people-catalog"), "primal-v1", StringComparison.Ordinal);
@@ -72,9 +73,28 @@ public static class AtomicContentBatchBuild
     private static JArray PeopleRecords()
     {
         var catalog = JObject.Parse(File.ReadAllText(PeopleCatalogPath));
-        if ((string)catalog["peopleCatalog"] != "primal-v1") throw new InvalidOperationException("Unsupported people catalog");
-        return (JArray)catalog["records"];
+        if ((string)catalog["peopleCatalog"] != "primal-v1" ||
+            (string)catalog["stage"] == "prepared-only" ||
+            !HasLiveOrigin(catalog["contentOrigin"]))
+            throw new InvalidOperationException("The live build requires the Primal People catalog");
+        var records = (JArray)catalog["records"];
+        foreach (var row in records)
+        {
+            var metadata = row["metadata"];
+            if (!HasLiveOrigin(metadata?["contentOrigin"]) ||
+                JToken.DeepEquals(metadata?["legacyWardrobe"], new JValue(true)) ||
+                IsStagedWardrobePath((string)row["main"]) ||
+                IsStagedWardrobePath((string)row["definition"]))
+                throw new InvalidOperationException($"Staged or unsupported People record: {row["type"]}/{row["id"]}");
+        }
+        return records;
     }
+
+    private static bool HasLiveOrigin(JToken origin) =>
+        origin == null || (origin.Type == JTokenType.String && (string)origin == "primal");
+
+    private static bool IsStagedWardrobePath(string path) =>
+        path != null && path.StartsWith(StagedWardrobeRoot, StringComparison.OrdinalIgnoreCase);
 
     private static bool IsLegacyPeopleMap(string path)
     {
@@ -243,6 +263,7 @@ public static class AtomicContentBatchBuild
                     if (UsePeopleCatalog)
                     {
                         var legacy = dependencies.FirstOrDefault(p =>
+                            IsStagedWardrobePath(p) ||
                             p.StartsWith(RuntimeSourceRoot + "/Actors/", StringComparison.Ordinal) ||
                             p.StartsWith(RuntimeSourceRoot + "/Wear/", StringComparison.Ordinal) ||
                             p.StartsWith(RuntimeSourceRoot + "/Helmets/", StringComparison.Ordinal) ||

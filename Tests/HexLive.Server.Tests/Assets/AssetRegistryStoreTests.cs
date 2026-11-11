@@ -84,6 +84,98 @@ public sealed class AssetRegistryStoreTests
         Assert.That(JsonNode.Parse(catalog.Materialize().Json)!["recipes"]!.AsArray(), Is.Empty);
     }
 
+    [TestCase("wear", "contentOrigin", "\"modern\"")]
+    [TestCase("config", "contentOrigin", "\"modern\"")]
+    [TestCase("object", "contentOrigin", "\"future\"")]
+    [TestCase("wear", "contentOrigin", "null")]
+    [TestCase("wear", "contentOrigin", "true")]
+    [TestCase("wear", "legacyWardrobe", "true")]
+    public void StagedContentCannotPublishAnActiveRecord(string type, string key, string jsonValue)
+    {
+        var candidate = Candidate(type, "staged.sample", "staged-asset", hasIcon: true);
+        candidate.Metadata[key] = JsonSerializer.Deserialize<JsonElement>(jsonValue);
+
+        Assert.That(async () => await _store.PublishAsync(candidate), Throws.TypeOf<InvalidDataException>());
+        Assert.That(_store.RegistryRevision, Is.Zero);
+        Assert.That(_store.ReadCurrentRecord(type, candidate.Id), Is.Null);
+        Assert.That(_store.TryGetVerifiedBlob(candidate.Variants[0].Sha256, out _, out _), Is.False);
+    }
+
+    [Test]
+    public async Task StagedWearCannotChangeTheMaterializedWardrobeOrCrafting()
+    {
+        var basePath = Path.Combine(_root, "base.json");
+        File.WriteAllText(basePath, "{\"garments\":[],\"recipes\":[]}");
+        var catalog = new AssetGarmentCatalog(_store, basePath);
+        var primal = Candidate("wear", "clothing.top_primal", "primal-top", hasIcon: true);
+        primal.Metadata["contentOrigin"] = JsonSerializer.SerializeToElement("primal");
+        primal.Metadata["simulation"] = JsonSerializer.SerializeToElement(new GarmentSimulationMetadata
+        {
+            DisplayName = "Hide Wrap", PrototypeId = primal.Id,
+        });
+        await _store.PublishAsync(primal);
+        var before = catalog.Materialize();
+        var modern = Candidate("wear", "clothing.outfit_modern", "modern-outfit", hasIcon: true);
+        modern.Metadata["contentOrigin"] = JsonSerializer.SerializeToElement("modern");
+        modern.Metadata["simulation"] = JsonSerializer.SerializeToElement(new GarmentSimulationMetadata
+        {
+            DisplayName = "Modern Outfit", PrototypeId = modern.Id,
+            Craft = new GarmentCraftMetadata
+            {
+                Inputs = new List<GarmentCraftInput> { new() { Id = "resource.cloth", Count = 1 } },
+            },
+        });
+
+        Assert.That(async () => await _store.PublishAsync(modern), Throws.TypeOf<InvalidDataException>());
+        var after = catalog.Materialize();
+        Assert.That(after.SpawnableWear, Is.EqualTo(1));
+        Assert.That(after.RegistryRevision, Is.EqualTo(before.RegistryRevision));
+        Assert.That(after.Json, Is.EqualTo(before.Json));
+        Assert.That(_store.Resolve("wear", modern.Id, "StandaloneOSX", "unity6000-content1"), Is.Null);
+    }
+
+    [TestCase("contentOrigin", "\"modern\"")]
+    [TestCase("contentOrigin", "[]")]
+    [TestCase("legacyWardrobe", "true")]
+    public async Task AdminCannotReactivateWearWithStagedMetadata(string key, string jsonValue)
+    {
+        var original = await _store.PublishAsync(Candidate("wear", "clothing.sample", "sample", hasIcon: true));
+        var metadata = new Dictionary<string, JsonElement>(original.Record.Metadata)
+        {
+            [key] = JsonSerializer.Deserialize<JsonElement>(jsonValue),
+        };
+        var retired = await _store.UpdateRecordAsync("wear", original.Record.Id, original.Record.Revision,
+            "retired", metadata);
+
+        Assert.That(async () => await _store.UpdateRecordAsync("wear", original.Record.Id,
+            retired.Record.Revision, "active", metadata), Throws.TypeOf<InvalidDataException>());
+        Assert.That(_store.RegistryRevision, Is.EqualTo(retired.RegistryRevision));
+        Assert.That(_store.ReadCurrentRecord("wear", original.Record.Id)!.State, Is.EqualTo("retired"));
+    }
+
+    [Test]
+    public async Task PublishBatchChecksStagedMetadataBeforePublishingEarlierCandidates()
+    {
+        var candidates = Path.Combine(_store.StagingPath, "candidates");
+        Directory.CreateDirectory(candidates);
+        var primal = Candidate("wear", "clothing.top_primal", "primal-top", hasIcon: true);
+        primal.Metadata["contentOrigin"] = JsonSerializer.SerializeToElement("primal");
+        var staged = Candidate("config", "paintmaps.outfit_modern", "modern-map", hasIcon: false);
+        staged.Metadata["contentOrigin"] = JsonSerializer.SerializeToElement("modern");
+        var primalPath = Path.Combine(candidates, "01-primal.json");
+        File.WriteAllText(primalPath, JsonSerializer.Serialize(primal));
+        File.WriteAllText(Path.Combine(candidates, "02-modern.json"), JsonSerializer.Serialize(staged));
+
+        var exit = await Program.Main(new[] { "--asset-root", _root, "--publish-candidates", candidates });
+
+        Assert.That(exit, Is.EqualTo(1));
+        Assert.That(_store.RegistryRevision, Is.Zero);
+        Assert.That(_store.ReadCurrentRecords(), Is.Empty);
+        Assert.That(_store.TryGetVerifiedBlob(primal.Variants[0].Sha256, out _, out _), Is.False);
+        Assert.That(await Program.Main(new[] { "--asset-root", _root, "--publish-candidate", primalPath }), Is.Zero);
+        Assert.That(_store.ReadCurrentRecords().Single().Id, Is.EqualTo(primal.Id));
+    }
+
     [Test]
     public void MalformedWearBillsAreRejectedBeforeCatalogActivation()
     {

@@ -756,7 +756,7 @@ public sealed partial class ExecutionSystem
             // Вид разбирает ключ по двоеточию (тот же приём, что у
             // DangerSpotted:<kind>), так что неизвестный вид падает на общий.
             SocialCueSignals.Stamp(world, npc, $"AidStarted:{kindNow}", target.Id);
-            SocialCueSignals.Stamp(world, target, "AidStarted", npc.Id);
+            SocialCueSignals.Stamp(world, target, "AidReceiving", npc.Id);
             Trace.Emit(world, npc.Id, "AidStarted",
                 $"Kind={kindNow} With NPC{targetId.Value} Severity={severity:F2} " +
                 $"Duration={aidDuration}ticks " +
@@ -862,7 +862,6 @@ public sealed partial class ExecutionSystem
             target.Execution.LastTalkAffinityDelta = gain;
             npc.Social.MarkInteraction(target.Id, world.Tick);
             target.Social.MarkInteraction(npc.Id, world.Tick);
-            SocialCueSignals.Stamp(world, npc, "AidCompleted", target.Id);
             SocialCueSignals.Stamp(world, target, "AidCompleted", npc.Id);
 
             // Helping settles the helper's own compassion.

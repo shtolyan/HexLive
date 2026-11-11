@@ -356,6 +356,64 @@ public sealed class ManualSocialOrderTests
         });
     }
 
+    [TestCase(AidKind.Feed)]
+    [TestCase(AidKind.Hydrate)]
+    [TestCase(AidKind.Treat)]
+    public void AidSpeechFollowsTheHelperAndRecipientRoles(AidKind kind)
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var pair = TwoColonists(world);
+        var helper = pair[0];
+        var ward = pair[1];
+        TakeControl(engine, helper);
+        TakeControl(engine, ward);
+        PlaceOnFreeNeighbor(world, ward, helper);
+
+        switch (kind)
+        {
+            case AidKind.Feed:
+                ward.Needs.Hunger = 0.35f;
+                helper.Inventory.Items.Add("food.meat_cooked");
+                break;
+            case AidKind.Hydrate:
+                ward.Needs.Thirst = 0.35f;
+                helper.BottleWater = WaterKind.Rain;
+                helper.BottleCharges = 2;
+                break;
+            case AidKind.Treat:
+                ward.Wounds.Add(new WoundState
+                {
+                    Id = 689, Zone = BodyPart.ArmL, Severity = 0.2f, BleedFactor = 0.5f, Seed = 689,
+                });
+                helper.Inventory.Items.Add(MedicalSupplyMath.CreateBandage(herbal: false));
+                break;
+        }
+
+        var admission = ManualCommandExecutor.Apply(world, new AidPersonCommand(helper.Id, ward.Id, kind));
+        Assert.That(admission.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted), admission.Reason);
+
+        var offered = false;
+        var receiving = false;
+        for (var i = 0; i < 400 && ward.Execution.LastSocialCueKind != "AidCompleted"; i++)
+        {
+            engine.Step();
+            offered |= helper.Execution.LastSocialCueKind == $"AidStarted:{kind}" &&
+                       helper.Execution.LastSocialCuePeerId == ward.Id;
+            receiving |= ward.Execution.LastSocialCueKind == "AidReceiving" &&
+                         ward.Execution.LastSocialCuePeerId == helper.Id;
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(offered, Is.True);
+            Assert.That(receiving, Is.True);
+            Assert.That(ward.Execution.LastSocialCueKind, Is.EqualTo("AidCompleted"));
+            Assert.That(ward.Execution.LastSocialCuePeerId, Is.EqualTo(helper.Id));
+            Assert.That(helper.Execution.LastSocialCueKind, Is.Not.EqualTo("AidCompleted"));
+        });
+    }
+
     // §53.9 (баг #240): цель Aid, план и его цель переживают сохранение — а вид
     // помощи не переживал. Загруженная помощница доходила до лежачей и там
     // переторговывала приказ по §53.3: «Накормить» превращалось в Treat и гасло

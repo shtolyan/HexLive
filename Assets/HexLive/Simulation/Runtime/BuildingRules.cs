@@ -174,7 +174,7 @@ public static class BuildingRules
 
     /// <summary>Продукт объекта (площадка несёт его в BuildProduct, поднятое
     /// здание — в DefinitionId).</summary>
-    private static string ProductOf(WorldObjectState owner) =>
+    internal static string ProductOf(WorldObjectState owner) =>
         owner == null || string.IsNullOrEmpty(owner.BuildProduct)
             ? owner?.DefinitionId
             : owner.BuildProduct;

@@ -58,6 +58,11 @@ namespace HexLive.UnityPresentation.HutTest
             public Action OnClosed;
             public Func<BuildingBlueprintDraft, BuildingBlueprintDraft, bool> CanApplyDraft;
             public Func<BuildingBlueprintDraft, bool> CanBuild;
+            /// <summary>§120.13: высота верха земли гекса относительно корня
+            /// превью — мебель и сетка мирового режима ложатся на рельеф.</summary>
+            public Func<Simulation.Common.TileCoord, float>? GroundOffset;
+            /// <summary>§120.12: можно ли игроку строить на этом гексе.</summary>
+            public Func<Simulation.Common.TileCoord, bool>? CanEditTile;
         }
 
         public static WorldPlacementConfig PendingWorldPlacement;
@@ -120,6 +125,7 @@ namespace HexLive.UnityPresentation.HutTest
         private HexBuildNodeKey _wallStart;
         private FloorSectorKey _roomStart;
         private string _dragFurnitureId = string.Empty;
+        private bool _dragMoved;
         private string _dragOpeningId = string.Empty;
         private BlueprintRoomResizeHandle? _roomResizeHandle;
         private BuildingBlueprintDraft? _gesturePreview;
@@ -146,7 +152,8 @@ namespace HexLive.UnityPresentation.HutTest
             Support,
             Floor,
             Roof,
-            Furniture
+            Furniture,
+            Stamp
         }
 
         private void Awake()
@@ -226,16 +233,17 @@ namespace HexLive.UnityPresentation.HutTest
                 // на «Пол и контур». Мебельная вкладка у пустого проекта не
                 // рисует ни одной точки (сетка мебели живёт только над полом) —
                 // выглядела мёртвой, и стены/окна было «не найти».
-                SetCatalogMode(BuildCatalogMode.Construction);
                 if (DirectWorldConstruction)
                 {
-                    var wall = BuildCatalogDefinition.ForMode(BuildCatalogMode.Construction)
-                        .First(entry => entry.DefinitionId == "architecture.wall.wood");
-                    SelectCatalogEntry(wall);
-                    SetStatus("blueprint.status.free_start", true);
+                    // §120.13: единый режим стройки открывается на мебели —
+                    // сетка лагеря видна сразу, стены и пол на соседней вкладке.
+                    _draft.GroundFurniture = true;
+                    SetCatalogMode(BuildCatalogMode.Furniture);
+                    SetStatus("build.mode.hint", true);
                 }
                 else
                 {
+                    SetCatalogMode(BuildCatalogMode.Construction);
                     SetStatus("blueprint.status.world_start", true);
                 }
             }
@@ -253,6 +261,7 @@ namespace HexLive.UnityPresentation.HutTest
                 // Превью — отдельный корневой GO; в игре за собой прибираем.
                 WorldEditorOpen = false;
                 DirectWorldEditorOpen = false;
+                HiddenWorldObjects.Clear();
                 if (EditingOwnerObjectId == _worldPlacement.ExistingOwner?.Value)
                     EditingOwnerObjectId = null;
                 if (_preview != null) Destroy(_preview.gameObject);
@@ -271,9 +280,11 @@ namespace HexLive.UnityPresentation.HutTest
             // Dev-сцена конструктора держит мир на паузе; ИГРОВОЙ режим — нет
             // (§120.7: на сервере часы операторские, паузу игрок ставит сам).
             if (!WorldMode && _runner != null && !_runner.IsPaused) _runner.TogglePause();
+            SyncWorld();
             UpdateHtml();
             HandleKeyboard();
             HandlePointer();
+            UpdateGestureHiding();
             _preview.UpdateCutaway(_camera);
             UpdateRotationHandlePresentation();
             if (_autosaveDeadline > 0f && Time.unscaledTime >= _autosaveDeadline)
@@ -292,12 +303,15 @@ namespace HexLive.UnityPresentation.HutTest
                 if (DirectWorldConstruction && _runner?.CreateSnapshot() is { } snapshot)
                 {
                     _draft = UI.BuildModePanel.FreeWorldProjection(snapshot);
+                    ResetWorldFurniture();
                     _worldPlacement.ArchitectureRenderContext = _worldPlacement.ArchitectureRenderContext?.WithSnapshot(snapshot)
                         ?? BlueprintArchitectureRenderContext.World(snapshot);
                     _history.Clear();
                     _selectedId = string.Empty;
                     _selectedIds.Clear();
                     CancelGesture();
+                    SyncWorld(force: true);
+                    RebuildPreview();
                     RefreshUiState();
                 }
                 SetStatus(ManualOrderFeedback.WorldReasonKey, true);
@@ -371,7 +385,10 @@ namespace HexLive.UnityPresentation.HutTest
                         new Vector3(0f, _worldPlacement.AnchorWorldPosition.y, 0f),
                         Quaternion.identity);
                     _preview = worldRoot.AddComponent<BlueprintPreviewRenderer>();
+                    ConfigureWorldPreview();
+                    SyncWorld(force: true);
                     RebuildPreview();
+                    RefreshWorldGrid();
                     _initialized = true;
                     return;
                 }
@@ -521,11 +538,6 @@ namespace HexLive.UnityPresentation.HutTest
                 // футпринта всегда занят). Исполнитель реконсайлит дельту и
                 // сам отклоняет правку начатой/готовой мебели. Скрыта вкладка
                 // только в прямом мировом конструкторе.
-                if (DirectWorldConstruction)
-                {
-                    var furnitureMode = root.Q<Button>("mode-furniture");
-                    if (furnitureMode != null) furnitureMode.style.display = DisplayStyle.None;
-                }
             }
             else
             {
@@ -596,10 +608,46 @@ namespace HexLive.UnityPresentation.HutTest
                 if (keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed) Redo();
                 else Undo();
             }
-            else if (keyboard.qKey.wasPressedThisFrame) RotateSelected(-1);
-            else if (keyboard.eKey.wasPressedThisFrame) RotateSelected(1);
+            else if (keyboard.qKey.wasPressedThisFrame) RotateGhostOrSelected(-1);
+            else if (keyboard.eKey.wasPressedThisFrame) RotateGhostOrSelected(1);
             else if (keyboard.deleteKey.wasPressedThisFrame || keyboard.backspaceKey.wasPressedThisFrame) DeleteSelected();
-            else if (keyboard.escapeKey.wasPressedThisFrame) CancelGesture();
+            else if (keyboard.escapeKey.wasPressedThisFrame) EscapeStep();
+        }
+
+        /// <summary>Esc по шагам: отпустить карточку/жест → снять выделение →
+        /// (в игровом режиме стройки) выйти из режима.</summary>
+        private void EscapeStep()
+        {
+            if (_activeCatalogEntry != null || _gestureActive || _rotationPreview != null)
+            {
+                CancelGesture();
+            }
+            else if (!string.IsNullOrEmpty(_selectedId) || _selectedRoomId > 0)
+            {
+                FinishSelection();
+            }
+            else if (DirectWorldConstruction)
+            {
+                CloseWorldMode();
+            }
+            else
+            {
+                CancelGesture();
+            }
+        }
+
+        /// <summary>Как в Sims: пока карточка мебели на курсоре, Q/E крутят
+        /// призрак будущего предмета; без карточки — выбранный предмет.</summary>
+        private void RotateGhostOrSelected(int delta)
+        {
+            if (_activeCatalogEntry?.PlacementKind is BuildCatalogPlacementKind.Furniture or
+                BuildCatalogPlacementKind.HouseStamp)
+            {
+                _ghostYawStep = BlueprintGeometry.NormalizeSector(_ghostYawStep + delta);
+                return;
+            }
+
+            RotateSelected(delta);
         }
 
         private void HandlePointer()
@@ -614,7 +662,12 @@ namespace HexLive.UnityPresentation.HutTest
             }
             var screen = mouse.position.ReadValue();
             if (PointerOverPanel(screen)) return;
-            if (!TryLocalPoint(screen, out var local)) return;
+            Vector3 local;
+            if (WorldFurniture && _catalogMode == BuildCatalogMode.Furniture)
+            {
+                if (!TryWorldGroundPoint(screen, out local) && !TryLocalPoint(screen, out local)) return;
+            }
+            else if (!TryLocalPoint(screen, out local)) return;
 
             if (DirectWorldConstruction && _catalogMode == BuildCatalogMode.Construction)
             {
@@ -696,6 +749,7 @@ namespace HexLive.UnityPresentation.HutTest
             {
                 var (tile, slot) = NearestJunction(local);
                 result = BlueprintEditorCommands.Move(_gesturePreview, _dragFurnitureId, tile, slot);
+                _dragMoved |= result.Candidate != null;
             }
             else if (!string.IsNullOrEmpty(_dragOpeningId))
             {
@@ -751,9 +805,11 @@ namespace HexLive.UnityPresentation.HutTest
             }
             _gestureActive = false;
             _dragFurnitureId = string.Empty;
+            _dragMoved = false;
             _dragOpeningId = string.Empty;
             _roomResizeHandle = null;
             _gesturePreview = null;
+            _nextWorldSync = 0f;
             RebuildPreview();
             if (result != null) SetStatus(result.Message);
         }
@@ -786,20 +842,41 @@ namespace HexLive.UnityPresentation.HutTest
                 var floor = NearestSector(local);
                 result = Execute(working => BlueprintEditorCommands.RoofHex(working, floor.Hex));
             }
+            else if (_tool == Tool.Stamp)
+            {
+                var hex = WorldToTile(local.x, local.z);
+                var yaw = _ghostYawStep;
+                result = Execute(working => BlueprintEditorCommands.StampPlan(
+                    working, CommittedBuildingPlans.PlayerHut, hex, yaw));
+            }
             else if (_tool == Tool.Furniture && _activeCatalogEntry != null)
             {
                 var (tile, slot) = NearestJunction(local);
                 var definition = _activeCatalogEntry.DefinitionId;
-                result = Execute(working => BlueprintEditorCommands.PlaceFurniture(working, definition, tile, slot));
+                var yaw = _ghostYawStep;
+                var beforeIds = _draft.Furniture.Select(item => item.Id).ToHashSet();
+                result = Execute(working =>
+                    BlueprintEditorCommands.PlaceFurniture(working, definition, tile, slot, yaw));
                 if (result.Succeeded)
                 {
-                    _selectedId = _draft.Furniture.Last().Id;
+                    // §120.13: карточка остаётся на курсоре — пять стульев это
+                    // один выбор и пять кликов. Поставленный предмет выделен:
+                    // его можно сразу повернуть мировыми стрелками.
+                    _selectedId = _draft.Furniture.First(item => !beforeIds.Contains(item.Id)).Id;
                     _selectedIds.Clear();
                     _selectedIds.Add(_selectedId);
-                    _activeCatalogEntry = null;
-                    _tool = Tool.None;
-                    _outdoorGridTile = null;
-                    RebuildCatalogUi();
+                    if (WorldFurniture && PortalWorld.IsFurniture(definition))
+                    {
+                        // Современная мебель — конечный запас: последний
+                        // экземпляр поставлен, карточка отпускается.
+                        _modernStock[definition] = Math.Max(0, ModernStock(definition) - 1);
+                        if (ModernStock(definition) <= 0)
+                        {
+                            _activeCatalogEntry = null;
+                            _tool = Tool.None;
+                        }
+                        RebuildCatalogUi();
+                    }
                     RebuildPreview();
                 }
             }
@@ -842,13 +919,27 @@ namespace HexLive.UnityPresentation.HutTest
                 case BuildCatalogPlacementKind.Roof:
                     result = BlueprintEditorCommands.RoofHex(previewDraft, NearestSector(local).Hex);
                     break;
+                case BuildCatalogPlacementKind.HouseStamp:
+                    var stampHex = WorldToTile(local.x, local.z);
+                    var stamp = (stampHex, 0, _ghostYawStep, _activeCatalogEntry.DefinitionId);
+                    if (_shownGhost is { } shownStamp && shownStamp.Equals(stamp)) return;
+                    _shownGhost = stamp;
+                    result = BlueprintEditorCommands.StampPlan(
+                        previewDraft, CommittedBuildingPlans.PlayerHut, stampHex, _ghostYawStep);
+                    break;
                 case BuildCatalogPlacementKind.Furniture:
                     var (tile, slot) = NearestJunction(local);
-                    _outdoorGridTile = _activeCatalogEntry.CategoryId == BuildCatalogCategories.Outdoor
+                    // Призрак перестраивается, только когда сменилась точка
+                    // или поворот, а не каждый кадр под неподвижным курсором.
+                    var ghost = (tile, slot, _ghostYawStep, _activeCatalogEntry.DefinitionId);
+                    if (_shownGhost is { } shown && shown.Equals(ghost)) return;
+                    _shownGhost = ghost;
+                    _outdoorGridTile = !WorldFurniture &&
+                                       _activeCatalogEntry.CategoryId == BuildCatalogCategories.Outdoor
                         ? tile
                         : null;
                     result = BlueprintEditorCommands.PlaceFurniture(
-                        previewDraft, _activeCatalogEntry.DefinitionId, tile, slot);
+                        previewDraft, _activeCatalogEntry.DefinitionId, tile, slot, _ghostYawStep);
                     break;
             }
 
@@ -863,7 +954,11 @@ namespace HexLive.UnityPresentation.HutTest
                 Loc.Get("toast.order_rejected.ForeignConstruction"));
             if (result.Succeeded)
             {
-                if (DirectWorldConstruction) DispatchDirectDelta(before!, _draft);
+                if (DirectWorldConstruction)
+                {
+                    DispatchDirectDelta(before!, _draft);
+                    DispatchFurnitureDelta(before!, _draft);
+                }
                 else if (_worldPlacement?.ApplyEachGesture == true) BuildAndClose();
                 else _autosaveDeadline = Time.unscaledTime + 0.35f;
                 RebuildPreview();
@@ -880,9 +975,12 @@ namespace HexLive.UnityPresentation.HutTest
             var best = PickRadius * PickRadius;
             if (_catalogMode == BuildCatalogMode.Furniture)
             {
+                // Предмет берётся за любую точку своего следа, а не только за
+                // якорь: кровать 1,5 wu длиной нельзя было ухватить за изножье.
                 foreach (var item in _draft.Furniture)
+                foreach (var key in BlueprintFurnitureFootprints.OccupiedJunctions(item))
                 {
-                    var point = BlueprintGeometry.JunctionToWorld(item.PrimaryJunction);
+                    var point = BlueprintGeometry.JunctionToWorld(key);
                     var sq = Sqr(local.x - point.X, local.z - point.Y);
                     if (sq >= best) continue;
                     best = sq;
@@ -898,7 +996,12 @@ namespace HexLive.UnityPresentation.HutTest
                     if (sq >= best) continue;
                     best = sq;
                     candidateId = element.Id;
-                    candidateRoomId = element.Kind == BlueprintElementKind.FloorSector ? element.RoomId : 0;
+                    // §120.13: комната выделяется и за пол, и за стену своего
+                    // контура — потянул за стену, комната растянулась.
+                    candidateRoomId = element.Kind == BlueprintElementKind.FloorSector ||
+                                      element.Origin == BlueprintElementOrigin.RoomBoundary
+                        ? element.RoomId
+                        : 0;
                 }
             }
             if (!additive || candidateRoomId > 0)
@@ -975,6 +1078,11 @@ namespace HexLive.UnityPresentation.HutTest
         {
             if (_pendingRevisionJson != null) return;
             if (string.IsNullOrEmpty(_selectedId)) return;
+            if (_selectedIds.Any(IsFinishedWorldFurniture))
+            {
+                SetStatus("toast.order_rejected.FurnitureBuilt", true);
+                return;
+            }
             ClearRotationPreview();
             // §120.9 / #662: room selection also drives resize handles, but
             // Delete acts on the selected pieces. Inferring DeleteRoom from a
@@ -998,7 +1106,11 @@ namespace HexLive.UnityPresentation.HutTest
             ClearRotationPreview();
             var before = DirectWorldConstruction ? _draft.Clone() : null;
             if (!_history.Undo(_draft, CheckWorldAccess)) return;
-            if (DirectWorldConstruction) DispatchDirectDelta(before!, _draft);
+            if (DirectWorldConstruction)
+            {
+                DispatchDirectDelta(before!, _draft);
+                DispatchFurnitureDelta(before!, _draft);
+            }
             _selectedId = string.Empty;
             _selectedIds.Clear();
             if (!DirectWorldConstruction) _autosaveDeadline = Time.unscaledTime + 0.2f;
@@ -1014,7 +1126,11 @@ namespace HexLive.UnityPresentation.HutTest
             ClearRotationPreview();
             var before = DirectWorldConstruction ? _draft.Clone() : null;
             if (!_history.Redo(_draft, CheckWorldAccess)) return;
-            if (DirectWorldConstruction) DispatchDirectDelta(before!, _draft);
+            if (DirectWorldConstruction)
+            {
+                DispatchDirectDelta(before!, _draft);
+                DispatchFurnitureDelta(before!, _draft);
+            }
             _selectedId = string.Empty;
             _selectedIds.Clear();
             if (!DirectWorldConstruction) _autosaveDeadline = Time.unscaledTime + 0.2f;
@@ -1028,9 +1144,11 @@ namespace HexLive.UnityPresentation.HutTest
         {
             _gestureActive = false;
             _dragFurnitureId = string.Empty;
+            _dragMoved = false;
             _dragOpeningId = string.Empty;
             _roomResizeHandle = null;
             _gesturePreview = null;
+            _nextWorldSync = 0f;
             _activeCatalogEntry = null;
             _outdoorGridTile = null;
             _tool = Tool.None;
@@ -1071,9 +1189,12 @@ namespace HexLive.UnityPresentation.HutTest
             SetStatus("blueprint.status.exported", true);
         }
 
+        private (TileCoord tile, int slot, int yaw, string id)? _shownGhost;
+
         private void RebuildPreview()
         {
             if (_preview == null) return;
+            _shownGhost = null;
             _preview.Rebuild(_draft, _mode, _selectedId, selectedIds: _selectedIds,
                 extraFurnitureGridTiles: OutdoorGridTiles(),
                 extraArchitectureGridTiles: DirectArchitectureGridTiles(),
@@ -1088,7 +1209,8 @@ namespace HexLive.UnityPresentation.HutTest
             var changed = ChangedIds(_draft, candidate);
             if (result.Candidate != null && !string.IsNullOrEmpty(_dragFurnitureId)) changed.Add(_dragFurnitureId);
             if (result.Candidate != null && !string.IsNullOrEmpty(_dragOpeningId)) changed.Add(_dragOpeningId);
-            var junctionConflicts = FurnitureConflicts(candidate);
+            var junctionConflicts = FurnitureConflicts(candidate)
+                .Concat(WorldFurnitureConflicts(candidate)).ToArray();
             var buildConflicts = MissingRoofSupports(candidate);
             var invalid = result.Candidate != null &&
                 (!result.Validation.IsValid || !CheckWorldAccess(_draft, candidate));
@@ -1170,6 +1292,11 @@ namespace HexLive.UnityPresentation.HutTest
         private bool CheckWorldAccess(BuildingBlueprintDraft before, BuildingBlueprintDraft after)
         {
             if (_pendingRevisionJson != null) return false;
+            if (WorldFurniture && WorldFurnitureConflicts(after).Length > 0)
+            {
+                SetStatus("build.mode.blocked", true);
+                return false;
+            }
             if (_worldPlacement?.CanApplyDraft == null || _worldPlacement.CanApplyDraft(before, after)) return true;
             SetStatus("toast.order_rejected.ForeignConstruction", true);
             return false;
@@ -1221,7 +1348,10 @@ namespace HexLive.UnityPresentation.HutTest
                 Vector2.Distance(centre, new Vector2(point.X, point.Y))) + 0.26f);
             _handles = new GameObject("Selection handles").transform;
             _handles.SetParent(_preview.transform, false);
-            _handles.localPosition = new Vector3(centre.x, HutAssembly.FloorSurfaceLift + 0.08f, centre.y);
+            var handleY = WorldFurniture
+                ? SurfaceLocalY(new HexLive.Simulation.Common.Float2(centre.x, centre.y))
+                : HutAssembly.FloorSurfaceLift;
+            _handles.localPosition = new Vector3(centre.x, handleY + 0.08f, centre.y);
             AddHandle("drag-handle", Vector3.zero, new Color(1f, 0.63f, 0.20f), 0.11f);
             AddRotationButton("rotate-left-handle", -1);
             AddRotationButton("rotate-right-handle", 1);
@@ -1289,6 +1419,16 @@ namespace HexLive.UnityPresentation.HutTest
 
         private void AddResizeArrowArt(Transform parent)
         {
+            // Ручка растягивания — тёмная стрелка на янтарном диске, как
+            // мировые кнопки поворота мебели: её видно на любом полу и траве.
+            var disc = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            disc.name = "grip";
+            disc.transform.SetParent(parent, false);
+            disc.transform.localPosition = new Vector3(0f, -0.012f, 0f);
+            disc.transform.localScale = new Vector3(0.50f, 0.012f, 0.50f);
+            disc.GetComponent<Renderer>().sharedMaterial = RotationButtonMaterial;
+            Destroy(disc.GetComponent<Collider>());
+
             var stemObject = new GameObject("arrow-stem");
             stemObject.transform.SetParent(parent, false);
             var stem = stemObject.AddComponent<LineRenderer>();
@@ -1298,8 +1438,8 @@ namespace HexLive.UnityPresentation.HutTest
             stem.SetPosition(1, new Vector3(0f, 0f, 0.17f));
             stem.startWidth = 0.052f;
             stem.endWidth = 0.052f;
-            stem.sharedMaterial = RotationButtonMaterial;
-            stem.startColor = stem.endColor = new Color(1f, 0.63f, 0.20f, 0.98f);
+            stem.sharedMaterial = RotationGlyphMaterial;
+            stem.startColor = stem.endColor = new Color(0.10f, 0.14f, 0.16f);
 
             var headObject = new GameObject("arrow-head");
             headObject.transform.SetParent(parent, false);
@@ -1311,8 +1451,8 @@ namespace HexLive.UnityPresentation.HutTest
             head.SetPosition(2, new Vector3(0.10f, 0f, 0.07f));
             head.startWidth = 0.052f;
             head.endWidth = 0.052f;
-            head.sharedMaterial = RotationButtonMaterial;
-            head.startColor = head.endColor = new Color(1f, 0.63f, 0.20f, 0.98f);
+            head.sharedMaterial = RotationGlyphMaterial;
+            head.startColor = head.endColor = new Color(0.10f, 0.14f, 0.16f);
         }
 
         private IReadOnlyList<FloorSectorKey> ResizeSectors(BlueprintRoomResizeHandle handle, Vector3 local)
@@ -1477,6 +1617,7 @@ namespace HexLive.UnityPresentation.HutTest
             _outdoorGridTile = null;
             _tool = Tool.None;
             _activeCategoryId = BuildCatalogDefinition.ForMode(mode)
+                .OrderBy(entry => entry.SortOrder)
                 .Select(entry => entry.CategoryId).FirstOrDefault() ?? string.Empty;
             _mode = mode == BuildCatalogMode.Furniture
                 ? BlueprintEditorMode.Furniture
@@ -1484,6 +1625,8 @@ namespace HexLive.UnityPresentation.HutTest
             CancelGesture();
             RebuildCatalogUi();
             RefreshUiState();
+            _gridSignature = 0;
+            RefreshWorldGrid();
         }
 
         private void SetCategory(string categoryId)
@@ -1503,6 +1646,7 @@ namespace HexLive.UnityPresentation.HutTest
         private void SelectCatalogEntry(BuildCatalogEntryDefinition entry)
         {
             CancelGesture();
+            _ghostYawStep = 0;
             _activeCatalogEntry = entry;
             _activeCategoryId = entry.CategoryId;
             _catalogMode = entry.Mode;
@@ -1521,7 +1665,8 @@ namespace HexLive.UnityPresentation.HutTest
         private static BlueprintEditorMode PreviewModeForCategory(string categoryId) => categoryId switch
         {
             BuildCatalogCategories.Floor => BlueprintEditorMode.Rooms,
-            BuildCatalogCategories.Roof => BlueprintEditorMode.Roof,
+            // Набор-дом показывается целиком, вместе с крышей.
+            BuildCatalogCategories.Roof or BuildCatalogCategories.House => BlueprintEditorMode.Roof,
             _ => BlueprintEditorMode.Architecture
         };
 
@@ -1534,6 +1679,7 @@ namespace HexLive.UnityPresentation.HutTest
             BuildCatalogPlacementKind.Support => Tool.Support,
             BuildCatalogPlacementKind.Roof => Tool.Roof,
             BuildCatalogPlacementKind.Furniture => Tool.Furniture,
+            BuildCatalogPlacementKind.HouseStamp => Tool.Stamp,
             _ => Tool.None
         };
 
@@ -1554,7 +1700,7 @@ namespace HexLive.UnityPresentation.HutTest
         private void RebuildCatalogUi()
         {
             if (_categoryList == null || _catalogList == null) return;
-            var entries = BuildCatalogDefinition.ForMode(_catalogMode).ToArray();
+            var entries = VisibleCatalogEntries().ToArray();
             var categories = entries.Select(entry => entry.CategoryId).Distinct().ToArray();
             if (categories.Length > 0 && !categories.Contains(_activeCategoryId))
                 _activeCategoryId = categories[0];
@@ -1585,7 +1731,7 @@ namespace HexLive.UnityPresentation.HutTest
                 var name = new Label(Loc.Get(entry.NameTerm));
                 name.AddToClassList("catalog-name");
                 card.Add(name);
-                var description = new Label(Loc.Get(entry.DescriptionTerm));
+                var description = new Label(CardDescription(entry));
                 description.AddToClassList("catalog-description");
                 card.Add(description);
                 _catalogList.Add(card);
@@ -1627,7 +1773,8 @@ namespace HexLive.UnityPresentation.HutTest
                 glyph.style.display = DisplayStyle.None;
             }
 
-            var ready = ItemIcons.Load(entry.DefinitionId);
+            var iconId = CardIconId(entry);
+            var ready = ItemIcons.Load(iconId);
             if (ready != null)
             {
                 Apply(ready);
@@ -1640,7 +1787,7 @@ namespace HexLive.UnityPresentation.HutTest
             IVisualElementScheduledItem? poll = null;
             poll = image.schedule.Execute(() =>
             {
-                var sprite = ItemIcons.Load(entry.DefinitionId);
+                var sprite = ItemIcons.Load(iconId);
                 if (sprite != null) Apply(sprite);
                 if (sprite != null || ++attempts > 20) poll?.Pause();
             }).Every(300);
@@ -1658,6 +1805,8 @@ namespace HexLive.UnityPresentation.HutTest
             BuildCatalogCategories.Storage => "blueprint.category.storage",
             BuildCatalogCategories.Workstations => "blueprint.category.workstations",
             BuildCatalogCategories.Outdoor => "blueprint.category.outdoor",
+            BuildCatalogCategories.Modern => "blueprint.category.modern",
+            BuildCatalogCategories.House => "blueprint.category.house",
             _ => "blueprint.category.other"
         };
 
@@ -1700,14 +1849,17 @@ namespace HexLive.UnityPresentation.HutTest
             }
             if (_availabilityLabel != null)
             {
-                var waitingForFloor = selected != null && catalogEntry?.RequiresCompletedFloor == true &&
+                // §120.13: в мировом режиме мебель стоит и на земле — пола не ждёт.
+                var waitingForFloor = !WorldFurniture &&
+                                      selected != null && catalogEntry?.RequiresCompletedFloor == true &&
                                       !FurnitureHasFloorSupport(displayedDraft!, selected);
                 _availabilityLabel.text = Loc.Get(waitingForFloor
                     ? "blueprint.availability.floor"
                     : "blueprint.availability.ready");
                 _availabilityLabel.EnableInClassList("waiting", waitingForFloor);
             }
-            root.Q<Button>("delete-selection").SetEnabled(!string.IsNullOrEmpty(_selectedId));
+            root.Q<Button>("delete-selection").SetEnabled(
+                !string.IsNullOrEmpty(_selectedId) && !_selectedIds.Any(IsFinishedWorldFurniture));
             root.Q<Button>("finish-selection").SetEnabled(
                 _activeCatalogEntry != null || !string.IsNullOrEmpty(_selectedId));
         }

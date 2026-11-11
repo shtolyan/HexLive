@@ -21,7 +21,8 @@ public static class ConstructionAccess
     public static bool IsConstructionCommand(ISimulationCommand command) => command is
         PlaceBuildingPlanCommand or PlaceFurnitureSiteCommand or PlacePlantingSiteCommand or PlaceBuildingBlueprintCommand or
         UpdateBuildingBlueprintCommand or ApplyFreeArchitectureCommand or
-        RotateBuildSiteCommand or CancelBuildSiteCommand;
+        RotateBuildSiteCommand or CancelBuildSiteCommand or
+        PlaceFurnitureCommand or MoveFurnitureCommand or RemoveFurnitureCommand;
 
     public static HashSet<Faction> Factions(WorldState world, IEnumerable<int> assigned) =>
         world.Entities.Npcs.Values.Where(npc => npc.Health > 0 &&

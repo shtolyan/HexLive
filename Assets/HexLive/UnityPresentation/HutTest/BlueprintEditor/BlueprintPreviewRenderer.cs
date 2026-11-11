@@ -54,6 +54,96 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
         private bool _invalidGhost;
         private BlueprintArchitectureRenderContext? _architectureContext;
 
+        // §120.13: мировой режим мебели. Сетка лагеря — один батч-меш на цвет,
+        // а не шар на точку: 91 гекс лагеря это ~3600 точек, и пересоздавать
+        // их на каждое движение призрака нельзя.
+        private Transform? _worldGridRoot;
+        private Mesh? _worldGridFree;
+        private Mesh? _worldGridBlocked;
+
+        /// <summary>Высота поверхности (земля либо настил) под мировой точкой,
+        /// в локальных координатах превью. null — редактор чертежа: всё стоит
+        /// на плоском полу.</summary>
+        public Func<HexLive.Simulation.Common.Float2, float>? SurfaceHeight { get; set; }
+
+        /// <summary>Какую мебель рисует превью. В мировом режиме построенная
+        /// мебель остаётся живым объектом мира, а превью рисует только
+        /// площадки, перетаскиваемое и ещё не подтверждённое сервером.</summary>
+        public Func<FurniturePlacementData, bool>? FurnitureVisible { get; set; }
+
+        /// <summary>Мировой режим: зелёные точки рисует батч сетки лагеря,
+        /// превью добавляет только занятые и конфликтные.</summary>
+        public bool WorldFurnitureGrid { get; set; }
+
+        private float SurfaceY(HexLive.Simulation.Common.Float2 point) =>
+            SurfaceHeight != null ? SurfaceHeight(point) : FloorY;
+
+        /// <summary>Перестроить сетку лагеря. Вызывается только когда изменилась
+        /// сама сетка (топология, стены, мебель), а не на каждый кадр.</summary>
+        public void SetWorldGrid(IReadOnlyList<Vector3> free, IReadOnlyList<Vector3> blocked)
+        {
+            EnsureRoots();
+            if (_worldGridRoot == null)
+            {
+                _worldGridRoot = new GameObject("Camp furniture grid").transform;
+                _worldGridRoot.SetParent(transform, false);
+                _worldGridFree = AddGridLayer("free", Green);
+                _worldGridBlocked = AddGridLayer("blocked", Red);
+            }
+
+            FillGridMesh(_worldGridFree!, free, 0.034f);
+            FillGridMesh(_worldGridBlocked!, blocked, 0.026f);
+            _worldGridRoot.gameObject.SetActive(_mode == BlueprintEditorMode.Furniture);
+        }
+
+        private Mesh AddGridLayer(string layer, Material material)
+        {
+            var go = new GameObject($"Camp grid {layer}");
+            go.transform.SetParent(_worldGridRoot, false);
+            var mesh = new Mesh { name = $"CampGrid_{layer}", indexFormat = IndexFormat.UInt32 };
+            mesh.MarkDynamic();
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = go.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            return mesh;
+        }
+
+        // Одна точка — плоский шестиугольник (шесть треугольников от центра).
+        private static void FillGridMesh(Mesh mesh, IReadOnlyList<Vector3> points, float radius)
+        {
+            const int Sides = 6;
+            var vertices = new Vector3[points.Count * (Sides + 1)];
+            var indices = new int[points.Count * Sides * 3];
+            for (var p = 0; p < points.Count; p++)
+            {
+                var first = p * (Sides + 1);
+                vertices[first] = points[p];
+                for (var side = 0; side < Sides; side++)
+                {
+                    var angle = side * Mathf.PI * 2f / Sides;
+                    vertices[first + 1 + side] = points[p] +
+                        new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
+                    var i = (p * Sides + side) * 3;
+                    indices[i] = first;
+                    indices[i + 1] = first + 1 + (side + 1) % Sides;
+                    indices[i + 2] = first + 1 + side;
+                }
+            }
+
+            mesh.Clear();
+            mesh.vertices = vertices;
+            mesh.SetIndices(indices, MeshTopology.Triangles, 0);
+            mesh.RecalculateBounds();
+        }
+
+        private void OnDestroy()
+        {
+            if (_worldGridFree != null) Destroy(_worldGridFree);
+            if (_worldGridBlocked != null) Destroy(_worldGridBlocked);
+        }
+
         public BuildingBlueprintDraft? Draft => _draft;
 
         public void Rebuild(
@@ -105,7 +195,11 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
             foreach (var element in draft.Elements)
                 BuildElement(element);
             foreach (var furniture in draft.Furniture)
-                BuildFurniture(furniture);
+                if (FurnitureVisible == null || FurnitureVisible(furniture) ||
+                    _ghostIds.Contains(furniture.Id))
+                    BuildFurniture(furniture);
+            if (_worldGridRoot != null)
+                _worldGridRoot.gameObject.SetActive(mode == BlueprintEditorMode.Furniture);
             BuildPlanningMarkers();
             BuildOverlay();
             ApplyModeVisibility();
@@ -212,7 +306,7 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
             var anchor = BlueprintGeometry.JunctionToWorld(item.PrimaryJunction);
             var offset = BlueprintFurnitureFootprints.CentroidOffset(item.DefinitionId, item.YawStep);
             root.transform.localPosition = new Vector3(
-                anchor.X + offset.X, FloorY, anchor.Y + offset.Y);
+                anchor.X + offset.X, SurfaceY(anchor), anchor.Y + offset.Y);
             // A six-way footprint yaw, through the one mapper the world renderer
             // also uses: yawStep k is simulation yaw 60k, and simulation yaw
             // becomes Unity yaw by negation (never 90 - yaw, which is the
@@ -242,6 +336,24 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
                         }
                         owners.Add(furniture.Id);
                     }
+
+                if (WorldFurnitureGrid)
+                {
+                    // §120.13: свободные точки уже нарисованы сеткой лагеря;
+                    // здесь — только следы стоящей мебели и конфликты жеста.
+                    foreach (var pair in occupants)
+                    {
+                        var clash = _conflicts.Contains(pair.Key) || pair.Value.Count > 1;
+                        AddMarker(BlueprintGeometry.JunctionToWorld(pair.Key),
+                            clash ? Red : pair.Value.Any(_selectedIds.Contains) || pair.Value.Any(_ghostIds.Contains)
+                                ? Amber : Red,
+                            $"junction {pair.Key}", clash);
+                    }
+                    foreach (var key in _conflicts)
+                        if (!occupants.ContainsKey(key))
+                            AddMarker(BlueprintGeometry.JunctionToWorld(key), Red, $"junction {key}", true);
+                    return;
+                }
 
                 // Furniture stands on a BUILT floor and nowhere else, so the
                 // dots stop at the floor too. Drawing every point of every hex
@@ -335,8 +447,13 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
         {
             if (_draft == null || _overlayRoot == null) return;
             var drawn = new HashSet<string>(StringComparer.Ordinal);
+            // В мировом режиме площадка мебели рисуется готовой моделью — колышки
+            // под ней были бы вторым, плоским изображением того же предмета.
+            var furnitureMarkers = WorldFurnitureGrid
+                ? Enumerable.Empty<PlanningMarkerPoint>()
+                : _draft.Furniture.SelectMany(BlueprintPlanningMarkers.ForFurniture);
             foreach (var marker in _draft.Elements.SelectMany(BlueprintPlanningMarkers.ForElement)
-                         .Concat(_draft.Furniture.SelectMany(BlueprintPlanningMarkers.ForFurniture)))
+                         .Concat(furnitureMarkers))
             {
                 var key = $"{(int)marker.Layer}:{marker.Position.X:0.0000}:{marker.Position.Y:0.0000}";
                 if (!drawn.Add(key)) continue;
@@ -383,7 +500,7 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
             var marker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             marker.name = name;
             marker.transform.SetParent(_overlayRoot, false);
-            marker.transform.localPosition = new Vector3(point.X, FloorY + 0.045f, point.Y);
+            marker.transform.localPosition = new Vector3(point.X, SurfaceY(point) + 0.045f, point.Y);
             marker.transform.localScale = Vector3.one * 0.075f;
             marker.GetComponent<Renderer>().sharedMaterial = material;
             Destroy(marker.GetComponent<Collider>());

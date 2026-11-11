@@ -1104,6 +1104,57 @@ public static class BuildingBootstrap
     }
 
     /// <summary>
+    /// §120.13: мебель, которую игрок передвинул или убрал в режиме стройки,
+    /// перестаёт быть мебелью ЧЕРТЕЖА дома. Без этого следующая достройка того
+    /// же дома (CompleteHut → StakePlanFurnitureSites) и каждая загрузка сейва
+    /// заново размечали бы площадку на старом месте.
+    ///
+    /// Чертёж дома — экземплярные данные: дом на committed-плане (BlueprintId 0)
+    /// сначала получает собственную копию в реестре мира.
+    /// </summary>
+    internal static void ForgetPlanFurnitureAt(WorldState world, JunctionId anchor, string product)
+    {
+        if (world == null || string.IsNullOrEmpty(product)) return;
+        List<WorldObjectState> huts = null;
+        foreach (var candidate in world.Entities.Objects.Values)
+        {
+            if (candidate.DefinitionId != ContentIds.HutPlan) continue;
+            huts ??= new List<WorldObjectState>();
+            huts.Add(candidate);
+        }
+
+        if (huts == null) return;
+        foreach (var hut in huts)
+        {
+            var plan = BuildingRules.PlanFor(world, hut);
+            if (plan == null || plan.Furniture.Count == 0) continue;
+            var steps = HexSymmetrySteps(hut.RotationDegrees);
+            var planAnchorTile = Runtime.Blueprints.BlueprintBuildingPlan.AnchorTile(plan);
+            var index = PlanJunctionIndex(world, hut);
+            string forgottenId = null;
+            foreach (var placement in plan.Furniture)
+            {
+                if (PlanFurnitureProduct(placement.DefinitionId) != product) continue;
+                var key = RotatePlanJunction(placement.PrimaryJunction, planAnchorTile, hut.Tile, steps);
+                if (!index.TryGetValue(key, out var staked) || !staked.Equals(anchor)) continue;
+                forgottenId = placement.Id;
+                break;
+            }
+
+            if (forgottenId == null) continue;
+            if (hut.BlueprintId == 0 || !world.PlayerBlueprints.ContainsKey(hut.BlueprintId))
+            {
+                plan = plan.Clone();
+                hut.BlueprintId = world.NextPlayerBlueprintId++;
+                world.PlayerBlueprints[hut.BlueprintId] = plan;
+            }
+
+            plan.Furniture.RemoveAll(placement => placement.Id == forgottenId);
+            plan.Normalize();
+        }
+    }
+
+    /// <summary>
     /// The catalog id a §120 furniture placement is BUILT as. "furniture.hearth"
     /// is a Build/Buy catalog row, not a world object — the thing that gets
     /// raised is the ordinary campfire carrying the household-hearth variant,

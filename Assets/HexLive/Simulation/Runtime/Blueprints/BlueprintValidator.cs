@@ -166,8 +166,9 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 // Unknown definitions keep the strict historical rule. Only a
                 // catalog-authored outdoor site may explicitly opt out of the
                 // completed-floor prerequisite (§120 Build/Buy catalog).
-                var requiresFloor = !BuildCatalogDefinition.TryGet(item.DefinitionId, out var catalogEntry) ||
-                                    catalogEntry.RequiresCompletedFloor;
+                var requiresFloor = !draft.GroundFurniture &&
+                                    (!BuildCatalogDefinition.TryGet(item.DefinitionId, out var catalogEntry) ||
+                                     catalogEntry.RequiresCompletedFloor);
                 if (item.JunctionSlot < 0 ||
                     item.JunctionSlot >= HexLive.Simulation.Spatial.HexPointLayout.GetInteriorTemplates().Count)
                 {
@@ -185,6 +186,12 @@ namespace HexLive.Simulation.Runtime.Blueprints
                     // green dots out there to invite it.
                     if (requiresFloor && !BlueprintGeometry.IsSupportedByFloor(junction, floors))
                         result.Add("furniture.floor", $"Footprint выходит за построенный пол в junction {junction}.", item.Id);
+                    // §120.13: проекция живого мира может уже содержать касающиеся
+                    // следы (кольцо кроватей у костра, расставленное колонией) —
+                    // это не повод запретить игроку ЛЮБОЙ жест. В мировом режиме
+                    // пересечение проверяется для изменяемого предмета, а истину
+                    // решает FurniturePlacement.Validate в симуляции.
+                    if (draft.GroundFurniture) continue;
                     if (occupied.TryGetValue(junction, out var previous))
                         result.Add("furniture.overlap", $"Footprint пересекается с {previous} в junction {junction}.", item.Id);
                     else

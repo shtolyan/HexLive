@@ -205,10 +205,19 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 if (WouldRemoveFurnitureSupport(working, removed) ||
                     WouldOrphanManualElement(working, removed)) return false;
 
+                // Сохранившийся сектор остаётся ТЕМ ЖЕ элементом: в мировом
+                // режиме (§120.13) это уже настеленная доска, и пересоздание
+                // её под новым id означало бы снос и новую стройку.
+                var removedSet = new HashSet<FloorSectorKey>(removed);
                 working.Elements.RemoveAll(element =>
-                    element.Kind == BlueprintElementKind.FloorSector && element.RoomId == roomId);
+                    element.Kind == BlueprintElementKind.FloorSector && element.RoomId == roomId &&
+                    removedSet.Contains(element.FloorSector));
+                var kept = new HashSet<FloorSectorKey>(working.Elements.Where(element =>
+                        element.Kind == BlueprintElementKind.FloorSector && element.RoomId == roomId)
+                    .Select(element => element.FloorSector));
                 foreach (var sector in selected)
                 {
+                    if (kept.Contains(sector)) continue;
                     working.Elements.Add(new BlueprintElementData
                     {
                         Id = working.AllocateElementId(),
@@ -370,6 +379,128 @@ namespace HexLive.Simulation.Runtime.Blueprints
             }, "Комната удалена.");
         }
 
+        /// <summary>
+        /// §120.13: «чертёж» — это просто набор, который кладут в мир. Все детали
+        /// и мебель плана переносятся в черновик на гекс <paramref name="tile"/>
+        /// с поворотом на <paramref name="yawStep"/> шагов по 60° и дальше живут
+        /// как обычные стены, пол, крыша и мебель: их двигают, растягивают и
+        /// сносят поштучно. Жест атомарен: занятый слот отклоняет его целиком.
+        /// </summary>
+        public static BlueprintCommandResult StampPlan(
+            BuildingBlueprintDraft draft, BuildingBlueprintDraft plan, TileCoord tile, int yawStep)
+        {
+            if (plan == null) return Failed("Набор отсутствует.");
+            var steps = BlueprintGeometry.NormalizeSector(yawStep);
+            return Transact(draft, working =>
+            {
+                var occupied = new HashSet<string>(
+                    working.Elements.Select(BlueprintBuildingPlan.SlotKey), StringComparer.Ordinal);
+                foreach (var authored in plan.Elements)
+                {
+                    var element = ArchitectureWorldEditing.ToWorld(authored, plan, tile, steps * 60f);
+                    if (!occupied.Add(BlueprintBuildingPlan.SlotKey(element))) return false;
+                    element.Id = working.AllocateElementId();
+                    working.Elements.Add(element);
+                }
+
+                var planAnchor = BlueprintBuildingPlan.AnchorTile(plan);
+                var origin = HexLive.Simulation.Spatial.HexPointLayout.GetJunctionKeyPair(planAnchor, default);
+                var destination = HexLive.Simulation.Spatial.HexPointLayout.GetJunctionKeyPair(tile, default);
+                foreach (var placement in plan.Furniture)
+                {
+                    var local = placement.PrimaryJunction;
+                    var offset = BlueprintGeometry.RotateJunctionOffset(
+                        new JunctionKey(local.XKey - origin.xKey, local.YKey - origin.yKey), steps);
+                    var key = new JunctionKey(destination.xKey + offset.XKey, destination.yKey + offset.YKey);
+                    if (!TryInteriorSlot(key, out var hex, out var slot)) return false;
+                    working.Furniture.Add(new FurniturePlacementData
+                    {
+                        Id = working.AllocateFurnitureId(),
+                        DefinitionId = placement.DefinitionId,
+                        TileQ = hex.Q,
+                        TileR = hex.R,
+                        JunctionSlot = slot,
+                        YawStep = BlueprintGeometry.NormalizeSector(placement.YawStep + steps)
+                    });
+                }
+
+                AssignRoomsToLooseFloors(working);
+                return plan.Elements.Count + plan.Furniture.Count > 0;
+            }, "Набор размещён.");
+        }
+
+        /// <summary>Якорь мебели — одна из внутренних точек гекса под ней.</summary>
+        public static bool TryInteriorSlot(JunctionKey key, out TileCoord tile, out int slot)
+        {
+            tile = HexLive.Simulation.Spatial.HexSpatialMath.WorldToTile(BlueprintGeometry.JunctionToWorld(key));
+            foreach (var template in HexLive.Simulation.Spatial.HexPointLayout.GetInteriorTemplates())
+            {
+                var pair = HexLive.Simulation.Spatial.HexPointLayout.GetJunctionKeyPair(tile, template.SubAxial);
+                if (pair.xKey != key.XKey || pair.yKey != key.YKey) continue;
+                slot = template.Slot;
+                return true;
+            }
+
+            slot = -1;
+            return false;
+        }
+
+        /// <summary>
+        /// §120.13: комнаты для пола без комнаты — проекция живого мира и
+        /// только что положенный набор. Комната — связный настил. Если ВЕСЬ её
+        /// контур закрыт стенами/окнами/дверями, контур становится
+        /// автоматическим и следует за растягиванием комнаты; иначе это
+        /// открытый настил (терраса), и стены вокруг остаются ручными.
+        /// </summary>
+        public static void AssignRoomsToLooseFloors(BuildingBlueprintDraft draft)
+        {
+            if (draft == null) return;
+            var remaining = new Dictionary<FloorSectorKey, BlueprintElementData>();
+            foreach (var element in draft.Elements)
+                if (element.Kind == BlueprintElementKind.FloorSector && element.RoomId <= 0)
+                    remaining[element.FloorSector] = element;
+            if (remaining.Count == 0) return;
+            var envelope = new Dictionary<BuildSegmentKey, BlueprintElementData>();
+            foreach (var element in draft.Elements)
+                if (element.Kind is BlueprintElementKind.Wall or BlueprintElementKind.Window or
+                    BlueprintElementKind.Door)
+                    envelope[element.Segment] = element;
+
+            while (remaining.Count > 0)
+            {
+                var roomId = draft.AllocateRoomId();
+                var component = new List<FloorSectorKey>();
+                var queue = new Queue<FloorSectorKey>();
+                queue.Enqueue(remaining.Keys.OrderBy(key => key).First());
+                while (queue.Count > 0)
+                {
+                    var key = queue.Dequeue();
+                    if (!remaining.TryGetValue(key, out var floor)) continue;
+                    remaining.Remove(key);
+                    floor.RoomId = roomId;
+                    component.Add(key);
+                    foreach (var next in remaining.Keys
+                                 .Where(candidate => BlueprintGeometry.AreSectorsAdjacent(key, candidate))
+                                 .OrderBy(candidate => candidate).ToArray())
+                        queue.Enqueue(next);
+                }
+
+                var boundary = BlueprintGeometry.BoundaryOf(component);
+                if (boundary.Count > 0 && boundary.All(envelope.ContainsKey))
+                {
+                    foreach (var segment in boundary)
+                    {
+                        envelope[segment].Origin = BlueprintElementOrigin.RoomBoundary;
+                        envelope[segment].RoomId = roomId;
+                    }
+                }
+                else
+                {
+                    draft.OpenRooms.Add(roomId);
+                }
+            }
+        }
+
         internal static void ReplaceDraft(BuildingBlueprintDraft target, BuildingBlueprintDraft source)
         {
             target.Version = source.Version;
@@ -377,6 +508,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
             target.NextElementId = source.NextElementId;
             target.NextRoomId = source.NextRoomId;
             target.OpenRooms = new List<int>(source.OpenRooms);
+            target.GroundFurniture = source.GroundFurniture;
             target.Elements = source.Elements.Select(element => element.Clone()).ToList();
             target.Furniture = source.Furniture.Select(item => item.Clone()).ToList();
             target.Normalize();
@@ -451,16 +583,25 @@ namespace HexLive.Simulation.Runtime.Blueprints
 
         private static void RebuildRoomBoundary(BuildingBlueprintDraft draft, int roomId)
         {
-            draft.Elements.RemoveAll(element =>
-                element.Origin == BlueprintElementOrigin.RoomBoundary && element.RoomId == roomId &&
-                element.Kind is BlueprintElementKind.Wall or BlueprintElementKind.Window or BlueprintElementKind.Door);
-            // §120.8: открытый настил границу не отращивает — только снимает
-            // свою прежнюю (ветка выше), если комнату перевели в открытые.
-            if (draft.OpenRooms.Contains(roomId)) return;
             var sectors = draft.Elements.Where(element =>
                     element.Kind == BlueprintElementKind.FloorSector && element.RoomId == roomId)
                 .Select(element => element.FloorSector).ToArray();
-            foreach (var segment in BlueprintGeometry.BoundaryOf(sectors))
+            // §120.8: открытый настил границу не отращивает — только снимает
+            // свою прежнюю, если комнату перевели в открытые.
+            var open = draft.OpenRooms.Contains(roomId);
+            // §120.13: секция автоконтура, оставшаяся на границе, СОХРАНЯЕТСЯ
+            // вместе со своим видом. Прежде растягивание комнаты сносило весь
+            // контур и отращивало сплошные стены — окна и дверь комнаты молча
+            // исчезали, а в мировом режиме это снос уже построенной двери.
+            var boundary = open
+                ? new HashSet<BuildSegmentKey>()
+                : new HashSet<BuildSegmentKey>(BlueprintGeometry.BoundaryOf(sectors));
+            draft.Elements.RemoveAll(element =>
+                element.Origin == BlueprintElementOrigin.RoomBoundary && element.RoomId == roomId &&
+                element.Kind is BlueprintElementKind.Wall or BlueprintElementKind.Window or BlueprintElementKind.Door &&
+                !boundary.Contains(element.Segment));
+            if (open) return;
+            foreach (var segment in boundary)
             {
                 if (FindEnvelope(draft, segment) != null) continue;
                 draft.Elements.Add(NewSegment(draft, BlueprintElementKind.Wall, segment,
@@ -503,6 +644,17 @@ namespace HexLive.Simulation.Runtime.Blueprints
         public bool CanUndo => _undo.Count > 0;
         public bool CanRedo => _redo.Count > 0;
         public void Clear() { _undo.Clear(); _redo.Clear(); }
+
+        /// <summary>§120.13: мир изменился НЕ жестом игрока (колония разметила
+        /// кровать, площадка достроилась). Та же поправка вносится во все
+        /// сохранённые шаги, иначе Undo «вернул бы» мир без этого предмета — то
+        /// есть снёс бы чужую площадку.</summary>
+        public void Rewrite(Action<BuildingBlueprintDraft> change)
+        {
+            if (change == null) return;
+            foreach (var draft in _undo) change(draft);
+            foreach (var draft in _redo) change(draft);
+        }
 
         public BlueprintCommandResult Execute(
             BuildingBlueprintDraft draft, Func<BuildingBlueprintDraft, BlueprintCommandResult> gesture,

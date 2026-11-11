@@ -23799,22 +23799,12 @@ MonoBehaviour:
       - "\u042D\u043A\u0441\u043F\u043E\u0440\u0442 JSON"
       Flags: 0101
       Languages_Touch: []
-    - Term: blueprint.shortcuts
+    - Term: 'blueprint.shortcuts'
       TermType: 0
       Description: 
       Languages:
-      - "Drag \u2014 build \xB7 Select \u2014 click a piece or room, drag its side
-        handles \xB7 Q/E \u2014 rotate \xB7 Del \u2014 delete \xB7 Cmd/Ctrl+Z \u2014
-        undo \xB7 RMB/Esc \u2014 select mode"
-      - "\u0422\u044F\u043D\u0443\u0442\u044C \u2014 \u0441\u0442\u0440\u043E\u0438\u0442\u044C
-        \xB7 \xAB\u0412\u044B\u0431\u043E\u0440\xBB \u2014 \u043A\u043B\u0438\u043A
-        \u043F\u043E \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u0443 \u0438\u043B\u0438
-        \u043A\u043E\u043C\u043D\u0430\u0442\u0435, \u043A\u043E\u043C\u043D\u0430\u0442\u0443
-        \u0442\u044F\u043D\u0443\u0442\u044C \u0437\u0430 \u0440\u0443\u0447\u043A\u0438
-        \u0441\u0442\u043E\u0440\u043E\u043D \xB7 Q/E \u2014 \u043F\u043E\u0432\u043E\u0440\u043E\u0442
-        \xB7 Del \u2014 \u0443\u0434\u0430\u043B\u0438\u0442\u044C \xB7 Cmd/Ctrl+Z
-        \u2014 \u043E\u0442\u043C\u0435\u043D\u0430 \xB7 \u041F\u041A\u041C/Esc \u2014
-        \u0440\u0435\u0436\u0438\u043C \u0432\u044B\u0431\u043E\u0440\u0430"
+      - 'Furniture: pick, click a green point, click again for one more · drag to move · Q/E — rotate · Construction: drag walls and floors, click a room and pull its arrows to stretch it · Del — delete · Ctrl+Z — undo · RMB/Esc — select mode'
+      - 'Мебель: выбрать, кликнуть по зелёной точке, ещё клик — ещё один · перетащить — передвинуть · Q/E — поворот · Строительство: тянуть стены и пол, кликнуть по комнате и тянуть за стрелки, чтобы растянуть · Del — удалить · Ctrl+Z — отмена · ПКМ/Esc — режим выбора'
       Flags: 0101
       Languages_Touch: []
     - Term: blueprint.selection
@@ -25023,47 +25013,45 @@ MonoBehaviour:
       - "\u0421\u0442\u0440\u043E\u0438\u0442\u044C"
       Flags: 0000
       Languages_Touch: []
-    - Term: blueprint.catalog.hut.name
+    - Term: 'blueprint.catalog.hut.name'
       TermType: 0
       Description: 
       Languages:
-      - Planned house
-      - "\u0414\u043E\u043C \u043F\u043E \u043F\u043B\u0430\u043D\u0443"
-      Flags: 0000
-      Languages_Touch: []
-    - Term: blueprint.catalog.hut.description
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Stake the approved house plan; the colonists haul materials and raise it themselves.'
-      - 'Разметьте утверждённый план дома — жители принесут материалы и построят его сами.'
+      - 'Ready-made house'
+      - 'Готовый дом'
       Flags: 0101
       Languages_Touch: []
-    - Term: blueprint.category.house
+    - Term: 'blueprint.catalog.hut.description'
       TermType: 0
       Description: 
       Languages:
-      - House
-      - "\u0414\u043E\u043C"
-      Flags: 0000
+      - 'Places walls, floor, roof and furniture in one click. After that every piece is ordinary: move, stretch and remove them one by one.'
+      - 'Ставит стены, пол, крышу и мебель одним кликом. Дальше это обычные детали: двигайте, растягивайте и убирайте их по одной.'
+      Flags: 0101
       Languages_Touch: []
-    - Term: build.mode.hint
+    - Term: 'blueprint.category.house'
       TermType: 0
       Description: 
       Languages:
-      - "Click \u2014 place \xB7 Q/E \u2014 rotate \xB7 Esc \u2014 exit"
-      - "\u041B\u041A\u041C \u2014 \u0440\u0430\u0437\u043C\u0435\u0441\u0442\u0438\u0442\u044C
-        \xB7 Q/E \u2014 \u043F\u043E\u0432\u043E\u0440\u043E\u0442 \xB7 Esc \u2014
-        \u0432\u044B\u0445\u043E\u0434"
-      Flags: 0000
+      - 'Ready-made'
+      - 'Готовое'
+      Flags: 0101
       Languages_Touch: []
-    - Term: build.mode.blocked
+    - Term: 'build.mode.hint'
       TermType: 0
       Description: 
       Languages:
-      - Can't build here
-      - "\u0417\u0434\u0435\u0441\u044C \u043D\u0435\u043B\u044C\u0437\u044F \u0441\u0442\u0440\u043E\u0438\u0442\u044C"
-      Flags: 0000
+      - 'Pick an item, click a green point to place · Q/E — rotate · drag a placed item to move it · Esc — drop the item'
+      - 'Выберите предмет и кликните по зелёной точке · Q/E — поворот · поставленное перетаскивается мышью · Esc — отпустить предмет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'build.mode.blocked'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Can''t place here — the point is taken or outside your camp'
+      - 'Сюда нельзя — место занято или вне вашего лагеря'
+      Flags: 0101
       Languages_Touch: []
     - Term: build.mode.placed
       TermType: 0
@@ -33050,6 +33038,30 @@ MonoBehaviour:
       Languages:
       - "There is no safe place for the portal in this camp."
       - "В этом лагере нет безопасного места для портала."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.PlacementOccupied'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'This spot is taken by another item'
+      - 'Место занято другим предметом'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.FurnitureBuilt'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Finished furniture can be moved but not removed in build mode'
+      - 'Готовую мебель в режиме стройки можно передвинуть, но не убрать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NoSuchFurniture'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'That item is no longer there'
+      - 'Этого предмета там уже нет'
       Flags: 0101
       Languages_Touch: []
     CaseInsensitiveTerms: 0

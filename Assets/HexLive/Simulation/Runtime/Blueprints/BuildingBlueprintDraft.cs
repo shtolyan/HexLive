@@ -246,6 +246,11 @@ namespace HexLive.Simulation.Runtime.Blueprints
     public List<BlueprintElementData> Elements = new List<BlueprintElementData>();
         public List<FurniturePlacementData> Furniture = new List<FurniturePlacementData>();
 
+        /// <summary>§120.13: проекция живого мира в режиме стройки — мебель
+        /// стоит на любой точке сетки, на земле так же, как на полу. Признак
+        /// редакторский: в JSON чертежа не пишется и в сейв не попадает.</summary>
+        public bool GroundFurniture;
+
         public BuildingBlueprintDraft Clone()
         {
             return new BuildingBlueprintDraft
@@ -257,6 +262,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 HasAnchor = HasAnchor,
                 AnchorQ = AnchorQ,
                 AnchorR = AnchorR,
+                GroundFurniture = GroundFurniture,
                 Elements = Elements.Select(element => element.Clone()).ToList(),
                 Furniture = Furniture.Select(item => item.Clone()).ToList(),
                 OpenRooms = new List<int>(OpenRooms)

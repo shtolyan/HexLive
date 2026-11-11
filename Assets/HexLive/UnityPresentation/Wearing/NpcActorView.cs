@@ -4036,23 +4036,25 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     /// огонь) — там штампа нет.
     /// </para>
     /// </summary>
-    public void SignalHit(int hitStampTick, string hitWeaponId, string hitPart,
-        Vector3 hitFrom)
+    public bool SignalHit(int hitStampTick, string hitWeaponId, string hitPart,
+        Vector3 hitFrom, bool visible)
     {
         var fresh = hitStampTick > 0 && hitStampTick != _lastHitStampTick;
         _lastHitStampTick = hitStampTick;
-        if (!fresh)
+        if (!fresh || !visible)
         {
-            return;
+            return false;
         }
 
         StartHitRecoil(hitPart, hitFrom);
-        SpawnHitBlood(hitPart);
+        SplashAt(string.IsNullOrEmpty(hitPart) ? "Torso" : hitPart, hitStampTick, fromHit: true);
 
         if (_simSpeed <= 4.01f)
         {
             Audio.FmodSfx.Play(ImpactSfxFor(hitWeaponId), transform.position);
         }
+
+        return true;
     }
 
     /// <summary>Чем ударили — тем и звучит. Пустой id это кулаки.</summary>
@@ -6356,25 +6358,26 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     /// Брызга крови у кости зоны. Общая для двух поводов: НОВАЯ РАНА (её ищет
     /// SyncWoundSplashVfx по seed'ам) и ХИТ-ШТАМП (§104 r5) — удар мог не
     /// оставить раны вовсе, попав в броню или в пощаду, но видно его быть
-    /// обязано. Возвращает false, когда спавнить нечего или ещё рано.
+    /// обязано. Интервал ограничивает лишь дополнительные брызги от новых ран.
     /// </summary>
-    private bool SplashAt(string zone, int seed)
+    private bool SplashAt(string zone, int seed, bool fromHit = false)
     {
-        if (Time.time - _lastSplashTime < SplashGateSeconds || _bodyBones == null ||
-            !ZoneBoneAnchors.TryGetValue(zone, out var boneName))
+        if (!fromHit && Time.time - _lastSplashTime < SplashGateSeconds)
         {
             return false;
         }
 
-        var bone = _bodyBones.GetBone(boneName);
-        if (bone == null)
+        Transform bone = null;
+        if (_bodyBones != null && ZoneBoneAnchors.TryGetValue(zone, out var boneName))
+            bone = _bodyBones.GetBone(boneName);
+        if (bone == null && !fromHit)
         {
             return false;
         }
 
-        _lastSplashTime = Time.time;
         var root = _bodyRoot != null ? _bodyRoot : transform;
-        var outward = bone.position - root.position;
+        var position = bone != null ? bone.position : root.position + Vector3.up * root.lossyScale.y;
+        var outward = position - root.position;
         outward.y = 0f;
         if (outward.sqrMagnitude < 0.0001f)
         {
@@ -6383,19 +6386,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         // The pack is authored for a full-size human; our actors are ~0.35
         // scale — the shared spawner scales sizes AND velocities together.
-        Rendering.BloodSplashVfx.SpawnHitSplash(
-            bone.position, outward, root.lossyScale.y, seed);
-        return true;
-    }
+        if (!Rendering.BloodSplashVfx.SpawnHitSplash(position, outward, root.lossyScale.y, seed))
+            return false;
 
-    /// <summary>
-    /// Кровь по хит-штампу. Зона неизвестна — сим шлёт момент, а не место, —
-    /// поэтому берём торс: он у любой раны рядом, а точное место всё равно
-    /// докрасит рана, когда появится.
-    /// </summary>
-    private void SpawnHitBlood(string hitPart)
-    {
-        SplashAt(string.IsNullOrEmpty(hitPart) ? "Torso" : hitPart, _lastHitStampTick);
+        _lastSplashTime = Time.time;
+        return true;
     }
 
     // Spec 40.7: paint the bare skin from tan (0..1) and acute sunburn (0..1).

@@ -46,7 +46,8 @@ public static class BloodSplashVfx
     public static GameObject Pick(int seed)
     {
         var prefabs = Prefabs;
-        return prefabs[(seed & int.MaxValue) % prefabs.Length] ?? prefabs[0];
+        return prefabs[(seed & int.MaxValue) % prefabs.Length] ??
+            System.Array.Find(prefabs, value => value != null);
     }
 
     /// <summary>
@@ -56,12 +57,12 @@ public static class BloodSplashVfx
     /// full-size-human authoring is scaled down to (root lossyScale /
     /// mob body length).
     /// </summary>
-    public static void SpawnHitSplash(Vector3 origin, Vector3 outward, float actorScale, int seed)
+    public static bool SpawnHitSplash(Vector3 origin, Vector3 outward, float actorScale, int seed)
     {
         var prefab = Pick(seed);
         if (prefab == null)
         {
-            return;
+            return false;
         }
 
         outward.y = 0f;
@@ -81,6 +82,7 @@ public static class BloodSplashVfx
         }
 
         Object.Destroy(vfx, 2f); // toon splat finishes in ~1 s
+        return true;
     }
 }
 

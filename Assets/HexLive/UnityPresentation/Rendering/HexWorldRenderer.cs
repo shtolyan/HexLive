@@ -1145,6 +1145,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // Spec 40.2-B: ground blood stains manager (lazy — lives under the
     // renderer, cleared with it on scene teardown).
     private const int CorpseBleedTicks = 120; // 30 sim seconds after death
+    private const int HitFeedbackWindowTicks = 16;
     private HexLive.UnityPresentation.Environment.GroundBloodStains _bloodStains;
     private readonly HexLive.UnityPresentation.Environment.ButcheryBloodEvents _butcheryBlood = new();
 
@@ -3350,6 +3351,24 @@ public sealed class HexWorldRenderer : MonoBehaviour
         HexLive.UnityPresentation.Diagnostics.WebPerf.BeginNamed("Hex.RSA.SyncWorn");
         actorView.SyncWorn(npc.WornItems);
         HexLive.UnityPresentation.Diagnostics.WebPerf.EndNamed();
+        // Consume the impact before updating wound decals so the same strike
+        // cannot also produce a second wound splash.
+        var hitAge = snapshot.Tick - npc.HitStampTick;
+        if (actorView.SignalHit(npc.HitStampTick, npc.HitWeaponId, npc.HitPart,
+                SimulationUnityMapper.ToUnityPosition(npc.HitFrom, ActorGroundY(npc.Tile)),
+                visible: !paintHidden && hitAge is >= 0 and <= HitFeedbackWindowTicks))
+        {
+            var foot = SimulationUnityMapper.ToUnityPosition(npc.Position, ActorGroundY(npc.Tile));
+            if (_waterCoords.Contains(npc.Tile))
+            {
+                var surface = GroundY(npc.Tile) + ElevationStep * SwimVisuals.SurfaceStepOffset;
+                EnsureWaterBlood().OnHit(npc.Id.Value, npc.Blood, foot, surface, snapshot.Tick);
+            }
+            else
+            {
+                EnsureBloodStains().OnHit(npc.Id.Value, npc.Blood, foot, snapshot.Tick);
+            }
+        }
         var earlyThermalForSweat = UI.DebugControlsPanel.SweatOverride ?? npc.ThermalComfort;
         var earlyUncoveredForDecals = UI.DebugControlsPanel.HideClothing ? AllBodyZones : npc.UncoveredParts;
         var earlyRainWet = snapshot.IsRaining && !_indoorCoords.Contains(npc.Tile) ? 1f : 0f;
@@ -3520,10 +3539,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // Timed melee: IsSwinging spans the sim's attack-animation window.
         actorView.SetCombat(npc.IsFighting, WeaponFor(npc), npc.IsSwinging, npc.StrikeIndex,
             npc.SwingStartTick);
-        // ⭐ §104 r5: ВОТ СЕЙЧАС по ней попали — кровь, вздрагивание и звук
-        // удара одним кадром, по штампу из симуляции.
-        actorView.SignalHit(npc.HitStampTick, npc.HitWeaponId, npc.HitPart,
-            SimulationUnityMapper.ToUnityPosition(npc.HitFrom, ActorGroundY(npc.Tile)));
         // §29C.3-hit: a health drop staggers her — only while standing still.
         // Остаётся фолбэком для урона НЕ от удара (падение, огонь): там
         // хит-штампа нет, а вздрогнуть всё равно надо.

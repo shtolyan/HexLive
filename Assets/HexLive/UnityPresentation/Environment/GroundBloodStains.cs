@@ -131,6 +131,11 @@ public sealed class GroundBloodStains : MonoBehaviour
         DripIfDue(TrackerFor(sourceId, 0f), footWorld, tick);
     }
 
+    public void OnHit(int sourceId, float blood, Vector3 footWorld, int tick)
+    {
+        EmitDrip(TrackerFor(sourceId, blood), footWorld, tick);
+    }
+
     public void OnButchery(Vector3 at, int tick)
     {
         var stain = Spawn(at, tick);
@@ -160,6 +165,11 @@ public sealed class GroundBloodStains : MonoBehaviour
             return;
         }
 
+        EmitDrip(tracker, footWorld, tick);
+    }
+
+    private void EmitDrip(BleedTracker tracker, Vector3 footWorld, int tick)
+    {
         tracker.NextDripTick = tick + DripIntervalTicks;
         var jitter = Random.insideUnitCircle * FootJitter;
         var at = footWorld + new Vector3(jitter.x, 0f, jitter.y);

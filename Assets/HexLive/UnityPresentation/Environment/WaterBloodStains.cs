@@ -31,6 +31,7 @@ public sealed class WaterBloodStains : MonoBehaviour
     // ~6x faster than a land stain, which lingers much longer.
     private const float LifetimeTicks = 1200f;
     private const float DripScale = 0f;         // starts from nothing, grows out
+    private const float HitDripScale = 0.03f;
     // ~3x the earlier spread — blood billows wide as it disperses in water.
     private const float BillowScaleMin = 1.65f;
     private const float BillowScaleMax = 2.85f;
@@ -50,6 +51,7 @@ public sealed class WaterBloodStains : MonoBehaviour
         public MeshRenderer Renderer;
         public MaterialPropertyBlock Mpb;
         public int BornTick;
+        public float InitialScale;
         public float FullScale;
         public float BaseX;
         public float BaseZ;
@@ -96,6 +98,11 @@ public sealed class WaterBloodStains : MonoBehaviour
         DripIfDue(TrackerFor(sourceId, 0f), posWorld, surfaceY, tick);
     }
 
+    public void OnHit(int sourceId, float blood, Vector3 posWorld, float surfaceY, int tick)
+    {
+        EmitDrip(TrackerFor(sourceId, blood), posWorld, surfaceY, tick, HitDripScale);
+    }
+
     private BleedTracker TrackerFor(int sourceId, float initialBlood)
     {
         if (_trackers.TryGetValue(sourceId, out var tracker))
@@ -116,9 +123,14 @@ public sealed class WaterBloodStains : MonoBehaviour
             return;
         }
 
+        EmitDrip(tracker, posWorld, surfaceY, tick, DripScale);
+    }
+
+    private void EmitDrip(BleedTracker tracker, Vector3 posWorld, float surfaceY, int tick, float initialScale)
+    {
         tracker.NextDripTick = tick + DripIntervalTicks;
         var jitter = Random.insideUnitCircle * DropJitter;
-        Spawn(posWorld.x + jitter.x, posWorld.z + jitter.y, surfaceY, tick);
+        Spawn(posWorld.x + jitter.x, posWorld.z + jitter.y, surfaceY, tick, initialScale);
     }
 
     // Once per rendered sim tick, after the NPC loop: spread + dilute + expire.
@@ -140,7 +152,7 @@ public sealed class WaterBloodStains : MonoBehaviour
             // it spreads the more transparent it gets, hitting alpha 0 exactly
             // as it reaches full spread, then it's removed (view + record).
             var spread = Mathf.Clamp01(age / LifetimeTicks);
-            var scale = Mathf.Lerp(DripScale, stain.FullScale, spread);
+            var scale = Mathf.Lerp(stain.InitialScale, stain.FullScale, spread);
             stain.Root.localScale = new Vector3(scale, scale, scale);
 
             // Dilute: hue washes scarlet -> pale pink, alpha inversely to spread.
@@ -163,7 +175,7 @@ public sealed class WaterBloodStains : MonoBehaviour
         }
     }
 
-    private void Spawn(float x, float z, float surfaceY, int tick)
+    private void Spawn(float x, float z, float surfaceY, int tick, float initialScale)
     {
         EnsureAssets();
 
@@ -178,7 +190,7 @@ public sealed class WaterBloodStains : MonoBehaviour
         // Lie flat on the surface, facing up, with a random spin so overlapping
         // discs never tile visibly.
         go.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
-        go.transform.localScale = new Vector3(DripScale, DripScale, DripScale);
+        go.transform.localScale = Vector3.one * initialScale;
 
         var mf = go.AddComponent<MeshFilter>();
         mf.sharedMesh = _quad;
@@ -197,6 +209,7 @@ public sealed class WaterBloodStains : MonoBehaviour
             Renderer = mr,
             Mpb = mpb,
             BornTick = tick,
+            InitialScale = initialScale,
             FullScale = Random.Range(BillowScaleMin, BillowScaleMax),
             BaseX = x,
             BaseZ = z,

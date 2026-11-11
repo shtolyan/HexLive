@@ -1979,7 +1979,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
 
         if (PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
-                $"Pickup inventory full: {worldObject.DefinitionId}"))
+                $"InventoryFull Def={worldObject.DefinitionId}"))
         {
             npc.Plan.Status = PlanStatus.Failed;
             npc.Mind.CurrentGoal = GoalType.None;

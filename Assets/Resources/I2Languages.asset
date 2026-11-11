@@ -4705,6 +4705,14 @@ MonoBehaviour:
         \u0446\u0435\u043B\u044C \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0430"
       Flags: 0101
       Languages_Touch: []
+    - Term: toast.order_interrupted.InventoryFull
+      TermType: 0
+      Description:
+      Languages:
+      - Inventory is full
+      - "\u0418\u043D\u0432\u0435\u043D\u0442\u0430\u0440\u044C \u043F\u043E\u043B\u043E\u043D"
+      Flags: 0101
+      Languages_Touch: []
     - Term: toast.order_interrupted.Replan
       TermType: 0
       Description: 

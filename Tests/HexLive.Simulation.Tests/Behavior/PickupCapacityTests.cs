@@ -18,6 +18,8 @@ public sealed class PickupCapacityTests
     [TestCase(ContentIds.Stone, ExecutionStatus.InProgress)]
     [TestCase(ContentIds.Hide, ExecutionStatus.None)]
     [TestCase(ContentIds.Hide, ExecutionStatus.Completed)]
+    [TestCase(ContentIds.YuccaSeed, ExecutionStatus.None)]
+    [TestCase(ContentIds.YuccaSeed, ExecutionStatus.InProgress)]
     public void FullPackClosesPickupAndGatherQueueWithoutRetrying(
         string definitionId, ExecutionStatus status)
     {
@@ -42,8 +44,9 @@ public sealed class PickupCapacityTests
             Assert.That(item.CurrentUser, Is.Null);
             Assert.That(world.Entities.Objects.ContainsKey(item.Id), Is.True);
             Assert.That(npc.Inventory.Items.Single(), Is.SameAs(carried));
-            Assert.That(world.Events.Items.Any(e =>
-                e.Type == "ManualOrderInterrupted"), Is.True);
+            Assert.That(world.Events.Items.Count(e => e.EntityId == npc.Id.Value &&
+                e.Type == "ManualOrderInterrupted" &&
+                e.Message?.Contains("Cause=ExecutionFailure Reason=InventoryFull ") == true), Is.EqualTo(1));
         });
 
         // The ordinary manual lifecycle must end "gather all", not re-arm

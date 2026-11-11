@@ -83,6 +83,9 @@ public static class ManualOrderFeedback
             return;
         }
 
+        if (cause == "ExecutionFailure" && ValueOf(message, "Reason=") == "InventoryFull")
+            cause = "InventoryFull";
+
         NpcId = npcId;
         ReasonKey = "toast.order_interrupted." + cause;
         _stampedAt = Time.unscaledTime;

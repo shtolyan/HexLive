@@ -36,9 +36,10 @@ public static class PortalContentPolicy
     public static IReadOnlyList<string> Wear { get; } = Array.AsReadOnly(new[]
     {
         "clothing.shorts_classic", "clothing.halter_vamp", "clothing.croptop_fit",
+        "clothing.croptop_fit_1_blue", "clothing.halter_vamp_burgundy",
     });
 
-    // These six owners match the approved fit artifacts for the three base garments.
+    // The approved color variants use the same fitted prefab and maps as their base garment.
     public static IReadOnlyList<string> PaintMaps { get; } = Array.AsReadOnly(new[]
     {
         "paintmaps.garment_7d6cad5d36b3b05cbb5a7eeb44441552_6b8e58100bebef1d3ebf4e8a_marta_4246",

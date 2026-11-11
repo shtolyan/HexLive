@@ -238,6 +238,7 @@ internal static class ContainerLootMath
                     (!ReferenceEquals(root, physicalContainer) && TheftMath.IsTheft(world, npc, physicalContainer));
                 InventoryMath.RemoveReference(contents, item);
                 npc.Inventory.Items.Add(item);
+                if (root.DefinitionId == ContentIds.StorageChest) StorageChest.SetLid(root, true);
                 if (theft) TheftMath.OnStolen(world, npc, root);
                 return true;
             }

@@ -2079,7 +2079,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 if (node.Instance is { } item && WantsStoredItem(world, npc, goal, observed.Tile, node,
                         output, capability) &&
                     (npc.Mind.IsStarving || !IsNearDanger(npc, observed.Tile, 2) ||
-                     item.DefinitionId is ContentIds.MeatRaw or ContentIds.MeatCooked) &&
+                     IsAnimalMeat(item.DefinitionId)) &&
                     (!requireRoom || ContainerLootMath.FitsInLooter(world, npc, new[] { item }))) return true;
                 if (node.Contents is { Count: > 0 } children && Find(children, observed)) return true;
                 visiting.RemoveAt(visiting.Count - 1);

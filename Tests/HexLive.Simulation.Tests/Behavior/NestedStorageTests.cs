@@ -29,6 +29,7 @@ public sealed class NestedStorageTests
         npc.Inventory.Items.Clear();
         npc.Inventory.Items.Add(ContentIds.AxeStone);
         var (container, pockets, backpack) = StoreBackpack(world, npc, hanging);
+        if (!hanging) StorageChest.SetLid(container, false);
         var log = new ItemInstance(ContentIds.Log) { OwnerId = npc.Id.Value, Wetness = 0.3f };
         pockets.Add(log);
         pockets.Add(new ItemInstance(ContentIds.Stone));
@@ -55,6 +56,7 @@ public sealed class NestedStorageTests
         Assert.That(npc.Inventory.Items.Any(item => item.DefinitionId == backpack.DefinitionId), Is.False);
         Assert.That(pockets.Single().DefinitionId, Is.EqualTo(ContentIds.Stone));
         Assert.That(world.Entities.Objects.ContainsKey(container.Id), Is.True);
+        if (!hanging) Assert.That(StorageChest.IsOpen(container.Variant), Is.True);
     }
 
     [TestCase(false)]
@@ -263,13 +265,9 @@ public sealed class NestedStorageTests
 
     private static WorldObjectState CreateStorage(WorldState world, NPCState npc, bool hanging)
     {
-        const string chestId = "furniture.storage_chest";
         RegisterBackpack(world);
-        if (!world.Content.ObjectDefinitions.ContainsKey(chestId))
-            world.Content.ObjectDefinitions[chestId] = new ObjectDefinition
-                { Id = chestId, Tags = { "Container" } };
         var root = WorldObjectMutations.SpawnObject(world,
-            hanging ? ContentIds.Wardrobe : chestId, npc.Fragment, npc.Tile, Junction(world, npc));
+            hanging ? ContentIds.Wardrobe : ContentIds.StorageChest, npc.Fragment, npc.Tile, Junction(world, npc));
         root.Owner = npc.Id;
         return root;
     }

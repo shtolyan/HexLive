@@ -609,6 +609,8 @@ public sealed class BatheUndressAtHomeTests
             // TorchPlacementTests covers reading the actual v87/v88/v89 layouts.
             // v90 (#653): temporary travel leader link.
             // TravelPartyTests separately reads actual v89 and v90 layouts.
+            // v91 (§176): durable portal settings, aperture and active visit.
+            // v92 (§176): loose item surface parent and slot.
             // v93 (§128.5/#692): contents of a carried backpack.
             Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(93));
         });

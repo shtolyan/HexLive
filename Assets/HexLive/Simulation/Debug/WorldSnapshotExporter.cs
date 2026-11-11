@@ -756,6 +756,7 @@ public static class WorldSnapshotExporter
             HitFrom = npc.HitFrom,
             Hunger = npc.Needs.Hunger,
             Thirst = npc.Needs.Thirst,
+            ManualSleepRefusal = ExecutionSystem.GetSleepInterruptReason(world, npc, manualOrder: true) ?? string.Empty,
             Energy = npc.Needs.Energy,
             Comfort = npc.Needs.Comfort,
             Social = npc.Needs.Social,

@@ -1278,15 +1278,13 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
                 : type == InteractionType.SwitchChestLid
                     ? Loc.Get(interactionId == StorageChest.OpenInteractionId ? "menu.storage_chest_open" : "menu.storage_chest_close")
                 : InteractionVerb(interaction);
-            _entries.Add(new ContextMenuEntry(
-                emptyDrink ? Loc.Get("menu.drink_empty") : theft && type == InteractionType.PickUp ? Loc.Get("menu.steal") : verb,
-                () => EnqueueOrder(actorId,
-                    new InteractCommand(
-                        actor, new ObjectId(objectId), type, interactionId)),
-                ok,
-                emptyDrink ? Loc.Get("menu.drink_empty") : emptyBattery ? Loc.Get("toast.order_rejected.BatteryEmpty") :
-                ok ? null : Loc.Get(usableHands == 0 ? "menu.needs_hand" : "menu.missing_tool"))
-            { Danger = theft });
+            var label = emptyDrink ? Loc.Get("menu.drink_empty") : theft && type == InteractionType.PickUp ? Loc.Get("menu.steal") : verb;
+            void Activate() => EnqueueOrder(actorId, new InteractCommand(actor, new ObjectId(objectId), type, interactionId));
+            var hint = emptyDrink ? Loc.Get("menu.drink_empty") : emptyBattery ? Loc.Get("toast.order_rejected.BatteryEmpty") :
+                ok ? null : Loc.Get(usableHands == 0 ? "menu.needs_hand" : "menu.missing_tool");
+            _entries.Add(type == InteractionType.Sleep
+                ? SleepMenuEntry(label, Activate, actingNpc, ok, hint)
+                : new ContextMenuEntry(label, Activate, ok, hint) { Danger = theft });
 
             // §121.10 (баг #270): рядом с «Подобрать» — «Собрать все». Собрать
             // все — однотипное на исходном гексе и шести соседних (#467).
@@ -1810,15 +1808,16 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         void Add(string key, SelfActionKind kind) => _entries.Add(new ContextMenuEntry(
             Loc.Get(key),
             () => EnqueueOrder(npcId, new SelfActionCommand(actor, kind))));
+        var selfSnapshot = runner.IsReady ? runner.CreateSnapshot() : null;
+        var self = selfSnapshot?.Npcs.Find(candidate => candidate.Id.Value == npcId);
         Add("menu.self.call_help", SelfActionKind.CallForHelp);
         Add("menu.self.treat", SelfActionKind.TreatSelf);
         Add("menu.self.sit", SelfActionKind.GroundSit);
-        Add("menu.self.sleep", SelfActionKind.GroundSleep);
+        _entries.Add(SleepMenuEntry(Loc.Get("menu.self.sleep"),
+            () => EnqueueOrder(npcId, new SelfActionCommand(actor, SelfActionKind.GroundSleep)), self));
         Add("menu.self.bathe", SelfActionKind.Bathe);
         Add("menu.self.wash", SelfActionKind.WashClothes);
         Add("menu.self.eat", SelfActionKind.EatFromPack);
-        var selfSnapshot = runner.IsReady ? runner.CreateSnapshot() : null;
-        var self = selfSnapshot?.Npcs.Find(candidate => candidate.Id.Value == npcId);
         var canDrink = ManualMenuTargets.CanDrinkFromPack(self, id =>
             runner.TryGetObjectDefinition(id, out var definition) && definition != null &&
             definition.Interactions.Any(interaction => interaction.Type == InteractionType.Drink));
@@ -1834,6 +1833,15 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         _entries.Add(new ContextMenuEntry(Loc.Get("menu.stop"),
             () => EnqueueOrder(npcId, new StopCommand(actor))));
         ContextMenuPanel.Open(mousePos, NpcTitle(npcId), _entries);
+    }
+
+    private static ContextMenuEntry SleepMenuEntry(string label, System.Action activate, NpcSnapshot? actor,
+        bool enabled = true, string? hint = null)
+    {
+        var reason = actor?.ManualSleepRefusal;
+        if (!string.IsNullOrEmpty(reason))
+            return new ContextMenuEntry($"{label} ({Loc.Get("menu.sleep_refusal." + reason)})", activate, false);
+        return new ContextMenuEntry(label, activate, enabled, hint);
     }
 
     // §167.3: три вида указания v1 (дрова заложены в enum, но пункта пока нет).

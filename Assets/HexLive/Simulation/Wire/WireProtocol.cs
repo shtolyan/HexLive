@@ -173,7 +173,8 @@ public sealed class Handshake
     // 28: #644 — snapshot v45 has ushort object flags and real property/consent.
     // 29: §176 — portal destination and surface items.
     // 30: §176 — the reserved apartment grid and visit-specific topology.
-    public const int ProtocolVersion = 30; // matched client/server required
+    // 31: §121.9 — snapshot v47 includes the reason a manual sleep order is blocked.
+    public const int ProtocolVersion = 31; // matched client/server required
 
     public string WorldId { get; set; } = string.Empty;
     public string CreationConfig { get; set; } = string.Empty;

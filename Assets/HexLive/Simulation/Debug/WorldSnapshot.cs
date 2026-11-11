@@ -629,6 +629,9 @@ public sealed class NpcSnapshot
 
     public float Thirst { get; set; }
 
+    /// <summary>§121.9: authoritative preflight reason for a manual sleep order.</summary>
+    public string ManualSleepRefusal { get; set; } = string.Empty;
+
     public float Energy { get; set; }
 
     public float Comfort { get; set; }

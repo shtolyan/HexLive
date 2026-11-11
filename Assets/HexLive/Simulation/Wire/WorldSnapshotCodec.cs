@@ -96,7 +96,7 @@ public static class WorldSnapshotCodec
     // v42: per-vessel visual provenance and exact held-bottle fill (§55.5).
     // v43: persistent craft project current/last worker (§119, #422).
     // v44: §54.21 / #429 distinguishes harvest scatter from inventory piles.
-    public const int WireVersion = 46; // §176: optional surface parent and slot in object records.
+    public const int WireVersion = 47; // §121.9: manual sleep refusal in NPC vitals.
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -986,6 +986,7 @@ public static class WorldSnapshotCodec
         w.Write(n.CompassionTrait);
         w.Write(n.Hunger);
         w.Write(n.Thirst);
+        WireIo.WriteString(w, n.ManualSleepRefusal);
         w.Write(n.Energy);
         w.Write(n.Comfort);
         w.Write(n.Social);
@@ -1368,6 +1369,7 @@ public static class WorldSnapshotCodec
         n.CompassionTrait = r.ReadSingle();
         n.Hunger = r.ReadSingle();
         n.Thirst = r.ReadSingle();
+        n.ManualSleepRefusal = r.ReadString();
         n.Energy = r.ReadSingle();
         n.Comfort = r.ReadSingle();
         n.Social = r.ReadSingle();

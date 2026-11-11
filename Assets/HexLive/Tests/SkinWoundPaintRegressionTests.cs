@@ -98,6 +98,7 @@ namespace HexLive.Tests
             try
             {
                 const int layer = 29;
+                mount.gameObject.layer = layer;
                 material.SetColor("_BaseColor", new Color(.8f, .72f, .64f));
                 void Surface(float x, float distance)
                 {

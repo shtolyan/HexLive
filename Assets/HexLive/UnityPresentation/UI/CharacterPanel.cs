@@ -853,6 +853,19 @@ namespace HexLive.UnityPresentation.UI
 
         // ── refresh ───────────────────────────────────────────────────────
 
+        private static string DisplayedGoal(NpcSnapshot npc)
+        {
+            if (npc.ExecutionStatus != "InProgress") return npc.CurrentGoal;
+            return npc.CurrentInteraction switch
+            {
+                "WashClothes" => "WashClothes",
+                "PickUp" when npc.CurrentGoal == "TendGarden" => "GardenCollectSeeds",
+                "Harvest" when npc.CurrentGoal == "TendGarden" => "GardenHarvestSeeds",
+                "Plant" when npc.CurrentGoal == "TendGarden" => "GardenSowSeeds",
+                _ => npc.CurrentGoal,
+            };
+        }
+
         private void Refresh()
         {
             var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
@@ -895,15 +908,7 @@ namespace HexLive.UnityPresentation.UI
                 ? $"NPC #{npc.Id.Value}"
                 : Loc.NpcName(npc.DisplayName);
             _roleLabel.text = $"{Loc.Get("panel.role")} · #{npc.Id.Value}";
-            // §40.6 r14 (#175): весь черёд поштучной стирки идёт под целью
-            // Bathe, и панель писала «купается», пока она тёрла вещь на песке.
-            // Такт стирки виден по интеракции — показываем «стирает» (термин
-            // цели WashClothes, новых строк нет).
-            _thoughtValue.text = isDead ? Loc.Get("state.dead")
-                : npc.CurrentInteraction == "WashClothes" &&
-                  npc.ExecutionStatus == "InProgress"
-                    ? Loc.Goal("WashClothes")
-                    : Loc.Goal(npc.CurrentGoal);
+            _thoughtValue.text = isDead ? Loc.Get("state.dead") : Loc.Goal(DisplayedGoal(npc));
             RefreshControlToggle(npc); // §121
             RefreshPaceToggle(npc); // §121.11 — после: читает _controlAvailable
 

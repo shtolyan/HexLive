@@ -2632,7 +2632,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     SimulationUnityMapper.ToUnityPosition(npc.Position, ActorGroundY(npc.Tile)), tick);
         }, (part, tick) =>
         {
-            if (!_waterCoords.Contains(part.Tile))
+            if (!_waterCoords.Contains(part.Tile) && (!_fogActive || _fogKnownObjects.Contains(part.Id.Value)))
                 EnsureBloodStains().OnButchery(GetObjectAnchorPosition(snapshot, part), tick, part: true);
         });
         _bloodStains?.Advance(snapshot.Tick);

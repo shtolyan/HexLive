@@ -23,25 +23,26 @@ public sealed class MaleGenitalsGarmentVisibilityGateTests
     }
 
     [Test]
-    public void GenitalsUseTheAuthoredPelvisMaskForClothingLayers_Bug210()
+    public void PelvisGarmentsUseAnIndependentVisibilitySettingInEveryClothingLayer_Bug685()
     {
         var sourcePath = Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Wearing",
             "BodyBones.cs");
         var source = File.ReadAllText(sourcePath);
+        var wear = File.ReadAllText(Path.Combine(Path.GetDirectoryName(sourcePath)!, "Wear.cs"));
 
         Assert.Multiple(() =>
         {
             Assert.That(source, Does.Contain(
-                "_byLayer[VisualWearLayer.Underwear].ContainsKey(VisualWearSlot.Pelvis)"),
-                "Pelvis underwear must always cover the body.");
+                "ClothingLayerCoversGenitals(VisualWearLayer.Underwear)"));
             Assert.That(source, Does.Contain(
                 "ClothingLayerCoversGenitals(VisualWearLayer.Wear)"));
             Assert.That(source, Does.Contain(
                 "ClothingLayerCoversGenitals(VisualWearLayer.Outerwear)"));
-            Assert.That(source, Does.Contain(
-                "wear.HeedHideUnderwearSlot(VisualWearSlot.Pelvis)"),
-                "Wear and Outerwear must share their authored lower-layer visibility mask.");
+            Assert.That(source, Does.Contain("wear.HidesGenitals"));
+            Assert.That(wear, Does.Contain("CoversPelvis => slots.Contains(VisualWearSlot.Pelvis)"));
+            Assert.That(wear, Does.Contain("HidesGenitals => CoversPelvis && !showGenitals"));
+            Assert.That(wear, Does.Contain("SetHidesGenitals(bool value) => showGenitals = !value"));
         });
     }
 }

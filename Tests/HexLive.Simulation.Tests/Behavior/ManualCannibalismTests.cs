@@ -44,8 +44,16 @@ public sealed class ManualCannibalismTests
         var admission = ManualCommandExecutor.Apply(world, new ButcherPersonCommand(actor.Id, victim.Id));
         Assert.That(admission.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted), admission.Reason);
         Until(engine, () => world.Events.Items.Any(e => e.Type == "Butchered"));
-        var parts = world.Entities.Objects.Values.Select(o => o.DefinitionId)
+        var droppedParts = world.Entities.Objects.Values.Where(o => HumanMeatCatalog.IsHumanPart(o.DefinitionId)).ToArray();
+        var parts = droppedParts.Select(o => o.DefinitionId)
             .Concat(actor.Inventory.Items.Select(i => i.DefinitionId)).Where(HumanMeatCatalog.IsHumanPart).ToArray();
+        var butchered = world.Events.Items.Single(e => e.Type == "Butchered").Message;
+        var marker = HumanMeatCatalog.ButcheryDropIdsMarker;
+        Assert.That(butchered, Does.Contain(marker));
+        var dropIds = butchered[(butchered.IndexOf(marker, StringComparison.Ordinal) + marker.Length)..]
+            .Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse);
+        Assert.That(droppedParts, Is.Not.Empty);
+        Assert.That(dropIds, Is.EquivalentTo(droppedParts.Select(o => o.Id.Value)));
         Assert.That(parts.Count(id => id == HumanMeatCatalog.ArmRaw), Is.EqualTo(1));
         Assert.That(parts.Count(id => id == HumanMeatCatalog.LegRaw), Is.EqualTo(2));
         Assert.That(parts.Count(id => id == HumanMeatCatalog.TorsoRaw), Is.EqualTo(1));

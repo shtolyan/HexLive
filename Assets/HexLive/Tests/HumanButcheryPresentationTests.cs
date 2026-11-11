@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using HexLive.Simulation.Common;
@@ -139,15 +140,24 @@ public sealed class HumanButcheryPresentationTests
         snapshot.Npcs.Add(new NpcSnapshot { Id = new EntityId(7) });
         snapshot.TraceEvents.Add(new TraceEventSnapshot { Seq = 1, Tick = 100, EntityId = 7, Type = "Butchered" });
         var spawned = 0;
+        var parts = new List<int>();
         Action<NpcSnapshot, int> callback = (_, _) => spawned++;
-        void Apply() => consume.Invoke(events, new object[] { snapshot, callback });
+        Action<ObjectSnapshot, int> partCallback = (part, _) => parts.Add(part.Id.Value);
+        void Apply() => consume.Invoke(events, new object[] { snapshot, callback, partCallback });
         Apply(); Assert.That(spawned, Is.Zero, "joining must not replay historical blood");
         snapshot.Tick = 101;
-        snapshot.TraceEvents.Add(new TraceEventSnapshot { Seq = 2, Tick = 101, EntityId = 7, Type = "Butchered" });
+        snapshot.Objects.Add(new ObjectSnapshot { Id = new ObjectId(3), DefinitionId = HumanMeatCatalog.ArmRaw });
+        snapshot.Objects.Add(new ObjectSnapshot { Id = new ObjectId(4), DefinitionId = HumanMeatCatalog.Head });
+        snapshot.Objects.Add(new ObjectSnapshot { Id = new ObjectId(5), DefinitionId = HumanMeatCatalog.LegCooked });
+        snapshot.Objects.Add(new ObjectSnapshot { Id = new ObjectId(6), DefinitionId = HumanMeatCatalog.MaleLegRaw });
+        var dropMessage = "NPC2 -> body parts [cannibalism]" + HumanMeatCatalog.ButcheryDropIdsMarker + "3,4,5,999";
+        snapshot.TraceEvents.Add(new TraceEventSnapshot { Seq = 2, Tick = 101, EntityId = 7, Type = "Butchered", Message = dropMessage });
         Apply(); Apply(); Assert.That(spawned, Is.EqualTo(1));
+        Assert.That(parts, Is.EqualTo(new[] { 3, 4 }));
         snapshot.Tick = 130;
-        snapshot.TraceEvents.Add(new TraceEventSnapshot { Seq = 3, Tick = 102, EntityId = 7, Type = "Butchered" });
+        snapshot.TraceEvents.Add(new TraceEventSnapshot { Seq = 3, Tick = 102, EntityId = 7, Type = "Butchered", Message = dropMessage });
         Apply(); Assert.That(spawned, Is.EqualTo(1), "late event is not the worker's current location");
+        Assert.That(parts, Is.EqualTo(new[] { 3, 4 }));
         snapshot.Seed = 13; Apply(); Assert.That(spawned, Is.EqualTo(1));
         snapshot.Tick = 1; Apply(); Assert.That(spawned, Is.EqualTo(1));
     }

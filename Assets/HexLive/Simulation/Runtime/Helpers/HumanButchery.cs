@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Globalization;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
@@ -116,25 +118,35 @@ internal static class HumanButchery
         foreach (var item in body.Inventory.Items) Drop(world, actor, item);
         body.Inventory.Items.Clear();
         body.WornItems.Clear();
+        var dropIds = new List<string>(6);
         foreach (var part in new[] { BodyPart.ArmL, BodyPart.ArmR, BodyPart.LegL, BodyPart.LegR })
         {
             if (!body.Body.IsSevered(part))
-                Drop(world, actor, new ItemInstance(HumanMeatCatalog.RawPart(part, body.Sex)));
+                DropPart(HumanMeatCatalog.RawPart(part, body.Sex));
             if (body.Body.Condition(part).Prosthetic is { } prosthetic)
                 Drop(world, actor, new ItemInstance(prosthetic.DefinitionId) {
                     Durability = prosthetic.MaxCondition <= 0 ? 0 : prosthetic.Condition / prosthetic.MaxCondition,
                     OwnerId = body.Id.Value });
         }
-        Drop(world, actor, new ItemInstance(HumanMeatCatalog.RawPart(BodyPart.Torso, body.Sex)));
-        Drop(world, actor, new ItemInstance(HumanMeatCatalog.Head));
+        DropPart(HumanMeatCatalog.RawPart(BodyPart.Torso, body.Sex));
+        DropPart(HumanMeatCatalog.Head);
         actor.Needs.Comfort = System.Math.Max(0f, actor.Needs.Comfort - SimBalance.CannibalismComfortPenalty);
-        Trace.Emit(world, actor.Id, "Butchered", $"NPC{body.Id.Value} -> body parts [cannibalism]");
+        Trace.Emit(world, actor.Id, "Butchered", $"NPC{body.Id.Value} -> body parts [cannibalism]" +
+            HumanMeatCatalog.ButcheryDropIdsMarker + string.Join(",", dropIds));
+
+        void DropPart(string definitionId)
+        {
+            if (Drop(world, actor, new ItemInstance(definitionId)) is { } dropped)
+                dropIds.Add(dropped.Id.Value.ToString(CultureInfo.InvariantCulture));
+        }
     }
 
-    private static void Drop(WorldState world, NPCState actor, ItemInstance item)
+    private static WorldObjectState Drop(WorldState world, NPCState actor, ItemInstance item)
     {
-        if (ExecutionSystem.DropItemAtFeet(world, actor, item) == null)
+        var dropped = ExecutionSystem.DropItemAtFeet(world, actor, item);
+        if (dropped == null)
             InventoryMath.RetainOwnedItem(actor, item);
+        return dropped;
     }
 }
 }

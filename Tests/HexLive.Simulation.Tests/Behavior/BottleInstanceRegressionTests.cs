@@ -328,6 +328,24 @@ public sealed class BottleInstanceRegressionTests
     }
 
     [Test]
+    public void MixedSourceTransfersItsVisibleLiquidAndItsSafetyIndependently_Bug417()
+    {
+        var destination = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(destination, WaterKind.Coconut, 1.25f);
+        var source = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(source, WaterKind.Raw, .42f);
+        source.LastAddedWaterKind = WaterKind.Rain;
+
+        Assert.That(VesselTransferMath.ConsolidateBottleFromSources(destination, new[] { source }),
+            Is.EqualTo(.42f).Within(1e-5f));
+        Assert.That(BottleVisualMath.Fill(destination),
+            Is.EqualTo(1.67f / WaterVesselCatalog.Capacity(ContentIds.Bottle)).Within(1e-5f));
+        Assert.That(BottleVisualMath.Appearance(destination), Is.EqualTo(WaterKind.Rain));
+        Assert.That(destination.WaterKind, Is.EqualTo(WaterKind.Raw));
+        Assert.That(source.LastAddedWaterKind, Is.EqualTo(WaterKind.None));
+    }
+
+    [Test]
     public void FractionalBottleRoomCannotOverdrawOrLaunderWater()
     {
         var world = TestWorld.CreateWorld(63402);

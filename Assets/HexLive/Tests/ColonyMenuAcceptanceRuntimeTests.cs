@@ -10,6 +10,7 @@ using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Social;
 using HexLive.Simulation.Spatial;
@@ -54,6 +55,22 @@ public sealed class ColonyMenuAcceptanceRuntimeTests
             }
         }
         finally{Loc.Current=previous;}
+    }
+
+    [TestCase("PickUp", "GardenCollectSeeds")]
+    [TestCase("Harvest", "GardenHarvestSeeds")]
+    [TestCase("Plant", "GardenSowSeeds")]
+    public void GardenThoughtReportsTheActualWorkStage(string interaction, string expected)
+    {
+        var npc = new NpcSnapshot
+        {
+            CurrentGoal = "TendGarden", CurrentInteraction = interaction, ExecutionStatus = "InProgress",
+        };
+        var displayed = typeof(CharacterPanel).GetMethod("DisplayedGoal", Static);
+        Assert.That(displayed.Invoke(null, new object[] { npc }), Is.EqualTo(expected));
+        Assert.That(Loc.Has("goal." + expected), Is.True);
+        npc.ExecutionStatus = "None";
+        Assert.That(displayed.Invoke(null, new object[] { npc }), Is.EqualTo("TendGarden"));
     }
 
     [TestCase(false)] [TestCase(true)]

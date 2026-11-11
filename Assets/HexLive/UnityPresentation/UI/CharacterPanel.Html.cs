@@ -359,8 +359,7 @@ namespace HexLive.UnityPresentation.UI
                 ["shade"] = npc.IsShaded && uv >= 0.02f,
                 ["badge"] = npc.IsFighting ? "fighting" : npc.IsStarving ? "starving" : null,
                 ["journalUnread"] = _journalUnread,
-                // §40.6 r14: washing runs under the Bathe goal; the card says what she is doing.
-                ["goal"] = npc.CurrentInteraction == "WashClothes" && npc.ExecutionStatus == "InProgress" ? "WashClothes" : npc.CurrentGoal,
+                ["goal"] = DisplayedGoal(npc),
                 // §160: an attached agent speaks for her in the 💭 pill (RefreshAgentVoice's _thoughtValue).
                 ["thought"] = HtmlAgentThought(npc),
                 ["dream"] = !isDead && !string.IsNullOrEmpty(npc.CurrentDream) && npc.CurrentDream != "None" ? npc.CurrentDream : null,

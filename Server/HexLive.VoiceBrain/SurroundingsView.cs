@@ -15,7 +15,9 @@ public static class SurroundingsView
         ("сборщик", "collector"), ("коллектор", "collector"),
         ("кроват", "bed Sleep"), ("посп", "bed Sleep"),
         ("стро", "build construction"), ("достро", "build construction"), ("пальм", "palm"), ("юкк", "yucca"),
-        ("кост", "campfire"), ("сушил", "rack dryer"), ("краб", "crab"), ("собак", "dog")
+        ("кост", "campfire"), ("сушил", "rack dryer"), ("краб", "crab"), ("собак", "dog"),
+        ("рюкзак", "backpack"), ("шкаф", "wardrobe"), ("гардероб", "wardrobe"), ("сундук", "chest"),
+        ("бревн", "log"), ("брёвн", "log")
     ];
 
     public static string Text(JsonElement row, string key) => row.ValueKind == JsonValueKind.Object &&
@@ -44,10 +46,14 @@ public static class SurroundingsView
     public static int Relevance(JsonElement row,string query)=>Score(row,Terms(query));
     private static int Score(JsonElement row,string[] words)
     {
-        var label=(Text(row,"itemId")+" "+Text(row,"definitionId")+" "+Text(row,"displayName")+" "+Text(row,"name")+" "+
+        var label=(Text(row,"itemId")+" "+Text(row,"definitionId")+" "+Text(row,"displayName")+" "+Text(row,"name")+" "+Text(row,"ownerName")+" "+
             (row.TryGetProperty("interactions",out var acts) ? acts.GetRawText() : "")+
             (row.TryGetProperty("construction",out _) ? " construction build" : "")).ToLowerInvariant();
-        return words.Count(label.Contains);
+        var score = words.Count(label.Contains);
+        if (row.TryGetProperty("contents", out var contents) && contents.ValueKind == JsonValueKind.Array)
+            foreach (var item in contents.EnumerateArray())
+                if (item.ValueKind == JsonValueKind.Object) score = Math.Max(score, Score(item, words));
+        return score;
     }
 
     public static IEnumerable<JsonElement> Select(JsonElement describe, string query)
@@ -76,7 +82,7 @@ public static class SurroundingsView
     private static Dictionary<string,JsonElement> Compact(JsonElement row)
     {
         string[] keys=["objectId","itemId","displayName","distance","reachable","occupied","perceivedTick",
-            "position","tile","ownerNpcId","ownerAlive","sameCamp","interactions","collector","fire","construction",
+            "position","tile","ownerNpcId","ownerName","ownerAlive","sameCamp","interactions","collector","fire","construction","contents",
             "waterKind","waterSips","waterCapacity"];
         return keys.Where(k => row.TryGetProperty(k,out _)).ToDictionary(k=>k,k=>row.GetProperty(k));
     }

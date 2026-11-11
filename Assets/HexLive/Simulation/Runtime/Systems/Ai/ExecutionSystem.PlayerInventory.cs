@@ -160,6 +160,11 @@ namespace HexLive.Simulation.Runtime
             InventoryMath.RemoveReference(npc.Inventory.Items, item);
             ResolveWearConflicts(world, npc, item.DefinitionId);
             npc.WornItems.Add(item);
+            if (item.Contents is { Count: > 0 } contents)
+            {
+                npc.Inventory.Items.AddRange(contents);
+                contents.Clear();
+            }
             EquipmentMath.Recalculate(world, npc);
             StowDisplacedGarments(world, npc);
         }

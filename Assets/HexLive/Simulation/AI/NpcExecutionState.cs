@@ -48,6 +48,10 @@ public sealed class NPCExecutionState
     // looter walks to the container; a mutable UI row index is insufficient.
     public ObjectId? TargetInventoryWorldObject { get; set; }
 
+    // References describe the observed parent chain, from the outer container
+    // to the exact physical item. A reloaded or changed chain is replanned.
+    internal PerceivedStoredItem[]? TargetStoredItemPath { get; set; }
+
     // §111.13: КАКУЮ станцию лежащего тела этот персонаж держит. Заявка живёт на
     // актёре, а не на пациентке: занятость выводится обходом держателей с
     // предикатом живости и потому самолечится, тогда как поле-заявка на теле

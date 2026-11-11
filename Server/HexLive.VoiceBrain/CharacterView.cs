@@ -82,6 +82,10 @@ public static class CharacterView
             sb.Append("В инвентаре (это НЕ надето): ").Append(string.Join(", ", items.Take(MaxObjects)));
             if (items.Length > MaxObjects) sb.Append("; прочие вещи опущены");
             sb.Append('\n');
+            foreach (var container in inv.EnumerateArray()
+                .Where(item => item.ValueKind == JsonValueKind.Object && item.TryGetProperty("contents", out _)).Take(MaxObjects))
+                sb.Append("  Внутри ").Append(ItemLabel(container)).Append(' ')
+                    .Append(container.GetProperty("contents").GetRawText()).Append('\n');
         }
         if (d.TryGetProperty("visibleNpcs", out var npcs) && npcs.ValueKind == JsonValueKind.Array)
         {
@@ -122,7 +126,7 @@ public static class CharacterView
                     foreach(var a in available.EnumerateArray())
                         if(a.TryGetProperty("toolRequirementMet",out var met) && met.ValueKind==JsonValueKind.False)
                             sb.Append("  Для ").Append(SurroundingsView.Text(a,"type")).Append(" отсутствует нужный инструмент\n");
-                foreach(var key in new[]{"displayName","distance","reachable","occupied","sameCamp","collector","fire","construction"})
+                foreach(var key in new[]{"displayName","distance","reachable","occupied","ownerName","sameCamp","collector","fire","construction","contents"})
                     if(o.TryGetProperty(key,out var value)) sb.Append("  ").Append(key).Append('=').Append(value.GetRawText()).Append('\n');
             }
             if (candidates.Length > MaxObjects)

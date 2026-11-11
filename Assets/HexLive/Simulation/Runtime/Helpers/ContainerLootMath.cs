@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
@@ -117,6 +118,8 @@ internal static class ContainerLootMath
         if (obj.DefinitionId == ContentIds.ModernFridge) return ModernFoodCatalog.FridgeCapacity;
         if (IsWardrobe(world, obj)) return Spec133.WardrobeCapacity;
         if (IsRack(world, obj)) return SimBalance.RackCapacity;
+        if (world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+            definition.Layer == WearLayer.Bags) return definition.InventoryCapacity;
         return 0;
     }
 
@@ -132,24 +135,120 @@ internal static class ContainerLootMath
         }
 
         var anchor = wardrobe.Junctions[0];
-        foreach (var candidate in world.Entities.Objects.Values)
+        Collect(wardrobe.Tile);
+        foreach (var direction in HexDirection.All)
+            Collect(new TileCoord(wardrobe.Tile.Q + direction.DQ, wardrobe.Tile.R + direction.DR));
+        result.Sort((left, right) => left.Id.Value.CompareTo(right.Id.Value));
+        return result;
+
+        void Collect(TileCoord tile)
         {
-            if (candidate.Id.Equals(wardrobe.Id) || candidate.Junctions.Count == 0 ||
-                !candidate.Junctions[0].Equals(anchor) || candidate.IsCraftProject ||
-                !string.IsNullOrEmpty(candidate.BuildProduct) ||
-                !world.Content.ObjectDefinitions.TryGetValue(
-                    candidate.DefinitionId, out var definition) ||
-                !AcceptsExternalObject(wardrobe, definition, candidate.DefinitionId))
+            if (!world.Caches.ObjectsByTile.TryGetValue(tile, out var ids)) return;
+            foreach (var id in ids)
             {
+                if (id.Equals(wardrobe.Id) || !world.Entities.Objects.TryGetValue(id, out var candidate) ||
+                    !candidate.Fragment.Equals(wardrobe.Fragment) || candidate.Junctions.Count == 0 ||
+                    !candidate.Junctions[0].Equals(anchor) || candidate.IsCraftProject ||
+                    !string.IsNullOrEmpty(candidate.BuildProduct) ||
+                    !world.Content.ObjectDefinitions.TryGetValue(candidate.DefinitionId, out var definition) ||
+                    !AcceptsExternalObject(wardrobe, definition, candidate.DefinitionId)) continue;
+                result.Add(candidate);
+            }
+        }
+    }
+
+    internal static void ObserveStorage(WorldState world, NPCState npc, PerceivedObject perceived)
+    {
+        if (perceived.FromMemory || !world.Entities.Objects.TryGetValue(perceived.Id, out var root) ||
+            !root.Fragment.Equals(npc.Fragment)) return;
+        var hasHangers = IsRack(world, root);
+        if ((!hasHangers && root.Contents.Count == 0) || !IsLootable(world, root) || IsCampfire(world, root)) return;
+
+        var accessible = CampPropertyMath.CanUseUnordered(world, npc, root);
+        var children = accessible ? ObserveItems(world, npc, root.Contents, root) : null;
+        if (hasHangers)
+        {
+            foreach (var hanging in WardrobeGarments(world, root))
+            {
+                if (!npc.Perception.LiveObjectPool.TryGetValue(hanging.Id, out var seen) ||
+                    !npc.Perception.Objects.Contains(seen)) continue;
+                seen.StorageParentId = root.Id;
+                if (!accessible || !CampPropertyMath.CanUseUnordered(world, npc, hanging)) continue;
+                var node = new PerceivedStoredItem(hanging.DefinitionId, hanging.Owner?.Value ?? 0,
+                    hanging.OwnerFaction, null, hanging.Id, hanging.ResourceAmount, hanging.WaterKind)
+                { Contents = ObserveItems(world, npc, hanging.Contents, hanging) };
+                (children ??= new()).Add(node);
+            }
+        }
+        perceived.StoredItems = children;
+    }
+
+    private static List<PerceivedStoredItem>? ObserveItems(WorldState world, NPCState npc,
+        List<ItemInstance> items, WorldObjectState? root = null, int depth = 0)
+    {
+        List<PerceivedStoredItem>? children = null;
+        foreach (var item in items)
+        {
+            if ((root != null && !IsStoredItem(world, root, item)) ||
+                !CampPropertyMath.CanUseStoredItem(world, npc, item.OwnerId)) continue;
+            var node = new PerceivedStoredItem(item.DefinitionId, item.OwnerId, null, item, null,
+                item.ResourceAmount, item.WaterKind);
+            if (depth < ItemInstance.MaxStorageDepth && item.Contents is { Count: > 0 } nested)
+                node.Contents = ObserveItems(world, npc, nested, depth: depth + 1);
+            (children ??= new()).Add(node);
+        }
+        return children;
+    }
+
+    internal static bool TryTakeObservedItem(WorldState world, NPCState npc,
+        WorldObjectState root, PerceivedStoredItem[] path)
+    {
+        if (path.Length == 0 || !IsLootable(world, root) || IsCampfire(world, root) ||
+            !root.Fragment.Equals(npc.Fragment) || (root.IsOccupied && root.CurrentUser != npc.Id) ||
+            !CampPropertyMath.CanUseUnordered(world, npc, root)) return false;
+
+        var physicalContainer = root;
+        List<ItemInstance>? contents = root.Contents;
+        for (var index = 0; index < path.Length; index++)
+        {
+            var node = path[index];
+            if (index == 0 && node.WorldObjectId is { } hangerId && index < path.Length - 1)
+            {
+                if (!WardrobeGarments(world, root).Exists(item => item.Id.Equals(hangerId)) ||
+                    !world.Entities.Objects.TryGetValue(hangerId, out var hanging) ||
+                    (hanging.IsOccupied && hanging.CurrentUser != npc.Id) ||
+                    !CampPropertyMath.CanUseUnordered(world, npc, hanging)) return false;
+                physicalContainer = hanging;
+                contents = hanging.Contents;
                 continue;
             }
 
-            result.Add(candidate);
+            if (contents is null || node.Instance is not { } item ||
+                InventoryMath.IndexOfReference(contents, item) < 0 ||
+                (ReferenceEquals(contents, physicalContainer.Contents) && !IsStoredItem(world, physicalContainer, item)) ||
+                !CampPropertyMath.CanUseStoredItem(world, npc, item.OwnerId)) return false;
+            if (index == path.Length - 1)
+            {
+                var moving = new[] { item };
+                if (!FitsInLooter(world, npc, moving) ||
+                    (npc.Plan.Goal is GoalType.GetWater or GoalType.Drink &&
+                     !IsStoredWaterSource(npc, item.DefinitionId, item.ResourceAmount, item.WaterKind))) return false;
+                var theft = TheftMath.IsTakingTheft(world, npc, root, moving) ||
+                    (!ReferenceEquals(root, physicalContainer) && TheftMath.IsTheft(world, npc, physicalContainer));
+                InventoryMath.RemoveReference(contents, item);
+                npc.Inventory.Items.Add(item);
+                if (theft) TheftMath.OnStolen(world, npc, root);
+                return true;
+            }
+            contents = item.Contents;
         }
-
-        result.Sort((left, right) => left.Id.Value.CompareTo(right.Id.Value));
-        return result;
+        return false;
     }
+
+    internal static bool IsStoredWaterSource(NPCState npc, string id, float amount, WaterKind waterKind) =>
+        id == ContentIds.Coconut ? DecisionSystem.HasCoconutBlade(npc) :
+        id == ContentIds.CoconutPierced ? amount > 0f :
+        WaterVesselCatalog.IsPortable(id) && BottleInventoryMath.Charges(amount, waterKind, id) > 0;
 
     private static bool AcceptsExternalObject(
         WorldObjectState container, ObjectDefinition definition, string itemId) =>
@@ -464,8 +563,7 @@ internal static class ContainerLootMath
             return false;
         }
 
-        items.Add(ToItem(obj, storedObject));
-        items.AddRange(storedObject.Contents);
+        AddExternalItems(world, obj, storedObject, items);
         groundSources.Add(storedObject.Id);
         return true;
     }
@@ -503,8 +601,7 @@ internal static class ContainerLootMath
                 return false;
             }
 
-            items.Add(ToItem(obj, storedObject));
-            items.AddRange(storedObject.Contents);
+            AddExternalItems(world, obj, storedObject, items);
             groundSources.Add(storedObject.Id);
             return true;
         }
@@ -539,6 +636,22 @@ internal static class ContainerLootMath
 
         return items.Count == take && ReferenceEquals(items[0], selectedItem);
     }
+
+    private static void AddExternalItems(WorldState world, WorldObjectState container,
+        WorldObjectState source, List<ItemInstance> items)
+    {
+        var item = ToItem(container, source);
+        items.Add(item);
+        if (source.Contents.Count == 0) return;
+        if (PreservesContentsOnPickup(world, source))
+            item.GetOrCreateContents().AddRange(source.Contents);
+        else
+            items.AddRange(source.Contents);
+    }
+
+    internal static bool PreservesContentsOnPickup(WorldState world, WorldObjectState source) =>
+        world.Content.ObjectDefinitions.TryGetValue(source.DefinitionId, out var definition) &&
+        definition.Layer == WearLayer.Bags;
 
     private static ItemInstance ToItem(
         WorldObjectState container, WorldObjectState source) => new(source.DefinitionId)
@@ -585,6 +698,7 @@ internal static class ContainerLootMath
         {
             if (!world.Content.ObjectDefinitions.TryGetValue(
                     item.DefinitionId, out var definition) ||
+                !FitsStorageDepth(item, PreservesContentsOnPickup(world, obj) ? 1 : 0) ||
                 (isRack && definition.Layer is null) ||
                 (isFridge && !definition.HasTag("Food")) ||
                 (isCollector && !WaterVesselCatalog.IsPortable(item.DefinitionId)))
@@ -599,6 +713,15 @@ internal static class ContainerLootMath
         BuildCells(world, obj, projected);
         foreach (var item in moving) AddCell(projected, item.DefinitionId, projected.Count);
         return projected.Count <= capacity;
+    }
+
+    private static bool FitsStorageDepth(ItemInstance item, int depth)
+    {
+        if (item.Contents is not { Count: > 0 } contents) return true;
+        if (depth >= ItemInstance.MaxStorageDepth) return false;
+        foreach (var child in contents)
+            if (!FitsStorageDepth(child, depth + 1)) return false;
+        return true;
     }
 
     /// <summary>
@@ -625,6 +748,7 @@ internal static class ContainerLootMath
         var spitReady = BuildSiteMath.CampfireSpitComplete(fire);
         foreach (var item in moving)
         {
+            if (item.Contents is { Count: > 0 }) return false;
             // Готовое мясо обратно на вертел не вешают: оно уже пожарено, и
             // второй круг над огнём для него ничего не значит.
             if (HumanMeatCatalog.IsRaw(item.DefinitionId))
@@ -675,6 +799,7 @@ internal static class ContainerLootMath
 
         foreach (var id in groundSources)
         {
+            if (world.Entities.Objects.TryGetValue(id, out var source)) source.Contents.Clear();
             WorldObjectMutations.DespawnObject(world, id);
         }
         if (theft && moving.Count > 0) TheftMath.OnStolen(world, looter, obj);
@@ -712,6 +837,11 @@ internal static class ContainerLootMath
                 stored.WaterKind = item.WaterKind;
                 stored.LastAddedWaterKind = item.LastAddedWaterKind;
                 stored.Owner = item.OwnerId != 0 ? new EntityId(item.OwnerId) : looter.Id;
+                if (item.Contents is { Count: > 0 } contents)
+                {
+                    stored.Contents.AddRange(contents);
+                    contents.Clear();
+                }
             }
             else if (IsCampfire(world, obj))
             {

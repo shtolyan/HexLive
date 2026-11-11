@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Social;
@@ -141,6 +142,35 @@ public sealed class PerceivedObject
     public EntityId? OccupiedBy { get; set; }
 
     public List<InteractionType> AvailableInteractions { get; } = new();
+
+    public IReadOnlyList<PerceivedStoredItem>? StoredItems { get; set; }
+
+    internal ObjectId? StorageParentId { get; set; }
+}
+
+/// <summary>§128.5: one observed physical item under a lootable object.</summary>
+public sealed class PerceivedStoredItem
+{
+    public string DefinitionId { get; }
+    public int OwnerId { get; }
+    public Faction? OwnerFaction { get; }
+    public ObjectId? WorldObjectId { get; }
+    public float ResourceAmount { get; }
+    public WaterKind WaterKind { get; }
+    public IReadOnlyList<PerceivedStoredItem>? Contents { get; internal set; }
+    internal ItemInstance? Instance { get; }
+
+    internal PerceivedStoredItem(string definitionId, int ownerId, Faction? faction,
+        ItemInstance? instance, ObjectId? worldObjectId, float resourceAmount, WaterKind waterKind)
+    {
+        DefinitionId = definitionId;
+        OwnerId = ownerId;
+        OwnerFaction = faction;
+        Instance = instance;
+        WorldObjectId = worldObjectId;
+        ResourceAmount = resourceAmount;
+        WaterKind = waterKind;
+    }
 }
 
 /// <summary>§125.7: «я помню, что она лежала раненая дома». Полей ровно

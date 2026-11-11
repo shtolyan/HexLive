@@ -132,7 +132,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[^1].Type is
                 PlanStepType.PlayerTakeFromContainer or
                 PlanStepType.PlayerTakeAndWearFromContainer or
-                PlanStepType.PlayerGiveToContainer)
+                PlanStepType.PlayerGiveToContainer or PlanStepType.TakeStoredItem)
             {
                 RunPlayerContainerTransfer(world, npc);
                 continue;
@@ -1916,12 +1916,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // теряла бы хозяйку каждый раз, как её несут в руках.
                 OwnerId = definition.Layer != null
                     ? ClothingOwnership.ResolveOnTake(world, npc, worldObject)
-                    : 0
+                    : worldObject.Owner?.Value ?? 0
             };
             npc.Inventory.Items.Add(picked);
-            // Same physical pocket bundle as TakeFromContainer: validate all
-            // slots before taking the outer garment, then transfer without spill.
-            npc.Inventory.Items.AddRange(worldObject.Contents);
+            if (worldObject.Contents.Count > 0 && ContainerLootMath.PreservesContentsOnPickup(world, worldObject))
+                picked.GetOrCreateContents().AddRange(worldObject.Contents);
+            else
+                npc.Inventory.Items.AddRange(worldObject.Contents);
             worldObject.Contents.Clear();
             WorldObjectMutations.DespawnObject(world, worldObject.Id);
             if (SimTrace.Enabled)
@@ -1937,7 +1938,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
     private static bool CanCarryObjectContents(WorldState world, NPCState npc, WorldObjectState obj)
     {
-        if (obj.Contents.Count == 0) return true;
+        if (obj.Contents.Count == 0 || ContainerLootMath.PreservesContentsOnPickup(world, obj)) return true;
         var bundle = new System.Collections.Generic.List<ItemInstance>(obj.Contents)
         { new ItemInstance(obj.DefinitionId) };
         return ContainerLootMath.FitsInLooter(world, npc, bundle);
@@ -2751,6 +2752,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     // §110.9: crying is a conscious choice of posture. If a free bed is
     // literally at hand, use its authored pose; otherwise use the same safe
     // ground solver as every other lying state.
+        if (item.Contents is { Count: > 0 } contents)
+        {
+            dropped.Contents.AddRange(contents);
+            contents.Clear();
+        }
     internal static bool TryLieDownForCrying(
         WorldState world, NPCState npc, int cryingUntilTick)
     {

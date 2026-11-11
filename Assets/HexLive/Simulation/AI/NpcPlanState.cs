@@ -120,7 +120,8 @@ public enum PlanStepType
     // §127.13 append-only: at arm's length from the cheater, one fist blow.
     JealousStrike,
     KnockDoor,
-    BreakDoor
+    BreakDoor,
+    TakeStoredItem
 }
 
 public enum PlanStatus

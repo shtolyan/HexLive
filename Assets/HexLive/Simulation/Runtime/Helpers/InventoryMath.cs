@@ -287,7 +287,8 @@ internal static class InventoryMath
     {
         foreach (var stashed in container.Contents)
         {
-            if (npc.Inventory.Items.Contains(stashed.DefinitionId))
+            if (npc.Inventory.Items.Contains(stashed.DefinitionId) ||
+                !CampPropertyMath.CanUseStoredItem(world, npc, stashed.OwnerId))
             {
                 continue;
             }
@@ -446,6 +447,7 @@ internal static class InventoryMath
             return false;
         var carried = new List<ItemInstance>(npc.Inventory.Items);
         RemoveReference(carried, replacement);
+        if (replacement.Contents is { Count: > 0 } stored) carried.AddRange(stored);
         if (incomingContents != null)
             foreach (var item in incomingContents)
                 if (!ReferenceEquals(item, replacement)) carried.Add(item);

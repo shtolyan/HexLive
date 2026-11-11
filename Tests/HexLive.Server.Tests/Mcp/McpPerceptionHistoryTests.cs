@@ -10,7 +10,9 @@ using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Wire;
 using NUnit.Framework;
 
@@ -18,6 +20,40 @@ namespace HexLive.Server.Tests.Mcp;
 
 public sealed class McpPerceptionHistoryTests
 {
+    [Test]
+    public void VisibleInventoryShowsTheObservedWardrobePathAndItsOwners()
+    {
+        using var fixture = new Fixture();
+        var observation = fixture.Host.Read(world =>
+        {
+            var observer = world.Entities.Npcs[new EntityId(fixture.NpcId)];
+            observer.DisplayName = "Кира";
+            const string backpackId = "gear.backpack_primal_hunter";
+            world.Content.ObjectDefinitions[backpackId] = new ObjectDefinition
+                { Id = backpackId, Layer = WearLayer.Bags, InventoryCapacity = 4 };
+            var anchor = observer.CurrentJunction ?? world.Tiles.Items[observer.Tile].Junctions[0];
+            var wardrobe = WorldObjectMutations.SpawnObject(world, ContentIds.Wardrobe,
+                observer.Fragment, observer.Tile, anchor);
+            wardrobe.Owner = observer.Id;
+            var bag = WorldObjectMutations.SpawnObject(world, backpackId,
+                observer.Fragment, observer.Tile, anchor);
+            bag.Owner = observer.Id;
+            bag.Contents.Add(new ItemInstance(ContentIds.Log) { OwnerId = observer.Id.Value });
+            new PerceptionSystem().Run(world);
+            bag.Contents.Clear();
+            return (wardrobeId: wardrobe.Id.Value, bagId: bag.Id.Value,
+                rows: JsonSerializer.SerializeToElement(McpItemObservations.Visible(world, observer)));
+        });
+
+        var wardrobeRow = observation.rows.EnumerateArray().Single(row => row.GetProperty("objectId").GetInt32() == observation.wardrobeId);
+        var bagRow = wardrobeRow.GetProperty("contents").EnumerateArray().Single();
+        Assert.That(bagRow.GetProperty("objectId").GetInt32(), Is.EqualTo(observation.bagId));
+        Assert.That(bagRow.GetProperty("ownerName").GetString(), Is.EqualTo("Кира"));
+        Assert.That(bagRow.GetProperty("contents")[0].GetProperty("itemId").GetString(), Is.EqualTo(ContentIds.Log));
+        var standalone = observation.rows.EnumerateArray().Single(row => row.GetProperty("objectId").GetInt32() == observation.bagId);
+        Assert.That(standalone.TryGetProperty("contents", out _), Is.False);
+    }
+
     [Test]
     public void DescribeAddsPassedSightingsWithoutLookingUpTheirHiddenCurrentState()
     {

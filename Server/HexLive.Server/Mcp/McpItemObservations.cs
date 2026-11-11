@@ -31,6 +31,8 @@ internal static class McpItemObservations
             row["reachable"] = seen.IsReachable;
             row["occupied"] = seen.IsOccupied;
             row["tile"] = new {q=seen.Tile.Q,r=seen.Tile.R};
+            if (seen.StoredItems is { Count: > 0 } stored)
+                row["contents"] = ObservedStorage(world, observer, stored);
             if (world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition))
                 row["interactions"] = definition.Interactions.Select(interaction => DescribeInteraction(definition, observer, interaction)).ToArray();
             if (!string.IsNullOrEmpty(item.BuildProduct))
@@ -87,6 +89,16 @@ internal static class McpItemObservations
     public static List<object> Carried(WorldState world, NPCState observer) =>
         Instances(world, observer, observer.Inventory.Items);
 
+    private static object[] ObservedStorage(WorldState world, NPCState observer,
+        IReadOnlyList<PerceivedStoredItem> items) => items.Select(item =>
+    {
+        var row = Item(world, observer, item.DefinitionId, item.OwnerId, item.OwnerFaction);
+        PortableWater(row, item.DefinitionId, item.ResourceAmount, item.WaterKind);
+        if (item.WorldObjectId is { } hanging) row["objectId"] = hanging.Value;
+        if (item.Contents is { Count: > 0 } nested) row["contents"] = ObservedStorage(world, observer, nested);
+        return (object)row;
+    }).ToArray();
+
     private static object DescribeInteraction(ObjectDefinition definition, NPCState observer, InteractionDefinition interaction)
     {
         var groups = RequiredToolGroups(definition, interaction);
@@ -139,10 +151,21 @@ internal static class McpItemObservations
             }
             Clothing(row, world, observer, item.DefinitionId, item.Durability);
             PortableWater(row, item.DefinitionId, item.ResourceAmount, item.WaterKind);
+            if (item.Contents is { Count: > 0 } contents)
+                row["contents"] = OwnedStorage(world, observer, contents);
             rows.Add(row);
         }
         return rows;
     }
+
+    private static object[] OwnedStorage(WorldState world, NPCState observer,
+        List<ItemInstance> items) => items.Select(item =>
+    {
+        var row = Item(world, observer, item.DefinitionId, item.OwnerId, null);
+        PortableWater(row, item.DefinitionId, item.ResourceAmount, item.WaterKind);
+        if (item.Contents is { Count: > 0 } nested) row["contents"] = OwnedStorage(world, observer, nested);
+        return (object)row;
+    }).ToArray();
 
     private static Dictionary<string, object?> Item(
         WorldState world, NPCState observer, string definitionId, int ownerId, Faction? objectFaction)
@@ -162,6 +185,7 @@ internal static class McpItemObservations
             ["inventoryCapacityWhenWorn"] = world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition)
                 ? definition.InventoryCapacity : 0,
             ["ownerNpcId"] = ownerId == 0 ? null : ownerId,
+            ["ownerName"] = owner == null ? null : McpNpcObservations.LocalizedNames(owner.DisplayName)["ru"],
             ["ownerAlive"] = ownerId == 0 ? null : ownerAlive,
             ["ownerFaction"] = faction?.ToString(),
             ["sameCamp"] = faction.HasValue ? faction.Value == observer.Faction : null,

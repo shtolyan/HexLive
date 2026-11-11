@@ -62,6 +62,8 @@ public sealed class PerceptionSystem : ISimulationSystem
 
         foreach (var npc in world.Entities.Npcs.Values)
         {
+            foreach (var previous in npc.Perception.Objects)
+                previous.StoredItems = null;
             npc.Perception.Objects.Clear();
             npc.Perception.Agents.Clear();
             npc.Perception.Hostiles.Clear(); // §72
@@ -177,6 +179,8 @@ public sealed class PerceptionSystem : ISimulationSystem
                 perceived.IsReachable = isReachable;
                 perceived.IsOccupied = obj.IsOccupied;
                 perceived.OccupiedBy = obj.CurrentUser;
+                perceived.StoredItems = null;
+                perceived.StorageParentId = null;
                 perceived.AvailableInteractions.Clear();
                 foreach (var interaction in definition.Interactions)
                 {
@@ -215,6 +219,11 @@ public sealed class PerceptionSystem : ISimulationSystem
                 record.LastSeenTick = world.Tick;
                 HomeBedKnowledge.NoteSighting(world, npc, obj, record); // §64.10
             }
+
+            foreach (var perceived in npc.Perception.Objects)
+                ContainerLootMath.ObserveStorage(world, npc, perceived);
+            foreach (var perceived in npc.Perception.Objects)
+                if (perceived.StorageParentId.HasValue) perceived.StoredItems = null;
 
             // Memory maintenance (spec 27.18A): negative evidence inside the
             // sight radius and the discovery TTL run every medium tick — they

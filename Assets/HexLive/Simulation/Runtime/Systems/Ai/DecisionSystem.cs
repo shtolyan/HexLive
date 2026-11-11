@@ -514,6 +514,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // end in "Cannot harvest" and then repeat forever.
             var foodSourceReachable =
                 HasReachableFoodForCurrentTools(npc, world) ||
+                PlanningSystem.HasObservedStoredItem(world, npc, GoalType.GetFood) ||
                 (canUseToolsOrWeapons && KnowsReachableProducer(npc, world));
             // §167.5: по указанию «запасись едой» берёт и НЕ голодной, пока
             // в лагере меньше цели; руки должны быть свободны от нужд.
@@ -1347,6 +1348,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // answer — GetWater may fire on it even bladeless and coconut-less
         // (the planner prefers the collector draw over foraging).
         var collectorDrawSeen = FindDrawableCollector(npc, world) is not null;
+        var storedWaterSeen = PlanningSystem.HasObservedStoredItem(world, npc, GoalType.GetWater);
         // §54.15 r2: the collector belongs to the DRINK lane, not just the
         // forage lane. GetWater is gated on !hasCoconutWater, and on this
         // island a drinkable coconut is nearly always in view — so the full
@@ -1356,7 +1358,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // sees it too; the planner draws from it once nothing drinkable is
         // in hand, before walking to a coconut.
         var drinkAvail = npc.Needs.Thirst >= AiBalance.DrinkThirstThreshold &&
-            (hasBottleWater || ctx.HasCoconutWater || collectorDrawSeen);
+            (hasBottleWater || ctx.HasCoconutWater || collectorDrawSeen || storedWaterSeen);
         // ⭐ §140.3: ВОДА БЕЗ КЛИНКА. Весь путь к воде висел на `HasCoconutBlade`,
         // а он требует и целой руки, и режущего инструмента в рюкзаке. Потеряла
         // нож (или руку) — и оба водных предложения гаснут разом: Drink нечего
@@ -1373,7 +1375,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var bladelessWaterSeen =
             HasReachableDefinitionWorthCarrying(npc, world, ContentIds.CoconutPierced) ||
             HasReachableDefinitionWorthCarrying(npc, world, ContentIds.CoconutOpen);
-        var waterSourceReachable = collectorDrawSeen || bladelessWaterSeen ||
+        var waterSourceReachable = collectorDrawSeen || bladelessWaterSeen || storedWaterSeen ||
             (ctx.HasCoconutBlade &&
              (HasReachableDefinitionWorthCarrying(npc, world, ContentIds.Coconut) ||
               (ctx.CanUseToolsOrWeapons && KnowsReachableProducer(npc, world))));

@@ -56,6 +56,7 @@ public static class PlanInterruption
         npc.Execution.CurrentInteraction = null;
         npc.Execution.TargetObject = null;
         npc.Execution.TargetInventoryItem = null;
+        npc.Execution.TargetStoredItemPath = null;
         npc.Execution.TargetInventoryWorldObject = null;
         npc.Execution.ActionTool = null;
         npc.Execution.ActionSupply = null;
@@ -369,6 +370,7 @@ public static class PlanInterruption
 
         npc.Plan.Status = PlanStatus.Invalid;
         npc.Plan.Steps.Clear();
+        npc.Execution.TargetStoredItemPath = null;
         npc.Plan.TargetObjectId = null;
         npc.Plan.CraftProjectTargetId = null;
         npc.Plan.TargetJunctionId = null;

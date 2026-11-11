@@ -191,7 +191,8 @@ public static class WorldSaveSerializer
     // v90 (#653): scoped travel-party leader, normalized to AI on load.
     // v91 (§176): portal settings, midnight cursor, door/visitor ids and generated room objects.
     // v92 (§176): surface parent and slot for loose items, at the end of each object record.
-    public const int BlobVersion = 92;
+    // v93 (§128.5): a carried backpack keeps the physical instances in its pockets.
+    public const int BlobVersion = 93;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -3319,7 +3320,7 @@ public static class WorldSaveSerializer
         }
     }
 
-    private static void WriteItemList(BinaryWriter w, List<ItemInstance> items, int version)
+    private static void WriteItemList(BinaryWriter w, List<ItemInstance> items, int version, int depth = 0)
     {
         w.Write(items.Count);
         foreach (var item in items)
@@ -3338,12 +3339,19 @@ public static class WorldSaveSerializer
             if (version >= 79) w.Write((int)item.LastAddedWaterKind);
             if (version >= 84) w.Write(item.LeafDryingStartTick);
             if (version >= 88) w.Write((byte)item.CampfireFuelRole);
+            if (item.Contents is { Count: > 0 } contents)
+            {
+                if (version < 93 || depth >= ItemInstance.MaxStorageDepth || contents.Count > 4096)
+                    throw new InvalidDataException("Portable storage exceeds the save format limits.");
+                WriteItemList(w, contents, version, depth + 1);
+            }
+            else if (version >= 93) w.Write(0);
         }
     }
 
-    private static void ReadItemList(BinaryReader r, List<ItemInstance> items, int version)
+    private static void ReadItemList(BinaryReader r, List<ItemInstance> items, int version, int depth = 0, int? nestedCount = null)
     {
-        var count = r.ReadInt32();
+        var count = nestedCount ?? r.ReadInt32();
         for (var i = 0; i < count; i++)
         {
             var item = new ItemInstance(r.ReadString())
@@ -3380,6 +3388,14 @@ public static class WorldSaveSerializer
                 item.Dirtiness = MathUtil.Clamp01(item.Dirtiness + item.Bloodiness);
             }
 
+            if (version >= 93)
+            {
+                var children = r.ReadInt32();
+                if (children < 0 || children > 4096 || children > 0 && depth >= ItemInstance.MaxStorageDepth)
+                    throw new InvalidDataException("Invalid portable storage contents.");
+                if (children > 0)
+                    ReadItemList(r, item.GetOrCreateContents(), version, depth + 1, children);
+            }
             items.Add(item);
         }
     }

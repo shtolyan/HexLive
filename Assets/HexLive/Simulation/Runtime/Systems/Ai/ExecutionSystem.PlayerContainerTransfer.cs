@@ -52,6 +52,25 @@ public sealed partial class ExecutionSystem
         }
 
         var step = looter.Plan.Steps[^1];
+        if (step.Type == PlanStepType.TakeStoredItem)
+        {
+            if (looter.Body.HasUsableHand &&
+                looter.Execution.TargetStoredItemPath is { } path &&
+                ContainerLootMath.TryTakeObservedItem(world, looter, container, path))
+            {
+                EquipmentMath.Recalculate(world, looter);
+                if (SimTrace.Enabled)
+                    Trace.Debug(world, looter.Id, "StoredItemRecovered",
+                        $"Container={container.Id.Value} Item={path[^1].DefinitionId} Depth={path.Length}");
+                FinishContainerTransfer(world, looter, PlanStatus.Completed);
+            }
+            else
+            {
+                PlanInterruption.TryAbort(world, looter, InterruptionCause.ExecutionFailure,
+                    "Observed storage changed or no room for its item");
+            }
+            return;
+        }
         PlayerInventoryTransferMath.UnpackCursor(
             step.TimeoutEndTick ?? 0, out var slotIndex, out var count);
         var wear = step.Type == PlanStepType.PlayerTakeAndWearFromContainer;
@@ -129,6 +148,11 @@ public sealed partial class ExecutionSystem
     private static void FailContainerTransfer(
         WorldState world, NPCState looter, string reason)
     {
+        if (looter.Plan.Steps.Count > 0 && looter.Plan.Steps[^1].Type == PlanStepType.TakeStoredItem)
+        {
+            PlanInterruption.TryAbort(world, looter, InterruptionCause.ExecutionFailure, reason);
+            return;
+        }
         Trace.Emit(world, looter.Id, "ManualOrderRejected",
             $"Order=TransferContainer Reason={reason}");
         FinishContainerTransfer(world, looter, PlanStatus.Failed);
@@ -155,6 +179,7 @@ public sealed partial class ExecutionSystem
         looter.Execution.CurrentInteraction = null;
         looter.Execution.TargetInventoryItem = null;
         looter.Execution.TargetInventoryWorldObject = null;
+        looter.Execution.TargetStoredItemPath = null;
         looter.Movement.JunctionPath.Clear();
         looter.Movement.IsMoving = false;
         looter.Movement.SetStatus(MovementStatus.Idle);

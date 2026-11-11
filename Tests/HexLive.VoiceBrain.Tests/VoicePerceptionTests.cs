@@ -8,6 +8,21 @@ namespace HexLive.VoiceBrain.Tests;
 
 public sealed class VoicePerceptionTests
 {
+    [Test]
+    public void VoiceFindsNestedSuppliesByNameAndPreservesTheOwners()
+    {
+        var state = State(new { objectId = 42, itemId = "furniture.wardrobe", ownerName = "Кира",
+            contents = new[] { new { objectId = 43, itemId = "gear.backpack_primal_hunter", ownerName = "Клод",
+                contents = new[] { new { itemId = "resource.log", ownerName = "Кира" } } } } });
+        var found = JsonSerializer.SerializeToElement(SurroundingsView.Inspect(state, "брёвна", 0));
+        var wardrobe = found.GetProperty("objects")[0];
+        Assert.That(wardrobe.GetProperty("objectId").GetInt32(), Is.EqualTo(42));
+        var backpack = wardrobe.GetProperty("contents")[0];
+        Assert.That(backpack.GetProperty("ownerName").GetString(), Is.EqualTo("Клод"));
+        Assert.That(backpack.GetProperty("contents")[0].GetProperty("itemId").GetString(), Is.EqualTo("resource.log"));
+        Assert.That(CharacterView.Build(state, "рюкзак"), Does.Contain("resource.log"));
+    }
+
     internal static object Item(int id,string name,string action="PickUp",bool reachable=true,bool hasTool=true) =>
         new {objectId=id,itemId=name,displayName=name,distance=(double)id,reachable,
             interactions=new[]{new{type=action,toolRequirementMet=hasTool}}};

@@ -607,9 +607,10 @@ public sealed class BatheUndressAtHomeTests
             // v87 (§175.2): one-time natural flint migration, preserving the v86 layout.
             // v88 (#620): explicit fuel roles; v89 (#627): physical object placement Variant.
             // TorchPlacementTests covers reading the actual v87/v88/v89 layouts.
-            // v90 (#653): temporary travel leader link; current round-trip uses v90.
+            // v90 (#653): temporary travel leader link.
             // TravelPartyTests separately reads actual v89 and v90 layouts.
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(90));
+            // v93 (§128.5/#692): contents of a carried backpack.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(93));
         });
     }
 

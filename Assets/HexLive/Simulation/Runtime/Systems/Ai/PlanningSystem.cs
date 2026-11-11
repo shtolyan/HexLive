@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
@@ -444,6 +445,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     continue;
                 }
 
+                if (!inventoryOnly && TryBuildStoredItemPlan(world, npc, GoalType.GetWater)) continue;
+
                 if (BuildCoconutDrinkPlan(world, npc, inventoryOnly))
                 {
                     continue;
@@ -854,6 +857,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
             }
 
             var wearsBackpack = false;
+            if (TryBuildStoredItemPlan(world, npc, npc.Mind.CurrentGoal)) continue;
+
             foreach (var worn in npc.WornItems)
             {
                 if (world.Content.ObjectDefinitions.TryGetValue(worn.DefinitionId, out var definition) &&
@@ -1101,7 +1106,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 else if (preferCoconutBlade)
                 {
                     var isBlade = ToolCandidateProvidesCapability(
-                        world, perceived, Content.GearCapability.OpenCoconut);
+                        world, npc, perceived, Content.GearCapability.OpenCoconut);
                     if (selected is null ||
                         (isBlade && !selectedCoconutBlade) ||
                         (isBlade == selectedCoconutBlade &&
@@ -1414,6 +1419,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
     {
         var goal = npc.Mind.CurrentGoal;
         var output = Content.RecipeCatalog.OutputOf(goal);
+        if (TryBuildStoredItemPlan(world, npc, goal)) return true;
         if (string.IsNullOrEmpty(output) ||
             !CraftProjectMath.TryFindTakeableCompletedOutput(
                 world, npc, goal, out var source) ||
@@ -1995,6 +2001,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
         }
 
         var queuedBuildSiteId = goal == GoalType.BuildFurniture
+        if (TryFindStoredItem(world, npc, goal, requiredTarget, out _, out _)) return true;
+
             ? requiredTarget ?? DecisionSystem.FindBuildSite(npc, world)?.Id
             : null;
         foreach (var perceived in npc.Perception.Objects)
@@ -2014,6 +2022,105 @@ public sealed partial class PlanningSystem : ISimulationSystem
     }
 
     /// <summary>One perceived object against the exact candidate rules of
+    internal static bool HasObservedStoredItem(WorldState world, NPCState npc, GoalType goal,
+        bool requireRoom = true) =>
+        TryFindStoredItem(world, npc, goal, null, out _, out _, requireRoom: requireRoom);
+
+    private static bool TryBuildStoredItemPlan(WorldState world, NPCState npc, GoalType goal)
+    {
+        if (!TryFindStoredItem(world, npc, goal, null, out var root, out var path) ||
+            !TryInstallObjectPlan(world, npc, root, InteractionType.PickUp, 1, out _, out _)) return false;
+
+        npc.Plan.Steps[^1].Type = PlanStepType.TakeStoredItem;
+        npc.Plan.TargetItemDefinitionId = path[^1].DefinitionId;
+        npc.Execution.TargetStoredItemPath = path;
+        return true;
+    }
+
+    private static bool TryFindStoredItem(WorldState world, NPCState npc, GoalType goal,
+        ObjectId? requiredRoot, out PerceivedObject root, out PerceivedStoredItem[] path,
+        GearCapability? capability = null, bool requireRoom = true)
+    {
+        root = null;
+        path = null;
+        var output = RecipeCatalog.UsesPersistentProject(goal) ? RecipeCatalog.OutputOf(goal) : null;
+        if (!npc.Body.HasUsableHand || (string.IsNullOrEmpty(output) && goal is not (
+            GoalType.GatherWood or GoalType.GatherTools or GoalType.GatherLeaves or GoalType.GatherStone or
+            GoalType.GatherHerb or GoalType.GatherFiber or GoalType.GetFood or GoalType.GetWater))) return false;
+
+        List<PerceivedStoredItem> visiting = null;
+        foreach (var observed in npc.Perception.Objects)
+        {
+            if (observed.FromMemory || !observed.IsReachable || observed.StoredItems is not { Count: > 0 } items ||
+                (requiredRoot.HasValue && requiredRoot.Value != observed.Id) ||
+                (root != null && (root.Distance < observed.Distance ||
+                 root.Distance == observed.Distance && root.Id.Value <= observed.Id.Value)) ||
+                npc.Memory.IsShunned(observed.Id, world.Tick) ||
+                !DecisionSystem.ObjectUsableBy(observed, npc.Id) ||
+                MobSystem.MobNear(world, observed.Tile, 2)) continue;
+
+            visiting ??= new();
+            visiting.Clear();
+            if (!Find(items, observed) || !HasUsableObjectApproach(world, npc, observed, InteractionType.PickUp))
+                continue;
+            root = observed;
+            path = visiting.ToArray();
+        }
+        return root != null;
+
+        bool Find(IReadOnlyList<PerceivedStoredItem> nodes, PerceivedObject observed)
+        {
+            foreach (var node in nodes)
+            {
+                visiting.Add(node);
+                if (node.Instance is { } item && WantsStoredItem(world, npc, goal, observed.Tile, node,
+                        output, capability) &&
+                    (npc.Mind.IsStarving || !IsNearDanger(npc, observed.Tile, 2) ||
+                     item.DefinitionId is ContentIds.MeatRaw or ContentIds.MeatCooked) &&
+                    (!requireRoom || ContainerLootMath.FitsInLooter(world, npc, new[] { item }))) return true;
+                if (node.Contents is { Count: > 0 } children && Find(children, observed)) return true;
+                visiting.RemoveAt(visiting.Count - 1);
+            }
+            return false;
+        }
+    }
+
+    private static bool WantsStoredItem(WorldState world, NPCState npc, GoalType goal,
+        TileCoord tile, PerceivedStoredItem observed, string output, GearCapability? capability)
+    {
+        var id = observed.DefinitionId;
+        if (!string.IsNullOrEmpty(output)) return id == output;
+        if (!world.Content.ObjectDefinitions.TryGetValue(id, out var definition)) return false;
+        return goal switch
+        {
+            GoalType.GatherWood => CanGatherWood(world, npc, tile, definition),
+            GoalType.GatherTools => definition.HasTag("Tool") && !npc.Inventory.Items.Contains(id) &&
+                GearCatalog.AddsValueOver(npc.Inventory.Items, id, npc.Body.WeaponHands) &&
+                (!capability.HasValue || GearCatalog.For(id).Has(capability.Value)),
+            GoalType.GatherLeaves => definition.HasTag("PalmLeaf"),
+            GoalType.GatherStone => definition.HasTag("Stone"),
+            GoalType.GatherHerb => definition.HasTag("Herb"),
+            GoalType.GatherFiber => definition.HasTag("Fiber"),
+            GoalType.GetFood => definition.HasTag("Food") &&
+                (!definition.HasTag("Coconut") || HasCoconutBlade(npc)) &&
+                !(DirectiveMath.Current(npc) == DirectiveKind.StockFood &&
+                  npc.Needs.Hunger < SimBalance.GetFoodHungerThreshold && DirectiveMath.InCampStock(world, npc, tile)),
+            GoalType.GetWater => ContainerLootMath.IsStoredWaterSource(npc, id, observed.ResourceAmount, observed.WaterKind) &&
+                (DirectiveMath.Current(npc) != DirectiveKind.StockWater || npc.Needs.Thirst >= AiBalance.DrinkThirstThreshold ||
+                 (id == ContentIds.Coconut && !DirectiveMath.InCampStock(world, npc, tile))),
+            _ => false
+        };
+    }
+
+    private static bool CanGatherWood(WorldState world, NPCState npc, TileCoord tile, ObjectDefinition definition)
+    {
+        if (!definition.HasTag("Wood")) return false;
+        if (definition.HasTag("Log"))
+            return GearCatalog.HasCapability(npc.Inventory.Items, GearCapability.ChopWood) || WholeLogsWanted(world, npc);
+        return definition.Id != ContentIds.Stick || ColonyQueries.InCamp(world, tile, npc.Faction) ||
+            CampStickStock.Count(world, npc) < CampStickStock.Limit;
+    }
+
     /// <see cref="HasObjectCandidateForGoal"/>, down to a free stand point.</summary>
     private static bool IsObjectCandidate(
         WorldState world, NPCState npc, GoalType goal, InteractionType interactionType,
@@ -2118,13 +2225,14 @@ public sealed partial class PlanningSystem : ISimulationSystem
         WorldState world, NPCState npc, Content.GearCapability capability)
     {
         foreach (var perceived in npc.Perception.Objects)
+        if (TryFindStoredItem(world, npc, GoalType.GatherTools, null, out _, out _, capability)) return true;
         {
             if (!perceived.IsReachable ||
                 !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||
                 npc.Memory.IsShunned(perceived.Id, world.Tick) ||
                 !perceived.AvailableInteractions.Contains(InteractionType.PickUp) ||
                 !IsValidTargetFor(world, npc, GoalType.GatherTools, perceived) ||
-                !ToolCandidateProvidesCapability(world, perceived, capability) ||
+                !ToolCandidateProvidesCapability(world, npc, perceived, capability) ||
                 !HasUsableObjectApproach(world, npc, perceived, InteractionType.PickUp))
             {
                 continue;
@@ -2144,7 +2252,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
     }
 
     private static bool ToolCandidateProvidesCapability(
-        WorldState world, PerceivedObject perceived,
+        WorldState world, NPCState npc, PerceivedObject perceived,
         Content.GearCapability capability)
     {
         if (Content.GearCatalog.For(perceived.DefinitionId).Has(capability))
@@ -2152,14 +2260,16 @@ public sealed partial class PlanningSystem : ISimulationSystem
             return true;
         }
 
-        if (!world.Entities.Objects.TryGetValue(perceived.Id, out var stash))
+        if (perceived.FromMemory || perceived.StorageParentId.HasValue ||
+            !world.Entities.Objects.TryGetValue(perceived.Id, out var stash))
         {
             return false;
         }
 
         foreach (var item in stash.Contents)
         {
-            if (Content.GearCatalog.For(item.DefinitionId).Has(capability))
+            if (Content.GearCatalog.For(item.DefinitionId).Has(capability) &&
+                CampPropertyMath.CanUseStoredItem(world, npc, item.OwnerId))
             {
                 return true;
             }
@@ -2213,27 +2323,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // somewhere (a site's log stage, the raft) or she can split it
                 // into sticks — the bed's stick stage otherwise sent her home
                 // hugging a useless log.
-                if (!definition.HasTag("Wood"))
-                {
-                    return false;
-                }
-
-                // §126/§49 r2: здесь стояла ветка «перед сном бери ТОЛЬКО
-                // палку» — часть ночного затвора, снятого вместе с ним. Общее
-                // правило ниже (целое бревно оставить лежать как цель SplitLog)
-                // и было настоящим содержанием этой ветки.
-                if (!definition.HasTag("Log"))
-                {
-                    // Existing stock stays available to actual consumers; do not
-                    // keep importing more sticks from outside an already full camp.
-                    return definition.Id != ContentIds.Stick ||
-                        ColonyQueries.InCamp(world, perceived.Tile, npc.Faction) ||
-                        CampStickStock.Count(world, npc) < CampStickStock.Limit;
-                }
-
-                return Content.GearCatalog.HasCapability(
-                        npc.Inventory.Items, Content.GearCapability.ChopWood) ||
-                    WholeLogsWanted(world, npc);
+                return CanGatherWood(world, npc, perceived.Tile, definition);
             case GoalType.SplitLog:
                 // Spec §54: split a log lying on the ground into sticks.
                 return definition.HasTag("Log");
@@ -2265,7 +2355,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
 
                 // Spec §52: a dropped garment whose pockets hold a missing
                 // tool is a valid target — she rifles the pockets on arrival.
-                return world.Entities.Objects.TryGetValue(perceived.Id, out var stashContainer) &&
+                return !perceived.FromMemory && !perceived.StorageParentId.HasValue &&
+                    world.Entities.Objects.TryGetValue(perceived.Id, out var stashContainer) &&
                     stashContainer.Contents.Count > 0 &&
                     InventoryMath.StashHoldsWantedTool(world, npc, stashContainer);
             case GoalType.GatherHerb:

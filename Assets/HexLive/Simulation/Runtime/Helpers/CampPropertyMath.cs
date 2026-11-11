@@ -19,6 +19,12 @@ internal static class CampPropertyMath
         !CampDiplomacyMath.IsSoloCampMode(world.Mode) &&
         FactionRelations.AreHostile(world, actor.Faction, faction);
 
+    private static bool HostileOwner(WorldState world, NPCState actor, NPCState owner) =>
+        CampDiplomacyMath.IsSoloCampMode(world.Mode)
+            ? actor.Social.Relationships.TryGetValue(owner.Id, out var relationship) &&
+              relationship.Affinity <= CampDiplomacyMath.HatredAffinityThreshold
+            : HostileCamp(world, actor, owner.Faction);
+
     private static bool PermittedGround(WorldState world, NPCState actor,
         TileCoord tile, Faction? hostileOwner = null)
     {
@@ -43,6 +49,13 @@ internal static class CampPropertyMath
     internal static bool CanUse(WorldState world, NPCState actor, WorldObjectState obj) =>
         ExplicitOrder(actor) || CanUseUnordered(world, actor, obj);
 
+    internal static bool CanUseStoredItem(WorldState world, NPCState actor, int ownerId)
+    {
+        if (ownerId == 0 || !world.Entities.Npcs.TryGetValue(new EntityId(ownerId), out var owner) ||
+            owner.Health <= 0f || FactionRelations.AreAllies(actor, owner)) return true;
+        return HostileOwner(world, actor, owner);
+    }
+
     /// <summary>The guest rule without the explicit-order pass. §121.12: a
     /// manual build session fetches its materials on its own initiative, so
     /// the player's click on the SITE grants nothing over nearby camp stock.</summary>
@@ -54,11 +67,7 @@ internal static class CampPropertyMath
         if (obj.Owner is { } id && world.Entities.Npcs.TryGetValue(id, out var owner) && owner.Health > 0f)
         {
             if (FactionRelations.AreAllies(actor, owner)) return true;
-            var hostile = CampDiplomacyMath.IsSoloCampMode(world.Mode)
-                ? actor.Social.Relationships.TryGetValue(owner.Id, out var relationship) &&
-                  relationship.Affinity <= CampDiplomacyMath.HatredAffinityThreshold
-                : HostileCamp(world, actor, owner.Faction);
-            if (!hostile) return false;
+            if (!HostileOwner(world, actor, owner)) return false;
             hostileOwner = owner.Faction;
         }
         if (obj.OwnerFaction is { } faction)

@@ -58,6 +58,13 @@ public sealed class ItemInstance : System.IEquatable<ItemInstance>
     // part of Equals/GetHashCode — recipe semantics stay by-definition.
     public int OwnerId { get; set; }
 
+    // Loose portable storage owns its physical contents. Worn pockets still
+    // use InventoryState.Items and do not maintain a second copy.
+    public const int MaxStorageDepth = 8;
+    public List<ItemInstance>? Contents { get; private set; }
+
+    public List<ItemInstance> GetOrCreateContents() => Contents ??= new();
+
     public ItemInstance(string definitionId)
     {
         DefinitionId = definitionId;

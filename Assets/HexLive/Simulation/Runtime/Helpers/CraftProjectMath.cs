@@ -103,6 +103,7 @@ internal static class CraftProjectMath
     // needs no second hand-maintained list here or in PlanningSystem.
     internal static bool HasReachableCompletedOutput(
         WorldState world, NPCState npc, GoalType goal) =>
+        PlanningSystem.HasObservedStoredItem(world, npc, goal, requireRoom: false) ||
         TryFindReachableCompletedOutput(
             world, npc, goal, requireInventoryRoom: false, out _);
 
@@ -114,11 +115,10 @@ internal static class CraftProjectMath
     internal static bool CanSatisfyItemCraftDemand(
         WorldState world, NPCState npc, GoalType goal, bool canManufacture)
     {
-        if (TryFindReachableCompletedOutput(
-                world, npc, goal, requireInventoryRoom: false, out _))
+        if (HasReachableCompletedOutput(world, npc, goal))
         {
-            return TryFindReachableCompletedOutput(
-                world, npc, goal, requireInventoryRoom: true, out _);
+            return PlanningSystem.HasObservedStoredItem(world, npc, goal) ||
+                TryFindReachableCompletedOutput(world, npc, goal, requireInventoryRoom: true, out _);
         }
 
         return HasReachableProject(world, npc, goal) || canManufacture;
@@ -181,7 +181,7 @@ internal static class CraftProjectMath
         // в трёх шагах. Тот же вопрос, тот же ответ.
         foreach (var perceived in npc.Perception.Objects)
         {
-            if (!perceived.IsReachable ||
+            if (perceived.FromMemory || perceived.StorageParentId.HasValue || !perceived.IsReachable ||
                 !perceived.AvailableInteractions.Contains(InteractionType.PickUp) ||
                 !DecisionSystem.ObjectUsableBy(world, npc, perceived) ||
                 npc.Memory.IsShunned(perceived.Id, world.Tick) ||
@@ -203,6 +203,7 @@ internal static class CraftProjectMath
             foreach (var stashed in container.Contents)
             {
                 if (stashed.DefinitionId == output &&
+                    CampPropertyMath.CanUseStoredItem(world, npc, stashed.OwnerId) &&
                     (!requireInventoryRoom ||
                      InventoryMath.CanMakeRoomForGoal(world, npc, goal, output)))
                 {

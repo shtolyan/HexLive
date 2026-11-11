@@ -107,6 +107,9 @@ public sealed class AssetRegistryStoreTests
     [TestCase("wear", "clothing.halter_vamp")]
     [TestCase("wear", "clothing.halter_vamp_burgundy")]
     [TestCase("wear", "clothing.croptop_fit_1_blue")]
+    [TestCase("wear", "underwear.bra_riot")]
+    [TestCase("wear", "underwear.briefs_plain")]
+    [TestCase("config", "paintmaps.garment_46fd5e7152fd165c87a39f37e9119c12_b856198ebd8b4f51ce8dd13f_marta_1077")]
     [TestCase("config", "paintmaps.garment_09ed605d5ca9ce194bb16e5b7659ed70_46302d2607153dc1a50379b2_marta_5237")]
     public async Task ExactPortalOwnerWithBothLabelsCanBeServed(string type, string id)
     {
@@ -119,6 +122,8 @@ public sealed class AssetRegistryStoreTests
     }
 
     [TestCase("wear", "clothing.helmet_tactical", "modern", "portal", false)]
+    [TestCase("wear", "clothing.belt_stars", "modern", "portal", false)]
+    [TestCase("wear", "clothing.sandals_fighter", "modern", "portal", false)]
     [TestCase("wear", "clothing.top_primal", "modern", "portal", false)]
     [TestCase("object", "clothing.halter_vamp", "modern", "portal", false)]
     [TestCase("building", "architecture.modern_unapproved", "primal", "", false)]

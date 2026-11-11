@@ -30,26 +30,49 @@ internal static class PortalApartmentPopulation
         resident.Traits.Clear();
         resident.Traits.Add(TraitKind.Coward);
         resident.Needs.Stress = .8f;
-        resident.WornItems.RemoveAll(item =>
-            !world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition) ||
-            definition.Layer != WearLayer.Underwear);
+        if (Spec76.Enabled && Spec76.AttributeSpread > 0f)
+        {
+            foreach (var attribute in AttributeSet.All)
+            {
+                var deviation = resident.Attributes.Get(attribute) - Spec76.AttributeMean - Spec76.AttributeBonus;
+                resident.Attributes.Set(attribute, MathUtil.Clamp01(Spec76.AttributeMean + deviation * .35f));
+            }
+        }
 
-        var clothes = AvailableWear(world).Where(item => GarmentLibrary.FitsSex(resident.Sex, item))
-            .Select(item => world.Content.ObjectDefinitions[item]).ToArray();
-        WearPiece(BodyPart.Pelvis, 17662);
-        WearPiece(BodyPart.Torso, 17663);
+        resident.WornItems.Clear();
+        var clothes = AvailableWear(world).Where(item => GarmentLibrary.FitsSex(resident.Sex, item.Id)).ToArray();
+        WearPiece(WearLayer.Underwear, BodyPart.Pelvis, 17666);
+        WearPiece(WearLayer.Underwear, BodyPart.Torso, 17667);
+        WearPiece(WearLayer.Wear, BodyPart.Pelvis, 17662);
+        WearPiece(WearLayer.Wear, BodyPart.Torso, 17663);
+        if (MathUtil.Hash01(world.Seed, visitSerial, 0, 17668) < .5f)
+        {
+            var extras = clothes.Where(item => item.Layer != WearLayer.Underwear ||
+                !item.Covers.Contains(BodyPart.Pelvis) && !item.Covers.Contains(BodyPart.Torso));
+            AddRandomPiece(extras, 17669);
+        }
 
         EquipmentMath.Recalculate(world, resident);
         world.Portal.Resident = resident.Id;
         return resident;
 
-        void WearPiece(BodyPart part, int salt)
+        void WearPiece(WearLayer layer, BodyPart part, int salt)
         {
-            var choices = clothes.Where(definition => definition.Covers.Contains(part) &&
-                resident.WornItems.All(existing => !WearSlotCatalog.Occupies(
-                    definition, world.Content.ObjectDefinitions[existing.DefinitionId]))).ToArray();
-            if (choices.Length == 0) return;
-            var chosen = choices[RollIndex(world.Seed, visitSerial, 0, salt, choices.Length)];
+            if (layer == WearLayer.Wear && resident.WornItems.Any(item =>
+                    world.Content.ObjectDefinitions[item.DefinitionId] is { Layer: WearLayer.Wear } definition &&
+                    definition.Covers.Contains(part))) return;
+            AddRandomPiece(clothes.Where(item => item.Layer == layer && item.Covers.Contains(part) &&
+                (layer != WearLayer.Underwear || part != BodyPart.Torso || !item.Covers.Contains(BodyPart.Pelvis))), salt);
+        }
+
+        void AddRandomPiece(IEnumerable<GarmentParams> candidates, int salt)
+        {
+            var families = candidates.Where(item => resident.WornItems.All(existing => !WearSlotCatalog.Occupies(
+                    world.Content.ObjectDefinitions[item.Id], world.Content.ObjectDefinitions[existing.DefinitionId])))
+                .GroupBy(item => item.PrototypeId, StringComparer.Ordinal).ToArray();
+            if (families.Length == 0) return;
+            var variants = families[RollIndex(world.Seed, visitSerial, 0, salt, families.Length)].ToArray();
+            var chosen = variants[RollIndex(world.Seed, visitSerial, 1, salt, variants.Length)];
             resident.WornItems.Add(new ItemInstance(chosen.Id) { OwnerId = resident.Id.Value });
         }
     }
@@ -60,7 +83,7 @@ internal static class PortalApartmentPopulation
             wardrobe.Fragment != PortalWorld.ApartmentFragment || wardrobe.Contents.Count > 0)
             return 0;
 
-        var eligible = AvailableWear(world).ToList();
+        var eligible = AvailableWear(world).Select(item => item.Id).ToList();
         var count = Math.Min(eligible.Count, 2 + RollIndex(world.Seed, visitSerial, 0, 17664, 3));
         for (var i = 0; i < count; i++)
         {
@@ -111,9 +134,10 @@ internal static class PortalApartmentPopulation
         return false;
     }
 
-    private static IEnumerable<string> AvailableWear(WorldState world) =>
-        PortalContentPolicy.Wear.Where(id => GarmentLibrary.IsPortalWearAvailable(id) &&
-            world.Content.ObjectDefinitions.TryGetValue(id, out var definition) && definition.Layer == WearLayer.Wear);
+    private static IEnumerable<GarmentParams> AvailableWear(WorldState world) =>
+        GarmentLibrary.Active.Where(item => item != null && !item.Retired && PortalContentPolicy.IsPortalWear(item.Id) &&
+            world.Content.ObjectDefinitions.TryGetValue(item.Id, out var definition) && definition.Layer == item.Layer)
+            .OrderBy(item => item.Id, StringComparer.Ordinal);
 
     private static int RollIndex(int seed, int serial, int slot, int salt, int count) =>
         Math.Min(count - 1, (int)(MathUtil.Hash01(seed, serial, slot, salt) * count));

@@ -245,6 +245,11 @@ public sealed class PortalWorldTests
         var table = world.Entities.Objects.Values.Single(obj => obj.DefinitionId == "furniture.modern_table");
         var shelf = world.Entities.Objects.Values.Single(obj => obj.DefinitionId == PortalWorld.ApartmentShelfDefinitionId);
         var restored = RoundTrip(world, WorldSaveSerializer.BlobVersion);
+        var glass = restored.Entities.Objects.Values.Single(obj => obj.DefinitionId == ContentIds.DrinkingGlass);
+        Assert.That(glass.SurfaceObjectId, Is.EqualTo(table.Id));
+        Assert.That(glass.WaterKind, Is.EqualTo(WaterKind.Boiled));
+        Assert.That(glass.LastAddedWaterKind, Is.EqualTo(WaterKind.Boiled));
+        Assert.That(BottleInventoryMath.Charges(glass.ResourceAmount, glass.WaterKind, glass.DefinitionId), Is.EqualTo(4));
         foreach (var support in new[] { table, shelf })
         {
             var objects = restored.Entities.Objects.Values.Where(obj => obj.SurfaceObjectId == support.Id).ToArray();
@@ -253,6 +258,36 @@ public sealed class PortalWorldTests
             Assert.That(objects.All(obj => obj.Tile == support.Tile && obj.DefinitionId != ContentIds.BaseballBat &&
                 SurfacePlacementMath.TryGetSlot(support.DefinitionId, obj.SurfaceSlot, out _, out _)), Is.True);
         }
+    }
+
+    [Test]
+    public void ApartmentGlassCanBeDrunkFromOnTheTableUntilItIsEmpty()
+    {
+        var world = CreateWorld(7);
+        Assert.That(PortalWorld.OpenImmediately(world, Faction.Colony), Is.Null);
+        var glass = world.Entities.Objects.Values.Single(obj => obj.DefinitionId == ContentIds.DrinkingGlass);
+        var visitor = AddVisitor(world, glass.Junctions[0], glass.Tile);
+        visitor.Mind.ManualControl = true;
+        var engine = new SimulationEngine(world, new SimulationSettings(), new SimulationClock());
+        engine.Register(new PathfindingSystem());
+        engine.Register(new MovementSystem());
+        engine.Register(new ExecutionSystem());
+        var drink = new InteractCommand(visitor.Id, glass.Id, InteractionType.Drink, "drink.glass");
+
+        for (var remaining = 3; remaining >= 0; remaining--)
+        {
+            visitor.Needs.Thirst = .9f;
+            var receipt = engine.ApplyManualCommand(drink);
+            Assert.That(receipt.Accepted, Is.True, receipt.Reason);
+            for (var tick = 0; tick < 50 && BottleInventoryMath.Charges(glass) > remaining; tick++)
+                engine.Step();
+            Assert.That(BottleInventoryMath.Charges(glass), Is.EqualTo(remaining));
+            Assert.That(visitor.Needs.Thirst, Is.EqualTo(.9f - SimBalance.DrinkThirstBoiled).Within(.001f));
+            Assert.That(glass.SurfaceObjectId, Is.Not.Null);
+        }
+
+        Assert.That(glass.WaterKind, Is.EqualTo(WaterKind.None));
+        Assert.That(engine.ApplyManualCommand(drink).Reason, Is.EqualTo("EmptyVessel"));
     }
 
     [Test]
@@ -351,9 +386,9 @@ public sealed class PortalWorldTests
         Assert.That(ContainerLootMath.IsLootable(world, wardrobe), Is.True);
         Assert.That(world.Portal.Resident, Is.Not.Null);
         var resident = world.Entities.Npcs[world.Portal.Resident.Value];
-        Assert.That(resident.WornItems.Select(item => item.DefinitionId), Does.Contain("clothing.shorts_classic"));
-        Assert.That(resident.WornItems.Any(item => PortalContentPolicy.IsPortalWear(item.DefinitionId) &&
-            item.DefinitionId != "clothing.shorts_classic"), Is.True);
+        Assert.That(resident.WornItems.All(item => PortalContentPolicy.IsPortalWear(item.DefinitionId)), Is.True);
+        Assert.That(resident.WornItems.Count(item => world.Content.ObjectDefinitions[item.DefinitionId].Layer ==
+            WearLayer.Underwear), Is.GreaterThanOrEqualTo(2));
         Assert.That(resident.Inventory.Items, Is.Empty);
     }
 

@@ -1132,6 +1132,58 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        ApplyVesselSipEffects(world, npc, bottle.WaterKind, 1f / DrinkBottleDurationTicks);
+
+        if (npc.Execution.EndTick - world.Tick > 0)
+        {
+            return;
+        }
+
+        ApplyVesselSickness(world, npc, bottle.WaterKind);
+
+        // Spec §52: spend one gulp; the bottle only empties when the last is gone.
+        var consumedKind = bottle.WaterKind;
+        BottleInventoryMath.ConsumeOne(bottle, out _);
+        var remaining = BottleInventoryMath.Charges(bottle);
+        var driedOut = remaining <= 0;
+        Trace.Emit(world, npc.Id, "DrankBottle",
+            $"{consumedKind} water Thirst={npc.Needs.Thirst:F2} Left={remaining}");
+
+        // Bug #305: глоток теперь 100 мл, и одной жаждущей его мало — пьёт
+        // следующий сразу, тем же правилом, что кокосовые глотки (без полного
+        // пере-аукциона целей между глотками, но никогда мимо голодающего
+        // желудка — урок iter-8).
+        if (!driedOut && npc.Needs.Thirst >= 0.4f && npc.Needs.Hunger < 0.85f)
+        {
+            npc.Execution.Status = ExecutionStatus.InProgress;
+            npc.Execution.StartTick = world.Tick;
+            npc.Execution.EndTick = world.Tick + DrinkBottleDurationTicks;
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "InteractionStarted",
+                    $"Drink (bottle, next sip) Left={remaining} Thirst={npc.Needs.Thirst:F2}");
+            }
+            return;
+        }
+
+        npc.Plan.Status = PlanStatus.Completed;
+        npc.Plan.Steps.Clear();
+        npc.Mind.CurrentGoal = GoalType.None;
+        npc.Execution.Status = ExecutionStatus.None;
+        npc.Execution.CurrentInteraction = null;
+        npc.Execution.TargetInventoryItem = null;
+        npc.Execution.StartTick = 0;
+        npc.Execution.EndTick = 0;
+
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "CycleReset",
+                "Goal->None Plan->Completed Execution->Cleared (drank from bottle)");
+        }
+    }
+
+    private static void ApplyVesselSipEffects(WorldState world, NPCState npc, WaterKind kind, float share)
+    {
         // Bug #305: один глоток — 100 мл (литровая бутылка = 10 глотков), и
         // его облегчение (DrinkThirstRaw/Boiled) задано ЗА ГЛОТОК. Spec 29C.9:
         // the thirst drops gulp by gulp across the duration, not in one jump.
@@ -1140,13 +1192,13 @@ public sealed partial class ExecutionSystem
         // the warm-drink comfort bonus stays boiled-only.
         // §55.4 / bug #347: COCONUT keeps the same data-driven effects as a
         // direct sip from food.coconut_pierced and never enters the Raw roll.
-        var raw = bottle.WaterKind == WaterKind.Raw;
-        var boiled = bottle.WaterKind == WaterKind.Boiled;
+        var raw = kind == WaterKind.Raw;
+        var boiled = kind == WaterKind.Boiled;
         var thirstTotal = raw ? SimBalance.DrinkThirstRaw : SimBalance.DrinkThirstBoiled;
         var comfortTotal = boiled ? SimBalance.DrinkComfortBoiled : 0f;
-        if (bottle.WaterKind == WaterKind.Cola)
+        if (kind == WaterKind.Cola)
             comfortTotal = .015f;
-        if (bottle.WaterKind == WaterKind.Coconut &&
+        if (kind == WaterKind.Coconut &&
             world.Content.ObjectDefinitions.TryGetValue(
                 ContentIds.CoconutPierced, out var coconutDefinition) &&
             ResolveInteraction(
@@ -1155,7 +1207,6 @@ public sealed partial class ExecutionSystem
             thirstTotal = System.MathF.Max(0f, -coconutDrink.Effects.ThirstDelta);
             comfortTotal = System.MathF.Max(0f, coconutDrink.Effects.ComfortDelta);
         }
-        var share = 1f / DrinkBottleDurationTicks;
         npc.Needs.Thirst = MathUtil.Clamp01(npc.Needs.Thirst - thirstTotal * share);
         npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + comfortTotal * share);
         npc.EffectImpacts.Record(
@@ -1171,12 +1222,10 @@ public sealed partial class ExecutionSystem
                 EffectImpactDirection.Positive,
                 EffectImpactCadence.Fast);
         }
+    }
 
-        if (npc.Execution.EndTick - world.Tick > 0)
-        {
-            return;
-        }
-
+    private static void ApplyVesselSickness(WorldState world, NPCState npc, WaterKind kind)
+    {
         // Spec 29H: raw water is a gamble — sickness roll (moved here from
         // the old water-edge Drink now that filling and drinking are split).
         // §45 r4: eased 30%/-0.15 -> 15%/-0.08. The colony drinks raw
@@ -1187,7 +1236,7 @@ public sealed partial class ExecutionSystem
         // (~0.012/drink) now sits within fed-regen's budget instead of
         // being a guaranteed death sentence for a fireless colony.
         // §54.15: only RAW water gambles — rain (like boiled) is safe.
-        if (raw)
+        if (kind == WaterKind.Raw)
         {
             var sickRoll = MathUtil.Hash01(world.Seed, world.Tick, npc.Id.Value, 833);
             if (sickRoll < SimBalance.RawWaterSickChance && !Spec49.SickDoT)
@@ -1232,47 +1281,8 @@ public sealed partial class ExecutionSystem
                     $"Raw water (Roll={sickRoll:F2}) DmgBudget={npc.Mind.SicknessDamageRemaining:F2}");
             }
         }
-
-        // Spec §52: spend one gulp; the bottle only empties when the last is gone.
-        var consumedKind = bottle.WaterKind;
-        BottleInventoryMath.ConsumeOne(bottle, out _);
-        var remaining = BottleInventoryMath.Charges(bottle);
-        var driedOut = remaining <= 0;
-        Trace.Emit(world, npc.Id, "DrankBottle",
-            $"{consumedKind} water Thirst={npc.Needs.Thirst:F2} Left={remaining}");
-
-        // Bug #305: глоток теперь 100 мл, и одной жаждущей его мало — пьёт
-        // следующий сразу, тем же правилом, что кокосовые глотки (без полного
-        // пере-аукциона целей между глотками, но никогда мимо голодающего
-        // желудка — урок iter-8).
-        if (!driedOut && npc.Needs.Thirst >= 0.4f && npc.Needs.Hunger < 0.85f)
-        {
-            npc.Execution.Status = ExecutionStatus.InProgress;
-            npc.Execution.StartTick = world.Tick;
-            npc.Execution.EndTick = world.Tick + DrinkBottleDurationTicks;
-            if (SimTrace.Enabled)
-            {
-                Trace.Debug(world, npc.Id, "InteractionStarted",
-                    $"Drink (bottle, next sip) Left={remaining} Thirst={npc.Needs.Thirst:F2}");
-            }
-            return;
-        }
-
-        npc.Plan.Status = PlanStatus.Completed;
-        npc.Plan.Steps.Clear();
-        npc.Mind.CurrentGoal = GoalType.None;
-        npc.Execution.Status = ExecutionStatus.None;
-        npc.Execution.CurrentInteraction = null;
-        npc.Execution.TargetInventoryItem = null;
-        npc.Execution.StartTick = 0;
-        npc.Execution.EndTick = 0;
-
-        if (SimTrace.Enabled)
-        {
-            Trace.Debug(world, npc.Id, "CycleReset",
-                "Goal->None Plan->Completed Execution->Cleared (drank from bottle)");
-        }
     }
+
 }
 
 }

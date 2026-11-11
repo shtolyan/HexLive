@@ -3143,7 +3143,8 @@ internal static partial class ManualCommandExecutor
         }
 
         if (interactionType == InteractionType.Drink &&
-            ItemCatalog.IsDrainedWaterShell(worldObject.DefinitionId, worldObject.ResourceAmount))
+            (ItemCatalog.IsDrainedWaterShell(worldObject.DefinitionId, worldObject.ResourceAmount) ||
+             worldObject.DefinitionId == ContentIds.DrinkingGlass && BottleInventoryMath.Charges(worldObject) == 0))
         {
             Reject(world, npc.Id, verb, "EmptyVessel", admission);
             return false;

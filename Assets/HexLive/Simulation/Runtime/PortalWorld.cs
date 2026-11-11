@@ -65,7 +65,7 @@ public static class PortalWorld
     {
         "tool.kitchen_knife", "tool.baseball_bat", "food.apple", "food.banana",
         "item.dollar_bills", "item.kitchen_ladle", ContentIds.Bottle,
-        "item.photo_frame", "item.ballpoint_pen", "item.alarm_clock", "item.drinking_glass",
+        "item.photo_frame", "item.ballpoint_pen", "item.alarm_clock",
         "item.ceramic_saucer", ContentIds.TeddyBear,
         ContentIds.SteelHatchet, ContentIds.Flashlight, ContentIds.DisposableLighter,
         ContentIds.WindproofLighter, ContentIds.ClawHammer, ContentIds.FoldingSaw,
@@ -853,7 +853,16 @@ public static class PortalWorld
             if (support == null) return;
             var count = 1 + Math.Min(maxItems - 1, (int)(MathUtil.Hash01(world.Seed, serial, 0, salt) * maxItems));
             var empty = Enumerable.Range(0, slots).ToList();
-            for (var i = 0; i < count; i++)
+            if (support == table && world.Content.ObjectDefinitions.ContainsKey(ContentIds.DrinkingGlass))
+            {
+                var glass = SpawnLoot(ContentIds.DrinkingGlass, support.Tile, support.Junctions[0]);
+                glass.ResourceAmount = WaterVesselCatalog.Capacity(ContentIds.DrinkingGlass);
+                glass.WaterKind = WaterKind.Boiled;
+                glass.LastAddedWaterKind = WaterKind.Boiled;
+                SurfacePlacementMath.TryPlace(world, glass, support, 0);
+                empty.RemoveAt(0);
+            }
+            for (var i = slots - empty.Count; i < count; i++)
             {
                 var small = eligible.Where(id => !ModernLootCatalog.IsBulkyTool(id)).ToArray();
                 if (small.Length == 0) return;

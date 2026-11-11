@@ -692,12 +692,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 }
 
                 if (interaction.Type == InteractionType.Drink &&
-                    definition.HasTag("CoconutWater") &&
-                    worldObject.ResourceAmount <= 0f)
+                    (definition.HasTag("CoconutWater") && worldObject.ResourceAmount <= 0f ||
+                     definition.Id == ContentIds.DrinkingGlass && BottleInventoryMath.Charges(worldObject) == 0))
                 {
                     PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
                     PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
-                        $"Cannot drink {worldObject.DefinitionId} (already drained)");
+                            $"Cannot drink {worldObject.DefinitionId} (already drained)");
                     npc.Mind.CurrentGoal = GoalType.None;
                     continue;
                 }
@@ -1445,6 +1445,27 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     $"Seed={worldObject.DefinitionId} Plant={planted.DefinitionId} " +
                     $"Tile={planted.Tile.Q},{planted.Tile.R}");
             }
+        }
+        else if (completedInteraction.Type == InteractionType.Drink &&
+                 definition.Id == ContentIds.DrinkingGlass)
+        {
+            if (BottleInventoryMath.Charges(worldObject) == 0)
+            {
+                npc.Plan.Status = PlanStatus.Failed;
+                return false;
+            }
+            var kind = worldObject.WaterKind;
+            ApplyVesselSipEffects(world, npc, kind, 1f);
+            ApplyVesselSickness(world, npc, kind);
+            worldObject.ResourceAmount -= 1f;
+            if (worldObject.ResourceAmount <= 0f)
+            {
+                worldObject.ResourceAmount = 0f;
+                worldObject.WaterKind = WaterKind.None;
+                worldObject.LastAddedWaterKind = WaterKind.None;
+            }
+            Trace.Emit(world, npc.Id, "DrankBottle",
+                $"{kind} water Thirst={npc.Needs.Thirst:F2} Left={BottleInventoryMath.Charges(worldObject)}");
         }
         else if (completedInteraction.Type == InteractionType.Drink &&
                  definition.HasTag("CoconutWater"))

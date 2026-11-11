@@ -62,6 +62,9 @@ public sealed class PortalApartmentPopulationTests
             Assert.That(resident.Inventory.Items, Is.Empty);
             Assert.That(resident.Needs.Stress, Is.EqualTo(.8f));
             Assert.That(resident.Traits.Has(TraitKind.Coward), Is.True);
+            Assert.That(AttributeSet.All.Select(resident.Attributes.Get),
+                Is.All.InRange(.36f - 1e-5f, .64f + 1e-5f));
+            Assert.That(SkillSet.All.Select(resident.Skills.Get), Is.All.Zero);
         });
         Assert.That(PortalApartmentPopulation.TrySpawnResident(world, 1, inside), Is.Null);
     }
@@ -73,22 +76,27 @@ public sealed class PortalApartmentPopulationTests
         var points = ApartmentLandings(world);
         var appearances = new List<bool>();
         var ids = new HashSet<EntityId>();
-        var tops = new HashSet<string>();
-        for (var visit = 1; visit <= 17; visit++)
+        var bras = new HashSet<string>();
+        var briefs = new HashSet<string>();
+        var outfits = new HashSet<string>();
+        for (var visit = 1; visit <= 33; visit++)
         {
             var resident = PortalApartmentPopulation.TrySpawnResident(world, visit, points);
             appearances.Add(resident != null);
             if (resident is null) continue;
 
             Assert.That(ids.Add(resident.Id), Is.True);
-            var outer = resident.WornItems.Where(item => world.Content.ObjectDefinitions[item.DefinitionId].Layer != WearLayer.Underwear).ToArray();
-            Assert.That(outer, Has.Length.EqualTo(2));
-            Assert.That(outer.All(item => item.OwnerId == resident.Id.Value &&
-                GarmentLibrary.IsPortalWearAvailable(item.DefinitionId)), Is.True);
-            Assert.That(outer.Single(item =>
-                world.Content.ObjectDefinitions[item.DefinitionId].Covers.Contains(BodyPart.Pelvis)).DefinitionId,
-                Is.EqualTo("clothing.shorts_classic"));
-            tops.Add(outer.Single(item => world.Content.ObjectDefinitions[item.DefinitionId].Covers.Contains(BodyPart.Torso)).DefinitionId);
+            var worn = resident.WornItems.Select(item => world.Content.ObjectDefinitions[item.DefinitionId]).ToArray();
+            Assert.That(resident.WornItems.All(item => item.OwnerId == resident.Id.Value &&
+                GarmentLibrary.IsPortalWearAvailable(item.DefinitionId) &&
+                !GarmentLibrary.IsSpawnable(item.DefinitionId)), Is.True);
+            for (var index = 0; index < worn.Length; index++)
+                Assert.That(worn.Skip(index + 1).Any(other => WearSlotCatalog.Occupies(worn[index], other)), Is.False);
+            var underwear = worn.Where(item => item.Layer == WearLayer.Underwear).ToArray();
+            bras.Add(underwear.Single(item => item.Covers.Contains(BodyPart.Torso) &&
+                !item.Covers.Contains(BodyPart.Pelvis)).Id);
+            briefs.Add(underwear.Single(item => item.Covers.Contains(BodyPart.Pelvis)).Id);
+            outfits.Add(string.Join(",", worn.Where(item => item.Layer != WearLayer.Underwear).Select(item => item.Id)));
 
             world.Portal.Resident = null;
             AdminWorldCommands.Execute(world, new AdminCommand { Kind = "delete_npc", NpcId = resident.Id.Value });
@@ -98,7 +106,9 @@ public sealed class PortalApartmentPopulationTests
         Assert.That(appearances[0], Is.True);
         for (var i = 1; i < appearances.Count; i += 2)
             Assert.That(appearances[i], Is.Not.EqualTo(appearances[i + 1]));
-        Assert.That(tops.Count, Is.GreaterThan(1));
+        Assert.That(bras.Count, Is.GreaterThan(1));
+        Assert.That(briefs.Count, Is.GreaterThan(1));
+        Assert.That(outfits.Count, Is.GreaterThan(1));
     }
 
     [Test]
@@ -132,18 +142,18 @@ public sealed class PortalApartmentPopulationTests
     }
 
     [Test]
-    public void WardrobeUsesOnlyTheThreeBasePiecesWhenColourOwnersAreUnavailable()
+    public void WardrobeAndResidentOnlyUseInstalledCivilianGarments()
     {
+        var installed = new[] { "clothing.shorts_classic", "clothing.halter_vamp", "clothing.croptop_fit" };
+        GarmentLibrary.Override(GarmentLibrary.Active.Where(item =>
+            !PortalContentPolicy.IsPortalWear(item.Id) || installed.Contains(item.Id)));
         var world = CreateWorld();
-        world.Content.ObjectDefinitions.Remove("clothing.croptop_fit_1_blue");
-        world.Content.ObjectDefinitions.Remove("clothing.halter_vamp_burgundy");
         var wardrobe = CreateWardrobe(world);
 
         Assert.That(PortalApartmentPopulation.StockWardrobe(world, wardrobe, 1), Is.InRange(2, 3));
-        Assert.That(wardrobe.Contents.Select(item => item.DefinitionId), Is.SubsetOf(new[]
-        {
-            "clothing.shorts_classic", "clothing.halter_vamp", "clothing.croptop_fit"
-        }));
+        Assert.That(wardrobe.Contents.Select(item => item.DefinitionId), Is.SubsetOf(installed));
+        var resident = PortalApartmentPopulation.TrySpawnResident(world, 1, ApartmentLandings(world));
+        Assert.That(resident.WornItems.Select(item => item.DefinitionId), Is.SubsetOf(installed));
     }
 
     private static WorldState CreateWorld()

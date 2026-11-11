@@ -14,7 +14,10 @@ namespace HexLive.Simulation.Runtime
         public static string Execute(WorldState world, NPCState npc, AdminCommand c)
         {
             if (c.Count != 1) return "InvalidCount";
-            var choices = GarmentLibrary.Spawnable.Where(g => world.Content.ObjectDefinitions.ContainsKey(g.Id) &&
+            var catalog = c.Kind == "equip_garment" && GarmentLibrary.IsPortalWearAvailable(c.DefinitionId)
+                ? GarmentLibrary.Active.Where(g => g.Id == c.DefinitionId && !g.Retired)
+                : GarmentLibrary.Spawnable;
+            var choices = catalog.Where(g => world.Content.ObjectDefinitions.ContainsKey(g.Id) &&
                 (g.Sex == GarmentSex.Any || g.Sex == npc.Sex) &&
                 (string.IsNullOrEmpty(c.Category) || string.Equals(Kind(g), c.Category, StringComparison.OrdinalIgnoreCase) || string.Equals(g.Category.ToString(), c.Category, StringComparison.OrdinalIgnoreCase)))
                 .Where(g => c.DefinitionId == "random" || c.DefinitionId == g.Id).OrderBy(g => g.Id, StringComparer.Ordinal).ToArray();

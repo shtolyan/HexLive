@@ -174,6 +174,12 @@ public static class RecipeCatalog
     public static bool UsesPersistentProject(GoalType goal) =>
         goal != GoalType.CookMeat && IsItemOutputGoal(goal);
 
+    // §54.4: fresh wolf hide keeps its identity until a hide recipe uses it.
+    internal static string IngredientAlias(string itemId) => itemId == ContentIds.WolfHide ? ContentIds.Hide : itemId;
+
+    internal static bool IngredientMatches(string ingredientId, string itemId) =>
+        ingredientId == itemId || ingredientId == IngredientAlias(itemId);
+
     public static void ResetToDefaults()
     {
         _byGoal = Build();

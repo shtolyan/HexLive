@@ -26,8 +26,8 @@ public static class HumanMeatCatalog
     public static bool IsArm(string id) => id is ArmRaw or ArmCooked or MaleArmRaw or MaleArmCooked;
     public static bool IsLeg(string id) => id is LegRaw or LegCooked or MaleLegRaw or MaleLegCooked;
     public static bool IsTorso(string id) => id is TorsoRaw or TorsoCooked or MaleTorsoRaw or MaleTorsoCooked;
-    public static bool IsRaw(string id) => id == ContentIds.MeatRaw || id is ArmRaw or LegRaw or TorsoRaw or MaleArmRaw or MaleLegRaw or MaleTorsoRaw;
-    public static bool IsCooked(string id) => id == ContentIds.MeatCooked || id is ArmCooked or LegCooked or TorsoCooked or MaleArmCooked or MaleLegCooked or MaleTorsoCooked;
+    public static bool IsRaw(string id) => id is ContentIds.MeatRaw or ContentIds.CrabRaw or ArmRaw or LegRaw or TorsoRaw or MaleArmRaw or MaleLegRaw or MaleTorsoRaw;
+    public static bool IsCooked(string id) => id is ContentIds.MeatCooked or ContentIds.CrabCooked or ArmCooked or LegCooked or TorsoCooked or MaleArmCooked or MaleLegCooked or MaleTorsoCooked;
     public static string RawPart(BodyPart part, GarmentSex sex) => (part, sex) switch
     {
         (BodyPart.ArmL or BodyPart.ArmR, GarmentSex.Male) => MaleArmRaw,
@@ -48,7 +48,9 @@ public static class HumanMeatCatalog
     {
         ArmRaw => ArmCooked, LegRaw => LegCooked, TorsoRaw => TorsoCooked,
         MaleArmRaw => MaleArmCooked, MaleLegRaw => MaleLegCooked, MaleTorsoRaw => MaleTorsoCooked,
-        ContentIds.MeatRaw => ContentIds.MeatCooked, _ => id
+        ContentIds.MeatRaw => ContentIds.MeatCooked,
+        ContentIds.CrabRaw => ContentIds.CrabCooked,
+        _ => id
     };
     public static string FromLimb(string variant) => variant is "ArmL" or "ArmR" ? ArmRaw : LegRaw;
     public static void AppendDefinitions(Dictionary<string, ObjectDefinition> defs)

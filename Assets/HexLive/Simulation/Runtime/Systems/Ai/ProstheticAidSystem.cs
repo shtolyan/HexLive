@@ -55,7 +55,7 @@ public sealed class ProstheticAidSystem : ISimulationSystem
 
             if (TryAssignPickup(world, helper, wooden, mechanical) ||
                 (DecisionSystem.CountInventory(helper, ContentIds.Hide) == 0 &&
-                 TryAssignPickup(world, helper, ContentIds.Hide)))
+                 TryAssignPickup(world, helper, ContentIds.Hide, ContentIds.WolfHide)))
             {
                 continue;
             }

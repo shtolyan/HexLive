@@ -1918,7 +1918,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
     // and hangs there untouched.
     private static bool IsMeatSource(WorldState world, PerceivedObject perceived)
     {
-        if (perceived.DefinitionId is ContentIds.MeatRaw or ContentIds.MeatCooked)
+        if (IsAnimalMeat(perceived.DefinitionId))
         {
             return true;
         }
@@ -1928,6 +1928,9 @@ public sealed partial class PlanningSystem : ISimulationSystem
             world.Entities.Objects.TryGetValue(perceived.Id, out var fire) &&
             BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked) > 0;
     }
+
+    private static bool IsAnimalMeat(string id) =>
+        id is ContentIds.MeatRaw or ContentIds.MeatCooked or ContentIds.CrabRaw or ContentIds.CrabCooked;
 
     // Spec 23.10: a failed plan puts its goal on cooldown so the NPC does
     // something else instead of hammering the same target.

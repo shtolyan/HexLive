@@ -33,7 +33,7 @@ public sealed partial class DecisionSystem
         var count = 0;
         foreach (var item in npc.Inventory.Items)
         {
-            if (item == definitionId)
+            if (RecipeCatalog.IngredientMatches(definitionId, item.DefinitionId))
             {
                 count++;
             }
@@ -445,7 +445,7 @@ public sealed partial class DecisionSystem
         var occupiedByActor = PathfindingSystem.OtherActorJunctions(world, npc);
         foreach (var obj in npc.Perception.Objects)
         {
-            if (obj.DefinitionId != definitionId || !obj.IsReachable ||
+            if (!RecipeCatalog.IngredientMatches(definitionId, obj.DefinitionId) || !obj.IsReachable ||
                 !ObjectUsableBy(world, npc, obj) ||
                 npc.Memory.IsShunned(obj.Id, world.Tick) ||
                 !world.Entities.Objects.TryGetValue(obj.Id, out var groundPiece) ||
@@ -463,7 +463,7 @@ public sealed partial class DecisionSystem
             var cluster = 0;
             foreach (var other in npc.Perception.Objects)
             {
-                if (other.DefinitionId == definitionId && other.IsReachable &&
+                if (RecipeCatalog.IngredientMatches(definitionId, other.DefinitionId) && other.IsReachable &&
                     ObjectUsableBy(world, npc, other) &&
                     !npc.Memory.IsShunned(other.Id, world.Tick) &&
                     HexSpatialMath.HexDistance(other.Tile, obj.Tile) <= 1)
@@ -537,7 +537,7 @@ public sealed partial class DecisionSystem
             var nearby = 0;
             foreach (var obj in npc.Perception.Objects)
             {
-                if (obj.DefinitionId == ingredient.Id && obj.IsReachable &&
+                if (RecipeCatalog.IngredientMatches(ingredient.Id, obj.DefinitionId) && obj.IsReachable &&
                     ObjectUsableBy(world, npc, obj) &&
                     !npc.Memory.IsShunned(obj.Id, world.Tick) &&
                     HexSpatialMath.HexDistance(obj.Tile, anchor) <= 1)

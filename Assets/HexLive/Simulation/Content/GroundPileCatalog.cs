@@ -234,6 +234,12 @@ public static class GroundPileCatalog
         // source-sha256: b4b0f8c562bc050c6d17ac24461e9fd3765411d9de8670fbd8aed3b8f4ce6d97 Assets/HexLiveContent/RuntimeSource/Objects/resource_hide_native.fbx
         // source-sha256: 1f8a3fc83bec3c22e0e1eefe1d6cfff1a32d44256ea1385098414d9d23d4c4bd Assets/HexLiveContent/RuntimeSource/Objects/resource_hide_native.fbx.meta
         Profiles["resource.hide"]=new("resource.hide",new(-0.16201000f,0,-0.11823045f,0.16201000f,0.01697554f,0.11823045f),TargetWorldSize("resource.hide"),5,centerVisualXZ:true);
+        // §54.4: centered FBX bounds measured at the shared hand/world fit.
+        Profiles[ContentIds.WolfHide] = new(ContentIds.WolfHide, new(-.200f, 0, -.270f, .200f, .018f, .270f),
+            TargetWorldSize(ContentIds.WolfHide), 5, centerVisualXZ: true);
+        foreach (var crab in new[] { ContentIds.CrabRaw, ContentIds.CrabCooked })
+            Profiles[crab] = new(crab, new(-.120f, 0, -.056f, .120f, .063f, .056f),
+                TargetWorldSize(crab), centerVisualXZ: true);
         // source-sha256: 68b8656a4a6952ec8982676cdf33e05ea58f245a1029d0146a960410fab3b871 Assets/HexLiveContent/RuntimeSource/Objects/resource.mechanical_part.fbx
         // source-sha256: 372ca6e956f3b17a824f0a5380197bc705a88c75b304849f23b2d6e192e8a077 Assets/HexLiveContent/RuntimeSource/Objects/resource.mechanical_part.fbx.meta
         Profiles["resource.mechanical_part"]=new("resource.mechanical_part",new(-0.16201000f,0,-0.16201000f,0.16201000f,0.05888318f,0.16201000f),TargetWorldSize("resource.mechanical_part"),6,centerVisualXZ:true);
@@ -3344,7 +3350,7 @@ public static class GroundPileCatalog
         "item.bandage" or "item.pill" or "med.splint" => 10,
         "resource.arrow" or "resource.board" or "resource.fiber" or
         "resource.herb_leaf" or "resource.herb_seed" or "resource.yucca_seed" or
-        "resource.hide" or "resource.log" or
+        "resource.hide" or ContentIds.WolfHide or "resource.log" or
         "resource.mechanical_part" or "resource.rope" or "resource.stone" or ContentIds.Flint => 20,
         "tool.axe_stone" or "tool.bow" or "tool.hammer" or "tool.knife" or
         "tool.lighter" or "tool.machete" or "tool.pickaxe_stone" or
@@ -3402,6 +3408,8 @@ public static class GroundPileCatalog
             // A meat chunk reads bigger than a coconut half — 1.5× the standard
             // food size. Ground, hand and the roasting spit all share this.
             if (definitionId == "food.meat_raw" || definitionId == "food.meat_cooked") return r * 0.18f;
+            if (definitionId is ContentIds.CrabRaw or ContentIds.CrabCooked) return r * 0.16f;
+            if (definitionId == ContentIds.WolfHide) return .54f;
             if (definitionId == ContentIds.HamSandwich) return r * 0.15f;
             if (definitionId == ContentIds.CannedPeaches) return r * 0.11f;
             if (definitionId == ContentIds.StrawberryYogurt) return r * 0.105f;

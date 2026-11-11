@@ -109,6 +109,9 @@ namespace HexLive.Simulation.Content
         // Wildlife with no combat sheet still identifies its VIEW config by
         // this id (crab.asset, when one exists).
         public const string Crab = "crab";
+
+        // Old saves use the historical name of the crab system on its carcasses.
+        public static string CarcassMobId(string variant) => variant == "rabbit" ? Crab : variant;
     }
 
     /// <summary>Everything tunable about one mob type. Plain mutable fields so

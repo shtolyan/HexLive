@@ -883,7 +883,7 @@ public static class PrototypeContentCatalog
             ["resource.hide"] = new ObjectDefinition
             {
                 Id = "resource.hide",
-                DisplayName = "Rabbit Hide",
+                DisplayName = "Hide",
                 Tags = { "Hide" },
                 Interactions =
                 {
@@ -1342,6 +1342,14 @@ public static class PrototypeContentCatalog
         }
 
         AddPickupItem(ContentIds.Board, "Board", "Wood", "Resource");
+        AddPickupItem(ContentIds.WolfHide, "Wolf hide", "Hide");
+        AddPickupItem(ContentIds.CrabRaw, "Raw crab", ObjectTags.RawMeat, ObjectTags.Food);
+        AddPickupItem(ContentIds.CrabCooked, "Cooked crab", ObjectTags.Food);
+        defs[ContentIds.CrabCooked].Interactions.Add(new InteractionDefinition
+        {
+            Id = "eat.crab", Type = InteractionType.Eat, DurationTicks = 8,
+            Effects = { HungerDelta = -SimBalance.CookedMeatHunger, ComfortDelta = 0.1f },
+        });
         AddPickupItem(ContentIds.Flint, "Flint", "Resource");
         AddPickupItem(ContentIds.CrudeSaw, "Crude saw", "Tool", "Saw");
         AddPickupItem(ContentIds.Firestarter, "Firestarter", "Tool");

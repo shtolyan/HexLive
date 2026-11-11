@@ -43,6 +43,8 @@ public static class ContentIds
     public const string SeveredLimb = "body.limb_severed";
     public const string MeatRaw = "food.meat_raw";
     public const string MeatCooked = "food.meat_cooked";
+    public const string CrabRaw = "food.crab_raw";
+    public const string CrabCooked = "food.crab_cooked";
     public const string Apple = "food.apple";
     public const string Banana = "food.banana";
     public const string StrawberryYogurt = "food.strawberry_yogurt";
@@ -62,6 +64,7 @@ public static class ContentIds
     public const string Rope = "resource.rope";
     public const string Cloth = "resource.cloth";
     public const string Hide = "resource.hide";
+    public const string WolfHide = "resource.hide_wolf";
     public const string PalmLeaf = "resource.palm_leaf";
     public const string HerbLeaf = "resource.herb_leaf";
     public const string HerbSeed = "resource.herb_seed";

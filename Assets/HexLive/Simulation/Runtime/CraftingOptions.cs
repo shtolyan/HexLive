@@ -110,19 +110,22 @@ public static class CraftingOptions
                         continue;
                     }
 
-                    if (!_looseByDefinition.TryGetValue(obj.DefinitionId, out var list))
-                    {
-                        list = new List<WorldObjectState>();
-                        _looseByDefinition[obj.DefinitionId] = list;
-                    }
-
-                    list.Add(obj);
+                    IndexIngredient(obj.DefinitionId, obj);
+                    var alias = RecipeCatalog.IngredientAlias(obj.DefinitionId);
+                    if (alias != obj.DefinitionId) IndexIngredient(alias, obj);
                 }
             }
 
             return _looseByDefinition.TryGetValue(definitionId, out var found)
                 ? found
                 : Empty;
+        }
+
+        private void IndexIngredient(string id, WorldObjectState obj)
+        {
+            if (!_looseByDefinition.TryGetValue(id, out var list))
+                _looseByDefinition[id] = list = new List<WorldObjectState>();
+            list.Add(obj);
         }
 
         private static readonly List<WorldObjectState> Empty = new();
@@ -588,7 +591,7 @@ public static class CraftingOptions
             {
                 foreach (var paid in paidProject.Contents)
                 {
-                    if (paid.DefinitionId == ingredient.Id) available++;
+                    if (RecipeCatalog.IngredientMatches(ingredient.Id, paid.DefinitionId)) available++;
                 }
             }
             into.Add(new CraftIngredientOption

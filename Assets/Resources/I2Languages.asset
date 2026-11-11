@@ -18569,8 +18569,56 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - Rabbit Hide
-      - "\u041A\u0440\u043E\u043B\u0438\u0447\u044C\u044F \u0448\u043A\u0443\u0440\u0430"
+      - Hide
+      - Шкура
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.resource_hide_wolf.name
+      TermType: 0
+      Description:
+      Languages:
+      - Wolf hide
+      - Шкура волка
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.resource_hide_wolf.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A wolf pelt with thick grey fur, useful in recipes that require hide.
+      - Шкура с густой серой шерстью, подходит для рецептов со шкурой.
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_crab_raw.name
+      TermType: 0
+      Description:
+      Languages:
+      - Raw crab
+      - Сырой краб
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_crab_raw.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A whole crab ready to roast on the campfire spit.
+      - Целый краб для жарки на вертеле костра.
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_crab_cooked.name
+      TermType: 0
+      Description:
+      Languages:
+      - Cooked crab
+      - Жареный краб
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_crab_cooked.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A whole crab roasted over the campfire.
+      - Целый краб, поджаренный на костре.
       Flags: 0101
       Languages_Touch: []
     - Term: item.resource_hide.desc

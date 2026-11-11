@@ -66,7 +66,8 @@ public sealed partial class ExecutionSystem
         {
             for (var i = 0; i < ing.Count; i++)
             {
-                npc.Inventory.Items.Remove(ing.Id);
+                var index = npc.Inventory.Items.FindIndex(item => RecipeCatalog.IngredientMatches(ing.Id, item.DefinitionId));
+                if (index >= 0) npc.Inventory.Items.RemoveAt(index);
             }
         }
     }
@@ -304,7 +305,7 @@ public sealed partial class ExecutionSystem
         var found = new System.Collections.Generic.List<WorldObjectState>();
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (obj.DefinitionId != definitionId ||
+            if (!RecipeCatalog.IngredientMatches(definitionId, obj.DefinitionId) ||
                 !CampPropertyMath.CanUse(world, npc, obj) ||
                 !obj.Fragment.Equals(npc.Fragment) ||
                 obj.IsOccupied ||
@@ -669,7 +670,7 @@ public sealed partial class ExecutionSystem
                 fromGround += claimed;
                 for (var i = claimed; i < ing.Count; i++)
                 {
-                    var index = npc.Inventory.Items.IndexOf(ing.Id);
+                    var index = npc.Inventory.Items.FindIndex(item => RecipeCatalog.IngredientMatches(ing.Id, item.DefinitionId));
                     if (index < 0)
                     {
                         continue;

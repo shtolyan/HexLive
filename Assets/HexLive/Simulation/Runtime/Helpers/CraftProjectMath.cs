@@ -508,7 +508,7 @@ internal static class CraftProjectMath
             }
             while (remaining-- > 0)
             {
-                var index = npc.Inventory.Items.IndexOf(ingredient.Id);
+                var index = npc.Inventory.Items.FindIndex(item => RecipeCatalog.IngredientMatches(ingredient.Id, item.DefinitionId));
                 var item = npc.Inventory.Items[index];
                 npc.Inventory.Items.RemoveAt(index);
                 project.Contents.Add(item);
@@ -543,7 +543,7 @@ internal static class CraftProjectMath
         var found = new List<WorldObjectState>();
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (obj.DefinitionId == definitionId && !obj.IsOccupied && !obj.IsCraftProject &&
+            if (RecipeCatalog.IngredientMatches(definitionId, obj.DefinitionId) && !obj.IsOccupied && !obj.IsCraftProject &&
                 CampPropertyMath.CanUse(world, npc, obj) &&
                 obj.Contents.Count == 0 && string.IsNullOrEmpty(obj.BuildProduct) &&
                 obj.Fragment.Equals(npc.Fragment) &&

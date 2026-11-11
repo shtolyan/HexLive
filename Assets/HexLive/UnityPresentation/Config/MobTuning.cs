@@ -80,8 +80,7 @@ namespace HexLive.UnityPresentation.Config
         /// не обновлённые серверы стримят legacy-variant "rabbit" —
         /// историческое имя крабьей системы (§147): записи mob/rabbit никогда
         /// не было, дичь в мире — краб.</summary>
-        public static string CarcassMobId(string variant) =>
-            variant == "rabbit" ? MobIds.Crab : variant;
+        public static string CarcassMobId(string variant) => MobIds.CarcassMobId(variant);
 
         /// <summary>The mob's prefab: the asset's direct reference first, the
         /// legacy Resources path second, null = caller's hardcoded fallback.</summary>

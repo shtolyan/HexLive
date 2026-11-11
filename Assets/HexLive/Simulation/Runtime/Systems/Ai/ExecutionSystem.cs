@@ -2246,7 +2246,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             HumanButchery.Dismantle(world, npc, worldObject, human);
             return true;
         }
-        ApplyHarvestYields(world, npc, worldObject, completedInteraction.Yields);
+        var drops = worldObject.DefinitionId == ContentIds.CarcassAnimal
+            ? AnimalCarcassYields(worldObject.Variant, completedInteraction.Yields)
+            : completedInteraction.Yields;
+        ApplyHarvestYields(world, npc, worldObject, drops);
         var wasCorpse = definition.HasTag("Corpse");
         if (wasCorpse && SimBalance.CannibalismEnabled)
         {
@@ -2276,12 +2279,28 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
 
         Trace.Emit(world, npc.Id, "Butchered",
-            $"{worldObject.DefinitionId} (variant={worldObject.Variant}) -> meat + hide" +
+            $"{worldObject.DefinitionId} (variant={worldObject.Variant}) -> " +
+            (MobIds.CarcassMobId(worldObject.Variant) == MobIds.Crab ? "whole crab" : "meat + hide") +
             (wasCorpse ? " [cannibalism]" : string.Empty));
         WorldObjectMutations.DespawnObject(world, worldObject.Id);
 
         return true;
     }
+
+    private static readonly HarvestDrop[] WholeCrabYield =
+    {
+        new() { DefinitionId = ContentIds.CrabRaw, Count = 1, Scatter = false },
+    };
+
+    private static System.Collections.Generic.IReadOnlyList<HarvestDrop> AnimalCarcassYields(
+        string variant, System.Collections.Generic.List<HarvestDrop> defaults) => MobIds.CarcassMobId(variant) switch
+    {
+        MobIds.Crab => WholeCrabYield,
+        MobIds.Dog => defaults.ConvertAll(drop => drop.DefinitionId == ContentIds.Hide
+            ? new HarvestDrop { DefinitionId = ContentIds.WolfHide, Count = drop.Count, Scatter = drop.Scatter }
+            : drop),
+        _ => defaults,
+    };
 
     private static bool CompleteHang(
         WorldState world, NPCState npc, WorldObjectState worldObject,

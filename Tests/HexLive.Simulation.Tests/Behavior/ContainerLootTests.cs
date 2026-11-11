@@ -10,6 +10,7 @@ using HexLive.Simulation.Core;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
+using HexLive.Simulation.Wire;
 using NUnit.Framework;
 
 namespace HexLive.Simulation.Tests.Behavior;
@@ -17,6 +18,49 @@ namespace HexLive.Simulation.Tests.Behavior;
 /// <summary>§128.5 r2 / bug #199: remains and wardrobe share container transfer.</summary>
 public sealed class ContainerLootTests
 {
+    [TestCase("gear.backpack_primal_hunter")]
+    [TestCase("gear.backpack_primal_hunter_male")]
+    public void WardrobeExportsAndTransfersTheHungHunterBackpack(string packId)
+    {
+        var engine = TestWorld.CreateEngine(693);
+        var world = engine.World;
+        var npc = Colonist(world);
+        npc.Inventory.Items.Clear();
+        npc.Mind.ManualControl = true;
+        world.Content.ObjectDefinitions[packId] = new ObjectDefinition
+        {
+            Id = packId, Layer = WearLayer.Bags, InventoryCapacity = 4
+        };
+        // Older definitions can expose Wardrobe without a separate Rack tag.
+        world.Content.ObjectDefinitions[ContentIds.Wardrobe] = new ObjectDefinition
+        {
+            Id = ContentIds.Wardrobe, Tags = { ObjectTags.Wardrobe }
+        };
+        var anchor = Junction(world, npc);
+        var wardrobe = WorldObjectMutations.SpawnObject(
+            world, ContentIds.Wardrobe, npc.Fragment, npc.Tile, anchor);
+        WorldObjectMutations.SpawnObject(world, "clothing.skirt_primal", npc.Fragment, npc.Tile, anchor);
+        var pack = WorldObjectMutations.SpawnObject(world, packId, npc.Fragment, npc.Tile, anchor);
+        pack.Durability = 0.62f;
+
+        var decoded = new WorldSnapshot();
+        using var stream = new MemoryStream();
+        using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+            WorldSnapshotCodec.Write(WorldSnapshotExporter.Export(world), writer, includeDebugDetails: false);
+        stream.Position = 0;
+        using (var reader = new BinaryReader(stream)) WorldSnapshotCodec.Read(reader, decoded);
+        var rows = decoded.Objects.Single(obj => obj.Id == wardrobe.Id).Contents;
+        var slot = rows.FindIndex(row => row.ItemDefinitionId == packId);
+        Assert.That(slot, Is.GreaterThanOrEqualTo(0));
+
+        var admission = ManualCommandExecutor.Apply(world, new TransferContainerCommand(
+            npc.Id, wardrobe.Id, slot, packId, 1, InventoryTransferDirection.Take));
+        Assert.That(admission.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted), admission.Reason);
+        for (var i = 0; i < 200 && npc.Plan.Status == PlanStatus.Active; i++) engine.Step();
+        Assert.That(npc.Inventory.Items.Single(item => item.DefinitionId == packId).Durability, Is.EqualTo(0.62f));
+        Assert.That(world.Entities.Objects.ContainsKey(pack.Id), Is.False);
+    }
+
     [Test]
     public void DuplicateBottleTransferUsesPhysicalIdentityAndKeepsWater()
     {

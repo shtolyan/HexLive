@@ -1385,6 +1385,28 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
                 snapshot?.Npcs.Find(n => n.Id.Value == actorId), InteractionType.Loot) });
         }
 
+        // Clicking the pack hanging in a wardrobe can hit the pack mesh
+        // before the wardrobe. Offer the outer wardrobe from that hit too.
+        if (snapshot != null && clicked != null && clicked.Junctions.Count > 0 &&
+            definition.Layer != null)
+        {
+            foreach (var wardrobe in snapshot.Objects)
+            {
+                if (wardrobe.DefinitionId != ContentIds.Wardrobe || wardrobe.Junctions.Count == 0 ||
+                    !wardrobe.Junctions[0].Equals(clicked.Junctions[0]) ||
+                    !runner.TryGetObjectDefinition(wardrobe.DefinitionId, out var wardrobeDefinition) ||
+                    wardrobeDefinition == null) continue;
+
+                var wardrobeId = wardrobe.Id.Value;
+                var label = $"{Loc.Get("menu.loot_person")} · {ObjectTitle(wardrobeDefinition, wardrobe.DefinitionId)}";
+                _entries.Add(new ContextMenuEntry(label,
+                    () => LootTransferPanel.OpenContainer(actorId, wardrobeId))
+                { Danger = IsTheftTarget(snapshot, wardrobe,
+                    snapshot.Npcs.Find(n => n.Id.Value == actorId), InteractionType.Loot) });
+                break;
+            }
+        }
+
         if (snapshot != null)
         {
             if (clicked != null && clicked.CraftWorkRequired > 0)

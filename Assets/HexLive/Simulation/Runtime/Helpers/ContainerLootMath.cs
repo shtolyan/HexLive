@@ -92,7 +92,7 @@ internal static class ContainerLootMath
 
     private static bool IsRack(WorldState world, WorldObjectState obj) =>
         world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
-        definition.HasTag(ObjectTags.Rack);
+        (definition.HasTag(ObjectTags.Rack) || definition.HasTag(ObjectTags.Wardrobe));
 
     private static bool IsWardrobe(WorldState world, WorldObjectState obj) =>
         world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&

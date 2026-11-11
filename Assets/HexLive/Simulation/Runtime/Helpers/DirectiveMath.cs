@@ -78,7 +78,8 @@ public static class DirectiveMath
     /// Отказы «по делу» (ручная, чужая, самой не до того, уже занята) не портят
     /// отношения; «тебе — нет» — личный отказ по готовности.
     /// </summary>
-    public static bool Ask(WorldState world, NPCState asker, NPCState target, DirectiveKind kind)
+    public static bool Ask(WorldState world, NPCState asker, NPCState target, DirectiveKind kind,
+        string blockedReason = null)
     {
         if (!Spec167.Enabled || kind == DirectiveKind.None)
         {
@@ -90,7 +91,9 @@ public static class DirectiveMath
         Trace.Emit(world, asker.Id, "DirectiveAsked",
             $"Target=NPC{target.Id.Value} Kind={kind}");
 
-        return Decide(world, asker, target, kind, shout: false);
+        return blockedReason is null
+            ? Decide(world, asker, target, kind, shout: false)
+            : Refuse(world, asker, target, kind, blockedReason);
     }
 
     /// <summary>
@@ -139,6 +142,11 @@ public static class DirectiveMath
             reason = "Dislike";
         }
 
+        return Refuse(world, asker, target, kind, reason);
+    }
+
+    private static bool Refuse(WorldState world, NPCState asker, NPCState target, DirectiveKind kind, string reason)
+    {
         SocialCueSignals.Stamp(world, target, "DirectiveNo", asker.Id);
         Trace.Emit(world, target.Id, "DirectiveRefused",
             $"From=NPC{asker.Id.Value} Kind={kind} Reason={reason}");

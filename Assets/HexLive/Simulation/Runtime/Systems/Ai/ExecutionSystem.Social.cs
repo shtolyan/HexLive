@@ -125,14 +125,28 @@ public sealed partial class ExecutionSystem
             // §60: a listener who collapsed while the initiator was walking
             // over counts as busy — the neutral "sorry, busy" refusal, no
             // resentment (you can't be insulted by a coma).
+            var requestedDirective = npc.Plan.RequestedTalkTopic is { } requested
+                ? DirectiveMath.KindOf(requested) : null;
+            var hygieneRequest = Spec167.Enabled && requestedDirective is { } kind && DirectiveMath.IsHygiene(kind);
             var targetBusy = (target.Execution.Status == ExecutionStatus.InProgress &&
-                target.Execution.CurrentInteraction != InteractionType.Talk) ||
+                target.Execution.CurrentInteraction != InteractionType.Talk &&
+                !(hygieneRequest && target.Execution.CurrentInteraction is
+                    InteractionType.Sit or InteractionType.Rest or InteractionType.Observe)) ||
                 target.IsUnconscious(world.Tick);
             var listenerAffinity = target.Social.GetOrCreate(npc.Id).Affinity;
             var dislikes = listenerAffinity < RefusalAffinityThreshold &&
                 target.Needs.Social >= LonelinessOverrideThreshold;
             if (targetBusy || target.Mind.IsStarving || target.Movement.IsMoving || dislikes)
             {
+                if (hygieneRequest && requestedDirective is { } hygieneKind)
+                {
+                    var reason = DirectiveMath.RefusalByRule(world, npc, target, hygieneKind) ??
+                        (targetBusy || target.Movement.IsMoving ? "Busy" : "Dislike");
+                    DirectiveMath.Ask(world, npc, target, hygieneKind, reason);
+                    AbortTalk(world, npc, $"Hygiene request refused by NPC{targetId.Value}");
+                    return;
+                }
+
                 // Spec 28.10/28.15B: only a *personal* refusal breeds resentment;
                 // "sorry, busy" is not an insult (a lesson from the first soak:
                 // penalizing neutral refusals created an irreversible spiral).
@@ -1085,15 +1099,17 @@ public sealed partial class ExecutionSystem
             ? GroupHuntMath.MostHatedStranger(world, npc, target)
             : null;
 
-        SetTopic(npc, PickSpeakerTopic(world, npc, target, shared), stranger);
+        var askKind = DirectiveMath.KindOf(shared);
+        var hygieneRequest = Spec167.Enabled && askKind is { } kind && DirectiveMath.IsHygiene(kind);
+        SetTopic(npc, hygieneRequest ? shared : PickSpeakerTopic(world, npc, target, shared), stranger);
         // §167.2: на просьбу слушательница отвечает СВОИМ «да»/«нет» (из
         // состояния — повтор каждые 30 тиков даёт тот же ответ); личная
         // жалоба всё равно может его перекрыть: «я голодна» — честный ответ
         // на «запасись едой».
-        var listenerShared = DirectiveMath.KindOf(shared) is { } askKind
-            ? DirectiveMath.AnswerTopic(target, npc, askKind)
+        var listenerShared = askKind is { } directive
+            ? DirectiveMath.AnswerTopic(target, npc, directive)
             : shared;
-        SetTopic(target, PickSpeakerTopic(world, target, npc, listenerShared), stranger);
+        SetTopic(target, hygieneRequest ? listenerShared : PickSpeakerTopic(world, target, npc, listenerShared), stranger);
 
         if (stranger is null)
         {

@@ -296,7 +296,7 @@ public sealed class PeoplePaintRuntimeTests
                 if (savedDef == null) variants.Remove(id); else variants[id] = savedDef;
             }
         }
-        Assert.That(count, Is.EqualTo(82));
+        Assert.That(count, Is.EqualTo(catalog["records"].Count(r => (string)r["type"] == "wear")));
     }
 
     [UnityTest]

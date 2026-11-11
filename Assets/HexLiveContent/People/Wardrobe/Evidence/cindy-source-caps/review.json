@@ -1,0 +1,20 @@
+{
+  "reviewer": "/root",
+  "diagnosticOnly": true,
+  "sourceFrontAndSidePersonallyViewed": true,
+  "actualMartaCandidateFrontAndBackPersonallyViewed": true,
+  "visibleOuterRimPreserved": true,
+  "actualMartaStaticCandidateAccepted": true,
+  "KshishtofCertified": false,
+  "animatedPoseProofComplete": false,
+  "limits": [
+    "Native close and historical full views baked original materials without MaterialPropertyBlocks.",
+    "White occlusion masks substitute solid black depth materials; they prove geometric occlusion only, not original alpha or property-block clipping.",
+    "Nine views show zero visible deep-center marker pixels, but some original cap annulus remains visible; whole cap faces are not claimed invisible.",
+    "Clipping removes original cap interior PLUS a positive-clearance band up to4.00836mm. This band is not claimed already occluded.",
+    "Marta candidate passed actual BodyBones.Equip and all retained vertices+13 samples/triangle at2mm; exploratory K transfer failed and is not certified.",
+    "Final production output still needs both-body physical/reference/attribute checks and gallery/runtime pose validation."
+  ],
+  "reviewWallTimeNotInstrumented": true,
+  "recordedUTC": "2026-11-10T19:49:14.577528+00:00"
+}

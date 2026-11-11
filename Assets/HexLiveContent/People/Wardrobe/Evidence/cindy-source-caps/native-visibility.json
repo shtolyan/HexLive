@@ -1,0 +1,349 @@
+{
+  "passed": true,
+  "diagnosticOnly": true,
+  "nativeSource": "Assets/HexLiveContent/Wear/clothing.boots_cindy/CindyBoots.prefab",
+  "nativeSHA": "306d75dcea4c6e4e9923445297db2349de5a3c8c9b92ad81a23dbf3ec9424f3b",
+  "factory": "BodyBones.Equip + BakeMesh",
+  "capFaceIds": [
+    11006,
+    11008,
+    11010,
+    11011,
+    11023,
+    11028,
+    11030,
+    11031,
+    11045,
+    11047,
+    11049,
+    11051,
+    11969,
+    11971,
+    11973,
+    11974,
+    11986,
+    11991,
+    11993,
+    11994,
+    12008,
+    12010,
+    12012,
+    12014
+  ],
+  "centerVertexIndices": [
+    7381,
+    7393,
+    7409,
+    7972,
+    7984,
+    8000
+  ],
+  "nativeBaseIndexArraysExact": true,
+  "rows": [
+    {
+      "view": "azimuth-0",
+      "mode": "authored",
+      "whitePixels": 0,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-0-authored.png"
+    },
+    {
+      "view": "azimuth-0",
+      "mode": "cap-only",
+      "whitePixels": 24181,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-0-cap-only.png"
+    },
+    {
+      "view": "azimuth-0",
+      "mode": "cap-occluded",
+      "whitePixels": 117,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-0-cap-occluded.png"
+    },
+    {
+      "view": "azimuth-0",
+      "mode": "center-only",
+      "whitePixels": 48,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-0-center-only.png"
+    },
+    {
+      "view": "azimuth-0",
+      "mode": "center-occluded",
+      "whitePixels": 0,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-0-center-occluded.png"
+    },
+    {
+      "view": "azimuth-45",
+      "mode": "authored",
+      "whitePixels": 1,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-45-authored.png"
+    },
+    {
+      "view": "azimuth-45",
+      "mode": "cap-only",
+      "whitePixels": 23371,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-45-cap-only.png"
+    },
+    {
+      "view": "azimuth-45",
+      "mode": "cap-occluded",
+      "whitePixels": 21,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-45-cap-occluded.png"
+    },
+    {
+      "view": "azimuth-45",
+      "mode": "center-only",
+      "whitePixels": 48,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-45-center-only.png"
+    },
+    {
+      "view": "azimuth-45",
+      "mode": "center-occluded",
+      "whitePixels": 0,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-45-center-occluded.png"
+    },
+    {
+      "view": "azimuth-90",
+      "mode": "authored",
+      "whitePixels": 0,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-90-authored.png"
+    },
+    {
+      "view": "azimuth-90",
+      "mode": "cap-only",
+      "whitePixels": 21414,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-90-cap-only.png"
+    },
+    {
+      "view": "azimuth-90",
+      "mode": "cap-occluded",
+      "whitePixels": 0,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-90-cap-occluded.png"
+    },
+    {
+      "view": "azimuth-90",
+      "mode": "center-only",
+      "whitePixels": 49,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-90-center-only.png"
+    },
+    {
+      "view": "azimuth-90",
+      "mode": "center-occluded",
+      "whitePixels": 0,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-90-center-occluded.png"
+    },
+    {
+      "view": "azimuth-135",
+      "mode": "authored",
+      "whitePixels": 0,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-135-authored.png"
+    },
+    {
+      "view": "azimuth-135",
+      "mode": "cap-only",
+      "whitePixels": 19392,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-135-cap-only.png"
+    },
+    {
+      "view": "azimuth-135",
+      "mode": "cap-occluded",
+      "whitePixels": 2,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-135-cap-occluded.png"
+    },
+    {
+      "view": "azimuth-135",
+      "mode": "center-only",
+      "whitePixels": 52,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-135-center-only.png"
+    },
+    {
+      "view": "azimuth-135",
+      "mode": "center-occluded",
+      "whitePixels": 0,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-135-center-occluded.png"
+    },
+    {
+      "view": "azimuth-180",
+      "mode": "authored",
+      "whitePixels": 39,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-180-authored.png"
+    },
+    {
+      "view": "azimuth-180",
+      "mode": "cap-only",
+      "whitePixels": 18556,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-180-cap-only.png"
+    },
+    {
+      "view": "azimuth-180",
+      "mode": "cap-occluded",
+      "whitePixels": 58,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-180-cap-occluded.png"
+    },
+    {
+      "view": "azimuth-180",
+      "mode": "center-only",
+      "whitePixels": 48,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-180-center-only.png"
+    },
+    {
+      "view": "azimuth-180",
+      "mode": "center-occluded",
+      "whitePixels": 0,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-180-center-occluded.png"
+    },
+    {
+      "view": "azimuth-225",
+      "mode": "authored",
+      "whitePixels": 0,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-225-authored.png"
+    },
+    {
+      "view": "azimuth-225",
+      "mode": "cap-only",
+      "whitePixels": 19392,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-225-cap-only.png"
+    },
+    {
+      "view": "azimuth-225",
+      "mode": "cap-occluded",
+      "whitePixels": 1,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-225-cap-occluded.png"
+    },
+    {
+      "view": "azimuth-225",
+      "mode": "center-only",
+      "whitePixels": 52,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-225-center-only.png"
+    },
+    {
+      "view": "azimuth-225",
+      "mode": "center-occluded",
+      "whitePixels": 0,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-225-center-occluded.png"
+    },
+    {
+      "view": "azimuth-270",
+      "mode": "authored",
+      "whitePixels": 0,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-270-authored.png"
+    },
+    {
+      "view": "azimuth-270",
+      "mode": "cap-only",
+      "whitePixels": 21415,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-270-cap-only.png"
+    },
+    {
+      "view": "azimuth-270",
+      "mode": "cap-occluded",
+      "whitePixels": 5,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-270-cap-occluded.png"
+    },
+    {
+      "view": "azimuth-270",
+      "mode": "center-only",
+      "whitePixels": 49,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-270-center-only.png"
+    },
+    {
+      "view": "azimuth-270",
+      "mode": "center-occluded",
+      "whitePixels": 0,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-270-center-occluded.png"
+    },
+    {
+      "view": "azimuth-315",
+      "mode": "authored",
+      "whitePixels": 3,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-315-authored.png"
+    },
+    {
+      "view": "azimuth-315",
+      "mode": "cap-only",
+      "whitePixels": 23371,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-315-cap-only.png"
+    },
+    {
+      "view": "azimuth-315",
+      "mode": "cap-occluded",
+      "whitePixels": 127,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-315-cap-occluded.png"
+    },
+    {
+      "view": "azimuth-315",
+      "mode": "center-only",
+      "whitePixels": 48,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-315-center-only.png"
+    },
+    {
+      "view": "azimuth-315",
+      "mode": "center-occluded",
+      "whitePixels": 0,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/azimuth-315-center-occluded.png"
+    },
+    {
+      "view": "top",
+      "mode": "authored",
+      "whitePixels": 0,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/top-authored.png"
+    },
+    {
+      "view": "top",
+      "mode": "cap-only",
+      "whitePixels": 80134,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/top-cap-only.png"
+    },
+    {
+      "view": "top",
+      "mode": "cap-occluded",
+      "whitePixels": 0,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/top-cap-occluded.png"
+    },
+    {
+      "view": "top",
+      "mode": "center-only",
+      "whitePixels": 52,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/top-center-only.png"
+    },
+    {
+      "view": "top",
+      "mode": "center-occluded",
+      "whitePixels": 0,
+      "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/cindy-cap-visibility-20261110T185641866/top-center-occluded.png"
+    }
+  ],
+  "assetsModified": false,
+  "acceptanceOverride": false,
+  "scope": "Authored annulus may be visible. White cap mask and independently occluded center markers distinguish a hidden center from a wholly hidden face.",
+  "centerWorld": [
+    [
+      0.08925934,
+      0.7504553,
+      -0.00309401751
+    ],
+    [
+      0.08925934,
+      0.7504553,
+      -0.00309401751
+    ],
+    [
+      0.08925934,
+      0.7504553,
+      -0.00309401751
+    ],
+    [
+      -0.08925969,
+      0.750455439,
+      -0.00309435138
+    ],
+    [
+      -0.08925969,
+      0.750455439,
+      -0.00309435138
+    ],
+    [
+      -0.08925969,
+      0.750455439,
+      -0.00309435138
+    ]
+  ]
+}

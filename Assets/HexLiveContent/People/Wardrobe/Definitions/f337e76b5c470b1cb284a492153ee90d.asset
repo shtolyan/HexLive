@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_slipons_fads_checks(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.slipons_fads_checks
+  prototypeId: clothing.slipons_fads
+  alternateFitId: 
+  displayName: Slip-Ons (Checks)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 6
+  variantMaterials:
+  - {fileID: 2100000, guid: 2d3a09ae98bc1c04aba82184114eebf8, type: 2}
+  - {fileID: 2100000, guid: 7bf83f989c55c83449e23043e0c32712, type: 2}
+  - {fileID: 2100000, guid: 28cdbb23afdeb404186564a18d6127e0, type: 2}
+  - {fileID: 2100000, guid: 1989d527ff1bf4d48ad44891994ef5c7, type: 2}
+  - {fileID: 2100000, guid: a11522544eca64e47a8a55b667d98179, type: 2}
+  - {fileID: 2100000, guid: 7d5ec06c6da42904baed76bd4777022b, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.08
+  armor: 0.05
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

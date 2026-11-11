@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: garment_Legacy_9421108fbe306fee813d80ab82a1da11_Marta_4273
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: Legacy_9421108fbe306fee813d80ab82a1da11_Marta
+  VertexCount: 4273
+  Version: 0
+  MeshHeight: 1.7
+  TSamples: 1
+  AzimuthSamples: 1
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: Head
+    Points:
+    - Slot: 0
+      Uv: {x: 0.825411, y: 0.39509666}
+      BindPerU: 1.5102942
+      BindPerV: 2.068541
+      Valid: 1
+      BindPos: {x: -0.025090283, y: 1.625804, z: -0.08651023}
+      BindNormal: {x: 0.34612638, y: 0.041737985, z: 0.93725896}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Torso
+    Points:
+    - Slot: 0
+      Uv: {x: 0.8281577, y: 0.39702475}
+      BindPerU: 1.877528
+      BindPerV: 1.8830879
+      Valid: 1
+      BindPos: {x: -0.020723542, y: 1.6231899, z: -0.089093745}
+      BindNormal: {x: 0.05165802, y: -0.99421406, z: 0.0941795}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Pelvis
+    Points:
+    - Slot: 0
+      Uv: {x: 0.8281577, y: 0.39702475}
+      BindPerU: 1.877528
+      BindPerV: 1.8830879
+      Valid: 1
+      BindPos: {x: -0.020723542, y: 1.6231899, z: -0.089093745}
+      BindNormal: {x: 0.05165802, y: -0.99421406, z: 0.0941795}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmL
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmR
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegL
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegR
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}

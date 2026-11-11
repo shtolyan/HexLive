@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_sandals_summer3_style_03_cherry(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.sandals_summer3_style_03_cherry
+  prototypeId: clothing.sandals_summer3
+  alternateFitId: 
+  displayName: Sandals, Style III (Style 03 Cherry)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 6
+  variantMaterials:
+  - {fileID: 2100000, guid: 180e3e35b27899b4f9bded5de7209045, type: 2}
+  - {fileID: 2100000, guid: aefd75fed67ba3b4f94c6ebfbea2605f, type: 2}
+  - {fileID: 2100000, guid: c1a04406bafe522469b53586fa6d9f9b, type: 2}
+  - {fileID: 2100000, guid: 3d43b0b5a26525443a66b6735d1cf8e3, type: 2}
+  - {fileID: 2100000, guid: 8279877ffeac61249a37dca651a5f137, type: 2}
+  - {fileID: 2100000, guid: 5c029b472150d31438ff4038e153d0c4, type: 2}
+  - {fileID: 2100000, guid: 809331c0a5a6f19489629fa84e7d1bc6, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.02
+  armor: 0.02
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

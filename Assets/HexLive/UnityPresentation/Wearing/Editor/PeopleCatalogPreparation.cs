@@ -102,10 +102,13 @@ namespace HexLive.UnityPresentation.Wearing.Editor
                 }
             }
             PeopleWardrobeFitPreparation.ApplyPairs(records);
+            var keys = new HashSet<string>(records.Select(r => (string)r["type"] + "/" + (string)r["id"]));
             foreach (var guid in AssetDatabase.FindAssets("t:ScriptableObject", new[] { Root + "/PaintMaps" }))
             {
                 var path = AssetDatabase.GUIDToAssetPath(guid);
                 var name = Path.GetFileNameWithoutExtension(path);
+                if(name.StartsWith("garment_Legacy_",StringComparison.Ordinal))continue;
+                if (!keys.Add("config/" + ("PaintMaps." + name).ToLowerInvariant())) continue;
                 // Each map keeps the exact resource alias consumed by existing painters.
                 const string folder = "PaintMaps";
                 var aliases = new JArray();
@@ -135,6 +138,7 @@ namespace HexLive.UnityPresentation.Wearing.Editor
                         path.Contains("/Legacy/", StringComparison.Ordinal)) errors.Add(path);
             }
             File.WriteAllText(CatalogPath, new JObject { ["schemaVersion"] = 1, ["peopleCatalog"] = PeopleIdMap.CatalogId,
+                ["contentOrigin"] = "primal",
                 ["gameReady"] = false, ["bundleBuildAuthorized"] = false, ["records"] = records }.ToString());
             File.WriteAllText(Root + "/Validation/catalog-dependencies.json", new JObject {
                 ["passed"] = errors.Count == 0, ["errors"] = errors, ["dependencies"] = dependencies }.ToString());

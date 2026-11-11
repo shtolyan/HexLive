@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "stage": "source-evidenced-attachment-fans",
+  "runtimeBehaviorChanged": false,
+  "automaticSemanticDetection": false,
+  "records": [
+    {
+      "id": "clothing.boots_cindy",
+      "nativeSource": "Assets/HexLiveContent/Wear/clothing.boots_cindy/CindyBoots.prefab",
+      "nativeSha": "306d75dcea4c6e4e9923445297db2349de5a3c8c9b92ad81a23dbf3ec9424f3b",
+      "nativeDependency": "a6e27964762a54895f6cff2cb1a7458b",
+      "requiresFreshUnityDependencyCapture": false,
+      "nativeMesh": "Assets/ImportedActors/Wear/CindyBoots/Meshes/Marta.mesh",
+      "nativeMeshSha": "7716fa765feb5a39b3d48931da4e76a9036e30e49d8fcde8db9481c4f9a9c20c",
+      "nativeMeshGuid": "6b0638d0710cacc4793f6159ca0950cf",
+      "actor": "Marta",
+      "vertices": 8416,
+      "triangles": 12552,
+      "submeshIndexCounts": [
+        30282,
+        5778,
+        1596
+      ],
+      "centerIndices": [
+        7381,
+        7393,
+        7409,
+        7972,
+        7984,
+        8000
+      ],
+      "capFaceIndices": [
+        11006,
+        11008,
+        11010,
+        11011,
+        11023,
+        11028,
+        11030,
+        11031,
+        11045,
+        11047,
+        11049,
+        11051,
+        11969,
+        11971,
+        11973,
+        11974,
+        11986,
+        11991,
+        11993,
+        11994,
+        12008,
+        12010,
+        12012,
+        12014
+      ],
+      "materialSlot": 1,
+      "materialPath": "Assets/ImportedActors/Wear/CindyBoots/Materials/Shocks.mat",
+      "materialSha": "ee729306313380c2cfccf27db7363aa512b013c87e79b5cb618d5055acec8aa6",
+      "sourceTopologySha256": "dfda3c81f4a78bb6095c38aa7d62b972e385accf39c96de45430064a0ad30a10",
+      "sourceTopologyHashEncoding": "int32LE submeshCount; for each slot int32LE indexCount followed by int32LE triangle indices in original order",
+      "fullWeightsSha256": "10eda20c577d1c0b0cd9ae16d93fa9c9805af15b0635867d52a17c0d76145fa4",
+      "fullWeightsHashEncoding": "uint8 influenceCounts for all vertices; then original ordered influences, each int32LE boneIndex plus IEEE754 float32LE weight",
+      "localPositionsFloat32Sha256": "891316a2d721fb7ab65db1d01bf9d8820285bdcb221bc252ce4aa0c4017afc8a",
+      "groups": [
+        {
+          "centerIndices": [
+            7381,
+            7393,
+            7409
+          ],
+          "canonicalFullInfluences": [
+            [
+              17,
+              0.00228885328
+            ],
+            [
+              19,
+              0.836255431
+            ],
+            [
+              21,
+              0.1614557
+            ]
+          ],
+          "canonicalInfluenceBytesSha256": "b999dfeeb88f0510d39db86cc3fdf5481ced502ebc6dca966b9d2396090b22dc",
+          "capFaceIndices": [
+            11006,
+            11008,
+            11010,
+            11011,
+            11023,
+            11028,
+            11030,
+            11031,
+            11045,
+            11047,
+            11049,
+            11051
+          ],
+          "ringAttributeIndices": [
+            7379,
+            7376,
+            7382,
+            7384,
+            7385,
+            7391,
+            7396,
+            7398,
+            7399,
+            7407,
+            7410,
+            7412
+          ],
+          "singleClosedRing": true,
+          "materialSlot": 1
+        },
+        {
+          "centerIndices": [
+            7972,
+            7984,
+            8000
+          ],
+          "canonicalFullInfluences": [
+            [
+              16,
+              0.00228885328
+            ],
+            [
+              18,
+              0.836255431
+            ],
+            [
+              20,
+              0.1614557
+            ]
+          ],
+          "canonicalInfluenceBytesSha256": "5a15dc8a3365e076c17bedef00406cb87ef16bef7b9a4476a0a236506dd616f2",
+          "capFaceIndices": [
+            11969,
+            11971,
+            11973,
+            11974,
+            11986,
+            11991,
+            11993,
+            11994,
+            12008,
+            12010,
+            12012,
+            12014
+          ],
+          "ringAttributeIndices": [
+            7970,
+            7967,
+            7973,
+            7975,
+            7976,
+            7982,
+            7987,
+            7989,
+            7990,
+            7998,
+            8001,
+            8003
+          ],
+          "singleClosedRing": true,
+          "materialSlot": 1
+        }
+      ],
+      "evidenceFiles": [
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/cindy-source-caps/source-topology-diagnosis.json",
+          "sha256": "862481a5e4e84fa86f7d1fe12f74e5284646a506801afd31c6372ca9152b7621",
+          "bytes": 92264
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/cindy-source-caps/offline-annulus-proof.json",
+          "sha256": "4951d1c85916ad7952ee422da74d837755dbca617f74bc53d2a348ede6d7d4f8",
+          "bytes": 5760
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/cindy-source-caps/native-visibility.json",
+          "sha256": "422b0e4577fb737e8234f270d8512acf9dd0c9b8d738f809e525adca63ea2699",
+          "bytes": 11650
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/cindy-source-caps/native-front-close.png",
+          "sha256": "7b0d76b5f0f36804ed2c71dbc029daf84ae060a7d9c106dff2f5648fb38052c0",
+          "bytes": 400106
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/cindy-source-caps/native-side-close.png",
+          "sha256": "af22dc2fa57dac2a19e096bca63b943733939e4387004aed795167fe0931d8af",
+          "bytes": 226108
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/cindy-source-caps/actual-marta-candidate.json",
+          "sha256": "cc7c7ce023762592e1c54a49c16daee6c2c35b3ff167bc1a56478dfd5c9f94dd",
+          "bytes": 11157
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/cindy-source-caps/candidate-marta-front.png",
+          "sha256": "3fc6b2e5a18ea137688701748f23b468980786c6995d5dacf8a7efed92b3a56e",
+          "bytes": 134437
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/cindy-source-caps/candidate-marta-back.png",
+          "sha256": "78dad892fb93459be176c062a899a108da7ca8e322dac861372a4e949d6b675a",
+          "bytes": 137307
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/cindy-source-caps/review.json",
+          "sha256": "3709b8ca520c7d9d355d6e29f8f487ba91577fe239219aed7e3cd182fbec9037",
+          "bytes": 1270
+        }
+      ],
+      "clipPolicy": {
+        "candidateContourMetres": 0.004,
+        "minimumAcceptedMetres": 0.002,
+        "preserveOuterRing": true,
+        "preserveOtherFaces": true,
+        "preserveOriginalCapSurface": true,
+        "originalSourceTriangleBudgetSharedWithAdaptive": true,
+        "allRetainedVerticesAnd13SamplesRequired": true,
+        "acceptanceOverride": false
+      },
+      "historicalFixtureSha256": "7e1b5aa260e133a2dc606a34a0baa6269cc9ce5069265450980f79d54917b816",
+      "historicalActualMartaCandidateSha256": "6d9c6d25ab0ff0f62416bc9f748ccf41a5b5c2bff9f41acf524310cb7f154061",
+      "bodyAuthoringDependencies": [
+        {
+          "path": "Assets/HexLiveContent/People/Prefabs/Actors/Marta.prefab",
+          "dependency": "fa70a225333bd10ae52d65702f210198",
+          "sha256": "d34eb4b0b30aab50b873267f45cf93b65276a21c9a180d968f212ad53c86454a"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Prefabs/Actors/Kshishtof.prefab",
+          "dependency": "8d800d08b15dbb68a864d75e922f698d",
+          "sha256": "048d12a549cbd46e3bfe67f42a2dc50be4041c4aa47fcc313480d3a7f72fe2cf"
+        }
+      ]
+    }
+  ]
+}

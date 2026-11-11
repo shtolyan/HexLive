@@ -69,8 +69,6 @@ public sealed class GarmentTuningBackfillTests
 
     private static void AssertMetadata(GarmentParams expected, GarmentParams actual)
     {
-        Assert.Multiple(() =>
-        {
             Assert.That(actual.Id, Is.EqualTo(expected.Id));
             Assert.That(actual.PrototypeId, Is.EqualTo(expected.PrototypeId));
             Assert.That(actual.AlternateFitId, Is.EqualTo(expected.AlternateFitId));
@@ -82,7 +80,6 @@ public sealed class GarmentTuningBackfillTests
             Assert.That(actual.ThermalDelta, Is.EqualTo(expected.ThermalDelta));
             Assert.That(actual.DressDurationTicks, Is.EqualTo(expected.DressDurationTicks));
             Assert.That(actual.Covers, Is.EqualTo(expected.Covers));
-        });
     }
 }
 }

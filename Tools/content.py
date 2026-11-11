@@ -372,7 +372,7 @@ def write_raw_candidate(
 
 def load_candidate(path: Path) -> dict:
     path = path.expanduser().resolve()
-    value = json.loads(path.read_text())
+    value = json.loads(path.read_text(encoding="utf-8-sig"))
     validate_identity(value.get("type", ""), value.get("id", ""))
     if value.get("state") not in {"active", "retired"}:
         raise ValueError(f"{path}: state must be active or retired")
@@ -464,7 +464,7 @@ def publish_all(args: argparse.Namespace) -> int:
         if not root.is_dir():
             raise FileNotFoundError(root)
         for path in sorted(root.rglob("candidate.json")):
-            value = json.loads(path.read_text())
+            value = json.loads(path.read_text(encoding="utf-8-sig"))
             validate_identity(value.get("type", ""), value.get("id", ""))
             grouped.setdefault((value["type"], value["id"]), []).append(path)
     if not grouped:

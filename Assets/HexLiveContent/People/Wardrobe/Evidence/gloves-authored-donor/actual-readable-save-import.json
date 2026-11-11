@@ -1,0 +1,144 @@
+{
+  "diagnosticOnly": true,
+  "admissionGranted": false,
+  "records": [
+    {
+      "id": "clothing.gloves_stars",
+      "actor": "Marta",
+      "nativeSource": "Assets/HexLiveContent/Wear/clothing.gloves_stars/StarsGloves.prefab",
+      "nativeSourceSha256": "35abd6e9c8961b3b19c7567df0f2f17bba4ee581fe9d0e6244d764339bee4ef5",
+      "nativeDependency": "a2d3d84d3b016302dedf140c018249ed",
+      "nativeMesh": "Assets/ImportedActors/Wear/StarsGloves/Meshes/Marta.mesh",
+      "nativeMeshSha256": "4107214df94902cbe03adb85cf1874bbad8e3c44129468afb9276954edc458f8",
+      "nativeMeshGuid": "8481498ce204f804d8f3a66570e59117",
+      "rawBuffers": {
+        "vertexBuffers": [
+          {
+            "stream": 0,
+            "bytes": 86920,
+            "sha256": "7dda09e09a8c83bbd33f23405dd6b62c123e3e547368df8654767b66b397ad8d"
+          },
+          {
+            "stream": 1,
+            "bytes": 17384,
+            "sha256": "9c9bdf67f4c15795c6a351db9040d7d63ce59962164b72631881150776abac91"
+          },
+          {
+            "stream": 2,
+            "bytes": 69536,
+            "sha256": "bcb9542c6d97ea2d7a48c4294c980a162e6a84870f769dede38e8ea42a617e4e"
+          }
+        ],
+        "indexBufferSha256": "1c3cafe73977a2fd6089bb5182f48a10466be7ecc2b6c6f4b401a618c5c90b12",
+        "allRawVertexAndIndexBytesExact": true,
+        "fullSkinFloatBitsExact": true,
+        "bindposeFloatBitsExact": true,
+        "submeshDescriptorsExact": true,
+        "vertices": 2173,
+        "triangles": 3564,
+        "ownedDerivedReadable": true,
+        "nativeReadableFlag": false,
+        "nativeReadableFlagUnchanged": true,
+        "afterSaveAndImport": {
+          "vertexBuffers": [
+            {
+              "stream": 0,
+              "bytes": 86920,
+              "sha256": "7dda09e09a8c83bbd33f23405dd6b62c123e3e547368df8654767b66b397ad8d"
+            },
+            {
+              "stream": 1,
+              "bytes": 17384,
+              "sha256": "9c9bdf67f4c15795c6a351db9040d7d63ce59962164b72631881150776abac91"
+            },
+            {
+              "stream": 2,
+              "bytes": 69536,
+              "sha256": "bcb9542c6d97ea2d7a48c4294c980a162e6a84870f769dede38e8ea42a617e4e"
+            }
+          ],
+          "indexBufferSha256": "1c3cafe73977a2fd6089bb5182f48a10466be7ecc2b6c6f4b401a618c5c90b12",
+          "allRawVertexAndIndexBytesExact": true,
+          "fullSkinFloatBitsExact": true,
+          "bindposeFloatBitsExact": true,
+          "submeshDescriptorsExact": true,
+          "vertices": 2173,
+          "triangles": 3564
+        },
+        "savedAndReloadedRawBitsExact": true
+      },
+      "nativeReadableFlag": false,
+      "nativeSourceUnmodified": true,
+      "admissionGranted": false
+    },
+    {
+      "id": "clothing.outfit_reiko",
+      "actor": "Marta",
+      "nativeSource": "Assets/HexLiveContent/Wear/clothing.outfit_reiko/ReikoOutfit.prefab",
+      "nativeSourceSha256": "014863885d40cc0cfa53b2449ab037032a7adb5d2c9c87ead1ff725429b1fb90",
+      "nativeDependency": "65e60a1cc81d755ad30cfd1201a63c72",
+      "nativeMesh": "Assets/ImportedActors/Wear/ReikoOutfit/Meshes/Marta.mesh",
+      "nativeMeshSha256": "584a41081488793953b85ea31d0e4cb4f2b08667ac0375f668480a9ecd420f86",
+      "nativeMeshGuid": "54defb6decb7fda43b7545df231fac69",
+      "rawBuffers": {
+        "vertexBuffers": [
+          {
+            "stream": 0,
+            "bytes": 374880,
+            "sha256": "82e6fb22523b9ac9fef6b082e8b172e820250486afa4747cab15da54db543d5b"
+          },
+          {
+            "stream": 1,
+            "bytes": 74976,
+            "sha256": "f9e14f67a260217445975acfe7c306e38d0817b3a5131056aa1731d7a723eac8"
+          },
+          {
+            "stream": 2,
+            "bytes": 299904,
+            "sha256": "c5f54cd49ec12b86d8e1805f770562b6997108a20da5ea2239948bf32685b7b7"
+          }
+        ],
+        "indexBufferSha256": "468649e651216be14f977828ac394043353b5835580e6b48c28d5cb7e319060f",
+        "allRawVertexAndIndexBytesExact": true,
+        "fullSkinFloatBitsExact": true,
+        "bindposeFloatBitsExact": true,
+        "submeshDescriptorsExact": true,
+        "vertices": 9372,
+        "triangles": 12062,
+        "ownedDerivedReadable": true,
+        "nativeReadableFlag": false,
+        "nativeReadableFlagUnchanged": true,
+        "afterSaveAndImport": {
+          "vertexBuffers": [
+            {
+              "stream": 0,
+              "bytes": 374880,
+              "sha256": "82e6fb22523b9ac9fef6b082e8b172e820250486afa4747cab15da54db543d5b"
+            },
+            {
+              "stream": 1,
+              "bytes": 74976,
+              "sha256": "f9e14f67a260217445975acfe7c306e38d0817b3a5131056aa1731d7a723eac8"
+            },
+            {
+              "stream": 2,
+              "bytes": 299904,
+              "sha256": "c5f54cd49ec12b86d8e1805f770562b6997108a20da5ea2239948bf32685b7b7"
+            }
+          ],
+          "indexBufferSha256": "468649e651216be14f977828ac394043353b5835580e6b48c28d5cb7e319060f",
+          "allRawVertexAndIndexBytesExact": true,
+          "fullSkinFloatBitsExact": true,
+          "bindposeFloatBitsExact": true,
+          "submeshDescriptorsExact": true,
+          "vertices": 9372,
+          "triangles": 12062
+        },
+        "savedAndReloadedRawBitsExact": true
+      },
+      "nativeReadableFlag": false,
+      "nativeSourceUnmodified": true,
+      "admissionGranted": false
+    }
+  ]
+}

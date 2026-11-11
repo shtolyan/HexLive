@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: garment_Legacy_9421108fbe306fee813d80ab82a1da11_Kshishtof_4273
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: Legacy_9421108fbe306fee813d80ab82a1da11_Kshishtof
+  VertexCount: 4273
+  Version: 0
+  MeshHeight: 1.7
+  TSamples: 1
+  AzimuthSamples: 1
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: Head
+    Points:
+    - Slot: 0
+      Uv: {x: 0.825411, y: 0.39509666}
+      BindPerU: 1.5163825
+      BindPerV: 2.1737678
+      Valid: 1
+      BindPos: {x: -0.025091171, y: 1.721347, z: -0.079846375}
+      BindNormal: {x: 0.3461264, y: 0.041737974, z: 0.93725896}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Torso
+    Points:
+    - Slot: 0
+      Uv: {x: 0.8281577, y: 0.39702475}
+      BindPerU: 1.8797494
+      BindPerV: 1.9144939
+      Valid: 1
+      BindPos: {x: -0.020724932, y: 1.718596, z: -0.08247205}
+      BindNormal: {x: 0.051658053, y: -0.99421406, z: 0.09417954}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Pelvis
+    Points:
+    - Slot: 0
+      Uv: {x: 0.8281577, y: 0.39702475}
+      BindPerU: 1.8797494
+      BindPerV: 1.9144939
+      Valid: 1
+      BindPos: {x: -0.020724932, y: 1.718596, z: -0.08247205}
+      BindNormal: {x: 0.051658053, y: -0.99421406, z: 0.09417954}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmL
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmR
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegL
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegR
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}

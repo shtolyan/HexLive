@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: underwear_briefs_luxury_02_cherry_panties(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: underwear.briefs_luxury_02_cherry_panties
+  prototypeId: underwear.briefs_luxury
+  alternateFitId: 
+  displayName: Jewelled Bikini Bottom (02 Cherry Panties)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 1
+  variantMaterials:
+  - {fileID: 2100000, guid: 3f57475ed0de4484eb5ff56b8037dca9, type: 2}
+  - {fileID: 2100000, guid: 51d6bfd876e0fcc46b9516f0c4d7ecd9, type: 2}
+  - {fileID: 2100000, guid: 7d754eacdbb33d04da339a76cda48d92, type: 2}
+  layer: 0
+  covers: 0100000002000000
+  warmth: 0.02
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 1

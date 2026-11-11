@@ -1,0 +1,20 @@
+{
+  "writtenUtc": "2026-11-10T21:58:28.606816+00:00",
+  "reviewWallTimeNotInstrumented": true,
+  "reviewer": "/root",
+  "decision": "Approve exact source and Marta DONOR authored shape preservation after source-specific evidence consumer passes. Recipient Kshishtof remains strict. No blanket fallback or claim that every original authored opening was repaired.",
+  "id": "clothing.gloves_stars",
+  "actor": "Marta",
+  "donor": "Marta",
+  "nativeSourcePrefab": "Assets/HexLiveContent/Wear/clothing.gloves_stars/StarsGloves.prefab",
+  "sourceMesh": "Assets/ImportedActors/Wear/StarsGloves/Meshes/Marta.mesh",
+  "sourceMeshSha256": "4107214df94902cbe03adb85cf1874bbad8e3c44129468afb9276954edc458f8",
+  "actualPlayModeCase": "HexLive.Tests.WardrobeMartaFullNativeDonorEvidenceRuntimeTests.GlovesFullNativeDerivedMartaHasActualSixPoseAndReequipEvidence",
+  "actualSixPoseQualityPassed": true,
+  "actualRootAndReequipPassed": true,
+  "rawSaveAndImportPassed": true,
+  "all12StandingViewsPersonallyViewed": true,
+  "observations": "Native and derived glove silhouettes/cuffs/fingers match. A small skin opening below the right wrist cuff is present in BOTH Native and derived, potentially an authored closure gap; no new regression established. Do not describe the source as uniformly closed or artifact-free.",
+  "bodyContactPolicy": "Diagnostic only for this explicitly preserved authored donor. Never mislabel as strict cloth2mm PASS.",
+  "publicationAuthorized": false
+}

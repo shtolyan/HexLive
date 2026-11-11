@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: garment_e3ff62aa1e79a18e22ed073492b15e55_190be113108d6afa43a106ea_Kshishtof_4591
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: e3ff62aa1e79a18e22ed073492b15e55_190be113108d6afa43a106ea_Kshishtof
+  VertexCount: 4591
+  Version: 0
+  MeshHeight: 1.7
+  TSamples: 1
+  AzimuthSamples: 1
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: Head
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Torso
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Pelvis
+    Points:
+    - Slot: 1
+      Uv: {x: 0.69193333, y: 0.97926664}
+      BindPerU: 1.613592
+      BindPerV: 1.2401961
+      Valid: 1
+      BindPos: {x: 0.0019440297, y: 0.8136491, z: 0.036279052}
+      BindNormal: {x: -0.23096856, y: 0.9698826, z: 0.0773387}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmL
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmR
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegL
+    Points:
+    - Slot: 0
+      Uv: {x: 0.84263617, y: 0.3303647}
+      BindPerU: 1.0882573
+      BindPerV: 0.62139344
+      Valid: 1
+      BindPos: {x: -0.06461059, y: 0.49195004, z: 0.015679374}
+      BindNormal: {x: 0.6448391, y: -0.33771083, z: 0.6856631}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegR
+    Points:
+    - Slot: 1
+      Uv: {x: 0.1613641, y: 0.114929736}
+      BindPerU: 0.39190304
+      BindPerV: 7.244252
+      Valid: 1
+      BindPos: {x: 0.06735071, y: 0.47400203, z: 0.006521908}
+      BindNormal: {x: -0.4277222, y: 0.50342286, z: 0.7507457}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}

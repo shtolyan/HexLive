@@ -510,6 +510,11 @@ public static class PeopleAssetPreparation
             string kind = (string)row["kind"], id = (string)row["id"], actor = (string)row["actor"];
             if (hairOnly && kind != "hair") continue;
             if (kind == "hair" && id.EndsWith("_LOD1", StringComparison.Ordinal)) continue;
+            var folder = kind == "actor" ? "Actors" : kind == "hair" ? "Hair" : "Wear";
+            string prefabName = kind == "hair" ? id.Replace("_LOD0", "") : kind == "actor" ? id : actor + "_" + id;
+            var path = Root + "/Prefabs/" + folder + "/" + prefabName + ".prefab";
+            var previous = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            var authoredWear = previous != null ? previous.GetComponent<Wear>() : null;
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/Source/" + (string)row["path"]);
             var go = UnityEngine.Object.Instantiate(model);
             go.name = kind == "hair" ? id.Replace("_LOD0", "") : kind == "actor" ? id : actor + "_" + id;
@@ -557,10 +562,11 @@ public static class PeopleAssetPreparation
                         SetSlots(so.FindProperty("slots"), new[] { "Chest" });
                     }
                     so.ApplyModifiedPropertiesWithoutUndo();
+                    if (kind == "wear" || kind == "backpack")
+                        WearPreparationSettings.Restore(wear, authoredWear,
+                            (ActorName)Enum.Parse(typeof(ActorName), actor), (float?)definition?["scale"] ?? 1f);
                     if (id == "PrimalTop") wear.SetLayer(VisualWearLayer.Underwear);
                 }
-                var folder = kind == "actor" ? "Actors" : kind == "hair" ? "Hair" : "Wear";
-                var path = Root + "/Prefabs/" + folder + "/" + go.name + ".prefab";
                 PrefabUtility.SaveAsPrefabAsset(go, path);
                 prefabs.Add(new JObject { ["kind"] = kind, ["id"] = id, ["actor"] = actor, ["path"] = path });
             }

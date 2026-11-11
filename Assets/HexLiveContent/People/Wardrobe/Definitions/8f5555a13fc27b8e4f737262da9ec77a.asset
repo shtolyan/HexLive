@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_boots_anarchy_purple(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.boots_anarchy_purple
+  prototypeId: clothing.boots_anarchy
+  alternateFitId: 
+  displayName: Buckled Thigh Boots (Purple)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 6
+  variantMaterials:
+  - {fileID: 2100000, guid: 225aeaa957428d242b4fc14194db6379, type: 2}
+  - {fileID: 2100000, guid: 0b0644777381afa4fa9961ce976c57e8, type: 2}
+  - {fileID: 2100000, guid: 5ab00f2b57458db46982f7ae24d339dc, type: 2}
+  - {fileID: 2100000, guid: b8b4fceb53550d54a9dfba5332d8c968, type: 2}
+  - {fileID: 2100000, guid: cbd19b917990d1748926517ee8d6b0a5, type: 2}
+  - {fileID: 2100000, guid: bf83032021d797740875e264e8f0206d, type: 2}
+  - {fileID: 2100000, guid: ef97bc04aa66a3a41a2e5d0aef621acd, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.14
+  armor: 0.13
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

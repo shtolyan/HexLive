@@ -225,6 +225,242 @@ public static class AtomicContentBatchBuild
         BuildAll();
     }
 
+    public static void BuildStagedModernWebGL()
+    {
+        var arguments = Environment.GetCommandLineArgs();
+        if (Required(arguments, "-content-platform") != "WebGL" || UsePeopleCatalog)
+            throw new InvalidOperationException("Modern wardrobe staging requires a dedicated WebGL build");
+        ValidateTarget("WebGL");
+
+        const string catalogPath = StagedWardrobeRoot + "release-catalog.json";
+        const string manifestPath = StagedWardrobeRoot + "release-fit.json";
+        const string selectionPath = StagedWardrobeRoot + "release-selection.json";
+        const string baseCatalogPath = StagedWardrobeRoot + "base-catalog.json";
+        const string preparationPath = StagedWardrobeRoot + "preparation.json";
+        var inputHashes = new[] { catalogPath, manifestPath, selectionPath, baseCatalogPath, preparationPath, PeopleCatalogPath }
+            .ToDictionary(path => path, Hash, StringComparer.Ordinal);
+        var catalog = JObject.Parse(File.ReadAllText(catalogPath));
+        var manifest = JObject.Parse(File.ReadAllText(manifestPath));
+        var selection = JObject.Parse(File.ReadAllText(selectionPath));
+        var preparation = JObject.Parse(File.ReadAllText(preparationPath));
+        var baseCatalog = JObject.Parse(File.ReadAllText(baseCatalogPath));
+        var generation = manifest["baseGeneration"];
+        if ((string)catalog["contentOrigin"] != "modern" || (string)catalog["stage"] != "prepared-only" ||
+            (bool?)catalog["gameReady"] != false || (bool?)catalog["bundleBuildAuthorized"] != false ||
+            (bool?)catalog["finalFit"] != true || (string)catalog["finalFitManifest"] != manifestPath ||
+            (int?)manifest["schemaVersion"] != 1 || (string)manifest["stage"] != "final-fit-prepared-only" ||
+            (bool?)manifest["passed"] != true || (bool?)manifest["catalogPromoted"] != true ||
+            (string)manifest["finalCatalog"]?["path"] != catalogPath ||
+            (string)manifest["finalCatalog"]?["sha"] != inputHashes[catalogPath] ||
+            (string)manifest["releaseSelectionSHA256"] != inputHashes[selectionPath] ||
+            (string)catalog["releaseSelectionSHA256"] != inputHashes[selectionPath] ||
+            (string)generation?["cachePath"] != preparationPath ||
+            (string)generation?["cacheSHA"] != inputHashes[preparationPath] ||
+            (string)generation?["stagedCatalogSnapshot"] != baseCatalogPath ||
+            (string)generation?["stagedCatalogSHA"] != inputHashes[baseCatalogPath] ||
+            !(catalog["records"] is JArray records) || !(manifest["rows"] is JObject fits))
+            throw new InvalidOperationException("The matching curated Modern wardrobe, fit, and exclusion policy are required");
+
+        var expected = CuratedModernRecords(manifest, selection, preparation, baseCatalog, fits);
+        var live = new HashSet<string>(PeopleRecords().Select(RecordKey), StringComparer.Ordinal);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var roots = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var row in records)
+        {
+            string key = RecordKey(row);
+            if (!seen.Add(key) || live.Contains(key) || !expected.TryGetValue(key, out var verified) ||
+                !JToken.DeepEquals(row, verified))
+                throw new InvalidOperationException("Invalid curated wardrobe record " + key);
+
+            roots.Add((string)row["main"]);
+            if ((string)row["type"] != "wear") continue;
+            string definition = (string)row["definition"];
+            string icon = $"{IconRoot}/{row["id"]}.png";
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(icon) == null ||
+                AssetDatabase.LoadAssetAtPath<GarmentDefinition>(definition) == null)
+                throw new InvalidOperationException("Missing staged wardrobe icon or definition: " + key);
+            roots.Add(definition);
+            roots.Add(icon);
+        }
+        if (!seen.SetEquals(expected.Keys))
+            throw new InvalidOperationException("Incomplete curated wardrobe catalog");
+        foreach (var path in AssetDatabase.GetDependencies(roots.ToArray(), true))
+            if (path.StartsWith("Assets/", StringComparison.Ordinal) && !File.Exists(path) && !AssetDatabase.IsValidFolder(path))
+                throw new InvalidOperationException("Missing imported WebGL wardrobe dependency: " + path);
+
+        RequireModernBuildInputs(inputHashes);
+        Run(buildAll: true, stagedWardrobe: records, modernInputHashes: inputHashes);
+    }
+
+    private static Dictionary<string, JObject> CuratedModernRecords(
+        JObject manifest, JObject selection, JObject preparation, JObject baseCatalog, JObject fits)
+    {
+        if ((int?)selection["schemaVersion"] != 1 || !(selection["excludedModels"] is JArray policyRows) ||
+            !(manifest["excludedModels"] is JArray fitExclusions) || !(baseCatalog["records"] is JArray baseRecords))
+            throw new InvalidOperationException("Invalid curated wardrobe selection or base snapshot");
+
+        var policyById = ModernExclusionsById(policyRows);
+        var excludedById = ModernExclusionsById(fitExclusions);
+        var excludedSources = policyById.Values.Select(row => (string)row["source"]).ToHashSet(StringComparer.Ordinal);
+        var allModels = preparation.Properties().Select(property => property.Name).ToHashSet(StringComparer.Ordinal);
+        if (allModels.Count != 183 || fits.Count == 0 || fits.Count + policyById.Count != allModels.Count ||
+            !allModels.SetEquals(fits.Properties().Select(property => property.Name).Concat(policyById.Keys)) ||
+            !policyById.Keys.ToHashSet(StringComparer.Ordinal).SetEquals(excludedById.Keys))
+            throw new InvalidOperationException("Curated model and exclusion inventory differs from the immutable base");
+
+        var baseWear = baseRecords.OfType<JObject>().Where(row => (string)row["type"] == "wear").ToArray();
+        var byPrefab = baseWear.ToLookup(row => (string)row["main"], StringComparer.Ordinal);
+        var baseIds = baseWear.Select(row => (string)row["id"]).ToHashSet(StringComparer.Ordinal);
+        if (baseWear.Length != 660 || baseIds.Count != 660 || baseIds.Contains(null))
+            throw new InvalidOperationException("Invalid immutable wardrobe variant inventory");
+
+        var expected = new Dictionary<string, JObject>(StringComparer.Ordinal);
+        var artifacts = new HashSet<string>(StringComparer.Ordinal);
+        var accountedIds = new HashSet<string>(StringComparer.Ordinal);
+        int excludedVariants = 0;
+        foreach (var model in preparation.Properties())
+        {
+            string source = (string)model.Value["source"];
+            string prepared = (string)model.Value["prepared"];
+            var variants = byPrefab[prepared].ToArray();
+            var ids = variants.Select(row => (string)row["id"]).ToHashSet(StringComparer.Ordinal);
+            if (string.IsNullOrEmpty(source) || string.IsNullOrEmpty(prepared) || variants.Length == 0 ||
+                ids.Any(id => !accountedIds.Add(id)))
+                throw new InvalidOperationException("Immutable wardrobe variants are not uniquely assigned to " + model.Name);
+
+            if (policyById.TryGetValue(model.Name, out var policy))
+            {
+                var exclusion = (JObject)excludedById[model.Name].DeepClone();
+                var aliases = exclusion["logicalIds"] as JArray;
+                exclusion.Remove("logicalIds");
+                if ((string)policy["source"] != source || !JToken.DeepEquals(policy, exclusion) ||
+                    !ExactModernLogicalIds(aliases, ids))
+                    throw new InvalidOperationException("Curated exclusion or its variants differ for " + model.Name);
+                excludedVariants += ids.Count;
+                continue;
+            }
+
+            if (excludedSources.Contains(source) || !(fits[model.Name] is JObject fit) ||
+                (string)fit["base"]?["source"] != source || (string)fit["base"]?["prepared"] != prepared ||
+                !(fit["final"] is JObject final) || !ExactModernLogicalIds(final["logicalIds"] as JArray, ids))
+                throw new InvalidOperationException("Included Modern fit has the wrong source or variants: " + model.Name);
+
+            string prefab = (string)final["prefab"];
+            var maps = VerifyModernFitArtifacts(model.Name, final, prefab, artifacts);
+            foreach (var original in variants)
+            {
+                var row = (JObject)original.DeepClone();
+                string definition = (string)row["definition"];
+                if (definition == null || !definition.StartsWith(StagedWardrobeRoot + "Definitions/", StringComparison.Ordinal))
+                    throw new InvalidOperationException("Wrong Modern definition root: " + RecordKey(row));
+                row["main"] = prefab;
+                row["metadata"]["contentOrigin"] = "modern";
+                row["metadata"]["finalFit"] = true;
+                AddRecord(row);
+            }
+            foreach (var map in maps)
+            {
+                string path = (string)map["path"];
+                string name = Path.GetFileNameWithoutExtension(path);
+                AddRecord(new JObject
+                {
+                    ["type"] = "config", ["id"] = ("PaintMaps." + name).ToLowerInvariant(), ["main"] = path,
+                    ["metadata"] = new JObject
+                    {
+                        ["peopleCatalog"] = baseCatalog["peopleCatalog"].DeepClone(),
+                        ["contentOrigin"] = "modern", ["legacyWardrobe"] = true, ["finalFit"] = true,
+                        ["legacyResourcePath"] = "HexLive/PaintMaps/" + name,
+                        ["legacyResourceFolder"] = "HexLive/PaintMaps"
+                    }
+                });
+            }
+        }
+
+        int wearCount = expected.Values.Count(row => (string)row["type"] == "wear");
+        int mapCount = expected.Count - wearCount;
+        var counts = manifest["counts"];
+        if (!accountedIds.SetEquals(baseIds) || wearCount + excludedVariants != 660 || mapCount != 2 * fits.Count ||
+            (int?)counts?["models"] != fits.Count || (int?)counts?["logicalIds"] != wearCount ||
+            (int?)counts?["maps"] != mapCount || (int?)counts?["meshes"] != mapCount)
+            throw new InvalidOperationException("Curated wardrobe count or coverage mismatch");
+        return expected;
+
+        void AddRecord(JObject row)
+        {
+            string key = RecordKey(row);
+            if ((bool?)row["metadata"]?["legacyWardrobe"] != true || expected.ContainsKey(key))
+                throw new InvalidOperationException("Invalid or duplicate verified Modern record " + key);
+            expected.Add(key, row);
+        }
+    }
+
+    private static Dictionary<string, JObject> ModernExclusionsById(JArray rows)
+    {
+        var entries = new Dictionary<string, JObject>(StringComparer.Ordinal);
+        foreach (var item in rows)
+        {
+            string id = (string)item["id"];
+            if (!(item is JObject entry) || string.IsNullOrWhiteSpace(id) ||
+                string.IsNullOrWhiteSpace((string)item["source"]) || string.IsNullOrWhiteSpace((string)item["reason"]) ||
+                entries.ContainsKey(id))
+                throw new InvalidOperationException("Invalid or duplicate curated exclusion " + id);
+            entries.Add(id, entry);
+        }
+        return entries;
+    }
+
+    private static bool ExactModernLogicalIds(JArray values, HashSet<string> expected)
+    {
+        return values != null && values.Count == expected.Count && expected.SetEquals(values.Values<string>());
+    }
+
+    private static JArray VerifyModernFitArtifacts(string model, JObject final, string prefab, HashSet<string> artifacts)
+    {
+        if ((bool?)final["artifactValidationPassed"] != true || !(final["outputs"] is JArray outputs) ||
+            outputs.Count != 5 || !(final["meshes"] is JObject meshes) || meshes.Count != 2 ||
+            !(meshes["Marta"] is JObject marta) || !(meshes["Kshishtof"] is JObject kshishtof) ||
+            !(final["maps"] is JArray maps) || maps.Count != 2)
+            throw new InvalidOperationException("Missing verified Modern fit for " + model);
+        var byPath = new Dictionary<string, JToken>(StringComparer.Ordinal);
+        foreach (var output in outputs)
+        {
+            string path = (string)output["path"];
+            // Dependency hashes are scoped to the original Editor target.
+            // Verify raw bytes/GUID and then reopen the actual WebGL payloads.
+            if (!IsStagedWardrobePath(path) || !artifacts.Add(path) ||
+                (string)output["sha"] != Hash(path) || (string)output["metaSha"] != Hash(path + ".meta") ||
+                (string)output["guid"] != AssetDatabase.AssetPathToGUID(path))
+                throw new InvalidOperationException("Staged wardrobe artifact changed: " + path);
+            byPath.Add(path, output);
+        }
+        var used = new HashSet<string>(StringComparer.Ordinal);
+        RequireOutput(prefab, "Prefabs/FinalFit/", null);
+        RequireOutput((string)marta["path"], "Meshes/FinalFit/", marta);
+        RequireOutput((string)kshishtof["path"], "Meshes/FinalFit/", kshishtof);
+        foreach (var map in maps)
+            RequireOutput((string)map["path"], "PaintMaps/FinalFit/", map);
+        return maps;
+
+        void RequireOutput(string path, string directory, JToken descriptor)
+        {
+            if (path == null || !path.StartsWith(StagedWardrobeRoot + directory, StringComparison.Ordinal) ||
+                !used.Add(path) || !byPath.TryGetValue(path, out var output) ||
+                (descriptor != null && new[] { "sha", "metaSha", "guid", "dependencyHash" }
+                    .Any(field => !JToken.DeepEquals(descriptor[field], output[field]))))
+                throw new InvalidOperationException("Wrong verified Modern artifact ownership for " + model + ": " + path);
+        }
+    }
+
+    private static void RequireModernBuildInputs(Dictionary<string, string> hashes)
+    {
+        foreach (var input in hashes)
+            if (Hash(input.Key) != input.Value)
+                throw new InvalidOperationException("Modern staging input changed during build: " + input.Key);
+    }
+
+
+    private static string RecordKey(JToken row) => (string)row["type"] + "/" + (string)row["id"];
+
     // Resolve the complete inventory before spending time on any bundle.
     // This also leaves an exact receipt for completeness checks after the build.
     public static void AuditAll()
@@ -385,7 +621,8 @@ public static class AtomicContentBatchBuild
         }
     }
 
-    private static void Run(bool buildAll)
+    private static void Run(bool buildAll, JArray stagedWardrobe = null,
+        Dictionary<string, string> modernInputHashes = null)
     {
         var succeeded = false;
         try
@@ -395,6 +632,10 @@ public static class AtomicContentBatchBuild
             var output = Path.GetFullPath(Required(arguments, "-content-output"));
             var runtimeProfile = Optional(arguments, "-content-runtime-profile") ?? RuntimeProfile;
             Directory.CreateDirectory(output);
+            var groupedMode = Optional(arguments, "-content-staged-batch");
+            if (arguments.Contains("-content-staged-batch") && (stagedWardrobe == null ||
+                groupedMode is not ("smoke" or "full") || Directory.EnumerateFileSystemEntries(output).Any()))
+                throw new InvalidOperationException("Grouped mode requires a fresh dedicated Modern staging output and smoke or full");
 
             var target = ValidateTarget(platform);
             if (!buildAll)
@@ -416,9 +657,14 @@ public static class AtomicContentBatchBuild
                     .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                     .Select(value => value.Trim()),
                     StringComparer.Ordinal);
-                var recipes = DiscoverAllRecipes()
-                    .Where(recipe => !excludedTypes.Contains(recipe.Type))
-                    .ToList();
+                if (stagedWardrobe != null && excludedTypes.Count != 0)
+                    throw new InvalidOperationException("A staged Modern wardrobe requires its complete inventory");
+                var recipes = stagedWardrobe == null
+                    ? DiscoverAllRecipes().Where(recipe => !excludedTypes.Contains(recipe.Type)).ToList()
+                    : stagedWardrobe.Select(row => new Recipe
+                    {
+                        Type = (string)row["type"], Id = (string)row["id"], Inputs = () => ResolvePeople(row)
+                    }).ToList();
                 var duplicateBuildName = recipes
                     .GroupBy(recipe => BundleBuildName(recipe.Type, recipe.Id),
                         StringComparer.Ordinal)
@@ -432,7 +678,8 @@ public static class AtomicContentBatchBuild
                 }
                 var failures = new JArray();
                 var builtCount = 0;
-                foreach (var recipe in recipes)
+                var complete = groupedMode == null ? null : new HashSet<Recipe>();
+                void BuildSingle(Recipe recipe)
                 {
                     try
                     {
@@ -443,6 +690,7 @@ public static class AtomicContentBatchBuild
                             recipe.Type, recipe.Id, platform, runtimeProfile, target,
                             objectOutput, recipe.Inputs());
                         builtCount++;
+                        complete?.Add(recipe);
                     }
                     catch (Exception ex)
                     {
@@ -460,6 +708,34 @@ public static class AtomicContentBatchBuild
                     }
                 }
 
+                if (groupedMode == null)
+                {
+                    foreach (var recipe in recipes) BuildSingle(recipe);
+                }
+                else
+                {
+                    var smoke = groupedMode == "smoke";
+                    var groups = PlanStagedGroups(recipes, stagedWardrobe, smoke);
+                    var proof = BuildStagedGroups(groups, output, platform, runtimeProfile, target, smoke, BuildSingle, complete);
+                    RequireModernBuildInputs(modernInputHashes);
+                    proof["catalogSHA256"] = modernInputHashes[StagedWardrobeRoot + "release-catalog.json"];
+                    proof["fitManifestSHA256"] = modernInputHashes[StagedWardrobeRoot + "release-fit.json"];
+                    proof["releaseSelectionSHA256"] = modernInputHashes[StagedWardrobeRoot + "release-selection.json"];
+                    File.WriteAllText(Path.Combine(output, "grouped-build-receipt.json"),
+                        proof.ToString(Formatting.Indented) + "\n", new UTF8Encoding(false));
+                    if (smoke)
+                    {
+                        if (complete.Count != 2 * StagedGroupSize ||
+                            proof["groups"].Any(group => (bool?)group["manifestAndEntriesVerified"] != true))
+                            throw new InvalidOperationException("Grouped Modern smoke did not verify both groups");
+                        succeeded = true;
+                        return;
+                    }
+                    builtCount = complete.Count;
+                    if (builtCount + failures.Count != recipes.Count)
+                        throw new InvalidOperationException("Grouped Modern build did not account for every recipe");
+                }
+
                 var summary = new JObject
                 {
                     ["platform"] = platform,
@@ -470,6 +746,17 @@ public static class AtomicContentBatchBuild
                     ["failed"] = failures.Count,
                     ["failures"] = failures,
                 };
+                if (stagedWardrobe != null)
+                {
+                    summary["contentOrigin"] = "modern";
+                    summary["stage"] = "prepared-only";
+                    summary["unityVersion"] = Application.unityVersion;
+                    RequireModernBuildInputs(modernInputHashes);
+                    summary["primalCatalogSHA256"] = modernInputHashes[PeopleCatalogPath];
+                    summary["catalogSHA256"] = modernInputHashes[StagedWardrobeRoot + "release-catalog.json"];
+                    summary["fitManifestSHA256"] = modernInputHashes[StagedWardrobeRoot + "release-fit.json"];
+                    summary["releaseSelectionSHA256"] = modernInputHashes[StagedWardrobeRoot + "release-selection.json"];
+                }
                 File.WriteAllText(
                     Path.Combine(output, "build-all-summary.json"),
                     summary.ToString(Formatting.Indented) + "\n", new UTF8Encoding(false));
@@ -478,7 +765,10 @@ public static class AtomicContentBatchBuild
                     throw new InvalidOperationException(
                         $"Full atomic build failed for {failures.Count}/{recipes.Count} objects.");
                 }
-                if (UsePeopleCatalog) ValidatePeoplePayloads(output, platform);
+                if (stagedWardrobe != null)
+                    ValidatePeoplePayloads(output, platform, stagedWardrobe);
+                else if (UsePeopleCatalog)
+                    ValidatePeoplePayloads(output, platform);
             }
             succeeded = true;
         }
@@ -522,7 +812,7 @@ public static class AtomicContentBatchBuild
         return target;
     }
 
-    private static void ValidatePeoplePayloads(string output, string platform)
+    private static void ValidatePeoplePayloads(string output, string platform, JArray stagedWardrobe = null)
     {
         var contract = JObject.Parse(File.ReadAllText("Assets/HexLiveContent/People/Source/body-contract.json"));
         var retained = new List<AssetBundle>();
@@ -531,7 +821,7 @@ public static class AtomicContentBatchBuild
         var actualMaps = new Dictionary<string, int>(StringComparer.Ordinal);
         try
         {
-            foreach (var row in PeopleRecords())
+            foreach (var row in stagedWardrobe ?? PeopleRecords())
             {
                 string type = (string)row["type"], id = (string)row["id"];
                 string payload = Path.Combine(output, type, id, platform, PayloadName);
@@ -585,6 +875,22 @@ public static class AtomicContentBatchBuild
                             !definition.covers.Select(c => c.ToString()).SequenceEqual(
                                 row["metadata"]["simulation"]["covers"].Values<string>()))
                             throw new InvalidOperationException(id + ": prefab, definition and server wardrobe disagree");
+                        if (stagedWardrobe != null)
+                        {
+                            var configs = new SerializedObject(wear).FindProperty("configs");
+                            if (configs == null || configs.arraySize != 2 ||
+                                !wear.SupportsActor(HexLive.UnityPresentation.Wearing.ActorName.Marta) ||
+                                !wear.SupportsActor(HexLive.UnityPresentation.Wearing.ActorName.Kshishtof) ||
+                                bundle.LoadAsset<Sprite>("icon") == null)
+                                throw new InvalidOperationException(id + ": missing serialized fit or icon");
+                            for (int i = 0; i < configs.arraySize; i++)
+                            {
+                                var fittedMesh = configs.GetArrayElementAtIndex(i).FindPropertyRelative("mesh").objectReferenceValue as Mesh;
+                                if (fittedMesh == null || fittedMesh.vertexCount == 0)
+                                    throw new InvalidOperationException(id + ": missing serialized fitted mesh");
+                                requiredMaps[$"HexLive/PaintMaps/garment_{fittedMesh.name}_{fittedMesh.vertexCount}"] = fittedMesh.vertexCount;
+                            }
+                        }
                     }
                     if (main is HexLive.UnityPresentation.Wearing.PaintPointMap map)
                     {
@@ -593,7 +899,13 @@ public static class AtomicContentBatchBuild
                             throw new InvalidOperationException(id + ": missing paint alias or valid anchors");
                         actualMaps.Add(key, map.VertexCount);
                     }
-                    rows.Add(new JObject { ["type"] = type, ["id"] = id, ["passed"] = true });
+                    var receipt = new JObject { ["type"] = type, ["id"] = id, ["passed"] = true };
+                    if (stagedWardrobe != null)
+                    {
+                        receipt["sha256"] = Hash(payload);
+                        receipt["size"] = new FileInfo(payload).Length;
+                    }
+                    rows.Add(receipt);
                     if (keep) retained.Add(bundle);
                 }
                 finally { if (!retained.Contains(bundle)) bundle.Unload(true); }
@@ -610,6 +922,194 @@ public static class AtomicContentBatchBuild
         }
         finally { foreach (var bundle in retained) bundle.Unload(true); }
     }
+
+    private const int StagedGroupSize = 16;
+
+    private sealed class StagedGroupEntry
+    {
+        public Recipe Recipe;
+        public string[] Roots;
+        public HashSet<string> Dependencies;
+    }
+
+    private sealed class StagedGroup
+    {
+        public readonly List<StagedGroupEntry> Entries = new();
+        private readonly HashSet<string> roots = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> dependencies = new(StringComparer.OrdinalIgnoreCase);
+
+        public bool CanAdd(StagedGroupEntry entry) => Entries.Count < StagedGroupSize &&
+            !dependencies.Overlaps(entry.Roots) && !entry.Dependencies.Overlaps(roots);
+
+        public void Add(StagedGroupEntry entry)
+        {
+            Entries.Add(entry);
+            roots.UnionWith(entry.Roots);
+            dependencies.UnionWith(entry.Dependencies);
+        }
+    }
+
+    private static List<StagedGroup> PlanStagedGroups(List<Recipe> recipes, JArray catalog, bool smoke)
+    {
+        var rows = catalog.ToDictionary(RecordKey, StringComparer.Ordinal);
+        var closure = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var groups = smoke ? new List<StagedGroup> { new(), new() } : new List<StagedGroup>();
+        foreach (var recipe in smoke ? recipes.OrderBy(row => row.Type == "wear" ? 0 : 1) : recipes.AsEnumerable())
+        {
+            bool wear = recipe.Type == "wear";
+            if (!wear && recipe.Type != "config")
+                throw new InvalidOperationException("Grouped staging supports only wardrobe wear and maps");
+            int quota = wear ? 12 : 4;
+            if (smoke && groups.All(group => group.Entries.Count(entry => entry.Recipe.Type == recipe.Type) >= quota))
+                continue;
+            var row = rows[recipe.Type + "/" + recipe.Id];
+            var main = (string)row["main"];
+            var roots = wear ? new[] { main, (string)row["definition"], $"{IconRoot}/{recipe.Id}.png" } :
+                new[] { main, $"{GeneratedMetadataRoot}/{recipe.Type}.{recipe.Id}.json" };
+            var dependencies = new HashSet<string>(roots, StringComparer.OrdinalIgnoreCase);
+            foreach (var root in roots.Take(wear ? roots.Length : 1))
+            {
+                if (!closure.TryGetValue(root, out var paths))
+                    closure[root] = paths = AssetDatabase.GetDependencies(root, true);
+                dependencies.UnionWith(paths);
+            }
+            var entry = new StagedGroupEntry { Recipe = recipe, Roots = roots, Dependencies = dependencies };
+            var group = groups.FirstOrDefault(candidate => candidate.CanAdd(entry) && (!smoke ||
+                candidate.Entries.Count(member => member.Recipe.Type == recipe.Type) < quota));
+            if (group == null && !smoke)
+            {
+                group = new StagedGroup();
+                groups.Add(group);
+            }
+            group?.Add(entry);
+        }
+        if (smoke && groups.Any(group => group.Entries.Count != StagedGroupSize))
+            throw new InvalidOperationException("Grouped smoke requires two independent groups of 12 wear and 4 maps");
+        if (!smoke && groups.Sum(group => group.Entries.Count) != recipes.Count)
+            throw new InvalidOperationException("Grouped plan lost a staged wardrobe recipe");
+        return groups;
+    }
+
+    private static void BuildStagedGroup(StagedGroup group, string work, string output, string platform,
+        string runtimeProfile, BuildTarget target, HashSet<Recipe> complete)
+    {
+        var generated = new List<string>();
+        try
+        {
+            var jobs = new List<(StagedGroupEntry Entry, BuildInputs Inputs, AssetBundleBuild Build)>();
+            foreach (var entry in group.Entries)
+            {
+                var recipe = entry.Recipe;
+                ValidateIdentity(recipe.Type, recipe.Id, platform, runtimeProfile);
+                var inputs = recipe.Inputs();
+                if (_temporaryMetadata != null)
+                {
+                    generated.Add(_temporaryMetadata);
+                    _temporaryMetadata = null;
+                }
+                var assets = recipe.Type == "wear" ? new[] { inputs.Main, inputs.Metadata, inputs.Icon } :
+                    new[] { inputs.Main, inputs.Metadata };
+                var names = recipe.Type == "wear" ? new[] { "main", "metadata", "icon" } :
+                    new[] { "main", "metadata" };
+                if (inputs.Entries.Length != 0 || !assets.SequenceEqual(entry.Roots, StringComparer.Ordinal))
+                    throw new InvalidOperationException("Grouped recipe roots changed: " + recipe.Id);
+                for (int i = 0; i < assets.Length; i++) ValidateAsset(assets[i], names[i]);
+                jobs.Add((entry, inputs, new AssetBundleBuild
+                {
+                    assetBundleName = BundleBuildName(recipe.Type, recipe.Id),
+                    assetNames = assets,
+                    addressableNames = names,
+                }));
+            }
+
+            Directory.CreateDirectory(work);
+            var builds = jobs.Select(job => job.Build).ToArray();
+            var manifest = BuildPipeline.BuildAssetBundles(work, builds, BuildAssetBundleOptions.ChunkBasedCompression |
+                BuildAssetBundleOptions.ForceRebuildAssetBundle | BuildAssetBundleOptions.StrictMode, target);
+            var expected = new HashSet<string>(builds.Select(build => build.assetBundleName), StringComparer.Ordinal);
+            var built = manifest?.GetAllAssetBundles();
+            if (built == null || built.Length != expected.Count || !expected.SetEquals(built))
+                throw new InvalidOperationException("Grouped manifest inventory differs from its plan");
+            foreach (var name in built)
+            {
+                var dependencies = manifest.GetAllDependencies(name);
+                if (dependencies.Length != 0)
+                    throw new InvalidOperationException(name + " has external bundle dependencies: " + string.Join(", ", dependencies));
+            }
+
+            var prepared = new List<(Recipe Recipe, string Source, string Destination)>();
+            foreach (var job in jobs)
+            {
+                var recipe = job.Entry.Recipe;
+                var builtPayload = Path.Combine(work, job.Build.assetBundleName);
+                ValidateEntries(builtPayload, job.Build.addressableNames, recipe.Type, recipe.Id);
+                var scratch = Path.Combine(work, job.Build.assetBundleName + ".entry");
+                Directory.CreateDirectory(scratch);
+                var final = Path.Combine(output, recipe.Type, recipe.Id, platform);
+                var sha = Hash(builtPayload);
+                var size = new FileInfo(builtPayload).Length;
+                File.Move(builtPayload, Path.Combine(scratch, PayloadName));
+                // Keep unpromoted candidates outside the packager's candidate.json scan.
+                File.WriteAllText(Path.Combine(scratch, "candidate.pending"), CandidateJson(recipe.Type, recipe.Id,
+                    platform, runtimeProfile, Path.Combine(final, PayloadName), sha, size, job.Inputs), new UTF8Encoding(false));
+                prepared.Add((recipe, scratch, final));
+            }
+            foreach (var item in prepared)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(item.Destination));
+                Directory.Move(item.Source, item.Destination);
+                File.Move(Path.Combine(item.Destination, "candidate.pending"), Path.Combine(item.Destination, "candidate.json"));
+                complete.Add(item.Recipe);
+            }
+        }
+        finally
+        {
+            CleanupGeneratedMetadata();
+            foreach (var path in generated) AssetDatabase.DeleteAsset(path);
+        }
+    }
+
+    private static JObject BuildStagedGroups(List<StagedGroup> groups, string output, string platform,
+        string runtimeProfile, BuildTarget target, bool smoke, Action<Recipe> buildSingle, HashSet<Recipe> complete)
+    {
+        var receipts = new JArray();
+        for (int i = 0; i < groups.Count; i++)
+        {
+            var group = groups[i];
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            string error = null;
+            int grouped = 0;
+            try
+            {
+                BuildStagedGroup(group, Path.Combine(output, ".groups", $"g{i:D3}"), output, platform, runtimeProfile, target, complete);
+                grouped = group.Entries.Count;
+            }
+            catch (Exception exception)
+            {
+                error = exception.Message;
+                Debug.LogWarning($"[AtomicContent] staged group {i} failed: {exception}");
+                grouped = group.Entries.Count(entry => complete.Contains(entry.Recipe));
+                if (!smoke)
+                    foreach (var entry in group.Entries.Where(entry => !complete.Contains(entry.Recipe)))
+                        buildSingle(entry.Recipe);
+            }
+            receipts.Add(new JObject
+            {
+                ["index"] = i, ["elapsedSeconds"] = stopwatch.Elapsed.TotalSeconds,
+                ["grouped"] = grouped, ["built"] = group.Entries.Count(entry => complete.Contains(entry.Recipe)),
+                ["manifestAndEntriesVerified"] = error == null,
+                ["error"] = error,
+                ["objects"] = new JArray(group.Entries.Select(entry => new JObject
+                {
+                    ["type"] = entry.Recipe.Type, ["id"] = entry.Recipe.Id,
+                    ["bundle"] = BundleBuildName(entry.Recipe.Type, entry.Recipe.Id),
+                })),
+            });
+            Debug.Log($"[AtomicContent] staged group {i}: {grouped}/{group.Entries.Count} grouped in {stopwatch.Elapsed.TotalSeconds:F2}s");
+        }
+        return new JObject { ["mode"] = smoke ? "smoke" : "full", ["built"] = complete.Count, ["groups"] = receipts };
+    }
+
 
     private static void BuildObject(
         string type, string id, string platform, string runtimeProfile,

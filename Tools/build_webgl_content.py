@@ -26,7 +26,7 @@ import content
 
 def write_json(path: Path, value) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def read_json(path: Path):
@@ -37,7 +37,7 @@ def read_json(path: Path):
                 raise ValueError(f"Duplicate JSON key {key} in {path}")
             result[key] = value
         return result
-    return json.loads(path.read_text(), object_pairs_hook=unique)
+    return json.loads(path.read_text(encoding="utf-8-sig"), object_pairs_hook=unique)
 
 
 def require_live_people_source(catalog):

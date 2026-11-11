@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: garment_Legacy_4d4354d9c3525a8fc030094fa62922a0_Marta_17926
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: Legacy_4d4354d9c3525a8fc030094fa62922a0_Marta
+  VertexCount: 17926
+  Version: 0
+  MeshHeight: 1.7
+  TSamples: 1
+  AzimuthSamples: 1
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: Head
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Torso
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Pelvis
+    Points:
+    - Slot: 6
+      Uv: {x: 0.72980636, y: 0.58241564}
+      BindPerU: 0.5403585
+      BindPerV: 0.522519
+      Valid: 1
+      BindPos: {x: -0.0072732572, y: 0.89266807, z: 0.02438201}
+      BindNormal: {x: 0.9458811, y: -0.12907171, z: 0.29774034}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmL
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmR
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegL
+    Points:
+    - Slot: 0
+      Uv: {x: 0.66584533, y: 0.6917727}
+      BindPerU: 1.2101572
+      BindPerV: 0.9395642
+      Valid: 1
+      BindPos: {x: -0.069491364, y: 0.5915819, z: 0.02885446}
+      BindNormal: {x: -0.5582818, y: 0.19705305, z: -0.8059104}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegR
+    Points:
+    - Slot: 0
+      Uv: {x: 0.6641073, y: 0.67879933}
+      BindPerU: 1.3036425
+      BindPerV: 1.0160019
+      Valid: 1
+      BindPos: {x: 0.07000636, y: 0.5798786, z: 0.027426595}
+      BindNormal: {x: 0.45430645, y: 0.36870247, z: -0.8109649}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}

@@ -16,6 +16,21 @@ public sealed class Wear : MonoBehaviour
     [SerializeField] private List<VisualWearSlot> hideWearSlots = new();
     [SerializeField] private VisualWearLayer layer;
     [SerializeField] private VisualGender gender = VisualGender.Female;
+    // §169.10: offline fits address canonical geometry, including skin aliases.
+    // A single-body prefab retains its limit through its available mesh rows.
+    [SerializeField] private bool preparedBodyFits;
+    private ActorName FitActor(ActorName actor) => preparedBodyFits
+        ? ActorSex.Of(actor) == VisualGender.Male ? ActorName.Kshishtof : ActorName.Marta
+        : actor;
+
+    public bool SupportsActor(ActorName actor)
+    {
+        if (!preparedBodyFits) return gender == ActorSex.Of(actor);
+        var geometry = FitActor(actor);
+        foreach (var config in configs)
+            if (config.actorName == geometry && config.mesh != null) return true;
+        return false;
+    }
 
     // Spec §31B.4C: non-zero only on heeled shoes. Everything else leaves it at
     // default, which reads as "no heel" — so this is additive to the serialized
@@ -96,6 +111,7 @@ public sealed class Wear : MonoBehaviour
 
     public void Construct(ActorName actorMesh, BodyBones bodyBones, string equipKey = null)
     {
+        actorMesh = FitActor(actorMesh);
         DefinitionId = DefinitionIdFromEquipKey(equipKey);
         // Spec 40.10-D: the wear painter seeds its stains from this — the piece's
         // slot on THIS body, which survives the garment being taken off and put
@@ -297,6 +313,7 @@ public sealed class Wear : MonoBehaviour
     // Read the authored fit scale for one actor (1 when no config exists).
     public float GetConfigScale(ActorName actor)
     {
+        actor = FitActor(actor);
         foreach (var config in configs)
         {
             if (config.actorName == actor)
@@ -332,6 +349,7 @@ public sealed class Wear : MonoBehaviour
     // the wardrobe test scene, then persisted via AssetDatabase.SaveAssets.
     public void SetConfigScale(ActorName actor, float scale)
     {
+        actor = FitActor(actor);
         foreach (var config in configs)
         {
             if (config.actorName == actor)
@@ -349,6 +367,7 @@ public sealed class Wear : MonoBehaviour
     // scale pair above — see ApplyHairFit for what it moves.
     public float GetConfigHeight(ActorName actor)
     {
+        actor = FitActor(actor);
         foreach (var config in configs)
         {
             if (config.actorName == actor)
@@ -362,6 +381,7 @@ public sealed class Wear : MonoBehaviour
 
     public void SetConfigHeight(ActorName actor, float heightOffset)
     {
+        actor = FitActor(actor);
         foreach (var config in configs)
         {
             if (config.actorName == actor)

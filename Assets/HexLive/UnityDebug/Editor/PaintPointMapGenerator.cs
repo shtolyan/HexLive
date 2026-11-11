@@ -132,23 +132,36 @@ namespace HexLive.UnityDebug.Editor
             finally { OutputFolder = previousOutput; }
         }
 
-        public static string[] GenerateWebGLGarmentMaps(string[] prefabPaths)
+        public static string[] GenerateWebGLGarmentMaps(string[] prefabPaths, string outputFolder = null)
         {
             var previous = OutputFolder;
-            OutputFolder = "Assets/HexLiveContent/People/PaintMaps";
+            OutputFolder = outputFolder ?? "Assets/HexLiveContent/People/PaintMaps";
             try
             {
+                System.IO.Directory.CreateDirectory(OutputFolder);
+                AssetDatabase.Refresh();
                 var paths = new System.Collections.Generic.List<string>();
                 foreach (var path in prefabPaths)
                 {
                     var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                     var smr = prefab.GetComponentInChildren<SkinnedMeshRenderer>(true);
                     var radius = GarmentAnchorRadius / Mathf.Max(.00001f, Mathf.Abs(smr.transform.lossyScale.x));
-                    var map = BuildGarmentMap(prefab.name, smr.sharedMesh, smr, radius);
-                    if (map == null || !map.Zones.Any(z => z.Points.Any(p => p.Valid)))
-                        throw new System.InvalidOperationException("No valid garment map: " + path);
-                    var key = $"garment_{smr.sharedMesh.name}_{smr.sharedMesh.vertexCount}";
-                    SaveMap(map, key); paths.Add(OutputFolder + "/" + key + ".asset");
+                    var meshes = new HashSet<Mesh> { smr.sharedMesh };
+                    var wear = prefab.GetComponent<Wear>();
+                    if (wear != null)
+                    {
+                        var configs = new SerializedObject(wear).FindProperty("configs");
+                        for (int i = 0; i < configs.arraySize; i++)
+                            if (configs.GetArrayElementAtIndex(i).FindPropertyRelative("mesh").objectReferenceValue is Mesh fit) meshes.Add(fit);
+                    }
+                    foreach (var mesh in meshes)
+                    {
+                        var map = BuildGarmentMap(prefab.name, mesh, smr, radius);
+                        if (map == null || !map.Zones.Any(z => z.Points.Any(p => p.Valid)))
+                            throw new System.InvalidOperationException("No valid garment map: " + path + "/" + mesh.name);
+                        var key = $"garment_{mesh.name}_{mesh.vertexCount}";
+                        SaveMap(map, key); paths.Add(OutputFolder + "/" + key + ".asset");
+                    }
                 }
                 AssetDatabase.SaveAssets();
                 return paths.ToArray();
@@ -991,6 +1004,44 @@ namespace HexLive.UnityDebug.Editor
             }
         }
 
+        // §40.8-G: exported accessories can retain only their weighted bones.
+        // Keep the canonical anchor whenever present. Missing anchors may use
+        // only a same-region (and same-side) anatomical neighbour, never an
+        // arbitrary bone from another zone or a fabricated valid point.
+        private static IEnumerable<string> GarmentAnchorFallbacks(string zone)
+        {
+            switch (zone)
+            {
+                case "Head": return new[] { "neckUpper", "neckLower" };
+                case "Torso": return new[] { "chestLower", "chestUpper", "abdomenLower" };
+                case "Pelvis": return new[] { "hip" };
+                case "ArmL": return LimbAnchorFallbacks("l", true);
+                case "ArmR": return LimbAnchorFallbacks("r", true);
+                case "LegL": return LimbAnchorFallbacks("l", false);
+                case "LegR": return LimbAnchorFallbacks("r", false);
+                default: return System.Array.Empty<string>();
+            }
+        }
+
+        private static IEnumerable<string> LimbAnchorFallbacks(string side, bool arm)
+        {
+            var names = arm
+                ? new[] { "ForearmTwist", "Hand", "ShldrBend", "ShldrTwist", "Collar", "Carpal1", "Carpal2", "Carpal3", "Carpal4",
+                    "Index1", "Index2", "Index3", "Mid1", "Mid2", "Mid3", "Ring1", "Ring2", "Ring3", "Pinky1", "Pinky2", "Pinky3", "Thumb1", "Thumb2", "Thumb3" }
+                : new[] { "ThighBend", "ThighTwist", "Foot", "Heel", "Metatarsals", "Toe", "BigToe", "BigToe_2",
+                    "SmallToe1", "SmallToe1_2", "SmallToe2", "SmallToe2_2", "SmallToe3", "SmallToe3_2", "SmallToe4", "SmallToe4_2" };
+            return names.Select(name => side + name);
+        }
+
+        private static bool TryGetGarmentAnchor(MeshGeometry geo, string zone, string canonical, out Vector3 anchor)
+        {
+            if (geo.TryGetBonePosition(canonical, out anchor)) return true;
+            foreach (string alias in GarmentAnchorFallbacks(zone))
+                if (geo.TryGetBonePosition(alias, out anchor)) return true;
+            anchor = default;
+            return false;
+        }
+
         private static PaintPointMap BuildGarmentMap(string prefabName, Mesh mesh,
             SkinnedMeshRenderer smr, float anchorRadius = GarmentAnchorRadius)
         {
@@ -1011,7 +1062,7 @@ namespace HexLive.UnityDebug.Editor
             foreach (var pair in NpcActorView.GarmentZoneAnchors)
             {
                 var points = System.Array.Empty<PaintPointMap.Point>();
-                if (geo.TryGetBonePosition(pair.Value, out var anchor))
+                if (TryGetGarmentAnchor(geo, pair.Key, pair.Value, out var anchor))
                 {
                     var point = geo.PointNearest(anchor, anchorRadius);
                     if (point.Valid)

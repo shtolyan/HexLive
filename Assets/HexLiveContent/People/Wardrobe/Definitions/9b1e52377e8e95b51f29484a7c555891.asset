@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: gear_backpack_riot_denim(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: gear.backpack_riot_denim
+  prototypeId: gear.backpack_riot
+  alternateFitId: 
+  displayName: Canvas Backpack (Denim)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 14
+  variantMaterials:
+  - {fileID: 2100000, guid: 88fae8a7532d6ac45a4284ed4f1cb649, type: 2}
+  - {fileID: 2100000, guid: 9667f9966628e3d44952d593e3c7aa12, type: 2}
+  - {fileID: 2100000, guid: f6b68cd58b6824e46bd41fb8b366f18a, type: 2}
+  - {fileID: 2100000, guid: bfda4c5ab7244d04fbd47493201e9fc8, type: 2}
+  layer: 3
+  covers: 01000000
+  warmth: 0
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 9

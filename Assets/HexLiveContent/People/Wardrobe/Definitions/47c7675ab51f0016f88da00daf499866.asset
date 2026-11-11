@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_boots_charm_leather_red(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.boots_charm_leather_red
+  prototypeId: clothing.boots_charm
+  alternateFitId: 
+  displayName: Thigh-High Boots (Leather Red)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 6
+  variantMaterials:
+  - {fileID: 2100000, guid: 793fd79cab181eb4ead4e530946ee2bb, type: 2}
+  - {fileID: 2100000, guid: 717c1fb6484f7794ab89cd1a86b89127, type: 2}
+  - {fileID: 2100000, guid: 463209dfbe317ab42b68e1a1b0c4abb7, type: 2}
+  - {fileID: 2100000, guid: 48b16e4ab7adfe44fac6e3c81ea60e99, type: 2}
+  - {fileID: 2100000, guid: 7acfa8469c6cba542849066e980482c7, type: 2}
+  - {fileID: 2100000, guid: b7f2f1b62d043a7488c08733316011f7, type: 2}
+  - {fileID: 2100000, guid: 833b9f37a132e144ab4a00089dd96117, type: 2}
+  - {fileID: 2100000, guid: cf36f52cad313ec4e82eff5e07068419, type: 2}
+  - {fileID: 2100000, guid: 80773ad1800e00740a5a49c53af43165, type: 2}
+  - {fileID: 2100000, guid: ee525e83c7f17b346aec3e7b803ca07f, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.14
+  armor: 0.1
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

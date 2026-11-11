@@ -1,0 +1,2703 @@
+{
+  "diagnosticCompleted": true,
+  "id": "clothing.outfit_reiko",
+  "actor": "Marta",
+  "equipmentFactory": "BodyBones.Equip",
+  "rootScale": 0.7764706,
+  "rows": [
+    {
+      "pose": "standing",
+      "clip": "Assets/ImportedActors/AnimLibrary/Male@Idle.fbx",
+      "clipTime": 3.97333336,
+      "actualBodyMotionFromStandingMetres": 0.0,
+      "actualHeelPlayerLoopFrames": 1,
+      "unscaledDeltaTime": 1.63800776,
+      "nativeHeelWeight": 1.0,
+      "derivedHeelWeight": 1.0,
+      "quality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 1.791241E-07,
+          "p95": 1.1920929E-07
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 1.791241E-07,
+          "p95": 1.1920929E-07
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 166178,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.0369578563,
+          "samplesBelowMinimum": 22954,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 307,
+          "minimumValidRays": 3,
+          "insideSamples": 2822,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 15425,
+          "samplesBelowMinus1mm": 976,
+          "samplesBelowMinus3mm": 362,
+          "maximumClearanceDeficitMetres": 0.0389578566,
+          "maximumPenetrationDepthMetres": 0.0369578563,
+          "worstTriangleIndex": 3590,
+          "worstPoint": [
+            0.082332395,
+            0.256962955,
+            -0.0490848459
+          ],
+          "worstBodyPoint": [
+            0.0915491953,
+            0.254083782,
+            -0.08475898
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "derivedContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 166178,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.0369578563,
+          "samplesBelowMinimum": 22954,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 307,
+          "minimumValidRays": 3,
+          "insideSamples": 2822,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 15425,
+          "samplesBelowMinus1mm": 976,
+          "samplesBelowMinus3mm": 362,
+          "maximumClearanceDeficitMetres": 0.0389578566,
+          "maximumPenetrationDepthMetres": 0.0369578563,
+          "worstTriangleIndex": 3590,
+          "worstPoint": [
+            0.082332395,
+            0.256962955,
+            -0.0490848459
+          ],
+          "worstBodyPoint": [
+            0.0915491953,
+            0.254083782,
+            -0.08475898
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "nativeRendererState": {
+        "rootPosition": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bounds": {
+          "center": [
+            0.008784056,
+            0.5803653,
+            0.0381787419
+          ],
+          "size": [
+            0.531145334,
+            1.26772809,
+            0.393612981
+          ]
+        },
+        "wearScalarFields": {
+          "Wear.preparedBodyFits": false,
+          "Wear.hidesHair": false,
+          "Wear._paintSeed": -550153525,
+          "Wear._tearShaderApplied": false,
+          "Wear._tear": 0.0,
+          "Wear._dirt": 0.0,
+          "Wear._blood": 0.0,
+          "Wear._damageZoneCount": 0,
+          "Wear._wet": 0.0,
+          "Wear._wetTouched": false
+        },
+        "renderers": [
+          {
+            "name": "Marta_LOD0",
+            "enabled": true,
+            "bounds": {
+              "center": [
+                0.00514325965,
+                0.809511244,
+                0.0104243234
+              ],
+              "size": [
+                1.98299277,
+                2.00776672,
+                2.00243139
+              ]
+            },
+            "rendererBlock": {
+              "isEmpty": true
+            },
+            "slots": [
+              {
+                "slot": 0,
+                "name": "Marta_Atlas",
+                "asset": "Assets/HexLiveContent/People/Materials/Marta_Atlas__Base.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 1,
+                "name": "Marta_Eyes",
+                "asset": "Assets/HexLiveContent/People/Materials/Marta_Eyes.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 2,
+                "name": "Marta_Teeth",
+                "asset": "Assets/HexLiveContent/People/Materials/Marta_Teeth.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              }
+            ]
+          },
+          {
+            "name": "Marta_PrimalBriefs",
+            "enabled": false,
+            "bounds": {
+              "center": [
+                -0.00026490647,
+                0.7521108,
+                -0.00705546141
+              ],
+              "size": [
+                0.257400483,
+                0.15305312,
+                0.193208829
+              ]
+            },
+            "rendererBlock": {
+              "isEmpty": true
+            },
+            "slots": [
+              {
+                "slot": 0,
+                "name": "Panty",
+                "asset": "Assets/HexLiveContent/People/Materials/Marta_PrimalBriefs_Wear___Panty__Base.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 1,
+                "name": "Stitches",
+                "asset": "Assets/HexLiveContent/People/Materials/Marta_PrimalBriefs_Wear___Stitches__Base.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              }
+            ]
+          },
+          {
+            "name": "ReikoOutfit Mesh",
+            "enabled": true,
+            "bounds": {
+              "center": [
+                0.008784056,
+                0.5803653,
+                0.0381787419
+              ],
+              "size": [
+                0.531145334,
+                1.26772809,
+                0.393612981
+              ]
+            },
+            "rendererBlock": {
+              "isEmpty": true
+            },
+            "slots": [
+              {
+                "slot": 0,
+                "name": "Glove, Wrist",
+                "asset": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Glove, Wrist.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 1,
+                "name": "Glove, Lower",
+                "asset": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Glove, Lower.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 2,
+                "name": "Glove, Upper",
+                "asset": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Glove, Upper.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 3,
+                "name": "Shoes",
+                "asset": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Shoes.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 4,
+                "name": "Zipper Handle",
+                "asset": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Zipper Handle.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 5,
+                "name": "Zipper",
+                "asset": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Zipper.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 6,
+                "name": "Buttons",
+                "asset": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Buttons.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 7,
+                "name": "Laces",
+                "asset": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Laces.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 8,
+                "name": "Shorts",
+                "asset": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Shorts.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 9,
+                "name": "Pants",
+                "asset": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Pants.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 10,
+                "name": "Shorts Pocket, Right",
+                "asset": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Shorts Pocket, Right.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 11,
+                "name": "Shorts Pocket Left",
+                "asset": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Shorts Pocket Left.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 12,
+                "name": "Bra, Right",
+                "asset": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Bra, Right.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 13,
+                "name": "Bra, Left",
+                "asset": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Bra, Left.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 14,
+                "name": "Bra",
+                "asset": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Bra.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 15,
+                "name": "Ribbon",
+                "asset": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Ribbon.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 16,
+                "name": "Knot",
+                "asset": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Knot.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              }
+            ]
+          },
+          {
+            "name": "AuthoredEyelashes",
+            "enabled": true,
+            "bounds": {
+              "center": [
+                0.00514325965,
+                0.809511244,
+                0.0104243234
+              ],
+              "size": [
+                1.20688665,
+                1.22196448,
+                1.21871722
+              ]
+            },
+            "rendererBlock": {
+              "isEmpty": true
+            },
+            "slots": [
+              {
+                "slot": 0,
+                "name": "Marta_Eyelashes",
+                "asset": "Assets/HexLiveContent/People/Materials/Marta_Eyelashes.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.427,
+                  "_AlphaClip": 1.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2450,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              }
+            ]
+          }
+        ]
+      },
+      "derivedRendererState": {
+        "rootPosition": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bounds": {
+          "center": [
+            0.008784056,
+            0.5803653,
+            0.0381787419
+          ],
+          "size": [
+            0.531145334,
+            1.26772809,
+            0.393612981
+          ]
+        },
+        "wearScalarFields": {
+          "Wear.preparedBodyFits": true,
+          "Wear.hidesHair": false,
+          "Wear._paintSeed": -550153525,
+          "Wear._tearShaderApplied": false,
+          "Wear._tear": 0.0,
+          "Wear._dirt": 0.0,
+          "Wear._blood": 0.0,
+          "Wear._damageZoneCount": 0,
+          "Wear._wet": 0.0,
+          "Wear._wetTouched": false
+        },
+        "renderers": [
+          {
+            "name": "Marta_LOD0",
+            "enabled": true,
+            "bounds": {
+              "center": [
+                0.00514325965,
+                0.809511244,
+                0.0104243234
+              ],
+              "size": [
+                1.98299277,
+                2.00776672,
+                2.00243139
+              ]
+            },
+            "rendererBlock": {
+              "isEmpty": true
+            },
+            "slots": [
+              {
+                "slot": 0,
+                "name": "Marta_Atlas",
+                "asset": "Assets/HexLiveContent/People/Materials/Marta_Atlas__Base.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 1,
+                "name": "Marta_Eyes",
+                "asset": "Assets/HexLiveContent/People/Materials/Marta_Eyes.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 2,
+                "name": "Marta_Teeth",
+                "asset": "Assets/HexLiveContent/People/Materials/Marta_Teeth.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              }
+            ]
+          },
+          {
+            "name": "Marta_PrimalBriefs",
+            "enabled": false,
+            "bounds": {
+              "center": [
+                -0.00026490647,
+                0.7521108,
+                -0.00705546141
+              ],
+              "size": [
+                0.257400483,
+                0.15305312,
+                0.193208829
+              ]
+            },
+            "rendererBlock": {
+              "isEmpty": true
+            },
+            "slots": [
+              {
+                "slot": 0,
+                "name": "Panty",
+                "asset": "Assets/HexLiveContent/People/Materials/Marta_PrimalBriefs_Wear___Panty__Base.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 1,
+                "name": "Stitches",
+                "asset": "Assets/HexLiveContent/People/Materials/Marta_PrimalBriefs_Wear___Stitches__Base.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              }
+            ]
+          },
+          {
+            "name": "ReikoOutfit Mesh",
+            "enabled": true,
+            "bounds": {
+              "center": [
+                0.008784056,
+                0.5803653,
+                0.0381787419
+              ],
+              "size": [
+                0.531145334,
+                1.26772809,
+                0.393612981
+              ]
+            },
+            "rendererBlock": {
+              "isEmpty": true
+            },
+            "slots": [
+              {
+                "slot": 0,
+                "name": "cb31aea5eb1890742ac8f707fe7fb8de_2100000",
+                "asset": "Assets/HexLiveContent/People/Wardrobe/Materials/cb31aea5eb1890742ac8f707fe7fb8de_2100000.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 1,
+                "name": "95151d83290c2344d99b6c19d6101b29_2100000",
+                "asset": "Assets/HexLiveContent/People/Wardrobe/Materials/95151d83290c2344d99b6c19d6101b29_2100000.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 2,
+                "name": "5f8c2bbfe55efd34182c80044ffbe681_2100000",
+                "asset": "Assets/HexLiveContent/People/Wardrobe/Materials/5f8c2bbfe55efd34182c80044ffbe681_2100000.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 3,
+                "name": "93e4dc4c5ede39c46bd5e4dc2834ab83_2100000",
+                "asset": "Assets/HexLiveContent/People/Wardrobe/Materials/93e4dc4c5ede39c46bd5e4dc2834ab83_2100000.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 4,
+                "name": "d9be5c7f88fba9a42893f81f816efbf1_2100000",
+                "asset": "Assets/HexLiveContent/People/Wardrobe/Materials/d9be5c7f88fba9a42893f81f816efbf1_2100000.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 5,
+                "name": "bc16462ee1fcc994eaf4402a88ecf1cd_2100000",
+                "asset": "Assets/HexLiveContent/People/Wardrobe/Materials/bc16462ee1fcc994eaf4402a88ecf1cd_2100000.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 6,
+                "name": "91188d4846f48c84b816219d885e491d_2100000",
+                "asset": "Assets/HexLiveContent/People/Wardrobe/Materials/91188d4846f48c84b816219d885e491d_2100000.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 7,
+                "name": "e22ada13ee084274c9abaf3e741f083f_2100000",
+                "asset": "Assets/HexLiveContent/People/Wardrobe/Materials/e22ada13ee084274c9abaf3e741f083f_2100000.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 8,
+                "name": "18c986b02a23c034b986dcd18b376c6c_2100000",
+                "asset": "Assets/HexLiveContent/People/Wardrobe/Materials/18c986b02a23c034b986dcd18b376c6c_2100000.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 9,
+                "name": "6073e490cacdcd341842ce4af6d08259_2100000",
+                "asset": "Assets/HexLiveContent/People/Wardrobe/Materials/6073e490cacdcd341842ce4af6d08259_2100000.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 10,
+                "name": "714d38e16516d1e4cabd978052a19e17_2100000",
+                "asset": "Assets/HexLiveContent/People/Wardrobe/Materials/714d38e16516d1e4cabd978052a19e17_2100000.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 11,
+                "name": "d5827e45d8a6ac94ab1e2eb4dfb5509e_2100000",
+                "asset": "Assets/HexLiveContent/People/Wardrobe/Materials/d5827e45d8a6ac94ab1e2eb4dfb5509e_2100000.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 12,
+                "name": "aabddbafac5352449aad82e1e3d2d295_2100000",
+                "asset": "Assets/HexLiveContent/People/Wardrobe/Materials/aabddbafac5352449aad82e1e3d2d295_2100000.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 13,
+                "name": "a3c332ec1094c72479b143cb4163fedb_2100000",
+                "asset": "Assets/HexLiveContent/People/Wardrobe/Materials/a3c332ec1094c72479b143cb4163fedb_2100000.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 14,
+                "name": "2a153621b1f9f0347b497e445b37053b_2100000",
+                "asset": "Assets/HexLiveContent/People/Wardrobe/Materials/2a153621b1f9f0347b497e445b37053b_2100000.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 15,
+                "name": "a2b778431ec7aa443a1cc56862b164b2_2100000",
+                "asset": "Assets/HexLiveContent/People/Wardrobe/Materials/a2b778431ec7aa443a1cc56862b164b2_2100000.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              },
+              {
+                "slot": 16,
+                "name": "7a475d5f369c8ba4aa6d068ee3b67929_2100000",
+                "asset": "Assets/HexLiveContent/People/Wardrobe/Materials/7a475d5f369c8ba4aa6d068ee3b67929_2100000.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.5,
+                  "_AlphaClip": 0.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2000,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              }
+            ]
+          },
+          {
+            "name": "AuthoredEyelashes",
+            "enabled": true,
+            "bounds": {
+              "center": [
+                0.00514325965,
+                0.809511244,
+                0.0104243234
+              ],
+              "size": [
+                1.20688665,
+                1.22196448,
+                1.21871722
+              ]
+            },
+            "rendererBlock": {
+              "isEmpty": true
+            },
+            "slots": [
+              {
+                "slot": 0,
+                "name": "Marta_Eyelashes",
+                "asset": "Assets/HexLiveContent/People/Materials/Marta_Eyelashes.mat",
+                "shader": "Universal Render Pipeline/Lit",
+                "materialFloats": {
+                  "_Cutoff": 0.427,
+                  "_AlphaClip": 1.0,
+                  "_Surface": 0.0,
+                  "_Cull": 0.0,
+                  "_ZWrite": 1.0
+                },
+                "renderQueue": 2450,
+                "perIndexBlock": {
+                  "isEmpty": true
+                },
+                "effectiveBlockSource": "renderer"
+              }
+            ]
+          }
+        ]
+      },
+      "nativeImages": [
+        {
+          "scope": "whole standing authored model",
+          "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-c183f80582e88314ad7ec86d33a11f90-20261111T095715814/Native-front.png",
+          "sha256": "819ddc34220075aa28dd2fe2d6f549f3947b5d42249a3cf27e70761072d98207"
+        },
+        {
+          "scope": "whole standing authored model",
+          "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-c183f80582e88314ad7ec86d33a11f90-20261111T095715814/Native-back.png",
+          "sha256": "7de4d175f2ea696bbcb1fa0b57b013e4242fc8c811e2063d55f53f50cea6a14a"
+        },
+        {
+          "scope": "Reiko Shoes material only determines camera; whole model still rendered",
+          "left": false,
+          "back": false,
+          "look": [
+            0.0895387,
+            0.289057165,
+            0.007120982
+          ],
+          "orthographicSize": 0.16,
+          "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-c183f80582e88314ad7ec86d33a11f90-20261111T095715814/Native-right-boot-cuff-front.png",
+          "sha256": "77284cc4d4840330aa886d1211ee0525b9de627a4e7ccd77a8ba5283720deb10"
+        },
+        {
+          "scope": "Reiko Shoes material only determines camera; whole model still rendered",
+          "left": false,
+          "back": true,
+          "look": [
+            0.0895387,
+            0.289057165,
+            0.007120982
+          ],
+          "orthographicSize": 0.16,
+          "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-c183f80582e88314ad7ec86d33a11f90-20261111T095715814/Native-right-boot-cuff-back.png",
+          "sha256": "2f271c07b8cd6bdc2caaeec1ee931a41eab7bf51d426efded454579dbb18a065"
+        },
+        {
+          "scope": "Reiko Shoes material only determines camera; whole model still rendered",
+          "left": true,
+          "back": false,
+          "look": [
+            -0.0895814,
+            0.288502663,
+            0.00707677
+          ],
+          "orthographicSize": 0.16,
+          "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-c183f80582e88314ad7ec86d33a11f90-20261111T095715814/Native-left-boot-cuff-front.png",
+          "sha256": "52075a998a0fc041ade32ec9c17bd71b92be19f908523063f42e5b42934be8f2"
+        },
+        {
+          "scope": "Reiko Shoes material only determines camera; whole model still rendered",
+          "left": true,
+          "back": true,
+          "look": [
+            -0.0895814,
+            0.288502663,
+            0.00707677
+          ],
+          "orthographicSize": 0.16,
+          "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-c183f80582e88314ad7ec86d33a11f90-20261111T095715814/Native-left-boot-cuff-back.png",
+          "sha256": "575b412372a901cee051f6e19eaf4ed22ac48d4bbe63763657c8695b239c2a94"
+        }
+      ],
+      "derivedImages": [
+        {
+          "scope": "whole standing authored model",
+          "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-c183f80582e88314ad7ec86d33a11f90-20261111T095715814/FullNativeDerived-front.png",
+          "sha256": "819ddc34220075aa28dd2fe2d6f549f3947b5d42249a3cf27e70761072d98207"
+        },
+        {
+          "scope": "whole standing authored model",
+          "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-c183f80582e88314ad7ec86d33a11f90-20261111T095715814/FullNativeDerived-back.png",
+          "sha256": "7de4d175f2ea696bbcb1fa0b57b013e4242fc8c811e2063d55f53f50cea6a14a"
+        },
+        {
+          "scope": "Reiko Shoes material only determines camera; whole model still rendered",
+          "left": false,
+          "back": false,
+          "look": [
+            0.0895387,
+            0.289057165,
+            0.007120982
+          ],
+          "orthographicSize": 0.16,
+          "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-c183f80582e88314ad7ec86d33a11f90-20261111T095715814/FullNativeDerived-right-boot-cuff-front.png",
+          "sha256": "77284cc4d4840330aa886d1211ee0525b9de627a4e7ccd77a8ba5283720deb10"
+        },
+        {
+          "scope": "Reiko Shoes material only determines camera; whole model still rendered",
+          "left": false,
+          "back": true,
+          "look": [
+            0.0895387,
+            0.289057165,
+            0.007120982
+          ],
+          "orthographicSize": 0.16,
+          "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-c183f80582e88314ad7ec86d33a11f90-20261111T095715814/FullNativeDerived-right-boot-cuff-back.png",
+          "sha256": "2f271c07b8cd6bdc2caaeec1ee931a41eab7bf51d426efded454579dbb18a065"
+        },
+        {
+          "scope": "Reiko Shoes material only determines camera; whole model still rendered",
+          "left": true,
+          "back": false,
+          "look": [
+            -0.0895814,
+            0.288502663,
+            0.00707677
+          ],
+          "orthographicSize": 0.16,
+          "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-c183f80582e88314ad7ec86d33a11f90-20261111T095715814/FullNativeDerived-left-boot-cuff-front.png",
+          "sha256": "88ae4513dfd812340a5695ad8a13d7de4cdd54ddf51358ce88e1496672d10e2c"
+        },
+        {
+          "scope": "Reiko Shoes material only determines camera; whole model still rendered",
+          "left": true,
+          "back": true,
+          "look": [
+            -0.0895814,
+            0.288502663,
+            0.00707677
+          ],
+          "orthographicSize": 0.16,
+          "png": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-c183f80582e88314ad7ec86d33a11f90-20261111T095715814/FullNativeDerived-left-boot-cuff-back.png",
+          "sha256": "575b412372a901cee051f6e19eaf4ed22ac48d4bbe63763657c8695b239c2a94"
+        }
+      ],
+      "movedQuality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 2.70791452E-06,
+          "p95": 1.36961046E-06
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 2.70791452E-06,
+          "p95": 1.36961046E-06
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 2.38418579E-07,
+        "worstVertex": 394,
+        "expectedWorld": [
+          13.7027674,
+          3.21884537,
+          -8.420528
+        ],
+        "actualWorld": [
+          13.7027664,
+          3.21884537,
+          -8.420527
+        ],
+        "expectedBounds": {
+          "center": [
+            13.2625275,
+            2.69072247,
+            -8.770268
+          ],
+          "size": [
+            0.9886856,
+            1.24609566,
+            0.837427139
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.2625275,
+            2.69072247,
+            -8.77026749
+          ],
+          "size": [
+            0.9886856,
+            1.24609566,
+            0.837425232
+          ]
+        }
+      },
+      "derivedRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 2.38418579E-07,
+        "worstVertex": 394,
+        "expectedWorld": [
+          13.7027674,
+          3.21884537,
+          -8.420528
+        ],
+        "actualWorld": [
+          13.7027664,
+          3.21884537,
+          -8.420527
+        ],
+        "expectedBounds": {
+          "center": [
+            13.2625275,
+            2.69072247,
+            -8.770268
+          ],
+          "size": [
+            0.9886856,
+            1.24609566,
+            0.837427139
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.2625275,
+            2.69072247,
+            -8.77026749
+          ],
+          "size": [
+            0.9886856,
+            1.24609566,
+            0.837425232
+          ]
+        }
+      }
+    },
+    {
+      "pose": "run_early",
+      "clip": "Assets/ImportedActors/AnimLibrary/Male@Run.fbx",
+      "clipTime": 0.06333334,
+      "actualBodyMotionFromStandingMetres": 0.09488768,
+      "actualHeelPlayerLoopFrames": 1,
+      "unscaledDeltaTime": 4.163621,
+      "nativeHeelWeight": 1.0,
+      "derivedHeelWeight": 1.0,
+      "quality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 1.5127614E-07,
+          "p95": 1.19267483E-07
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 1.5127614E-07,
+          "p95": 1.19267483E-07
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 166178,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.03695786,
+          "samplesBelowMinimum": 22953,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 313,
+          "minimumValidRays": 3,
+          "insideSamples": 2842,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 15388,
+          "samplesBelowMinus1mm": 967,
+          "samplesBelowMinus3mm": 362,
+          "maximumClearanceDeficitMetres": 0.03895786,
+          "maximumPenetrationDepthMetres": 0.03695786,
+          "worstTriangleIndex": 3590,
+          "worstPoint": [
+            0.08233471,
+            0.2568966,
+            -0.0490887873
+          ],
+          "worstBodyPoint": [
+            0.09155151,
+            0.2540174,
+            -0.08476293
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "derivedContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 166178,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.03695786,
+          "samplesBelowMinimum": 22953,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 313,
+          "minimumValidRays": 3,
+          "insideSamples": 2842,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 15388,
+          "samplesBelowMinus1mm": 967,
+          "samplesBelowMinus3mm": 362,
+          "maximumClearanceDeficitMetres": 0.03895786,
+          "maximumPenetrationDepthMetres": 0.03695786,
+          "worstTriangleIndex": 3590,
+          "worstPoint": [
+            0.08233471,
+            0.2568966,
+            -0.0490887873
+          ],
+          "worstBodyPoint": [
+            0.09155151,
+            0.2540174,
+            -0.08476293
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "movedQuality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 2.70791452E-06,
+          "p95": 1.36961046E-06
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 2.70791452E-06,
+          "p95": 1.36961046E-06
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 2.38418579E-07,
+        "worstVertex": 272,
+        "expectedWorld": [
+          13.705,
+          3.228938,
+          -8.342814
+        ],
+        "actualWorld": [
+          13.7050009,
+          3.228938,
+          -8.34281349
+        ],
+        "expectedBounds": {
+          "center": [
+            13.2624683,
+            2.69149685,
+            -8.7637825
+          ],
+          "size": [
+            0.91147995,
+            1.24496651,
+            0.9177208
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.2624683,
+            2.69149685,
+            -8.7637825
+          ],
+          "size": [
+            0.91147995,
+            1.24496651,
+            0.9177208
+          ]
+        }
+      },
+      "derivedRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 2.38418579E-07,
+        "worstVertex": 272,
+        "expectedWorld": [
+          13.705,
+          3.228938,
+          -8.342814
+        ],
+        "actualWorld": [
+          13.7050009,
+          3.228938,
+          -8.34281349
+        ],
+        "expectedBounds": {
+          "center": [
+            13.2624683,
+            2.69149685,
+            -8.7637825
+          ],
+          "size": [
+            0.91147995,
+            1.24496651,
+            0.9177208
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.2624683,
+            2.69149685,
+            -8.7637825
+          ],
+          "size": [
+            0.91147995,
+            1.24496651,
+            0.9177208
+          ]
+        }
+      }
+    },
+    {
+      "pose": "run_mid",
+      "clip": "Assets/ImportedActors/AnimLibrary/Male@Run.fbx",
+      "clipTime": 0.285000026,
+      "actualBodyMotionFromStandingMetres": 0.09904566,
+      "actualHeelPlayerLoopFrames": 1,
+      "unscaledDeltaTime": 2.08820128,
+      "nativeHeelWeight": 1.0,
+      "derivedHeelWeight": 1.0,
+      "quality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 1.452505E-07,
+          "p95": 1.1920929E-07
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 1.452505E-07,
+          "p95": 1.1920929E-07
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 166178,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.0369578563,
+          "samplesBelowMinimum": 22974,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 261,
+          "minimumValidRays": 3,
+          "insideSamples": 2842,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 15443,
+          "samplesBelowMinus1mm": 962,
+          "samplesBelowMinus3mm": 362,
+          "maximumClearanceDeficitMetres": 0.0389578566,
+          "maximumPenetrationDepthMetres": 0.0369578563,
+          "worstTriangleIndex": 3590,
+          "worstPoint": [
+            0.0823295861,
+            0.257043123,
+            -0.0490801
+          ],
+          "worstBodyPoint": [
+            0.09154638,
+            0.25416398,
+            -0.08475424
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "derivedContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 166178,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.0369578563,
+          "samplesBelowMinimum": 22974,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 261,
+          "minimumValidRays": 3,
+          "insideSamples": 2842,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 15443,
+          "samplesBelowMinus1mm": 962,
+          "samplesBelowMinus3mm": 362,
+          "maximumClearanceDeficitMetres": 0.0389578566,
+          "maximumPenetrationDepthMetres": 0.0369578563,
+          "worstTriangleIndex": 3590,
+          "worstPoint": [
+            0.0823295861,
+            0.257043123,
+            -0.0490801
+          ],
+          "worstBodyPoint": [
+            0.09154638,
+            0.25416398,
+            -0.08475424
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "movedQuality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 2.70791452E-06,
+          "p95": 1.36961046E-06
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 2.70791452E-06,
+          "p95": 1.36961046E-06
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 2.38418579E-07,
+        "worstVertex": 7604,
+        "expectedWorld": [
+          13.1202869,
+          2.81381416,
+          -8.745338
+        ],
+        "actualWorld": [
+          13.120286,
+          2.81381416,
+          -8.74533749
+        ],
+        "expectedBounds": {
+          "center": [
+            13.2547,
+            2.69178653,
+            -8.776536
+          ],
+          "size": [
+            0.9567604,
+            1.24474955,
+            0.861520767
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.2547,
+            2.69178629,
+            -8.776536
+          ],
+          "size": [
+            0.9567566,
+            1.24475,
+            0.861520767
+          ]
+        }
+      },
+      "derivedRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 2.38418579E-07,
+        "worstVertex": 7604,
+        "expectedWorld": [
+          13.1202869,
+          2.81381416,
+          -8.745338
+        ],
+        "actualWorld": [
+          13.120286,
+          2.81381416,
+          -8.74533749
+        ],
+        "expectedBounds": {
+          "center": [
+            13.2547,
+            2.69178653,
+            -8.776536
+          ],
+          "size": [
+            0.9567604,
+            1.24474955,
+            0.861520767
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.2547,
+            2.69178629,
+            -8.776536
+          ],
+          "size": [
+            0.9567566,
+            1.24475,
+            0.861520767
+          ]
+        }
+      }
+    },
+    {
+      "pose": "run_late",
+      "clip": "Assets/ImportedActors/AnimLibrary/Male@Run.fbx",
+      "clipTime": 0.5066667,
+      "actualBodyMotionFromStandingMetres": 0.0803571,
+      "actualHeelPlayerLoopFrames": 1,
+      "unscaledDeltaTime": 2.150687,
+      "nativeHeelWeight": 1.0,
+      "derivedHeelWeight": 1.0,
+      "quality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 1.39996089E-07,
+          "p95": 1.1920929E-07
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 1.39996089E-07,
+          "p95": 1.1920929E-07
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 166178,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.0369578563,
+          "samplesBelowMinimum": 22849,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 396,
+          "minimumValidRays": 3,
+          "insideSamples": 2727,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 15258,
+          "samplesBelowMinus1mm": 953,
+          "samplesBelowMinus3mm": 362,
+          "maximumClearanceDeficitMetres": 0.0389578566,
+          "maximumPenetrationDepthMetres": 0.0369578563,
+          "worstTriangleIndex": 3590,
+          "worstPoint": [
+            0.08235873,
+            0.2562108,
+            -0.04912931
+          ],
+          "worstBodyPoint": [
+            0.09157554,
+            0.253331631,
+            -0.08480345
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "derivedContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 166178,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.0369578563,
+          "samplesBelowMinimum": 22849,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 396,
+          "minimumValidRays": 3,
+          "insideSamples": 2727,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 15258,
+          "samplesBelowMinus1mm": 953,
+          "samplesBelowMinus3mm": 362,
+          "maximumClearanceDeficitMetres": 0.0389578566,
+          "maximumPenetrationDepthMetres": 0.0369578563,
+          "worstTriangleIndex": 3590,
+          "worstPoint": [
+            0.08235873,
+            0.2562108,
+            -0.04912931
+          ],
+          "worstBodyPoint": [
+            0.09157554,
+            0.253331631,
+            -0.08480345
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "movedQuality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 3.05324761E-06,
+          "p95": 1.36961046E-06
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 3.05324761E-06,
+          "p95": 1.36961046E-06
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 2.38418579E-07,
+        "worstVertex": 7604,
+        "expectedWorld": [
+          13.1202869,
+          2.81381416,
+          -8.745338
+        ],
+        "actualWorld": [
+          13.120286,
+          2.81381416,
+          -8.74533749
+        ],
+        "expectedBounds": {
+          "center": [
+            13.2585621,
+            2.69023371,
+            -8.773404
+          ],
+          "size": [
+            0.9526825,
+            1.24616623,
+            0.8712139
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.2585621,
+            2.69023371,
+            -8.773404
+          ],
+          "size": [
+            0.9526825,
+            1.24616623,
+            0.8712139
+          ]
+        }
+      },
+      "derivedRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 2.38418579E-07,
+        "worstVertex": 7604,
+        "expectedWorld": [
+          13.1202869,
+          2.81381416,
+          -8.745338
+        ],
+        "actualWorld": [
+          13.120286,
+          2.81381416,
+          -8.74533749
+        ],
+        "expectedBounds": {
+          "center": [
+            13.2585621,
+            2.69023371,
+            -8.773404
+          ],
+          "size": [
+            0.9526825,
+            1.24616623,
+            0.8712139
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.2585621,
+            2.69023371,
+            -8.773404
+          ],
+          "size": [
+            0.9526825,
+            1.24616623,
+            0.8712139
+          ]
+        }
+      }
+    },
+    {
+      "pose": "sleep",
+      "clip": "Assets/ImportedActors/AnimLibrary/Sleep.fbx",
+      "clipTime": 0.825000048,
+      "actualBodyMotionFromStandingMetres": 0.0,
+      "actualHeelPlayerLoopFrames": 1,
+      "unscaledDeltaTime": 2.752481,
+      "nativeHeelWeight": 0.0,
+      "derivedHeelWeight": 0.0,
+      "quality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 1.418059E-07,
+          "p95": 1.1920929E-07
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 1.418059E-07,
+          "p95": 1.1920929E-07
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 166178,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.0369578525,
+          "samplesBelowMinimum": 23085,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 345,
+          "minimumValidRays": 3,
+          "insideSamples": 3107,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 15636,
+          "samplesBelowMinus1mm": 1063,
+          "samplesBelowMinus3mm": 362,
+          "maximumClearanceDeficitMetres": 0.0389578529,
+          "maximumPenetrationDepthMetres": 0.0369578525,
+          "worstTriangleIndex": 3590,
+          "worstPoint": [
+            0.0825100243,
+            0.251890182,
+            -0.0493847579
+          ],
+          "worstBodyPoint": [
+            0.09172683,
+            0.24901101,
+            -0.08505889
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "derivedContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 166178,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.0369578525,
+          "samplesBelowMinimum": 23085,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 345,
+          "minimumValidRays": 3,
+          "insideSamples": 3107,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 15636,
+          "samplesBelowMinus1mm": 1063,
+          "samplesBelowMinus3mm": 362,
+          "maximumClearanceDeficitMetres": 0.0389578529,
+          "maximumPenetrationDepthMetres": 0.0369578525,
+          "worstTriangleIndex": 3590,
+          "worstPoint": [
+            0.0825100243,
+            0.251890182,
+            -0.0493847579
+          ],
+          "worstBodyPoint": [
+            0.09172683,
+            0.24901101,
+            -0.08505889
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "movedQuality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 3.05324761E-06,
+          "p95": 1.36961046E-06
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 3.05324761E-06,
+          "p95": 1.36961046E-06
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 2.38418579E-07,
+        "worstVertex": 3690,
+        "expectedWorld": [
+          13.3138809,
+          2.20941854,
+          -8.679541
+        ],
+        "actualWorld": [
+          13.31388,
+          2.20941854,
+          -8.67954
+        ],
+        "expectedBounds": {
+          "center": [
+            13.2672482,
+            2.68383956,
+            -8.764797
+          ],
+          "size": [
+            0.934021,
+            1.25802088,
+            0.888278961
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.2672482,
+            2.6838398,
+            -8.764797
+          ],
+          "size": [
+            0.934021,
+            1.25802135,
+            0.888278961
+          ]
+        }
+      },
+      "derivedRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 2.38418579E-07,
+        "worstVertex": 3690,
+        "expectedWorld": [
+          13.3138809,
+          2.20941854,
+          -8.679541
+        ],
+        "actualWorld": [
+          13.31388,
+          2.20941854,
+          -8.67954
+        ],
+        "expectedBounds": {
+          "center": [
+            13.2672482,
+            2.68383956,
+            -8.764797
+          ],
+          "size": [
+            0.934021,
+            1.25802088,
+            0.888278961
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.2672482,
+            2.6838398,
+            -8.764797
+          ],
+          "size": [
+            0.934021,
+            1.25802135,
+            0.888278961
+          ]
+        }
+      }
+    },
+    {
+      "pose": "belly",
+      "clip": "Assets/ImportedActors/AnimLibrary/LayingBelly.anim",
+      "clipTime": 4.916667,
+      "actualBodyMotionFromStandingMetres": 0.0,
+      "actualHeelPlayerLoopFrames": 1,
+      "unscaledDeltaTime": 2.4299686,
+      "nativeHeelWeight": 0.0,
+      "derivedHeelWeight": 0.0,
+      "quality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 1.6859768E-07,
+          "p95": 1.19267483E-07
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 1.6859768E-07,
+          "p95": 1.19267483E-07
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 166178,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.0369578563,
+          "samplesBelowMinimum": 22748,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 294,
+          "minimumValidRays": 3,
+          "insideSamples": 2753,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 15203,
+          "samplesBelowMinus1mm": 964,
+          "samplesBelowMinus3mm": 362,
+          "maximumClearanceDeficitMetres": 0.0389578566,
+          "maximumPenetrationDepthMetres": 0.0369578563,
+          "worstTriangleIndex": 3590,
+          "worstPoint": [
+            0.08237085,
+            0.2558633,
+            -0.0491498671
+          ],
+          "worstBodyPoint": [
+            0.0915876552,
+            0.252984136,
+            -0.084824
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "derivedContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 166178,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.0369578563,
+          "samplesBelowMinimum": 22748,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 294,
+          "minimumValidRays": 3,
+          "insideSamples": 2753,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 15203,
+          "samplesBelowMinus1mm": 964,
+          "samplesBelowMinus3mm": 362,
+          "maximumClearanceDeficitMetres": 0.0389578566,
+          "maximumPenetrationDepthMetres": 0.0369578563,
+          "worstTriangleIndex": 3590,
+          "worstPoint": [
+            0.08237085,
+            0.2558633,
+            -0.0491498671
+          ],
+          "worstBodyPoint": [
+            0.0915876552,
+            0.252984136,
+            -0.084824
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "movedQuality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 3.05324761E-06,
+          "p95": 1.36961046E-06
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 3.05324761E-06,
+          "p95": 1.36961046E-06
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 2.38418579E-07,
+        "worstVertex": 7604,
+        "expectedWorld": [
+          13.1202869,
+          2.81381416,
+          -8.745338
+        ],
+        "actualWorld": [
+          13.120286,
+          2.81381416,
+          -8.74533749
+        ],
+        "expectedBounds": {
+          "center": [
+            13.249155,
+            2.68648672,
+            -8.756017
+          ],
+          "size": [
+            0.9982147,
+            1.24055862,
+            0.81669426
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.249155,
+            2.68648672,
+            -8.756017
+          ],
+          "size": [
+            0.9982147,
+            1.24055862,
+            0.81669426
+          ]
+        }
+      },
+      "derivedRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 2.38418579E-07,
+        "worstVertex": 7604,
+        "expectedWorld": [
+          13.1202869,
+          2.81381416,
+          -8.745338
+        ],
+        "actualWorld": [
+          13.120286,
+          2.81381416,
+          -8.74533749
+        ],
+        "expectedBounds": {
+          "center": [
+            13.249155,
+            2.68648672,
+            -8.756017
+          ],
+          "size": [
+            0.9982147,
+            1.24055862,
+            0.81669426
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.249155,
+            2.68648672,
+            -8.756017
+          ],
+          "size": [
+            0.9982147,
+            1.24055862,
+            0.81669426
+          ]
+        }
+      }
+    }
+  ],
+  "wholeAuthoredModelPreserved": true,
+  "recipientGeometryUnchanged": true,
+  "modelScope": "Whole ReikoOutfit; Shoes slot only for detail-camera focus",
+  "noSolverExecuted": true,
+  "acceptanceOverride": false,
+  "fallbackAcceptanceGranted": false,
+  "nativeSettings": {
+    "configs": [
+      {
+        "actor": "Molly",
+        "scale": 1.0,
+        "heightOffset": 0.0,
+        "mesh": "Assets/ImportedActors/Wear/ReikoOutfit/Meshes/Molly.mesh"
+      },
+      {
+        "actor": "Jolly",
+        "scale": 1.0,
+        "heightOffset": 0.0,
+        "mesh": "Assets/ImportedActors/Wear/ReikoOutfit/Meshes/Jolly.mesh"
+      },
+      {
+        "actor": "Marta",
+        "scale": 1.0,
+        "heightOffset": 0.0,
+        "mesh": "Assets/ImportedActors/Wear/ReikoOutfit/Meshes/Marta.mesh"
+      },
+      {
+        "actor": "Jana",
+        "scale": 1.0,
+        "heightOffset": 0.0,
+        "mesh": "Assets/ImportedActors/Wear/ReikoOutfit/Meshes/Jana.mesh"
+      }
+    ],
+    "slots": [
+      "Pelvis",
+      "ShinR",
+      "ShinL",
+      "FootR",
+      "FootL",
+      "WristR",
+      "WristL"
+    ],
+    "noHideUnderwearSlots": [],
+    "hideWearSlots": [],
+    "layer": "Wear",
+    "gender": "Female",
+    "hidesHair": false,
+    "heel": {
+      "footDegrees": 20.979999542236328,
+      "toeDegrees": -20.979999542236328,
+      "lift": 0.039400000125169754,
+      "axis": {
+        "x": 1.0,
+        "y": 0.0,
+        "z": 0.0
+      }
+    },
+    "headwearFit": {
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      }
+    }
+  },
+  "baseSettings": {
+    "configs": [
+      {
+        "actor": "Marta",
+        "scale": 1.0,
+        "heightOffset": 0.0,
+        "mesh": "Assets/HexLiveContent/People/Wardrobe/Meshes/c183f80582e88314ad7ec86d33a11f90_Marta.asset"
+      },
+      {
+        "actor": "Kshishtof",
+        "scale": 1.0,
+        "heightOffset": 0.0,
+        "mesh": "Assets/HexLiveContent/People/Wardrobe/Meshes/c183f80582e88314ad7ec86d33a11f90_Kshishtof.asset"
+      }
+    ],
+    "slots": [
+      "Pelvis",
+      "ShinR",
+      "ShinL",
+      "FootR",
+      "FootL",
+      "WristR",
+      "WristL"
+    ],
+    "noHideUnderwearSlots": [],
+    "hideWearSlots": [],
+    "layer": "Wear",
+    "gender": "Female",
+    "hidesHair": false,
+    "heel": {
+      "footDegrees": 20.979999542236328,
+      "toeDegrees": -20.979999542236328,
+      "lift": 0.039400000125169754,
+      "axis": {
+        "x": 1.0,
+        "y": 0.0,
+        "z": 0.0
+      }
+    },
+    "headwearFit": {
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      }
+    }
+  },
+  "candidateGeometry": "full-native-private-derived-donor-no-rebind",
+  "nativeMesh": "Assets/ImportedActors/Wear/ReikoOutfit/Meshes/Marta.mesh",
+  "nativeMeshSha": "584a41081488793953b85ea31d0e4cb4f2b08667ac0375f668480a9ecd420f86",
+  "nativeVertexCount": 9372,
+  "nativeMeshGuid": "54defb6decb7fda43b7545df231fac69",
+  "nativeMeshReadableInThisMode": false,
+  "nativeSubmeshCount": 17,
+  "sourceIdentity": {
+    "prefab": "Assets/HexLiveContent/Wear/clothing.outfit_reiko/ReikoOutfit.prefab",
+    "prefabSHA": "014863885d40cc0cfa53b2449ab037032a7adb5d2c9c87ead1ff725429b1fb90",
+    "mesh": "Assets/ImportedActors/Wear/ReikoOutfit/Meshes/Marta.mesh",
+    "meshSHA": "584a41081488793953b85ea31d0e4cb4f2b08667ac0375f668480a9ecd420f86",
+    "selectedActor": "Marta",
+    "settings": {
+      "configs": [
+        {
+          "actor": "Molly",
+          "scale": 1.0,
+          "heightOffset": 0.0,
+          "mesh": "Assets/ImportedActors/Wear/ReikoOutfit/Meshes/Molly.mesh"
+        },
+        {
+          "actor": "Jolly",
+          "scale": 1.0,
+          "heightOffset": 0.0,
+          "mesh": "Assets/ImportedActors/Wear/ReikoOutfit/Meshes/Jolly.mesh"
+        },
+        {
+          "actor": "Marta",
+          "scale": 1.0,
+          "heightOffset": 0.0,
+          "mesh": "Assets/ImportedActors/Wear/ReikoOutfit/Meshes/Marta.mesh"
+        },
+        {
+          "actor": "Jana",
+          "scale": 1.0,
+          "heightOffset": 0.0,
+          "mesh": "Assets/ImportedActors/Wear/ReikoOutfit/Meshes/Jana.mesh"
+        }
+      ],
+      "slots": [
+        "Pelvis",
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL",
+        "WristR",
+        "WristL"
+      ],
+      "noHideUnderwearSlots": [],
+      "hideWearSlots": [],
+      "layer": "Wear",
+      "gender": "Female",
+      "hidesHair": false,
+      "heel": {
+        "footDegrees": 20.979999542236328,
+        "toeDegrees": -20.979999542236328,
+        "lift": 0.039400000125169754,
+        "axis": {
+          "x": 1.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      },
+      "headwearFit": {
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      }
+    }
+  },
+  "candidateVertexCount": 9372,
+  "candidatePreservationBasis": "Unity Object.Instantiate(original Native mesh); no positions, indices, skin, bindposes, normals, UV, color or material setters",
+  "nativeRawCloneEditorAuditRequiredBeforeAdmission": true,
+  "reequip": {
+    "newNativeInstance": true,
+    "newDerivedInstance": true,
+    "quality": {
+      "passed": true,
+      "sourceToCandidate": {
+        "sampleCount": 4096,
+        "max": 1.791241E-07,
+        "p95": 1.19223841E-07
+      },
+      "candidateToSource": {
+        "sampleCount": 4096,
+        "max": 1.791241E-07,
+        "p95": 1.19223841E-07
+      },
+      "maxLimitMetres": 0.003,
+      "p95LimitMetres": 0.0005,
+      "freshMeasurement": true,
+      "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+    }
+  },
+  "rootTranslationYawEquivarianceAllSixPosesPassed": true,
+  "freshQualityAllSixPosesMovedRootsAndReequipPassed": true,
+  "admissionGranted": false,
+  "fullNativeCloneOnly": true,
+  "sourceAssetsUnmodified": true,
+  "sourceFileSHA256": {
+    "Assets/HexLiveContent/Wear/clothing.outfit_reiko/ReikoOutfit.prefab": "014863885d40cc0cfa53b2449ab037032a7adb5d2c9c87ead1ff725429b1fb90",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Meshes/Marta.mesh": "584a41081488793953b85ea31d0e4cb4f2b08667ac0375f668480a9ecd420f86",
+    "Assets/HexLiveContent/People/Wardrobe/Prefabs/c183f80582e88314ad7ec86d33a11f90.prefab": "eeca0ff687e2b79ae25d0b7af5e3f4dde9e9133c177eeb22aa1fafad2a1c40f9",
+    "Assets/HexLiveContent/People/Wardrobe/preparation.json": "e844db8bd0e4e968c8895b626ca35243a1ac6d27030a4cc35aea8a9982772e47",
+    "Assets/HexLiveContent/People/Wardrobe/catalog.json": "83a5b7c7b0e7e6dfb2240fea4e422514f1dd44f67fd3b54783b67b7de815e433",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Glove, Wrist.mat": "611877aef5226ae93aa722995e4a627b9fa0ebb2644c54b02d452b1dd0df4a6e",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Glove, Lower.mat": "1dbe08902bc1a953ed320f50c134e30eb3c288dcede9996602d1441bb7ddc85e",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Glove, Upper.mat": "d7b3ef738fad284929db31ec6036cc18a39284534412d0528e9612d5db294efe",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Shoes.mat": "aa86bca1cfb0163ab901822a39d45f5e6c25b0c2f719afc55677dc5a837bb9a4",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Zipper Handle.mat": "fade54f69c191e5c8620cd4132e93d26fda714e6cd116e3f845c7346f4336eb0",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Zipper.mat": "339d3ac0ec0fed5ff420b1bc7c6b48d5b040d2d02f281958968efcb6f3b6a15b",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Buttons.mat": "cbd79fda7d21bac4bd958b96182cac7e26260e838cc01ea4f80a7ce78cab974b",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Laces.mat": "8646735d9f29420453be32c1e6b64953701d65adabc6d8634e1b2f89ccf3c390",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Shorts.mat": "4b74fae8cf962305a91d99ea55d62c795e548007514b71cb321f96b83f8e95be",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Pants.mat": "234f2db653e6651f07e5028c8daf58f455c3ffa928547de5465bc6b6814dde5b",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Shorts Pocket, Right.mat": "39f56e3bdcca425989ca7fafff606b0aed2bf09bc887fa547648c30be9af6a3e",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Shorts Pocket Left.mat": "438514ebbf25ae35d1f6939ff23071a0c45c5bd155730374620a18838ff01b77",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Bra, Right.mat": "2d6629d92c9798490885c1e3f7fdf92943f42a91270cf6d16bb892fd0a56e516",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Bra, Left.mat": "a559048d9ec78f98ed17540a6a9e1ce8ea787fad6c910eec8c664f541b286391",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Bra.mat": "c53d105ac61fe816abd8aaec6bf20037cbd4f71b40890cd17da2668db2e8c2af",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Ribbon.mat": "b68590594c2a2a4db74c896be5c67794a3cf6890400b75800cc5990e952e71a8",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Knot.mat": "7863866cfd8e1f44d1bc861b0935e57e736639c184faaa827153aa00bc65fc36"
+  },
+  "dependencyHashes": {
+    "Assets/HexLiveContent/Wear/clothing.outfit_reiko/ReikoOutfit.prefab": "65e60a1cc81d755ad30cfd1201a63c72",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Meshes/Marta.mesh": "59370924d331674c9542ac1d1a2d9144",
+    "Assets/HexLiveContent/People/Wardrobe/Prefabs/c183f80582e88314ad7ec86d33a11f90.prefab": "bbd00981d957a0557362910c18e1983f",
+    "Assets/HexLiveContent/People/Wardrobe/preparation.json": "88e8313046557aa1cf254b82a3b3d789",
+    "Assets/HexLiveContent/People/Wardrobe/catalog.json": "8ca5c7c094a67645ce9130a003ceeacd",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Glove, Wrist.mat": "9867cd1e7a0668408e5f4b6efa606662",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Glove, Lower.mat": "ad4f41afb730e097c1db40f5ab81fc8a",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Glove, Upper.mat": "1dda2608e0247cffe86d2402f86379d4",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Shoes.mat": "d2c458b0231074c4a52c653dddefb5cd",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Zipper Handle.mat": "d3c9387b6921560f7819aaad3b64d7ce",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Zipper.mat": "43fbea53e92d203effea8dc6610e529b",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Buttons.mat": "85a0a29cb1af7847b803469feeab2ed1",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Laces.mat": "ebc88b59293dcb099792e2ebfe4664ff",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Shorts.mat": "d9ce936969ff8f53b228dd6998129621",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Pants.mat": "62486c2a303bbcfd1007fe7c4d00748b",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Shorts Pocket, Right.mat": "a966727c50e6ec0e1d792162df65f175",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Shorts Pocket Left.mat": "a655bd9b5b9a212565a9862d9cd300e9",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Bra, Right.mat": "c5a3a35bd6fc1d073c89edffe93cb7fc",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Bra, Left.mat": "f68638e64c9a6e8a7cc1196634b9c7f1",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Bra.mat": "10105cbba857c4d78b9b4bb72740c0e7",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Ribbon.mat": "2c0758843b7e66aca2529bce9ba74719",
+    "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Knot.mat": "a1d73a66de277eed6c940783892bf2a7"
+  }
+}

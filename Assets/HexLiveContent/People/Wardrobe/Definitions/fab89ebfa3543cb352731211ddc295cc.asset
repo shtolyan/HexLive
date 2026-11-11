@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: underwear_stockings_overknee_over_knee_6(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: underwear.stockings_overknee_over_knee_6
+  prototypeId: underwear.stockings_overknee
+  alternateFitId: 
+  displayName: Over-Knee Socks (Over Knee 6)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 1
+  variantMaterials:
+  - {fileID: 2100000, guid: 68dcd01db54339f4cb7cc42d01793933, type: 2}
+  - {fileID: 2100000, guid: 44e2a77a6cd936e49bec9ad3c2a43870, type: 2}
+  layer: 0
+  covers: 0500000006000000
+  warmth: 0.06
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

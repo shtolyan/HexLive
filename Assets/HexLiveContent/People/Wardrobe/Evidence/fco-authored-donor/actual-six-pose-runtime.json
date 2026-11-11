@@ -1,0 +1,1407 @@
+{
+  "diagnosticCompleted": true,
+  "id": "FCO Boots Male",
+  "actor": "Kshishtof",
+  "equipmentFactory": "BodyBones.Equip",
+  "rootScale": 0.7764706,
+  "rows": [
+    {
+      "pose": "standing",
+      "clip": "Assets/ImportedActors/AnimLibrary/Male@Idle.fbx",
+      "clipTime": 3.97333336,
+      "actualBodyMotionFromStandingMetres": 0.0,
+      "actualHeelLateUpdateCallsNative": 1,
+      "actualHeelLateUpdateCallsBase": 1,
+      "unscaledDeltaTime": 0.005843998,
+      "nativeHeelWeight": 1.0,
+      "baseHeelWeight": 1.0,
+      "quality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 4.77069939E-08,
+          "p95": 1.67638063E-08
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 4.77069939E-08,
+          "p95": 1.67638063E-08
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 459069,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.00112798053,
+          "samplesBelowMinimum": 17474,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 0,
+          "minimumValidRays": 3,
+          "insideSamples": 1168,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 11944,
+          "samplesBelowMinus1mm": 10,
+          "samplesBelowMinus3mm": 0,
+          "maximumClearanceDeficitMetres": 0.00312798051,
+          "maximumPenetrationDepthMetres": 0.00112798053,
+          "worstTriangleIndex": -1,
+          "worstPoint": [
+            0.129867136,
+            -0.0121709853,
+            0.1285379
+          ],
+          "worstBodyPoint": [
+            0.13080433,
+            -0.01227266,
+            0.127918482
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "baseContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 459069,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.00112798053,
+          "samplesBelowMinimum": 17474,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 0,
+          "minimumValidRays": 3,
+          "insideSamples": 1168,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 11944,
+          "samplesBelowMinus1mm": 10,
+          "samplesBelowMinus3mm": 0,
+          "maximumClearanceDeficitMetres": 0.00312798051,
+          "maximumPenetrationDepthMetres": 0.00112798053,
+          "worstTriangleIndex": -1,
+          "worstPoint": [
+            0.129867136,
+            -0.0121709881,
+            0.1285379
+          ],
+          "worstBodyPoint": [
+            0.13080433,
+            -0.0122726616,
+            0.127918482
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "nativeImages": {
+        "front": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-Native-front.png",
+        "frontSHA256": "08d3be1fdbd80404e8de87a97db89c1c8c2110958a91db62be009a4599613b28",
+        "front-sole": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-Native-front-sole.png",
+        "front-soleSHA256": "559024719ba24e23e1382fb805661d59153624984fa1001cdf69b3dd73181b73",
+        "front-cuff": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-Native-front-cuff.png",
+        "front-cuffSHA256": "c452e799bfb220714f223cc6adb3c3e91d1f5e0b624331372bec162f59ab1b0a",
+        "back": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-Native-back.png",
+        "backSHA256": "039cb813549394397d9b30556a6975dd2cd7c1ccf497b2aa75d3a45bbe33f12b",
+        "back-sole": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-Native-back-sole.png",
+        "back-soleSHA256": "d11b805d8aca0e644700fa0427df6d139921405bba355a7b1abbcffc0cdf8ce3",
+        "back-cuff": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-Native-back-cuff.png",
+        "back-cuffSHA256": "0409f124ed46451ba0a808f22fa24b8cb323e74a1da925c45ad5ac5375d211aa"
+      },
+      "baseImages": {
+        "front": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-BASE-front.png",
+        "frontSHA256": "cbf912f08c29dc1b32602f93e394fc08c5a099dcb12583c2a041be9ef6863c1d",
+        "front-sole": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-BASE-front-sole.png",
+        "front-soleSHA256": "f3a5232ff0e18ce50a3e75dd71b1852ec2c474ad324aa813d5123e4e36fe6d5f",
+        "front-cuff": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-BASE-front-cuff.png",
+        "front-cuffSHA256": "52680364f78453f8052944a8017a2f275911b3309deea758f90e498814c6dc35",
+        "back": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-BASE-back.png",
+        "backSHA256": "851429173ba392be83461d3be8767cb42f0cda3955f3423826ed5f95ca4ba562",
+        "back-sole": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-BASE-back-sole.png",
+        "back-soleSHA256": "82a65ad974c0334f7ece3a53fe37b55abadf382015fa520e92e64e95f6e00fe8",
+        "back-cuff": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-BASE-back-cuff.png",
+        "back-cuffSHA256": "7d45794592f70446840bf6b0d3e93da0e77152250125ed20921a074af07ace8d"
+      },
+      "movedQuality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 3.02519265E-06,
+          "p95": 1.36961046E-06
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 3.02519265E-06,
+          "p95": 1.36961046E-06
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 2.38418579E-07,
+        "worstVertex": 1814,
+        "expectedWorld": [
+          13.3889265,
+          2.17475724,
+          -8.664366
+        ],
+        "actualWorld": [
+          13.3889256,
+          2.17475724,
+          -8.664367
+        ],
+        "expectedBounds": {
+          "center": [
+            13.3326988,
+            2.22609663,
+            -8.77539
+          ],
+          "size": [
+            0.334842682,
+            0.323694229,
+            0.3517437
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.3326988,
+            2.22609663,
+            -8.77539
+          ],
+          "size": [
+            0.334842682,
+            0.323694229,
+            0.3517437
+          ]
+        }
+      },
+      "baseRootEquivariance": {
+        "maxMetres": 1.36961046E-06,
+        "p95Metres": 2.38418579E-07,
+        "worstVertex": 13463,
+        "expectedWorld": [
+          13.4649544,
+          2.07889,
+          -8.633663
+        ],
+        "actualWorld": [
+          13.4649534,
+          2.07888985,
+          -8.633664
+        ],
+        "expectedBounds": {
+          "center": [
+            13.3326988,
+            2.22609663,
+            -8.77539
+          ],
+          "size": [
+            0.334842682,
+            0.323694229,
+            0.3517437
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.3326988,
+            2.22609663,
+            -8.77539
+          ],
+          "size": [
+            0.334842682,
+            0.323694229,
+            0.3517437
+          ]
+        }
+      }
+    },
+    {
+      "pose": "run_early",
+      "clip": "Assets/ImportedActors/AnimLibrary/Male@Run.fbx",
+      "clipTime": 0.06333334,
+      "actualBodyMotionFromStandingMetres": 0.8429582,
+      "actualHeelLateUpdateCallsNative": 1,
+      "actualHeelLateUpdateCallsBase": 1,
+      "unscaledDeltaTime": 0.005843998,
+      "nativeHeelWeight": 1.0,
+      "baseHeelWeight": 1.0,
+      "quality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 6.749519E-08,
+          "p95": 3.414285E-08
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 7.38510053E-08,
+          "p95": 3.49990223E-08
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 459069,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.0011367976,
+          "samplesBelowMinimum": 15547,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 0,
+          "minimumValidRays": 3,
+          "insideSamples": 810,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 10375,
+          "samplesBelowMinus1mm": 3,
+          "samplesBelowMinus3mm": 0,
+          "maximumClearanceDeficitMetres": 0.00313679781,
+          "maximumPenetrationDepthMetres": 0.0011367976,
+          "worstTriangleIndex": -1,
+          "worstPoint": [
+            0.02762181,
+            0.0567231625,
+            -0.496454954
+          ],
+          "worstBodyPoint": [
+            0.0286915414,
+            0.0568490624,
+            -0.496818453
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "baseContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 459069,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.00113680365,
+          "samplesBelowMinimum": 15545,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 0,
+          "minimumValidRays": 3,
+          "insideSamples": 810,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 10375,
+          "samplesBelowMinus1mm": 3,
+          "samplesBelowMinus3mm": 0,
+          "maximumClearanceDeficitMetres": 0.00313680386,
+          "maximumPenetrationDepthMetres": 0.00113680365,
+          "worstTriangleIndex": -1,
+          "worstPoint": [
+            0.02762181,
+            0.0567231849,
+            -0.496454954
+          ],
+          "worstBodyPoint": [
+            0.0286915377,
+            0.0568490848,
+            -0.496818483
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "movedQuality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 2.18514242E-06,
+          "p95": 1.36961046E-06
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 2.18514242E-06,
+          "p95": 1.36961046E-06
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 2.38418579E-07,
+        "worstVertex": 16022,
+        "expectedWorld": [
+          12.88283,
+          2.16400743,
+          -8.391243
+        ],
+        "actualWorld": [
+          12.8828287,
+          2.16400743,
+          -8.391244
+        ],
+        "expectedBounds": {
+          "center": [
+            13.15989,
+            2.320674,
+            -8.621
+          ],
+          "size": [
+            0.6491375,
+            0.372591972,
+            0.531082153
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.15989,
+            2.320674,
+            -8.621
+          ],
+          "size": [
+            0.6491375,
+            0.372591972,
+            0.531082153
+          ]
+        }
+      },
+      "baseRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 2.38418579E-07,
+        "worstVertex": 16022,
+        "expectedWorld": [
+          12.88283,
+          2.16400743,
+          -8.391243
+        ],
+        "actualWorld": [
+          12.8828287,
+          2.16400743,
+          -8.391244
+        ],
+        "expectedBounds": {
+          "center": [
+            13.15989,
+            2.320674,
+            -8.621
+          ],
+          "size": [
+            0.6491375,
+            0.372591972,
+            0.531082153
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.15989,
+            2.320674,
+            -8.621
+          ],
+          "size": [
+            0.6491375,
+            0.372591972,
+            0.531082153
+          ]
+        }
+      }
+    },
+    {
+      "pose": "run_mid",
+      "clip": "Assets/ImportedActors/AnimLibrary/Male@Run.fbx",
+      "clipTime": 0.285000026,
+      "actualBodyMotionFromStandingMetres": 0.703887761,
+      "actualHeelLateUpdateCallsNative": 1,
+      "actualHeelLateUpdateCallsBase": 1,
+      "unscaledDeltaTime": 0.005843998,
+      "nativeHeelWeight": 1.0,
+      "baseHeelWeight": 1.0,
+      "quality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 6.664002E-08,
+          "p95": 3.1610135E-08
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 6.664002E-08,
+          "p95": 3.1610135E-08
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 459069,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.0124701662,
+          "samplesBelowMinimum": 24504,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 0,
+          "minimumValidRays": 0,
+          "insideSamples": 7964,
+          "ambiguousSamples": 2,
+          "onSurfaceSamples": 2,
+          "firstAmbiguousPoint": [
+            -0.0484329835,
+            -0.0215773322,
+            -0.09631823
+          ],
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 18989,
+          "samplesBelowMinus1mm": 5438,
+          "samplesBelowMinus3mm": 4806,
+          "maximumClearanceDeficitMetres": 0.0144701665,
+          "maximumPenetrationDepthMetres": 0.0124701662,
+          "worstTriangleIndex": -1,
+          "worstPoint": [
+            0.06014764,
+            0.477555126,
+            0.035330113
+          ],
+          "worstBodyPoint": [
+            0.0597336,
+            0.465256363,
+            0.0333116874
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "baseContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 459069,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.0124701662,
+          "samplesBelowMinimum": 24504,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 0,
+          "minimumValidRays": 0,
+          "insideSamples": 7964,
+          "ambiguousSamples": 2,
+          "onSurfaceSamples": 2,
+          "firstAmbiguousPoint": [
+            -0.04843299,
+            -0.0215773322,
+            -0.09631823
+          ],
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 18989,
+          "samplesBelowMinus1mm": 5438,
+          "samplesBelowMinus3mm": 4806,
+          "maximumClearanceDeficitMetres": 0.0144701665,
+          "maximumPenetrationDepthMetres": 0.0124701662,
+          "worstTriangleIndex": -1,
+          "worstPoint": [
+            0.06014764,
+            0.477555126,
+            0.035330113
+          ],
+          "worstBodyPoint": [
+            0.0597336,
+            0.465256363,
+            0.0333116874
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "movedQuality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 3.02519265E-06,
+          "p95": 1.36961046E-06
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 3.02519265E-06,
+          "p95": 1.36961046E-06
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 2.38418579E-07,
+        "worstVertex": 9022,
+        "expectedWorld": [
+          13.043973,
+          2.43616319,
+          -8.695686
+        ],
+        "actualWorld": [
+          13.0439739,
+          2.43616319,
+          -8.695687
+        ],
+        "expectedBounds": {
+          "center": [
+            13.1586142,
+            2.341129,
+            -8.704854
+          ],
+          "size": [
+            0.300836563,
+            0.5525842,
+            0.375524521
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.1586142,
+            2.341129,
+            -8.704854
+          ],
+          "size": [
+            0.300836563,
+            0.5525842,
+            0.375524521
+          ]
+        }
+      },
+      "baseRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 2.38418579E-07,
+        "worstVertex": 9090,
+        "expectedWorld": [
+          13.0705509,
+          2.447234,
+          -8.698492
+        ],
+        "actualWorld": [
+          13.0705519,
+          2.447234,
+          -8.698493
+        ],
+        "expectedBounds": {
+          "center": [
+            13.1586142,
+            2.341129,
+            -8.704854
+          ],
+          "size": [
+            0.300836563,
+            0.5525842,
+            0.375524521
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.1586142,
+            2.341129,
+            -8.704854
+          ],
+          "size": [
+            0.300836563,
+            0.5525842,
+            0.375524521
+          ]
+        }
+      }
+    },
+    {
+      "pose": "run_late",
+      "clip": "Assets/ImportedActors/AnimLibrary/Male@Run.fbx",
+      "clipTime": 0.5066667,
+      "actualBodyMotionFromStandingMetres": 1.16597354,
+      "actualHeelLateUpdateCallsNative": 1,
+      "actualHeelLateUpdateCallsBase": 1,
+      "unscaledDeltaTime": 0.005843998,
+      "nativeHeelWeight": 1.0,
+      "baseHeelWeight": 1.0,
+      "quality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 1.43120985E-07,
+          "p95": 6.15518942E-08
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 1.22966327E-07,
+          "p95": 6.188917E-08
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 459069,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.00677564275,
+          "samplesBelowMinimum": 17686,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 0,
+          "minimumValidRays": 3,
+          "insideSamples": 2747,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 12364,
+          "samplesBelowMinus1mm": 939,
+          "samplesBelowMinus3mm": 341,
+          "maximumClearanceDeficitMetres": 0.008775643,
+          "maximumPenetrationDepthMetres": 0.00677564275,
+          "worstTriangleIndex": 15116,
+          "worstPoint": [
+            -0.0653137863,
+            0.505895436,
+            -0.158336625
+          ],
+          "worstBodyPoint": [
+            -0.065316014,
+            0.5069233,
+            -0.165033847
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "baseContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 459069,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.00677564275,
+          "samplesBelowMinimum": 17686,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 0,
+          "minimumValidRays": 3,
+          "insideSamples": 2747,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 12364,
+          "samplesBelowMinus1mm": 939,
+          "samplesBelowMinus3mm": 341,
+          "maximumClearanceDeficitMetres": 0.008775643,
+          "maximumPenetrationDepthMetres": 0.00677564275,
+          "worstTriangleIndex": 15116,
+          "worstPoint": [
+            -0.0653137863,
+            0.505895436,
+            -0.158336625
+          ],
+          "worstBodyPoint": [
+            -0.065316014,
+            0.5069233,
+            -0.165033847
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "movedQuality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 2.87093985E-06,
+          "p95": 1.36961046E-06
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 2.87093985E-06,
+          "p95": 1.36961046E-06
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 2.38418579E-07,
+        "worstVertex": 7154,
+        "expectedWorld": [
+          12.936039,
+          2.696784,
+          -8.359354
+        ],
+        "actualWorld": [
+          12.936038,
+          2.696784,
+          -8.359355
+        ],
+        "expectedBounds": {
+          "center": [
+            13.2131252,
+            2.44443941,
+            -8.707571
+          ],
+          "size": [
+            0.614990234,
+            0.7614794,
+            0.7614517
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.2131252,
+            2.44443941,
+            -8.707571
+          ],
+          "size": [
+            0.614990234,
+            0.7614794,
+            0.7614517
+          ]
+        }
+      },
+      "baseRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 2.38418579E-07,
+        "worstVertex": 7154,
+        "expectedWorld": [
+          12.936039,
+          2.696784,
+          -8.359354
+        ],
+        "actualWorld": [
+          12.936038,
+          2.696784,
+          -8.359355
+        ],
+        "expectedBounds": {
+          "center": [
+            13.2131252,
+            2.44443941,
+            -8.707571
+          ],
+          "size": [
+            0.614990234,
+            0.7614794,
+            0.7614517
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.2131252,
+            2.44443941,
+            -8.707571
+          ],
+          "size": [
+            0.614990234,
+            0.7614794,
+            0.7614517
+          ]
+        }
+      }
+    },
+    {
+      "pose": "sleep",
+      "clip": "Assets/ImportedActors/AnimLibrary/Sleep.fbx",
+      "clipTime": 0.825000048,
+      "actualBodyMotionFromStandingMetres": 0.0,
+      "actualHeelLateUpdateCallsNative": 22,
+      "actualHeelLateUpdateCallsBase": 22,
+      "unscaledDeltaTime": 0.005843998,
+      "nativeHeelWeight": 0.0,
+      "baseHeelWeight": 0.0,
+      "quality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 1.79781438E-07,
+          "p95": 6.664002E-08
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 1.89404545E-07,
+          "p95": 6.67440645E-08
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 459069,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.00116885593,
+          "samplesBelowMinimum": 16577,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 0,
+          "minimumValidRays": 3,
+          "insideSamples": 1059,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 11163,
+          "samplesBelowMinus1mm": 5,
+          "samplesBelowMinus3mm": 0,
+          "maximumClearanceDeficitMetres": 0.003168856,
+          "maximumPenetrationDepthMetres": 0.00116885593,
+          "worstTriangleIndex": -1,
+          "worstPoint": [
+            0.343682,
+            0.103975095,
+            0.7876304
+          ],
+          "worstBodyPoint": [
+            0.3442704,
+            0.102970421,
+            0.787733436
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "baseContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 459069,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.00116883032,
+          "samplesBelowMinimum": 16579,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 0,
+          "minimumValidRays": 3,
+          "insideSamples": 1059,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 11161,
+          "samplesBelowMinus1mm": 5,
+          "samplesBelowMinus3mm": 0,
+          "maximumClearanceDeficitMetres": 0.00316883042,
+          "maximumPenetrationDepthMetres": 0.00116883032,
+          "worstTriangleIndex": -1,
+          "worstPoint": [
+            0.343682051,
+            0.103975095,
+            0.7876304
+          ],
+          "worstBodyPoint": [
+            0.344270468,
+            0.102970451,
+            0.787733436
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "movedQuality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 2.18514242E-06,
+          "p95": 1.36961046E-06
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 2.18514242E-06,
+          "p95": 1.36961046E-06
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 9.536743E-07,
+        "worstVertex": 282,
+        "expectedWorld": [
+          13.8675632,
+          2.1665132,
+          -9.12216949
+        ],
+        "actualWorld": [
+          13.8675642,
+          2.1665132,
+          -9.12217
+        ],
+        "expectedBounds": {
+          "center": [
+            13.7353992,
+            2.16308355,
+            -9.262346
+          ],
+          "size": [
+            0.6340561,
+            0.207038879,
+            0.6355934
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.7353992,
+            2.16308355,
+            -9.262346
+          ],
+          "size": [
+            0.6340561,
+            0.207038879,
+            0.6355934
+          ]
+        }
+      },
+      "baseRootEquivariance": {
+        "maxMetres": 1.36961046E-06,
+        "p95Metres": 9.536743E-07,
+        "worstVertex": 18045,
+        "expectedWorld": [
+          13.5294418,
+          2.1927886,
+          -9.579905
+        ],
+        "actualWorld": [
+          13.5294428,
+          2.19278884,
+          -9.579904
+        ],
+        "expectedBounds": {
+          "center": [
+            13.7353992,
+            2.16308355,
+            -9.262346
+          ],
+          "size": [
+            0.6340561,
+            0.207038879,
+            0.6355934
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            13.7353992,
+            2.16308355,
+            -9.262346
+          ],
+          "size": [
+            0.6340561,
+            0.207038879,
+            0.6355934
+          ]
+        }
+      }
+    },
+    {
+      "pose": "belly",
+      "clip": "Assets/ImportedActors/AnimLibrary/LayingBelly.anim",
+      "clipTime": 4.916667,
+      "actualBodyMotionFromStandingMetres": 0.0,
+      "actualHeelLateUpdateCallsNative": 1,
+      "actualHeelLateUpdateCallsBase": 1,
+      "unscaledDeltaTime": 0.005843998,
+      "nativeHeelWeight": 0.0,
+      "baseHeelWeight": 0.0,
+      "quality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 1.820825E-07,
+          "p95": 6.188917E-08
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 1.23103788E-07,
+          "p95": 6.188917E-08
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 459069,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.008465935,
+          "samplesBelowMinimum": 15568,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 0,
+          "minimumValidRays": 3,
+          "insideSamples": 2782,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 10929,
+          "samplesBelowMinus1mm": 1187,
+          "samplesBelowMinus3mm": 459,
+          "maximumClearanceDeficitMetres": 0.0104659349,
+          "maximumPenetrationDepthMetres": 0.008465935,
+          "worstTriangleIndex": 19547,
+          "worstPoint": [
+            0.18405056,
+            0.105063446,
+            -0.7502072
+          ],
+          "worstBodyPoint": [
+            0.182183683,
+            0.0992703,
+            -0.7443228
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "baseContactDiagnostic": {
+        "acceptance": false,
+        "diagnosticOnly": true,
+        "strictPhysical2mmResult": {
+          "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+          "sampleCount": 459069,
+          "targetClearanceMetres": 0.002,
+          "minimumSignedDistanceMetres": -0.008465935,
+          "samplesBelowMinimum": 15568,
+          "physicalMinimumIsStrict": true,
+          "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+          "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+          "nonUnanimousSamples": 0,
+          "minimumValidRays": 3,
+          "insideSamples": 2782,
+          "ambiguousSamples": 0,
+          "onSurfaceSamples": 0,
+          "firstAmbiguousPoint": null,
+          "toleranceMetres": 0.0005,
+          "toleranceIsDiagnosticOnly": true,
+          "samplesBelowTargetMinusTolerance": 10929,
+          "samplesBelowMinus1mm": 1187,
+          "samplesBelowMinus3mm": 459,
+          "maximumClearanceDeficitMetres": 0.0104659349,
+          "maximumPenetrationDepthMetres": 0.008465935,
+          "worstTriangleIndex": 19547,
+          "worstPoint": [
+            0.18405056,
+            0.105063446,
+            -0.7502072
+          ],
+          "worstBodyPoint": [
+            0.182183683,
+            0.0992703,
+            -0.7443228
+          ],
+          "passedSampledEnvelope": false
+        },
+        "noAutomaticFallbackOrWaiver": true
+      },
+      "movedQuality": {
+        "passed": true,
+        "sourceToCandidate": {
+          "sampleCount": 4096,
+          "max": 2.70791452E-06,
+          "p95": 1.36961046E-06
+        },
+        "candidateToSource": {
+          "sampleCount": 4096,
+          "max": 2.70791452E-06,
+          "p95": 1.36961046E-06
+        },
+        "maxLimitMetres": 0.003,
+        "p95LimitMetres": 0.0005,
+        "freshMeasurement": true,
+        "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+      },
+      "nativeRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 9.536743E-07,
+        "worstVertex": 338,
+        "expectedWorld": [
+          12.8370323,
+          2.12062573,
+          -8.243528
+        ],
+        "actualWorld": [
+          12.8370314,
+          2.12062573,
+          -8.243527
+        ],
+        "expectedBounds": {
+          "center": [
+            12.7123222,
+            2.17748642,
+            -8.268301
+          ],
+          "size": [
+            0.517684937,
+            0.183071136,
+            0.4713173
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            12.7123222,
+            2.17748642,
+            -8.268301
+          ],
+          "size": [
+            0.517684937,
+            0.183071136,
+            0.4713173
+          ]
+        }
+      },
+      "baseRootEquivariance": {
+        "maxMetres": 1.34869913E-06,
+        "p95Metres": 9.536743E-07,
+        "worstVertex": 338,
+        "expectedWorld": [
+          12.8370323,
+          2.12062573,
+          -8.243528
+        ],
+        "actualWorld": [
+          12.8370314,
+          2.12062573,
+          -8.243527
+        ],
+        "expectedBounds": {
+          "center": [
+            12.7123222,
+            2.17748642,
+            -8.268301
+          ],
+          "size": [
+            0.517684937,
+            0.183071136,
+            0.4713173
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            12.7123222,
+            2.17748642,
+            -8.268301
+          ],
+          "size": [
+            0.517684937,
+            0.183071136,
+            0.4713173
+          ]
+        }
+      }
+    }
+  ],
+  "noSolverExecuted": true,
+  "acceptanceOverride": false,
+  "fallbackAcceptanceGranted": false,
+  "nativeSettings": {
+    "configs": [
+      {
+        "actor": "Kshishtof",
+        "scale": 1.05,
+        "heightOffset": 0.0,
+        "mesh": "Assets/ImportedActors/Wear/FCO_Boots_Male/Meshes/Kshishtof.mesh"
+      }
+    ],
+    "slots": [
+      "FootR",
+      "FootL"
+    ],
+    "noHideUnderwearSlots": [],
+    "hideWearSlots": [],
+    "layer": "Outerwear",
+    "gender": "Male",
+    "hidesHair": false,
+    "heel": {
+      "footDegrees": 0.0,
+      "toeDegrees": 0.0,
+      "lift": 0.0,
+      "axis": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      }
+    },
+    "headwearFit": {
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      }
+    }
+  },
+  "baseSettings": {
+    "configs": [
+      {
+        "actor": "Marta",
+        "scale": 1.05,
+        "heightOffset": 0.0,
+        "mesh": "Assets/HexLiveContent/People/Wardrobe/Meshes/bc601126274c16b0b58f5b52403c2192_Marta.asset"
+      },
+      {
+        "actor": "Kshishtof",
+        "scale": 1.05,
+        "heightOffset": 0.0,
+        "mesh": "Assets/HexLiveContent/People/Wardrobe/Meshes/bc601126274c16b0b58f5b52403c2192_Kshishtof.asset"
+      }
+    ],
+    "slots": [
+      "FootR",
+      "FootL"
+    ],
+    "noHideUnderwearSlots": [],
+    "hideWearSlots": [],
+    "layer": "Outerwear",
+    "gender": "Male",
+    "hidesHair": false,
+    "heel": {
+      "footDegrees": 0.0,
+      "toeDegrees": 0.0,
+      "lift": 0.0,
+      "axis": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      }
+    },
+    "headwearFit": {
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      }
+    }
+  },
+  "candidateGeometry": "full-native-private-derived-donor-no-rebind",
+  "nativeMesh": "Assets/ImportedActors/Wear/FCO_Boots_Male/Meshes/Kshishtof.mesh",
+  "nativeMeshSha": "c1ad1d53889ce2ab5e9399141ad686acd060473b3dd2a6128bfaac4c4547122d",
+  "nativeVertexCount": 18525,
+  "candidateVertexCount": 18525,
+  "candidatePreservationBasis": "Unity Object.Instantiate(original Native mesh); no positions, indices, skin, bindposes, normals, UV, color or material setters",
+  "nativeRawCloneEditorAuditRequiredBeforeAdmission": true,
+  "reequip": {
+    "newNativeInstance": true,
+    "newBaseInstance": true,
+    "quality": {
+      "passed": true,
+      "sourceToCandidate": {
+        "sampleCount": 4096,
+        "max": 7.107401E-08,
+        "p95": 4.01226039E-08
+      },
+      "candidateToSource": {
+        "sampleCount": 4096,
+        "max": 7.972469E-08,
+        "p95": 4.08085121E-08
+      },
+      "maxLimitMetres": 0.003,
+      "p95LimitMetres": 0.0005,
+      "freshMeasurement": true,
+      "metric": "existing bidirectional sampled vertex/centroid distance in actual equipped WORLD metres"
+    }
+  },
+  "rootTranslationYawEquivarianceAllSixPosesPassed": true,
+  "freshQualityAllSixPosesMovedRootsAndReequipPassed": true,
+  "sourceAssetsUnmodified": true,
+  "sourceFileSHA256": {
+    "Assets/HexLiveContent/Wear/FCO Boots Male/FCO Boots Male.prefab": "6458dc5e9d6588bc1e9665c248d9886e71298ea89c23d809fcbf4ca415417793",
+    "Assets/HexLiveContent/People/Wardrobe/Prefabs/bc601126274c16b0b58f5b52403c2192.prefab": "cb0f9602d33ab4e7ee0cd3e32acb7478147eb62da3c9f8bbd44a1b42aea54bbe",
+    "Assets/HexLiveContent/People/Wardrobe/preparation.json": "e844db8bd0e4e968c8895b626ca35243a1ac6d27030a4cc35aea8a9982772e47",
+    "Assets/HexLiveContent/People/Wardrobe/catalog.json": "83a5b7c7b0e7e6dfb2240fea4e422514f1dd44f67fd3b54783b67b7de815e433"
+  },
+  "dependencyHashes": {
+    "Assets/HexLiveContent/Wear/FCO Boots Male/FCO Boots Male.prefab": "dede66e714cab6993d2e3c21ccc5d994",
+    "Assets/HexLiveContent/People/Wardrobe/Prefabs/bc601126274c16b0b58f5b52403c2192.prefab": "9492b04ae59135bb2611bc92c297a059",
+    "Assets/HexLiveContent/People/Wardrobe/preparation.json": "88e8313046557aa1cf254b82a3b3d789",
+    "Assets/HexLiveContent/People/Wardrobe/catalog.json": "8ca5c7c094a67645ce9130a003ceeacd"
+  }
+}

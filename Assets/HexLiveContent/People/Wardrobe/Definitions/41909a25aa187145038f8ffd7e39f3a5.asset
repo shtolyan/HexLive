@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_jacket_autumn_jacket_material03(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.jacket_autumn_jacket_material03
+  prototypeId: clothing.jacket_autumn
+  alternateFitId: 
+  displayName: Autumn Jacket (Jacket Material03)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 5
+  variantMaterials:
+  - {fileID: 2100000, guid: 8e74c745c8003e34ba62ff3186aaa240, type: 2}
+  - {fileID: 2100000, guid: 78494662fd097ce4782b6191799f26b2, type: 2}
+  - {fileID: 2100000, guid: acbeacff912692d42ae7480565c10688, type: 2}
+  - {fileID: 2100000, guid: b1e2c7aa30437024a9383246fd19691c, type: 2}
+  - {fileID: 2100000, guid: 3dd13721fdac5714086b00722fec8668, type: 2}
+  - {fileID: 2100000, guid: fe1db5f3818f30a45a5fdb27c39bb7c4, type: 2}
+  - {fileID: 2100000, guid: e9b010583a1b6e246a65083007e63ccd, type: 2}
+  layer: 2
+  covers: 010000000300000004000000
+  warmth: 0.28
+  armor: 0.06
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 4

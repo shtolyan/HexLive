@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_boots_charm_latex_grey(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.boots_charm_latex_grey
+  prototypeId: clothing.boots_charm
+  alternateFitId: 
+  displayName: Thigh-High Boots (Latex Grey)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 6
+  variantMaterials:
+  - {fileID: 2100000, guid: 79181404d4251a946893667c830f200a, type: 2}
+  - {fileID: 2100000, guid: bcc0aab51a020c949b11dc8be9fb9215, type: 2}
+  - {fileID: 2100000, guid: ccb40a90f26eb394d8d4c1dd3d7b5889, type: 2}
+  - {fileID: 2100000, guid: d781c31fe9b65324c8de902aee8dda08, type: 2}
+  - {fileID: 2100000, guid: 3dc659c89cc035f4b91cbe23011b54e2, type: 2}
+  - {fileID: 2100000, guid: 271f01a0dcee04a4681cbc63b4b8fd0f, type: 2}
+  - {fileID: 2100000, guid: f32e11d052062184d920839584037abc, type: 2}
+  - {fileID: 2100000, guid: 160254d6630d22243bcb2a033e7220f8, type: 2}
+  - {fileID: 2100000, guid: 05b9900f1638d434a955e2f0ecd2b9c6, type: 2}
+  - {fileID: 2100000, guid: 2a7895a9cbbbe34478dbb1590821086d, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.14
+  armor: 0.1
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

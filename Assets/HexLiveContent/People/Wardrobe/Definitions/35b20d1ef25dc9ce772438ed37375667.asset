@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_sandals_summer1_style_01_white(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.sandals_summer1_style_01_white
+  prototypeId: clothing.sandals_summer1
+  alternateFitId: 
+  displayName: Sandals, Style I (Style 01 White)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 6
+  variantMaterials:
+  - {fileID: 2100000, guid: 80ce1e4161cf27b4ba54375a5048b927, type: 2}
+  - {fileID: 2100000, guid: f27d3e7a0254b88419a145f4be5e9e06, type: 2}
+  - {fileID: 2100000, guid: f35f724f71130da4ca20198de80f26a5, type: 2}
+  - {fileID: 2100000, guid: 4ce37e8c7818557469afd32d4a0705a9, type: 2}
+  - {fileID: 2100000, guid: 8963ce64c97212a4b845c5bd69a8b157, type: 2}
+  - {fileID: 2100000, guid: 2597f6286248e944aaa022a098f9cc63, type: 2}
+  - {fileID: 2100000, guid: 20e763a5b7b9d994f9e43ae7b0364cb3, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.02
+  armor: 0.02
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

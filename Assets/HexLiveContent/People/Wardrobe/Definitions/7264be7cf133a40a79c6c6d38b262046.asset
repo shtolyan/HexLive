@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_slipons_fads_skulls(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.slipons_fads_skulls
+  prototypeId: clothing.slipons_fads
+  alternateFitId: 
+  displayName: Slip-Ons (Skulls)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 6
+  variantMaterials:
+  - {fileID: 2100000, guid: 07f16d621d36f094ca79ea58301e2006, type: 2}
+  - {fileID: 2100000, guid: ec56c74cd9df89644b3d56c6bfd4f1b3, type: 2}
+  - {fileID: 2100000, guid: 2c8b3421194da3b4bb384f3a0e4d0230, type: 2}
+  - {fileID: 2100000, guid: e248ef8259c79c149a4a56afb37ecdb3, type: 2}
+  - {fileID: 2100000, guid: 74f0ad89a1f4b674ea828b89d4970bd1, type: 2}
+  - {fileID: 2100000, guid: adf377671ab7d19448bdba5f305238fa, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.08
+  armor: 0.05
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_blouse_waist_riot_denim(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.blouse_waist_riot_denim
+  prototypeId: clothing.blouse_waist_riot
+  alternateFitId: 
+  displayName: Blouse Tied at the Waist (Denim)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 2
+  variantMaterials:
+  - {fileID: 2100000, guid: edba55dcd1e2e214bbc5d0d3bd87fdc9, type: 2}
+  - {fileID: 2100000, guid: 92dc53257c7f02e48a95128ab597c5ea, type: 2}
+  - {fileID: 2100000, guid: cb69dc0913e650049b0545fea6de64db, type: 2}
+  layer: 2
+  covers: 020000000500000006000000
+  warmth: 0.06
+  armor: 0.01
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 2

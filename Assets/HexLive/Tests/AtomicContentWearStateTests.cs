@@ -9,6 +9,7 @@ using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
+using BodyPart = HexLive.Simulation.Content.BodyPart;
 
 namespace HexLive.Tests
 {

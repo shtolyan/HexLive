@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_vest_ranger_packs(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.vest_ranger_packs
+  prototypeId: clothing.vest_ranger
+  alternateFitId: 
+  displayName: Padded Vest (Packs)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 5
+  variantMaterials:
+  - {fileID: 2100000, guid: 29efb693c103f2c46bf473d0d2707929, type: 2}
+  - {fileID: 2100000, guid: 67403f6f591165946af464de3e42cd68, type: 2}
+  - {fileID: 2100000, guid: d796b7a9d446a824299ea31eebab3a8e, type: 2}
+  - {fileID: 2100000, guid: 4f4797df099802443887b126dc6c6c88, type: 2}
+  - {fileID: 2100000, guid: 28e365b04020c1d43919a7e2b6b0a105, type: 2}
+  - {fileID: 2100000, guid: a64f0c47d3f069647b14a4e1fedbe61f, type: 2}
+  layer: 2
+  covers: 01000000
+  warmth: 0.14
+  armor: 0.15
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 1

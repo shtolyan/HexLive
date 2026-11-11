@@ -30,7 +30,7 @@ public static class PeopleWardrobeFitReview
             throw new InvalidOperationException("Graphics required for actual wardrobe review");
         Directory.CreateDirectory(Output);
         var records = ((JArray)JObject.Parse(File.ReadAllText(Root + "/catalog.json"))["records"])
-            .Where(r => (string)r["type"] == "wear").ToArray();
+            .Where(r => (string)r["type"] == "wear" && (bool?)r["metadata"]?["legacyWardrobe"] != true).ToArray();
         var definitions = records.ToDictionary(r => (string)r["id"], r =>
             AssetDatabase.LoadAssetAtPath<GarmentDefinition>((string)r["definition"]));
         var previous = GarmentLibrary.Active.ToArray();
@@ -82,7 +82,7 @@ public static class PeopleWardrobeFitReview
                 var row = records.Single(r => (string)r["id"] == fitted);
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>((string)row["main"]);
                 var wear = prefab.GetComponent<Wear>();
-                if (wear.Gender != ActorSex.Of(actor)) throw new InvalidOperationException(id + ": wrong body fit");
+                if (!wear.SupportsActor(actor)) throw new InvalidOperationException(id + ": wrong body fit");
                 var go = UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/Prefabs/Actors/" + actor + ".prefab"));
                 var graph = PlayableGraph.Create("PairedWardrobeRunAudit");
                 try

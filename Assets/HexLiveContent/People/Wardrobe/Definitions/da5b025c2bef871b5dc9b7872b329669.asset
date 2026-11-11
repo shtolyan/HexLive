@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_skirt_jane_bluest(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.skirt_jane_bluest
+  prototypeId: clothing.skirt_jane
+  alternateFitId: 
+  displayName: Tiered Skirt (BluesT)
+  retired: 1
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 3
+  variantMaterials:
+  - {fileID: 2100000, guid: f295be935ed9cb94eb6d66e8ecbb34a1, type: 2}
+  - {fileID: 2100000, guid: 04984a6671ff83247b76be49faa99ec9, type: 2}
+  - {fileID: 2100000, guid: 39778f3486fdb9b43abc4c0038433904, type: 2}
+  - {fileID: 2100000, guid: a9d56ec856724b3419122fb6474f3646, type: 2}
+  - {fileID: 2100000, guid: 3de397c23460f974197b5d0627c59d68, type: 2}
+  - {fileID: 2100000, guid: a160eb316765e0843b0982995e7e6744, type: 2}
+  - {fileID: 2100000, guid: 90f2a4549557e4b48a7135768fd6814d, type: 2}
+  - {fileID: 2100000, guid: 635d3a4ee81f3e749920dba12f3a2b9a, type: 2}
+  layer: 1
+  covers: 020000000500000006000000
+  warmth: 0.08
+  armor: 0.01
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 2

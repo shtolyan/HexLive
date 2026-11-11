@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_sneakers_canvas_rs5_mat03(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.sneakers_canvas_rs5_mat03
+  prototypeId: clothing.sneakers_canvas
+  alternateFitId: 
+  displayName: Canvas Sneakers (RS5 MAT03)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 6
+  variantMaterials:
+  - {fileID: 2100000, guid: f53938ff32e92714b809a96425a552ad, type: 2}
+  - {fileID: 2100000, guid: a505111b2645b4941b7d8e73f3df39cc, type: 2}
+  - {fileID: 2100000, guid: e00c7fc004dddc24fb5c94517594c1ff, type: 2}
+  - {fileID: 2100000, guid: b83c639b775eb1547a25fd35591682f5, type: 2}
+  - {fileID: 2100000, guid: 351205bd6060966439df4dede339e0ed, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.08
+  armor: 0.05
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

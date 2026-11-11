@@ -1,0 +1,111 @@
+{
+  "writtenUtc": "2026-11-10T21:07:43.694082+00:00",
+  "reviewWallTimeNotInstrumented": true,
+  "reviewer": "/root",
+  "decision": "Approve explicit authored-donor-preserved preparation semantics for THIS source and Kshishtof DONOR only, after implementing independently verified producer and review/runtime consumers. No blanket cloth fallback; recipient Marta remains strict.",
+  "sourceMesh": "Assets/ImportedActors/Wear/FCO_Boots_Male/Meshes/Kshishtof.mesh",
+  "sourceMeshSha256": "c1ad1d53889ce2ab5e9399141ad686acd060473b3dd2a6128bfaac4c4547122d",
+  "nativeSourcePrefab": "Assets/HexLiveContent/Wear/FCO Boots Male/FCO Boots Male.prefab",
+  "nativeVertices": 18525,
+  "nativeTriangles": 33888,
+  "actualSixPoseQualityPassed": true,
+  "actualRootAndReequipPassed": true,
+  "rawCloneAudit": {
+    "path": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-clone-raw-20261110T204609834.json",
+    "sha256": "0ed62fd53044c744d7a745285571dbd9b28959baa9199f5b5f6fa303a5b3ba25"
+  },
+  "actualPlayModeEvidence": {
+    "path": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-evidence.json",
+    "sha256": "6f85874aecee708e9f89c9b31dc4c3c2949b6d0a43fdc42fb5649aac1a126b54"
+  },
+  "images": [
+    {
+      "scope": "nativeImages",
+      "view": "front",
+      "path": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-Native-front.png",
+      "sha256": "08d3be1fdbd80404e8de87a97db89c1c8c2110958a91db62be009a4599613b28",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "nativeImages",
+      "view": "front-sole",
+      "path": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-Native-front-sole.png",
+      "sha256": "559024719ba24e23e1382fb805661d59153624984fa1001cdf69b3dd73181b73",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "nativeImages",
+      "view": "front-cuff",
+      "path": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-Native-front-cuff.png",
+      "sha256": "c452e799bfb220714f223cc6adb3c3e91d1f5e0b624331372bec162f59ab1b0a",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "nativeImages",
+      "view": "back",
+      "path": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-Native-back.png",
+      "sha256": "039cb813549394397d9b30556a6975dd2cd7c1ccf497b2aa75d3a45bbe33f12b",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "nativeImages",
+      "view": "back-sole",
+      "path": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-Native-back-sole.png",
+      "sha256": "d11b805d8aca0e644700fa0427df6d139921405bba355a7b1abbcffc0cdf8ce3",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "nativeImages",
+      "view": "back-cuff",
+      "path": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-Native-back-cuff.png",
+      "sha256": "0409f124ed46451ba0a808f22fa24b8cb323e74a1da925c45ad5ac5375d211aa",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "baseImages",
+      "view": "front",
+      "path": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-BASE-front.png",
+      "sha256": "cbf912f08c29dc1b32602f93e394fc08c5a099dcb12583c2a041be9ef6863c1d",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "baseImages",
+      "view": "front-sole",
+      "path": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-BASE-front-sole.png",
+      "sha256": "f3a5232ff0e18ce50a3e75dd71b1852ec2c474ad324aa813d5123e4e36fe6d5f",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "baseImages",
+      "view": "front-cuff",
+      "path": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-BASE-front-cuff.png",
+      "sha256": "52680364f78453f8052944a8017a2f275911b3309deea758f90e498814c6dc35",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "baseImages",
+      "view": "back",
+      "path": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-BASE-back.png",
+      "sha256": "851429173ba392be83461d3be8767cb42f0cda3955f3423826ed5f95ca4ba562",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "baseImages",
+      "view": "back-sole",
+      "path": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-BASE-back-sole.png",
+      "sha256": "82a65ad974c0334f7ece3a53fe37b55abadf382015fa520e92e64e95f6e00fe8",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "baseImages",
+      "view": "back-cuff",
+      "path": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-BASE-back-cuff.png",
+      "sha256": "7d45794592f70446840bf6b0d3e93da0e77152250125ed20921a074af07ace8d",
+      "rootPersonallyViewed": true
+    }
+  ],
+  "visualScope": "All12 original standing front/back/sole/cuff images personally viewed. Native and clone silhouettes/rims clean, prepared textures softer. NOT a six-pose visual claim. Six-pose actual geometry equivalence separately passed.",
+  "contactPolicy": "Authored donor shape identity/pinned source + actual pose equivalence acceptance. Keep all body contact diagnostics truthful as diagnostics; never label as strict cloth2mm PASS. Missing/wrong source, actor, raw/fullskin evidence or pose coverage must reject. Native/base/runtime/activecatalog immutable.",
+  "publicationAuthorized": false,
+  "wholeCollectionReady": false
+}

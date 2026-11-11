@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="19" result="Failed(Child)" total="19" passed="13" failed="6" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-11-10 21:00:21Z" end-time="2026-11-10 21:01:35Z" duration="74,1148468">
+  <test-suite type="TestSuite" id="2122" name="HexLive" fullname="HexLive" runstate="Runnable" testcasecount="943" result="Failed" site="Child" start-time="2026-11-10 21:00:21Z" end-time="2026-11-10 21:01:35Z" duration="74.114847" total="19" passed="13" failed="6" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="Assembly" id="2116" name="HexLive.AgentIntegration.Tests.dll" fullname="C:/Users/shtolyan/Documents/GitHub/HexLive/Library/ScriptAssemblies/HexLive.AgentIntegration.Tests.dll" runstate="Runnable" testcasecount="943" result="Failed" site="Child" start-time="2026-11-10 21:00:21Z" end-time="2026-11-10 21:01:35Z" duration="74.081818" total="19" passed="13" failed="6" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="11016" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <failure>
+        <message><![CDATA[One or more child tests had errors]]></message>
+      </failure>
+      <test-suite type="TestSuite" id="2117" name="HexLive" fullname="HexLive" runstate="Runnable" testcasecount="943" result="Failed" site="Child" start-time="2026-11-10 21:00:21Z" end-time="2026-11-10 21:01:35Z" duration="74.065790" total="19" passed="13" failed="6" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <failure>
+          <message><![CDATA[One or more child tests had errors]]></message>
+        </failure>
+        <test-suite type="TestSuite" id="2118" name="Tests" fullname="HexLive.Tests" runstate="Runnable" testcasecount="943" result="Failed" site="Child" start-time="2026-11-10 21:00:21Z" end-time="2026-11-10 21:01:35Z" duration="74.048900" total="19" passed="13" failed="6" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <failure>
+            <message><![CDATA[One or more child tests had errors]]></message>
+          </failure>
+          <test-suite type="TestFixture" id="1134" name="CreatorVoicePreviewAudioTests" fullname="HexLive.Tests.CreatorVoicePreviewAudioTests" classname="HexLive.Tests.CreatorVoicePreviewAudioTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-11-10 21:00:21Z" end-time="2026-11-10 21:00:24Z" duration="3.571823" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1135" name="CachedVoiceTracksCurrentLanguageWithoutWaitingForTheDeferredI2Event" fullname="HexLive.Tests.CreatorVoicePreviewAudioTests.CachedVoiceTracksCurrentLanguageWithoutWaitingForTheDeferredI2Event" methodname="CachedVoiceTracksCurrentLanguageWithoutWaitingForTheDeferredI2Event" classname="HexLive.Tests.CreatorVoicePreviewAudioTests" runstate="Runnable" seed="657530050" result="Passed" start-time="2026-11-10 21:00:21Z" end-time="2026-11-10 21:00:22Z" duration="1.554419" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1138" name="PreviewPlaysActualLocalizedAudioInTheVoicesGroupWithoutSpatialAttenuationOrPitchJitter" fullname="HexLive.Tests.CreatorVoicePreviewAudioTests.PreviewPlaysActualLocalizedAudioInTheVoicesGroupWithoutSpatialAttenuationOrPitchJitter" classname="HexLive.Tests.CreatorVoicePreviewAudioTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-11-10 21:00:22Z" end-time="2026-11-10 21:00:24Z" duration="1.972798" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1136" name="PreviewPlaysActualLocalizedAudioInTheVoicesGroupWithoutSpatialAttenuationOrPitchJitter(Russian,&quot;ru&quot;)" fullname="HexLive.Tests.CreatorVoicePreviewAudioTests.PreviewPlaysActualLocalizedAudioInTheVoicesGroupWithoutSpatialAttenuationOrPitchJitter(Russian,&quot;ru&quot;)" methodname="PreviewPlaysActualLocalizedAudioInTheVoicesGroupWithoutSpatialAttenuationOrPitchJitter" classname="HexLive.Tests.CreatorVoicePreviewAudioTests" runstate="Runnable" seed="1755394433" result="Passed" start-time="2026-11-10 21:00:22Z" end-time="2026-11-10 21:00:23Z" duration="0.806829" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1137" name="PreviewPlaysActualLocalizedAudioInTheVoicesGroupWithoutSpatialAttenuationOrPitchJitter(English,&quot;en&quot;)" fullname="HexLive.Tests.CreatorVoicePreviewAudioTests.PreviewPlaysActualLocalizedAudioInTheVoicesGroupWithoutSpatialAttenuationOrPitchJitter(English,&quot;en&quot;)" methodname="PreviewPlaysActualLocalizedAudioInTheVoicesGroupWithoutSpatialAttenuationOrPitchJitter" classname="HexLive.Tests.CreatorVoicePreviewAudioTests" runstate="Runnable" seed="330952100" result="Passed" start-time="2026-11-10 21:00:23Z" end-time="2026-11-10 21:00:24Z" duration="1.132572" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+          </test-suite>
+          <test-suite type="TestFixture" id="2054" name="WardrobeFcoFullNativeDonorEvidenceRuntimeTests" fullname="HexLive.Tests.WardrobeFcoFullNativeDonorEvidenceRuntimeTests" classname="HexLive.Tests.WardrobeFcoFullNativeDonorEvidenceRuntimeTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-11-10 21:00:24Z" end-time="2026-11-10 21:01:34Z" duration="69.576460" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="2055" name="ActualFullNativeDerivedDonorPreservesSixPoseQualityAndUnmodifiedSources" fullname="HexLive.Tests.WardrobeFcoFullNativeDonorEvidenceRuntimeTests.ActualFullNativeDerivedDonorPreservesSixPoseQualityAndUnmodifiedSources" methodname="ActualFullNativeDerivedDonorPreservesSixPoseQualityAndUnmodifiedSources" classname="HexLive.Tests.WardrobeFcoFullNativeDonorEvidenceRuntimeTests" runstate="Runnable" seed="2052120597" result="Passed" start-time="2026-11-10 21:00:25Z" end-time="2026-11-10 21:01:34Z" duration="69.472617" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[FCO_FULL_NATIVE_DONOR_SOURCE_EVIDENCE_READY Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081
+]]></output>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="2096" name="WorldHouseEditRuntimeTests" fullname="HexLive.Tests.WorldHouseEditRuntimeTests" classname="HexLive.Tests.WorldHouseEditRuntimeTests" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-11-10 21:01:34Z" end-time="2026-11-10 21:01:34Z" duration="0.223352" total="9" passed="9" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="ParameterizedMethod" id="2107" name="ActualWorldEditorProjectionContainsExistingHousePiecesAtTheirWorldSlots" fullname="HexLive.Tests.WorldHouseEditRuntimeTests.ActualWorldEditorProjectionContainsExistingHousePiecesAtTheirWorldSlots" classname="HexLive.Tests.WorldHouseEditRuntimeTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-11-10 21:01:34Z" end-time="2026-11-10 21:01:34Z" duration="0.184264" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="2101" name="ActualWorldEditorProjectionContainsExistingHousePiecesAtTheirWorldSlots(0)" fullname="HexLive.Tests.WorldHouseEditRuntimeTests.ActualWorldEditorProjectionContainsExistingHousePiecesAtTheirWorldSlots(0)" methodname="ActualWorldEditorProjectionContainsExistingHousePiecesAtTheirWorldSlots" classname="HexLive.Tests.WorldHouseEditRuntimeTests" runstate="Runnable" seed="2039944995" result="Passed" start-time="2026-11-10 21:01:34Z" end-time="2026-11-10 21:01:34Z" duration="0.102701" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2102" name="ActualWorldEditorProjectionContainsExistingHousePiecesAtTheirWorldSlots(60)" fullname="HexLive.Tests.WorldHouseEditRuntimeTests.ActualWorldEditorProjectionContainsExistingHousePiecesAtTheirWorldSlots(60)" methodname="ActualWorldEditorProjectionContainsExistingHousePiecesAtTheirWorldSlots" classname="HexLive.Tests.WorldHouseEditRuntimeTests" runstate="Runnable" seed="1777205114" result="Passed" start-time="2026-11-10 21:01:34Z" end-time="2026-11-10 21:01:34Z" duration="0.015244" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2103" name="ActualWorldEditorProjectionContainsExistingHousePiecesAtTheirWorldSlots(120)" fullname="HexLive.Tests.WorldHouseEditRuntimeTests.ActualWorldEditorProjectionContainsExistingHousePiecesAtTheirWorldSlots(120)" methodname="ActualWorldEditorProjectionContainsExistingHousePiecesAtTheirWorldSlots" classname="HexLive.Tests.WorldHouseEditRuntimeTests" runstate="Runnable" seed="1305958973" result="Passed" start-time="2026-11-10 21:01:34Z" end-time="2026-11-10 21:01:34Z" duration="0.016263" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2104" name="ActualWorldEditorProjectionContainsExistingHousePiecesAtTheirWorldSlots(180)" fullname="HexLive.Tests.WorldHouseEditRuntimeTests.ActualWorldEditorProjectionContainsExistingHousePiecesAtTheirWorldSlots(180)" methodname="ActualWorldEditorProjectionContainsExistingHousePiecesAtTheirWorldSlots" classname="HexLive.Tests.WorldHouseEditRuntimeTests" runstate="Runnable" seed="1603556040" result="Passed" start-time="2026-11-10 21:01:34Z" end-time="2026-11-10 21:01:34Z" duration="0.015917" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2105" name="ActualWorldEditorProjectionContainsExistingHousePiecesAtTheirWorldSlots(240)" fullname="HexLive.Tests.WorldHouseEditRuntimeTests.ActualWorldEditorProjectionContainsExistingHousePiecesAtTheirWorldSlots(240)" methodname="ActualWorldEditorProjectionContainsExistingHousePiecesAtTheirWorldSlots" classname="HexLive.Tests.WorldHouseEditRuntimeTests" runstate="Runnable" seed="1346408359" result="Passed" start-time="2026-11-10 21:01:34Z" end-time="2026-11-10 21:01:34Z" duration="0.014412" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2106" name="ActualWorldEditorProjectionContainsExistingHousePiecesAtTheirWorldSlots(300)" fullname="HexLive.Tests.WorldHouseEditRuntimeTests.ActualWorldEditorProjectionContainsExistingHousePiecesAtTheirWorldSlots(300)" methodname="ActualWorldEditorProjectionContainsExistingHousePiecesAtTheirWorldSlots" classname="HexLive.Tests.WorldHouseEditRuntimeTests" runstate="Runnable" seed="987877246" result="Passed" start-time="2026-11-10 21:01:34Z" end-time="2026-11-10 21:01:34Z" duration="0.014486" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-case id="2097" name="ExistingHouseGestureSendsImmediatelyAndReceiptKeepsActualEditorOpen" fullname="HexLive.Tests.WorldHouseEditRuntimeTests.ExistingHouseGestureSendsImmediatelyAndReceiptKeepsActualEditorOpen" methodname="ExistingHouseGestureSendsImmediatelyAndReceiptKeepsActualEditorOpen" classname="HexLive.Tests.WorldHouseEditRuntimeTests" runstate="Runnable" seed="2096521963" result="Passed" start-time="2026-11-10 21:01:34Z" end-time="2026-11-10 21:01:34Z" duration="0.020182" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="2100" name="ImportedRuntimeLocResolvesTheActualPlanningAndReceiptTerms" fullname="HexLive.Tests.WorldHouseEditRuntimeTests.ImportedRuntimeLocResolvesTheActualPlanningAndReceiptTerms" classname="HexLive.Tests.WorldHouseEditRuntimeTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-11-10 21:01:34Z" end-time="2026-11-10 21:01:34Z" duration="0.006334" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="2098" name="ImportedRuntimeLocResolvesTheActualPlanningAndReceiptTerms(English)" fullname="HexLive.Tests.WorldHouseEditRuntimeTests.ImportedRuntimeLocResolvesTheActualPlanningAndReceiptTerms(English)" methodname="ImportedRuntimeLocResolvesTheActualPlanningAndReceiptTerms" classname="HexLive.Tests.WorldHouseEditRuntimeTests" runstate="Runnable" seed="426221498" result="Passed" start-time="2026-11-10 21:01:34Z" end-time="2026-11-10 21:01:34Z" duration="0.002752" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2099" name="ImportedRuntimeLocResolvesTheActualPlanningAndReceiptTerms(Russian)" fullname="HexLive.Tests.WorldHouseEditRuntimeTests.ImportedRuntimeLocResolvesTheActualPlanningAndReceiptTerms(Russian)" methodname="ImportedRuntimeLocResolvesTheActualPlanningAndReceiptTerms" classname="HexLive.Tests.WorldHouseEditRuntimeTests" runstate="Runnable" seed="756786468" result="Passed" start-time="2026-11-10 21:01:34Z" end-time="2026-11-10 21:01:34Z" duration="0.000959" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+          </test-suite>
+          <test-suite type="TestFixture" id="2108" name="WorldHouseGeometryRuntimeTests" fullname="HexLive.Tests.WorldHouseGeometryRuntimeTests" classname="HexLive.Tests.WorldHouseGeometryRuntimeTests" runstate="Runnable" testcasecount="6" result="Failed" site="Child" start-time="2026-11-10 21:01:34Z" end-time="2026-11-10 21:01:35Z" duration="0.537379" total="6" passed="0" failed="6" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-suite type="ParameterizedMethod" id="2115" name="ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry" fullname="HexLive.Tests.WorldHouseGeometryRuntimeTests.ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry" classname="HexLive.Tests.WorldHouseGeometryRuntimeTests" runstate="Runnable" testcasecount="6" result="Failed" site="Child" start-time="2026-11-10 21:01:34Z" end-time="2026-11-10 21:01:35Z" duration="0.520946" total="6" passed="0" failed="6" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <failure>
+                <message><![CDATA[One or more child tests had errors]]></message>
+              </failure>
+              <test-case id="2109" name="ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry(0)" fullname="HexLive.Tests.WorldHouseGeometryRuntimeTests.ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry(0)" methodname="ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry" classname="HexLive.Tests.WorldHouseGeometryRuntimeTests" runstate="Runnable" seed="1078511173" result="Failed" start-time="2026-11-10 21:01:34Z" end-time="2026-11-10 21:01:34Z" duration="0.240456" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  whole-house centre
+  Expected: less than 0.00300000003f
+  But was:  0.00513971737f
+]]></message>
+                  <stack-trace><![CDATA[at HexLive.Tests.WorldHouseGeometryRuntimeTests.ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry (System.Single yaw) [0x0054e] in C:\Users\shtolyan\Documents\GitHub\HexLive\Assets\HexLive\Tests\WorldHouseGeometryRuntimeTests.cs:71
+]]></stack-trace>
+                </failure>
+              </test-case>
+              <test-case id="2110" name="ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry(60)" fullname="HexLive.Tests.WorldHouseGeometryRuntimeTests.ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry(60)" methodname="ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry" classname="HexLive.Tests.WorldHouseGeometryRuntimeTests" runstate="Runnable" seed="878884913" result="Failed" start-time="2026-11-10 21:01:34Z" end-time="2026-11-10 21:01:35Z" duration="0.051745" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  whole-house centre
+  Expected: less than 0.00300000003f
+  But was:  0.00397539139f
+]]></message>
+                  <stack-trace><![CDATA[at HexLive.Tests.WorldHouseGeometryRuntimeTests.ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry (System.Single yaw) [0x0054e] in C:\Users\shtolyan\Documents\GitHub\HexLive\Assets\HexLive\Tests\WorldHouseGeometryRuntimeTests.cs:71
+]]></stack-trace>
+                </failure>
+              </test-case>
+              <test-case id="2111" name="ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry(120)" fullname="HexLive.Tests.WorldHouseGeometryRuntimeTests.ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry(120)" methodname="ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry" classname="HexLive.Tests.WorldHouseGeometryRuntimeTests" runstate="Runnable" seed="518815161" result="Failed" start-time="2026-11-10 21:01:35Z" end-time="2026-11-10 21:01:35Z" duration="0.051014" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  whole-house centre
+  Expected: less than 0.00300000003f
+  But was:  0.00513972156f
+]]></message>
+                  <stack-trace><![CDATA[at HexLive.Tests.WorldHouseGeometryRuntimeTests.ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry (System.Single yaw) [0x0054e] in C:\Users\shtolyan\Documents\GitHub\HexLive\Assets\HexLive\Tests\WorldHouseGeometryRuntimeTests.cs:71
+]]></stack-trace>
+                </failure>
+              </test-case>
+              <test-case id="2112" name="ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry(180)" fullname="HexLive.Tests.WorldHouseGeometryRuntimeTests.ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry(180)" methodname="ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry" classname="HexLive.Tests.WorldHouseGeometryRuntimeTests" runstate="Runnable" seed="2030471852" result="Failed" start-time="2026-11-10 21:01:35Z" end-time="2026-11-10 21:01:35Z" duration="0.054095" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  whole-house centre
+  Expected: less than 0.00300000003f
+  But was:  0.00513972156f
+]]></message>
+                  <stack-trace><![CDATA[at HexLive.Tests.WorldHouseGeometryRuntimeTests.ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry (System.Single yaw) [0x0054e] in C:\Users\shtolyan\Documents\GitHub\HexLive\Assets\HexLive\Tests\WorldHouseGeometryRuntimeTests.cs:71
+]]></stack-trace>
+                </failure>
+              </test-case>
+              <test-case id="2113" name="ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry(240)" fullname="HexLive.Tests.WorldHouseGeometryRuntimeTests.ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry(240)" methodname="ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry" classname="HexLive.Tests.WorldHouseGeometryRuntimeTests" runstate="Runnable" seed="1727293245" result="Failed" start-time="2026-11-10 21:01:35Z" end-time="2026-11-10 21:01:35Z" duration="0.054708" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  whole-house centre
+  Expected: less than 0.00300000003f
+  But was:  0.00397539325f
+]]></message>
+                  <stack-trace><![CDATA[at HexLive.Tests.WorldHouseGeometryRuntimeTests.ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry (System.Single yaw) [0x0054e] in C:\Users\shtolyan\Documents\GitHub\HexLive\Assets\HexLive\Tests\WorldHouseGeometryRuntimeTests.cs:71
+]]></stack-trace>
+                </failure>
+              </test-case>
+              <test-case id="2114" name="ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry(300)" fullname="HexLive.Tests.WorldHouseGeometryRuntimeTests.ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry(300)" methodname="ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry" classname="HexLive.Tests.WorldHouseGeometryRuntimeTests" runstate="Runnable" seed="1043266968" result="Failed" start-time="2026-11-10 21:01:35Z" end-time="2026-11-10 21:01:35Z" duration="0.054839" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  whole-house centre
+  Expected: less than 0.00300000003f
+  But was:  0.00513971737f
+]]></message>
+                  <stack-trace><![CDATA[at HexLive.Tests.WorldHouseGeometryRuntimeTests.ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry (System.Single yaw) [0x0054e] in C:\Users\shtolyan\Documents\GitHub\HexLive\Assets\HexLive\Tests\WorldHouseGeometryRuntimeTests.cs:71
+]]></stack-trace>
+                </failure>
+                <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: C:/Users/shtolyan/AppData/LocalLow/JuicyLove/HexLive\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

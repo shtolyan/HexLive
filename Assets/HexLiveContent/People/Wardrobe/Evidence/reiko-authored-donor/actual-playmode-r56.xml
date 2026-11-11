@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="1" result="Passed" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-11-11 09:57:15Z" end-time="2026-11-11 09:57:33Z" duration="18,1518577">
+  <test-suite type="TestSuite" id="2176" name="HexLive" fullname="HexLive" runstate="Runnable" testcasecount="985" result="Passed" start-time="2026-11-11 09:57:15Z" end-time="2026-11-11 09:57:33Z" duration="18.151858" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="2170" name="HexLive.AgentIntegration.Tests.dll" fullname="C:/Users/shtolyan/Documents/GitHub/HexLive/Library/ScriptAssemblies/HexLive.AgentIntegration.Tests.dll" runstate="Runnable" testcasecount="985" result="Passed" start-time="2026-11-11 09:57:15Z" end-time="2026-11-11 09:57:33Z" duration="18.126949" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="26696" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="2171" name="HexLive" fullname="HexLive" runstate="Runnable" testcasecount="985" result="Passed" start-time="2026-11-11 09:57:15Z" end-time="2026-11-11 09:57:33Z" duration="18.109720" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="2172" name="Tests" fullname="HexLive.Tests" runstate="Runnable" testcasecount="985" result="Passed" start-time="2026-11-11 09:57:15Z" end-time="2026-11-11 09:57:33Z" duration="18.092513" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="2081" name="WardrobeMartaFullNativeDonorEvidenceRuntimeTests" fullname="HexLive.Tests.WardrobeMartaFullNativeDonorEvidenceRuntimeTests" classname="HexLive.Tests.WardrobeMartaFullNativeDonorEvidenceRuntimeTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-11-11 09:57:15Z" end-time="2026-11-11 09:57:33Z" duration="18.067511" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="2083" name="ReikoFullNativeDerivedMartaHasActualSixPoseAndReequipEvidence" fullname="HexLive.Tests.WardrobeMartaFullNativeDonorEvidenceRuntimeTests.ReikoFullNativeDerivedMartaHasActualSixPoseAndReequipEvidence" methodname="ReikoFullNativeDerivedMartaHasActualSixPoseAndReequipEvidence" classname="HexLive.Tests.WardrobeMartaFullNativeDonorEvidenceRuntimeTests" runstate="Runnable" seed="1678172093" result="Passed" start-time="2026-11-11 09:57:15Z" end-time="2026-11-11 09:57:33Z" duration="18.053455" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[MARTA_FULL_NATIVE_DONOR_EVIDENCE_READY Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-c183f80582e88314ad7ec86d33a11f90-20261111T095715814
+<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: C:/Users/shtolyan/AppData/LocalLow/JuicyLove/HexLive\TestResults.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

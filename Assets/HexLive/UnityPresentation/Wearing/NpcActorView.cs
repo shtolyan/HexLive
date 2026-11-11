@@ -1196,6 +1196,35 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
     }
 
+    // §74.9: dual-body prepared wear uses a stable envelope in its culling
+    // root's coordinates. Dynamic bounds can lag a new heel pose or apply an
+    // unweighted accessory's mesh offset twice.
+    private void SetPreparedWearBounds(Wear wear)
+    {
+        if (_bodyRoot == null || wear == null || !wear.SupportsActor(ActorName.Marta) ||
+            !wear.SupportsActor(ActorName.Kshishtof) || wear.TryGetComponent<GarmentCloth>(out _))
+        {
+            return;
+        }
+
+        var skin = wear.GetComponentInChildren<SkinnedMeshRenderer>(true);
+        if (skin == null) return;
+
+        var frame = skin.rootBone != null ? skin.rootBone : skin.transform;
+        var hip = _bodyBones.GetBone("hip");
+        // A frame at the hips needs less room than a frame anchored at the
+        // neck or extremities, which can move across the body during a pose.
+        float radius = hip != null && (frame == hip || frame.parent == hip) ? 1.65f : 2.35f;
+        var actorToFrame = frame.worldToLocalMatrix * _bodyRoot.localToWorldMatrix;
+        var extents = radius * new Vector3(
+            new Vector3(actorToFrame.m00, actorToFrame.m01, actorToFrame.m02).magnitude,
+            new Vector3(actorToFrame.m10, actorToFrame.m11, actorToFrame.m12).magnitude,
+            new Vector3(actorToFrame.m20, actorToFrame.m21, actorToFrame.m22).magnitude);
+
+        skin.updateWhenOffscreen = false;
+        skin.localBounds = new Bounds(Vector3.zero, extents * 2f);
+    }
+
     // Bug #146 watchdog: is ANY body skin actually being drawn this frame?
     // isVisible is Unity's own answer after culling — the exact thing the
     // player's «она не рендерится» is about.
@@ -3175,8 +3204,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             var isNewItem = !_equippedSimItems.ContainsKey(simId);
             for (var i = 0; i < prefabs.Count; i++)
             {
-                _bodyBones.Equip($"{simId}#{i}", prefabs[i],
+                var equipKey = $"{simId}#{i}";
+                _bodyBones.Equip(equipKey, prefabs[i],
                     Garments.GarmentVariants.MaterialsOf(fittedId)); // item identity stays unchanged
+                SetPreparedWearBounds(_bodyBones.GetWorn(equipKey));
             }
 
             _equippedSimItems[simId] = prefabs.Count;

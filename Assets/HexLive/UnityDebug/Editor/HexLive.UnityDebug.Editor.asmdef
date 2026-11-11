@@ -4,7 +4,8 @@
   "references": [
     "HexLive.UnityDebug",
     "HexLive.UnityPresentation",
-    "HexLive.Simulation"
+    "HexLive.Simulation",
+    "Whinarn.UnityMeshSimplifier.Runtime"
   ],
   "includePlatforms": [
     "Editor"

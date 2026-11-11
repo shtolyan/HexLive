@@ -1,0 +1,20 @@
+{
+  "writtenUtc": "2026-11-11T09:59:53.957813+00:00",
+  "reviewWallTimeNotInstrumented": true,
+  "reviewer": "/root",
+  "decision": "Approve exact source and Marta DONOR authored shape preservation after source-specific evidence consumer passes. Recipient Kshishtof remains strict. No blanket fallback.",
+  "id": "clothing.outfit_reiko",
+  "actor": "Marta",
+  "donor": "Marta",
+  "nativeSourcePrefab": "Assets/HexLiveContent/Wear/clothing.outfit_reiko/ReikoOutfit.prefab",
+  "sourceMesh": "Assets/ImportedActors/Wear/ReikoOutfit/Meshes/Marta.mesh",
+  "sourceMeshSha256": "584a41081488793953b85ea31d0e4cb4f2b08667ac0375f668480a9ecd420f86",
+  "actualPlayModeCase": "HexLive.Tests.WardrobeMartaFullNativeDonorEvidenceRuntimeTests.ReikoFullNativeDerivedMartaHasActualSixPoseAndReequipEvidence",
+  "actualSixPoseQualityPassed": true,
+  "actualRootAndReequipPassed": true,
+  "rawSaveAndImportPassed": true,
+  "all12StandingViewsPersonallyViewed": true,
+  "observations": "Whole Reiko outfit and four boot cuff angles match the authored shape, silhouette, laces, and layering. The camera focus was selected from the Shoes material slot while the entire outfit was equipped and rendered.",
+  "bodyContactPolicy": "Diagnostic only for this explicitly preserved authored donor. Never mislabel as strict cloth2mm PASS.",
+  "publicationAuthorized": false
+}

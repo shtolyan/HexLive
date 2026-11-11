@@ -1610,10 +1610,9 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
     // неверного показа. Второе условие — слой активной вкладки.
     private void ApplyActorFilter()
     {
-        var sex = ActorSex.Of(_girl);
         foreach (var entry in _entries)
         {
-            var fits = entry.Asset != null && entry.Asset.Gender == sex &&
+            var fits = entry.Asset != null && entry.Asset.SupportsActor(_girl) &&
                 entry.Asset.Layer == _wearTab;
             if (entry.Row != null)
             {

@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: underwear_swimsuit_top_top_5(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: underwear.swimsuit_top_top_5
+  prototypeId: underwear.swimsuit_top
+  alternateFitId: 
+  displayName: Strappy Swim Top (Top 5)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 1
+  variantMaterials:
+  - {fileID: 2100000, guid: 8968665e88d4dfe48988bc2de60a9417, type: 2}
+  - {fileID: 2100000, guid: c6ebd4251b665cb4ba386e6fac2d3253, type: 2}
+  - {fileID: 2100000, guid: 078bf130cc5e2b04090670d21cbf519e, type: 2}
+  - {fileID: 2100000, guid: 2474e8d6b5d63434a9460c0f103b39e7, type: 2}
+  - {fileID: 2100000, guid: cba75c8a944d6104eac7b56bdb04f5b7, type: 2}
+  layer: 0
+  covers: 01000000
+  warmth: 0.02
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 1

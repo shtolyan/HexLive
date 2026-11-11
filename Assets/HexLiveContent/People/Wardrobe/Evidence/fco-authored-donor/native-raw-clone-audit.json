@@ -1,0 +1,35 @@
+{
+  "passed": true,
+  "sourcePrefab": "Assets/HexLiveContent/Wear/FCO Boots Male/FCO Boots Male.prefab",
+  "sourceMesh": "Assets/ImportedActors/Wear/FCO_Boots_Male/Meshes/Kshishtof.mesh",
+  "sourceMeshSha": "c1ad1d53889ce2ab5e9399141ad686acd060473b3dd2a6128bfaac4c4547122d",
+  "nativeReadableFlag": false,
+  "privateClone": true,
+  "sourceFlagChanged": false,
+  "mode": "full-native-private-copy-no-rebind-no-setters",
+  "vertexBuffers": [
+    {
+      "stream": 0,
+      "bytes": 741000,
+      "sha256": "afcb6c64affaf381375ad49d46b240c0e40a2bb2d83cea61082e6bab2b721248"
+    },
+    {
+      "stream": 1,
+      "bytes": 148200,
+      "sha256": "5e89ca87ff7d12cbb7be1de33f6cda69e2f8568ff3f6dd6d2e2056a861eee16a"
+    },
+    {
+      "stream": 2,
+      "bytes": 592800,
+      "sha256": "fc109caa042a2d64c765298033fe88977a4c5867fe7c64a2e70c22a70f04f6cc"
+    }
+  ],
+  "indexBufferSha": "50856f6f05e08b9fa9ae9e16d1ef407436e45733e173b17a8784888a6ec1cd16",
+  "vertices": 18525,
+  "triangles": 33888,
+  "fullSkinFloatBitsExact": true,
+  "bindposeFloatBitsExact": true,
+  "allRawVertexAndIndexBytesExact": true,
+  "submeshDescriptorsExact": true,
+  "sourceUnmodified": true
+}

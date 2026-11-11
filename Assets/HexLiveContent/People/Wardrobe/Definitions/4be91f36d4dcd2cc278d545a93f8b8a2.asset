@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_boots_charm_velvet_purple(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.boots_charm_velvet_purple
+  prototypeId: clothing.boots_charm
+  alternateFitId: 
+  displayName: Thigh-High Boots (Velvet Purple)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 6
+  variantMaterials:
+  - {fileID: 2100000, guid: b75e3b892fa04254fbe2ed73c33fb80f, type: 2}
+  - {fileID: 2100000, guid: 07e6defc0d3f54f4da108d12e53f4346, type: 2}
+  - {fileID: 2100000, guid: 52cbc7e8e83c1b94082835acb5e30014, type: 2}
+  - {fileID: 2100000, guid: 6543ee501edd27a4bbe6102220f64304, type: 2}
+  - {fileID: 2100000, guid: 371ab3eae718e6b4d86373661cd6501c, type: 2}
+  - {fileID: 2100000, guid: fcb8f967461dcd84eb6ebf8e7261ece8, type: 2}
+  - {fileID: 2100000, guid: 1ef7345c66a02614b9ee7c8f49346baf, type: 2}
+  - {fileID: 2100000, guid: c6a5078ef706eeb499544e823f5b92ff, type: 2}
+  - {fileID: 2100000, guid: ac6437c370bd04443beceadf450d1559, type: 2}
+  - {fileID: 2100000, guid: 317b77c54336dad4aa8abda009798951, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.14
+  armor: 0.1
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

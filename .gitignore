@@ -146,3 +146,7 @@ _ArtSource/Voice/lipsync_analysis.json
 
 # Verified write-only game reporting capability, generated only on a builder.
 /Assets/Resources/HexLive/RuntimeReporterConnection.json*
+
+# Intermediate ledger. The final wardrobe manifest carries the verified rows.
+/Assets/HexLiveContent/People/Wardrobe/final-fit-cache.json
+/Assets/HexLiveContent/People/Wardrobe/final-fit-cache.json.meta

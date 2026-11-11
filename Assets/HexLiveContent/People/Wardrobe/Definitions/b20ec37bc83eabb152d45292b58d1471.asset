@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_sneakers_sport_cream_white(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.sneakers_sport_cream_white
+  prototypeId: clothing.sneakers_sport
+  alternateFitId: 
+  displayName: Running Shoes (Cream White)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 6
+  variantMaterials:
+  - {fileID: 2100000, guid: df56c83668a1aa94599eb7dc50f6ba37, type: 2}
+  - {fileID: 2100000, guid: e4355d3190985624289cb24cda1967fb, type: 2}
+  - {fileID: 2100000, guid: d4a136d7571aafc44983dc310ce23626, type: 2}
+  - {fileID: 2100000, guid: 0865f5d668bda5545ad7fb1702809a95, type: 2}
+  - {fileID: 2100000, guid: d00240553807661419202a1045957341, type: 2}
+  - {fileID: 2100000, guid: 91d1dbba46a854a4b9e5751ef9ecd828, type: 2}
+  - {fileID: 2100000, guid: ff52f24a46fda78438a6c658967e714e, type: 2}
+  - {fileID: 2100000, guid: 3d4ed7696effb7d43b81142bbddf0c6c, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.08
+  armor: 0.05
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

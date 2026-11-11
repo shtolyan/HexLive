@@ -1,0 +1,297 @@
+{
+  "strategy": "one local3D barycentric annulus,4mm radial bracket\u002Bbisection,physical13sample adaptive contour,ear triangulation",
+  "residual": {
+    "vertices": 8479,
+    "triangles": 12597,
+    "vertexInside": 0,
+    "vertexBelow": 0,
+    "baryInside": 0,
+    "baryBelow": 0,
+    "ambiguous": 0,
+    "onSurface": 0,
+    "minimumSignedDistance": 0.0020082004,
+    "worstTriangle": 12006,
+    "worstPoint": [
+      -0.060599156,
+      0.7660119,
+      -0.07693447
+    ],
+    "physicalPassed": true
+  },
+  "originalTriangles": 12552,
+  "outputTriangles": 12597,
+  "extraTriangles": 45,
+  "budget": 2048,
+  "retainedVertices": 8479,
+  "discardedCenterAttributeVertices": 6,
+  "maxBone": 0.029858006,
+  "maxOwn": 0,
+  "common12cmCapsPassed": true,
+  "outerRingOriginalPositionsUnchanged": true,
+  "otherOriginalFacesUnchanged": true,
+  "originalCapArea": 0.05106743180658668,
+  "discardedArea": 0.043216716177994385,
+  "retainedArea": 0.007850717393068862,
+  "areaPartitionError": 1.7644765648583416E-09,
+  "discardedRegion": {
+    "discardedSamples": 585,
+    "discardedInside": 450,
+    "discardedOutside": 135,
+    "discardedUnknown": 0,
+    "discardedMin": -0.06454926,
+    "discardedMax": 0.0040083574,
+    "positiveVisibleMarginMayBeRemoved": true
+  },
+  "attempts": [
+    {
+      "face": 11006,
+      "segments": 1,
+      "triangles": 2,
+      "passed": true
+    },
+    {
+      "face": 11008,
+      "segments": 1,
+      "triangles": 2,
+      "passed": true
+    },
+    {
+      "face": 11010,
+      "segments": 1,
+      "triangles": 2,
+      "passed": false
+    },
+    {
+      "face": 11010,
+      "segments": 2,
+      "triangles": 3,
+      "passed": false
+    },
+    {
+      "face": 11010,
+      "segments": 4,
+      "triangles": 5,
+      "passed": true
+    },
+    {
+      "face": 11011,
+      "segments": 1,
+      "triangles": 2,
+      "passed": false
+    },
+    {
+      "face": 11011,
+      "segments": 2,
+      "triangles": 3,
+      "passed": true
+    },
+    {
+      "face": 11023,
+      "segments": 1,
+      "triangles": 2,
+      "passed": false
+    },
+    {
+      "face": 11023,
+      "segments": 2,
+      "triangles": 3,
+      "passed": true
+    },
+    {
+      "face": 11028,
+      "segments": 1,
+      "triangles": 2,
+      "passed": false
+    },
+    {
+      "face": 11028,
+      "segments": 2,
+      "triangles": 3,
+      "passed": false
+    },
+    {
+      "face": 11028,
+      "segments": 4,
+      "triangles": 5,
+      "passed": true
+    },
+    {
+      "face": 11030,
+      "segments": 1,
+      "triangles": 2,
+      "passed": false
+    },
+    {
+      "face": 11030,
+      "segments": 2,
+      "triangles": 3,
+      "passed": true
+    },
+    {
+      "face": 11031,
+      "segments": 1,
+      "triangles": 2,
+      "passed": true
+    },
+    {
+      "face": 11045,
+      "segments": 1,
+      "triangles": 2,
+      "passed": false
+    },
+    {
+      "face": 11045,
+      "segments": 2,
+      "triangles": 3,
+      "passed": false
+    },
+    {
+      "face": 11045,
+      "segments": 4,
+      "triangles": 5,
+      "passed": true
+    },
+    {
+      "face": 11047,
+      "segments": 1,
+      "triangles": 2,
+      "passed": true
+    },
+    {
+      "face": 11049,
+      "segments": 1,
+      "triangles": 2,
+      "passed": true
+    },
+    {
+      "face": 11051,
+      "segments": 1,
+      "triangles": 2,
+      "passed": false
+    },
+    {
+      "face": 11051,
+      "segments": 2,
+      "triangles": 3,
+      "passed": true
+    },
+    {
+      "face": 11969,
+      "segments": 1,
+      "triangles": 2,
+      "passed": true
+    },
+    {
+      "face": 11971,
+      "segments": 1,
+      "triangles": 2,
+      "passed": false
+    },
+    {
+      "face": 11971,
+      "segments": 2,
+      "triangles": 3,
+      "passed": true
+    },
+    {
+      "face": 11973,
+      "segments": 1,
+      "triangles": 2,
+      "passed": false
+    },
+    {
+      "face": 11973,
+      "segments": 2,
+      "triangles": 3,
+      "passed": true
+    },
+    {
+      "face": 11974,
+      "segments": 1,
+      "triangles": 2,
+      "passed": false
+    },
+    {
+      "face": 11974,
+      "segments": 2,
+      "triangles": 3,
+      "passed": true
+    },
+    {
+      "face": 11986,
+      "segments": 1,
+      "triangles": 2,
+      "passed": true
+    },
+    {
+      "face": 11991,
+      "segments": 1,
+      "triangles": 2,
+      "passed": false
+    },
+    {
+      "face": 11991,
+      "segments": 2,
+      "triangles": 3,
+      "passed": true
+    },
+    {
+      "face": 11993,
+      "segments": 1,
+      "triangles": 2,
+      "passed": false
+    },
+    {
+      "face": 11993,
+      "segments": 2,
+      "triangles": 3,
+      "passed": true
+    },
+    {
+      "face": 11994,
+      "segments": 1,
+      "triangles": 2,
+      "passed": true
+    },
+    {
+      "face": 12008,
+      "segments": 1,
+      "triangles": 2,
+      "passed": false
+    },
+    {
+      "face": 12008,
+      "segments": 2,
+      "triangles": 3,
+      "passed": false
+    },
+    {
+      "face": 12008,
+      "segments": 4,
+      "triangles": 5,
+      "passed": true
+    },
+    {
+      "face": 12010,
+      "segments": 1,
+      "triangles": 2,
+      "passed": true
+    },
+    {
+      "face": 12012,
+      "segments": 1,
+      "triangles": 2,
+      "passed": true
+    },
+    {
+      "face": 12014,
+      "segments": 1,
+      "triangles": 2,
+      "passed": true
+    }
+  ],
+  "actualPostBindExecuted": false,
+  "actualGpuVisibilityInspected": false,
+  "acceptanceOverride": false,
+  "productionIntegrationReady": false
+}

@@ -1,0 +1,786 @@
+{
+  "schemaVersion": 1,
+  "stage": "source-evidenced-authored-donor",
+  "automaticFallback": false,
+  "runtimeBehaviorChanged": false,
+  "records": [
+    {
+      "id": "FCO Boots Male",
+      "nativeSource": "Assets/HexLiveContent/Wear/FCO Boots Male/FCO Boots Male.prefab",
+      "nativeSha": "6458dc5e9d6588bc1e9665c248d9886e71298ea89c23d809fcbf4ca415417793",
+      "nativeGuid": "783e3f3322b9d446e9aba39e147a0795",
+      "actor": "Kshishtof",
+      "donor": "Kshishtof",
+      "nativeMesh": "Assets/ImportedActors/Wear/FCO_Boots_Male/Meshes/Kshishtof.mesh",
+      "nativeMeshSha": "c1ad1d53889ce2ab5e9399141ad686acd060473b3dd2a6128bfaac4c4547122d",
+      "nativeMeshGuid": "492920b5c05284533acb90ec53a3a17c",
+      "vertices": 18525,
+      "triangles": 33888,
+      "nativeDependency": "dede66e714cab6993d2e3c21ccc5d994",
+      "dependencyCaptureOrigin": "actual R49 original receipt; explicit current validation required, never silent refresh",
+      "materialPaths": [
+        {
+          "path": "Assets/ImportedActors/Wear/FCO_Boots_Male/Materials/Boot_Metal_Mat.mat",
+          "sha256": "6ef213ce596d4650640080a8643b9dfe5cf6cdffd5b9a7f6640412a36147fdfe",
+          "guid": "f9582b9f22f29cc45bedc872a86d7ea2"
+        },
+        {
+          "path": "Assets/ImportedActors/Wear/FCO_Boots_Male/Materials/Boot_Straps_Mat.mat",
+          "sha256": "8281578aab0ee474d3d893133ed2cfd113f6d53f252d0417e9e1b5fb06f8556d",
+          "guid": "02c0ebc921f6b52419f5380b6be3359e"
+        },
+        {
+          "path": "Assets/ImportedActors/Wear/FCO_Boots_Male/Materials/Base_Boot_Mat.mat",
+          "sha256": "5a994a4d22647c9effe39e541d2686976e5c3b19f8024ad38c84e7f6189dafec",
+          "guid": "9144480052713a64695a58444dc42d3d"
+        },
+        {
+          "path": "Assets/ImportedActors/Wear/FCO_Boots_Male/Materials/Boot_Sole_Mat.mat",
+          "sha256": "556868b864e3d19edc572cca38b1d1f1fe025036bfea5271abb735e11e298d0d",
+          "guid": "c490548f8f0cf144289ffd0cb5ee362e"
+        }
+      ],
+      "nativeSettings": {
+        "configs": [
+          {
+            "actor": "Kshishtof",
+            "scale": 1.05,
+            "heightOffset": 0.0,
+            "mesh": "Assets/ImportedActors/Wear/FCO_Boots_Male/Meshes/Kshishtof.mesh"
+          }
+        ],
+        "slots": [
+          "FootR",
+          "FootL"
+        ],
+        "noHideUnderwearSlots": [],
+        "hideWearSlots": [],
+        "layer": "Outerwear",
+        "gender": "Male",
+        "hidesHair": false,
+        "heel": {
+          "footDegrees": 0.0,
+          "toeDegrees": 0.0,
+          "lift": 0.0,
+          "axis": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          }
+        },
+        "headwearFit": {
+          "position": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "rotation": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "scale": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          }
+        }
+      },
+      "bodyAuthoringDependencies": [
+        {
+          "path": "Assets/HexLiveContent/People/Prefabs/Actors/Marta.prefab",
+          "sha256": "d34eb4b0b30aab50b873267f45cf93b65276a21c9a180d968f212ad53c86454a",
+          "dependency": "fa70a225333bd10ae52d65702f210198"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Prefabs/Actors/Kshishtof.prefab",
+          "sha256": "048d12a549cbd46e3bfe67f42a2dc50be4041c4aa47fcc313480d3a7f72fe2cf",
+          "dependency": "8d800d08b15dbb68a864d75e922f698d"
+        }
+      ],
+      "evidenceFiles": [
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/native-raw-clone-audit.json",
+          "sha256": "0ed62fd53044c744d7a745285571dbd9b28959baa9199f5b5f6fa303a5b3ba25",
+          "bytes": 1196,
+          "scope": "actual Unity Editor raw buffers/full skin/bindposes/submeshes",
+          "role": "native-raw-clone"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/actual-six-pose-runtime.json",
+          "sha256": "6f85874aecee708e9f89c9b31dc4c3c2949b6d0a43fdc42fb5649aac1a126b54",
+          "bytes": 46527,
+          "scope": "actual PlayMode Native vs fullNative-derived; historical context paths preserved byte-for-byte",
+          "role": "actual-six-pose-runtime"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/root-authored-donor-admission.json",
+          "sha256": "bedf5cabdd43ae05ffcc7a463f6cadedc28322370fa8cac8c573b1bf85801e97",
+          "bytes": 6272,
+          "scope": "root exact-source donor-only approval and standing12 visual review",
+          "role": "root-admission"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/actual-playmode-r49.xml",
+          "sha256": "559a987c1d08ce596962fdcebd445b112b938155c421297966059f5f7fc45668",
+          "bytes": 25095,
+          "scope": "FCOcase PASS; whole19 cases13PASS6FAIL separate664geometry, not relabelled",
+          "role": "actual-playmode-result"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/rejected-reduced-base-runtime.json",
+          "sha256": "333a82d9c4f862b58a8ba1b1fa8bd7bfd198030cac97feb2b3e6ababb7ec66cc",
+          "bytes": 45903,
+          "scope": "historical16k BASE belly quality RED; not accepted fallback",
+          "role": "historical-rejected-base"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/native-front.png",
+          "sha256": "08d3be1fdbd80404e8de87a97db89c1c8c2110958a91db62be009a4599613b28",
+          "bytes": 105179,
+          "scope": "actual standing front",
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/native-front-sole.png",
+          "sha256": "559024719ba24e23e1382fb805661d59153624984fa1001cdf69b3dd73181b73",
+          "bytes": 355367,
+          "scope": "actual standing front-sole",
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/native-front-cuff.png",
+          "sha256": "c452e799bfb220714f223cc6adb3c3e91d1f5e0b624331372bec162f59ab1b0a",
+          "bytes": 446798,
+          "scope": "actual standing front-cuff",
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/native-back.png",
+          "sha256": "039cb813549394397d9b30556a6975dd2cd7c1ccf497b2aa75d3a45bbe33f12b",
+          "bytes": 99303,
+          "scope": "actual standing back",
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/native-back-sole.png",
+          "sha256": "d11b805d8aca0e644700fa0427df6d139921405bba355a7b1abbcffc0cdf8ce3",
+          "bytes": 356881,
+          "scope": "actual standing back-sole",
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/native-back-cuff.png",
+          "sha256": "0409f124ed46451ba0a808f22fa24b8cb323e74a1da925c45ad5ac5375d211aa",
+          "bytes": 508652,
+          "scope": "actual standing back-cuff",
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/derived-full-native-front.png",
+          "sha256": "cbf912f08c29dc1b32602f93e394fc08c5a099dcb12583c2a041be9ef6863c1d",
+          "bytes": 105144,
+          "scope": "actual standing front",
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/derived-full-native-front-sole.png",
+          "sha256": "f3a5232ff0e18ce50a3e75dd71b1852ec2c474ad324aa813d5123e4e36fe6d5f",
+          "bytes": 296838,
+          "scope": "actual standing front-sole",
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/derived-full-native-front-cuff.png",
+          "sha256": "52680364f78453f8052944a8017a2f275911b3309deea758f90e498814c6dc35",
+          "bytes": 381926,
+          "scope": "actual standing front-cuff",
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/derived-full-native-back.png",
+          "sha256": "851429173ba392be83461d3be8767cb42f0cda3955f3423826ed5f95ca4ba562",
+          "bytes": 99101,
+          "scope": "actual standing back",
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/derived-full-native-back-sole.png",
+          "sha256": "82a65ad974c0334f7ece3a53fe37b55abadf382015fa520e92e64e95f6e00fe8",
+          "bytes": 287339,
+          "scope": "actual standing back-sole",
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/derived-full-native-back-cuff.png",
+          "sha256": "7d45794592f70446840bf6b0d3e93da0e77152250125ed20921a074af07ace8d",
+          "bytes": 410452,
+          "scope": "actual standing back-cuff",
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/review.json",
+          "sha256": "b329f5bc220575cc6e07a2ae779b1d3e17171f9af36208972b98cd332bd77f39",
+          "bytes": 6851,
+          "scope": "owned image mapping and review limitations",
+          "role": "owned-review"
+        }
+      ],
+      "review": {
+        "geometryMode": "authored-donor-preserved",
+        "sourceOnly": true,
+        "recipientStrict": true,
+        "bodyContactAcceptance": false
+      },
+      "acceptancePolicy": {
+        "geometryIdentity": "all raw vertex/index buffers/full skin/bindposes/submeshes preserved",
+        "poseQuality": "all six actual poses plus moved root and re-equip, max3mm/p95.5mm",
+        "bodyContactDiagnosticOnly": true,
+        "strictRecipientUnchanged": true,
+        "publicationAuthorized": false
+      }
+    },
+    {
+      "id": "clothing.gloves_stars",
+      "nativeSource": "Assets/HexLiveContent/Wear/clothing.gloves_stars/StarsGloves.prefab",
+      "nativeSha": "35abd6e9c8961b3b19c7567df0f2f17bba4ee581fe9d0e6244d764339bee4ef5",
+      "nativeGuid": "cb902722869c05c4a8e9378f302d39f8",
+      "actor": "Marta",
+      "donor": "Marta",
+      "nativeMesh": "Assets/ImportedActors/Wear/StarsGloves/Meshes/Marta.mesh",
+      "nativeMeshSha": "4107214df94902cbe03adb85cf1874bbad8e3c44129468afb9276954edc458f8",
+      "nativeMeshGuid": "8481498ce204f804d8f3a66570e59117",
+      "vertices": 2173,
+      "triangles": 3564,
+      "nativeDependency": "a2d3d84d3b016302dedf140c018249ed",
+      "nativeSettings": {
+        "configs": [
+          {
+            "actor": "Molly",
+            "scale": 1.0,
+            "heightOffset": 0.0,
+            "mesh": "Assets/ImportedActors/Wear/StarsGloves/Meshes/Molly.mesh"
+          },
+          {
+            "actor": "Jolly",
+            "scale": 1.0,
+            "heightOffset": 0.0,
+            "mesh": "Assets/ImportedActors/Wear/StarsGloves/Meshes/Jolly.mesh"
+          },
+          {
+            "actor": "Marta",
+            "scale": 1.0,
+            "heightOffset": 0.0,
+            "mesh": "Assets/ImportedActors/Wear/StarsGloves/Meshes/Marta.mesh"
+          },
+          {
+            "actor": "Jana",
+            "scale": 1.0,
+            "heightOffset": 0.0,
+            "mesh": "Assets/ImportedActors/Wear/StarsGloves/Meshes/Jana.mesh"
+          }
+        ],
+        "slots": [
+          "ForearmR",
+          "ForearmL",
+          "WristR",
+          "WristL"
+        ],
+        "noHideUnderwearSlots": [],
+        "hideWearSlots": [],
+        "layer": "Wear",
+        "gender": "Female",
+        "hidesHair": false,
+        "heel": {
+          "footDegrees": 0.0,
+          "toeDegrees": 0.0,
+          "lift": 0.0,
+          "axis": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          }
+        },
+        "headwearFit": {
+          "position": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "rotation": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "scale": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          }
+        }
+      },
+      "materialPaths": [
+        {
+          "path": "Assets/ImportedActors/Wear/StarsGloves/Materials/Wrist arms.mat",
+          "sha256": "908828436f4e824966bedf4dabef22b2d99861ce144fda8732990530fbbf4df8",
+          "guid": "729fa3c37d90add4ca8388875a567397"
+        },
+        {
+          "path": "Assets/ImportedActors/Wear/StarsGloves/Materials/Gloves.mat",
+          "sha256": "3e87acea8592d0e9edfd5f3d827b7b6969e9f46f440d8e9726906eee40599109",
+          "guid": "f3cc9d5feb6fb3f41a7a6f8de0235e51"
+        }
+      ],
+      "bodyAuthoringDependencies": [
+        {
+          "path": "Assets/HexLiveContent/People/Prefabs/Actors/Marta.prefab",
+          "dependency": "fa70a225333bd10ae52d65702f210198",
+          "sha256": "d34eb4b0b30aab50b873267f45cf93b65276a21c9a180d968f212ad53c86454a"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Prefabs/Actors/Kshishtof.prefab",
+          "dependency": "8d800d08b15dbb68a864d75e922f698d",
+          "sha256": "048d12a549cbd46e3bfe67f42a2dc50be4041c4aa47fcc313480d3a7f72fe2cf"
+        }
+      ],
+      "evidenceFiles": [
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/actual-readable-save-import.json",
+          "sha256": "9ac6005aee7e5257e7669459add24cd6aab87cf1e8f26cc061969a06b83e36f1",
+          "bytes": 5553,
+          "role": "native-raw-clone"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/actual-six-pose-runtime.json",
+          "sha256": "3ce5018017514a0ab67c7a0c1799c0b580165b3938e51e2ed4639e91575579c2",
+          "bytes": 69662,
+          "role": "actual-six-pose-runtime"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/actual-playmode-r53b.xml",
+          "sha256": "633c0e2138fbc8c6047c1636a3303ed206c10dab1148451b65cc65dfc111da52",
+          "bytes": 28904,
+          "role": "actual-playmode-result"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/native-front.png",
+          "sha256": "2792c35b8b990b733336868742c1a062feff0b21603b9ca9b86e457c986c535e",
+          "bytes": 80785,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/native-back.png",
+          "sha256": "a1bc9253ae89779c3339cbc87d21fa6835cd0d7fef31297718fc48b4d3988c57",
+          "bytes": 79054,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/native-right-wrist-hand-front.png",
+          "sha256": "4cb5c8a873e2878c35a8778ec5628059f4653222a6e33ddd9b7905373d2b7bd6",
+          "bytes": 270422,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/native-right-wrist-hand-back.png",
+          "sha256": "13a62ac99a726c0a6821691dcfd3d41402c3cc7188ef267e4321f02f77fcb552",
+          "bytes": 257850,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/native-left-wrist-hand-front.png",
+          "sha256": "e5a4a95308584b903e3ffe5abf6bef3f662e218f78af1c980af1c9ddd3d25cc4",
+          "bytes": 293453,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/native-left-wrist-hand-back.png",
+          "sha256": "31f7c85be0f3f1ef8a98e8304b57e755e4eae76671643863ea90566d01302121",
+          "bytes": 282178,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/derived-front.png",
+          "sha256": "f3f12b66c890b5b576e16f9ac70c0370d64c8bdd0db6ba4429244d3ee447641d",
+          "bytes": 80791,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/derived-back.png",
+          "sha256": "3f540ece7a12ef10c35aa40689cc837921fc46a39b6787115397171982d395c1",
+          "bytes": 79048,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/derived-right-wrist-hand-front.png",
+          "sha256": "1b69bb3f3e6167b8b7a3593c85fbc3339c05150762c8d4b2cfa598d19f4b132a",
+          "bytes": 268342,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/derived-right-wrist-hand-back.png",
+          "sha256": "1928205b8402caf0318504289aad6568a252108ac4fcf20e1c7624148f4c5135",
+          "bytes": 257168,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/derived-left-wrist-hand-front.png",
+          "sha256": "b4da8d77523ec9b3637c78b49f82e8ab2aabfc894440b1bfdc7215381faab32f",
+          "bytes": 290714,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/derived-left-wrist-hand-back.png",
+          "sha256": "89c6e69c09698f261cec2e46d63a4d9e5c3ec2a0499fa97d887b893e6ef3faa1",
+          "bytes": 281176,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/root-admission.json",
+          "sha256": "67f32b98e0b4e45d25bbdfc97a5b5d995c782a4393febf05aa06c76fb847e0e4",
+          "bytes": 1489,
+          "role": "root-admission"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/review.json",
+          "sha256": "c3eeaccb4d9be7b9f39a4ad25ad3fd36a2ea06526d0bfb6684e795987741cf97",
+          "bytes": 7106,
+          "role": "owned-review"
+        }
+      ],
+      "rawEvidenceSchema": "marta-full-native-raw-copies-v1",
+      "poseEvidenceSchema": "marta-full-native-six-pose-v1",
+      "actualPlayModeCase": "HexLive.Tests.WardrobeMartaFullNativeDonorEvidenceRuntimeTests.GlovesFullNativeDerivedMartaHasActualSixPoseAndReequipEvidence",
+      "requiredViews": [
+        "front",
+        "back",
+        "left-wrist-hand-front",
+        "left-wrist-hand-back",
+        "right-wrist-hand-front",
+        "right-wrist-hand-back"
+      ],
+      "requiredViewScopes": [
+        "nativeImages",
+        "derivedImages"
+      ],
+      "review": {
+        "geometryMode": "authored-donor-preserved",
+        "sourceOnly": true,
+        "recipientStrict": true,
+        "bodyContactAcceptance": false
+      }
+    },
+    {
+      "id": "clothing.outfit_reiko",
+      "nativeSource": "Assets/HexLiveContent/Wear/clothing.outfit_reiko/ReikoOutfit.prefab",
+      "nativeSha": "014863885d40cc0cfa53b2449ab037032a7adb5d2c9c87ead1ff725429b1fb90",
+      "nativeGuid": "f6129e1628a0930468ba1d80e244a08d",
+      "actor": "Marta",
+      "donor": "Marta",
+      "nativeMesh": "Assets/ImportedActors/Wear/ReikoOutfit/Meshes/Marta.mesh",
+      "nativeMeshSha": "584a41081488793953b85ea31d0e4cb4f2b08667ac0375f668480a9ecd420f86",
+      "nativeMeshGuid": "54defb6decb7fda43b7545df231fac69",
+      "vertices": 9372,
+      "triangles": 12062,
+      "nativeDependency": "65e60a1cc81d755ad30cfd1201a63c72",
+      "nativeSettings": {
+        "configs": [
+          {
+            "actor": "Molly",
+            "scale": 1.0,
+            "heightOffset": 0.0,
+            "mesh": "Assets/ImportedActors/Wear/ReikoOutfit/Meshes/Molly.mesh"
+          },
+          {
+            "actor": "Jolly",
+            "scale": 1.0,
+            "heightOffset": 0.0,
+            "mesh": "Assets/ImportedActors/Wear/ReikoOutfit/Meshes/Jolly.mesh"
+          },
+          {
+            "actor": "Marta",
+            "scale": 1.0,
+            "heightOffset": 0.0,
+            "mesh": "Assets/ImportedActors/Wear/ReikoOutfit/Meshes/Marta.mesh"
+          },
+          {
+            "actor": "Jana",
+            "scale": 1.0,
+            "heightOffset": 0.0,
+            "mesh": "Assets/ImportedActors/Wear/ReikoOutfit/Meshes/Jana.mesh"
+          }
+        ],
+        "slots": [
+          "Pelvis",
+          "ShinR",
+          "ShinL",
+          "FootR",
+          "FootL",
+          "WristR",
+          "WristL"
+        ],
+        "noHideUnderwearSlots": [],
+        "hideWearSlots": [],
+        "layer": "Wear",
+        "gender": "Female",
+        "hidesHair": false,
+        "heel": {
+          "footDegrees": 20.979999542236328,
+          "toeDegrees": -20.979999542236328,
+          "lift": 0.039400000125169754,
+          "axis": {
+            "x": 1.0,
+            "y": 0.0,
+            "z": 0.0
+          }
+        },
+        "headwearFit": {
+          "position": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "rotation": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "scale": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          }
+        }
+      },
+      "materialPaths": [
+        {
+          "path": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Glove, Wrist.mat",
+          "sha256": "611877aef5226ae93aa722995e4a627b9fa0ebb2644c54b02d452b1dd0df4a6e",
+          "guid": "cb31aea5eb1890742ac8f707fe7fb8de"
+        },
+        {
+          "path": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Glove, Lower.mat",
+          "sha256": "1dbe08902bc1a953ed320f50c134e30eb3c288dcede9996602d1441bb7ddc85e",
+          "guid": "95151d83290c2344d99b6c19d6101b29"
+        },
+        {
+          "path": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Glove, Upper.mat",
+          "sha256": "d7b3ef738fad284929db31ec6036cc18a39284534412d0528e9612d5db294efe",
+          "guid": "5f8c2bbfe55efd34182c80044ffbe681"
+        },
+        {
+          "path": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Shoes.mat",
+          "sha256": "aa86bca1cfb0163ab901822a39d45f5e6c25b0c2f719afc55677dc5a837bb9a4",
+          "guid": "93e4dc4c5ede39c46bd5e4dc2834ab83"
+        },
+        {
+          "path": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Zipper Handle.mat",
+          "sha256": "fade54f69c191e5c8620cd4132e93d26fda714e6cd116e3f845c7346f4336eb0",
+          "guid": "d9be5c7f88fba9a42893f81f816efbf1"
+        },
+        {
+          "path": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Zipper.mat",
+          "sha256": "339d3ac0ec0fed5ff420b1bc7c6b48d5b040d2d02f281958968efcb6f3b6a15b",
+          "guid": "bc16462ee1fcc994eaf4402a88ecf1cd"
+        },
+        {
+          "path": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Buttons.mat",
+          "sha256": "cbd79fda7d21bac4bd958b96182cac7e26260e838cc01ea4f80a7ce78cab974b",
+          "guid": "91188d4846f48c84b816219d885e491d"
+        },
+        {
+          "path": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Laces.mat",
+          "sha256": "8646735d9f29420453be32c1e6b64953701d65adabc6d8634e1b2f89ccf3c390",
+          "guid": "e22ada13ee084274c9abaf3e741f083f"
+        },
+        {
+          "path": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Shorts.mat",
+          "sha256": "4b74fae8cf962305a91d99ea55d62c795e548007514b71cb321f96b83f8e95be",
+          "guid": "18c986b02a23c034b986dcd18b376c6c"
+        },
+        {
+          "path": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Pants.mat",
+          "sha256": "234f2db653e6651f07e5028c8daf58f455c3ffa928547de5465bc6b6814dde5b",
+          "guid": "6073e490cacdcd341842ce4af6d08259"
+        },
+        {
+          "path": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Shorts Pocket, Right.mat",
+          "sha256": "39f56e3bdcca425989ca7fafff606b0aed2bf09bc887fa547648c30be9af6a3e",
+          "guid": "714d38e16516d1e4cabd978052a19e17"
+        },
+        {
+          "path": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Shorts Pocket Left.mat",
+          "sha256": "438514ebbf25ae35d1f6939ff23071a0c45c5bd155730374620a18838ff01b77",
+          "guid": "d5827e45d8a6ac94ab1e2eb4dfb5509e"
+        },
+        {
+          "path": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Bra, Right.mat",
+          "sha256": "2d6629d92c9798490885c1e3f7fdf92943f42a91270cf6d16bb892fd0a56e516",
+          "guid": "aabddbafac5352449aad82e1e3d2d295"
+        },
+        {
+          "path": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Bra, Left.mat",
+          "sha256": "a559048d9ec78f98ed17540a6a9e1ce8ea787fad6c910eec8c664f541b286391",
+          "guid": "a3c332ec1094c72479b143cb4163fedb"
+        },
+        {
+          "path": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Bra.mat",
+          "sha256": "c53d105ac61fe816abd8aaec6bf20037cbd4f71b40890cd17da2668db2e8c2af",
+          "guid": "2a153621b1f9f0347b497e445b37053b"
+        },
+        {
+          "path": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Ribbon.mat",
+          "sha256": "b68590594c2a2a4db74c896be5c67794a3cf6890400b75800cc5990e952e71a8",
+          "guid": "a2b778431ec7aa443a1cc56862b164b2"
+        },
+        {
+          "path": "Assets/ImportedActors/Wear/ReikoOutfit/Materials/Knot.mat",
+          "sha256": "7863866cfd8e1f44d1bc861b0935e57e736639c184faaa827153aa00bc65fc36",
+          "guid": "7a475d5f369c8ba4aa6d068ee3b67929"
+        }
+      ],
+      "bodyAuthoringDependencies": [
+        {
+          "path": "Assets/HexLiveContent/People/Prefabs/Actors/Marta.prefab",
+          "dependency": "fa70a225333bd10ae52d65702f210198",
+          "sha256": "d34eb4b0b30aab50b873267f45cf93b65276a21c9a180d968f212ad53c86454a"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Prefabs/Actors/Kshishtof.prefab",
+          "dependency": "8d800d08b15dbb68a864d75e922f698d",
+          "sha256": "048d12a549cbd46e3bfe67f42a2dc50be4041c4aa47fcc313480d3a7f72fe2cf"
+        }
+      ],
+      "evidenceFiles": [
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/reiko-authored-donor/actual-readable-save-import.json",
+          "sha256": "9ac6005aee7e5257e7669459add24cd6aab87cf1e8f26cc061969a06b83e36f1",
+          "bytes": 5553,
+          "role": "native-raw-clone"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/reiko-authored-donor/actual-six-pose-runtime.json",
+          "sha256": "476246b92eb0e132e148b4e5587056c1dc4eb4e98bca87984f60fd9a43fe0b50",
+          "bytes": 94180,
+          "role": "actual-six-pose-runtime"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/reiko-authored-donor/actual-playmode-r56.xml",
+          "sha256": "6c144388079743288b086c42918379c96b55b70181b37916d131e5fc91a86e26",
+          "bytes": 3879,
+          "role": "actual-playmode-result"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/reiko-authored-donor/native-front.png",
+          "sha256": "819ddc34220075aa28dd2fe2d6f549f3947b5d42249a3cf27e70761072d98207",
+          "bytes": 92246,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/reiko-authored-donor/native-back.png",
+          "sha256": "7de4d175f2ea696bbcb1fa0b57b013e4242fc8c811e2063d55f53f50cea6a14a",
+          "bytes": 88480,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/reiko-authored-donor/native-right-boot-cuff-front.png",
+          "sha256": "77284cc4d4840330aa886d1211ee0525b9de627a4e7ccd77a8ba5283720deb10",
+          "bytes": 272856,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/reiko-authored-donor/native-right-boot-cuff-back.png",
+          "sha256": "2f271c07b8cd6bdc2caaeec1ee931a41eab7bf51d426efded454579dbb18a065",
+          "bytes": 219409,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/reiko-authored-donor/native-left-boot-cuff-front.png",
+          "sha256": "52075a998a0fc041ade32ec9c17bd71b92be19f908523063f42e5b42934be8f2",
+          "bytes": 268501,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/reiko-authored-donor/native-left-boot-cuff-back.png",
+          "sha256": "575b412372a901cee051f6e19eaf4ed22ac48d4bbe63763657c8695b239c2a94",
+          "bytes": 217889,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/reiko-authored-donor/derived-front.png",
+          "sha256": "819ddc34220075aa28dd2fe2d6f549f3947b5d42249a3cf27e70761072d98207",
+          "bytes": 92246,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/reiko-authored-donor/derived-back.png",
+          "sha256": "7de4d175f2ea696bbcb1fa0b57b013e4242fc8c811e2063d55f53f50cea6a14a",
+          "bytes": 88480,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/reiko-authored-donor/derived-right-boot-cuff-front.png",
+          "sha256": "77284cc4d4840330aa886d1211ee0525b9de627a4e7ccd77a8ba5283720deb10",
+          "bytes": 272856,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/reiko-authored-donor/derived-right-boot-cuff-back.png",
+          "sha256": "2f271c07b8cd6bdc2caaeec1ee931a41eab7bf51d426efded454579dbb18a065",
+          "bytes": 219409,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/reiko-authored-donor/derived-left-boot-cuff-front.png",
+          "sha256": "88ae4513dfd812340a5695ad8a13d7de4cdd54ddf51358ce88e1496672d10e2c",
+          "bytes": 268496,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/reiko-authored-donor/derived-left-boot-cuff-back.png",
+          "sha256": "575b412372a901cee051f6e19eaf4ed22ac48d4bbe63763657c8695b239c2a94",
+          "bytes": 217889,
+          "role": "standing-view"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/reiko-authored-donor/root-admission.json",
+          "sha256": "da243bf51abc2c26ae6fa9a3f1aae0ea20a073292dfab210a1274d3cfb21e098",
+          "bytes": 1365,
+          "role": "root-admission"
+        },
+        {
+          "path": "Assets/HexLiveContent/People/Wardrobe/Evidence/reiko-authored-donor/review.json",
+          "sha256": "7973e3864cd87baeee3002c0416a746487a53bdbb76fc796f0202c51851ab162",
+          "bytes": 7012,
+          "role": "owned-review"
+        }
+      ],
+      "rawEvidenceSchema": "marta-full-native-raw-copies-v1",
+      "poseEvidenceSchema": "marta-full-native-six-pose-v1",
+      "actualPlayModeCase": "HexLive.Tests.WardrobeMartaFullNativeDonorEvidenceRuntimeTests.ReikoFullNativeDerivedMartaHasActualSixPoseAndReequipEvidence",
+      "requiredViews": [
+        "front",
+        "back",
+        "left-boot-cuff-front",
+        "left-boot-cuff-back",
+        "right-boot-cuff-front",
+        "right-boot-cuff-back"
+      ],
+      "requiredViewScopes": [
+        "nativeImages",
+        "derivedImages"
+      ],
+      "review": {
+        "geometryMode": "authored-donor-preserved",
+        "sourceOnly": true,
+        "recipientStrict": true,
+        "bodyContactAcceptance": false
+      }
+    }
+  ],
+  "validationContext": {
+    "unityVersion": "6000.4.6f1",
+    "activeBuildTarget": "StandaloneWindows64",
+    "sameTargetDependencyValidation": true,
+    "futureWebGLRequiresExplicitPlatformScopedValidation": true
+  }
+}

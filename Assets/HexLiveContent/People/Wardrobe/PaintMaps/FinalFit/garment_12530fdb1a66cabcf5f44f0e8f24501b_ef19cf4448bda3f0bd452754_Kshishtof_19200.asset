@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: garment_12530fdb1a66cabcf5f44f0e8f24501b_ef19cf4448bda3f0bd452754_Kshishtof_19200
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: 12530fdb1a66cabcf5f44f0e8f24501b_ef19cf4448bda3f0bd452754_Kshishtof
+  VertexCount: 19200
+  Version: 0
+  MeshHeight: 1.7
+  TSamples: 1
+  AzimuthSamples: 1
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: Head
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Torso
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Pelvis
+    Points:
+    - Slot: 1
+      Uv: {x: 0.6184271, y: 0.9768548}
+      BindPerU: 1.0394589
+      BindPerV: 0.12819497
+      Valid: 1
+      BindPos: {x: -0.03235668, y: 0.47551394, z: -0.04432009}
+      BindNormal: {x: 0.83360606, y: -0.54845345, z: -0.06557326}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmL
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmR
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegL
+    Points:
+    - Slot: 1
+      Uv: {x: 0.7084725, y: 0.98032993}
+      BindPerU: 1.1740676
+      BindPerV: 0.5749756
+      Valid: 1
+      BindPos: {x: -0.08413484, y: 0.47267517, z: 0.026315669}
+      BindNormal: {x: 0.32986066, y: -0.5284591, z: 0.78225505}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegR
+    Points:
+    - Slot: 1
+      Uv: {x: 0.28905487, y: 0.98148173}
+      BindPerU: 1.2617395
+      BindPerV: 0.33374214
+      Valid: 1
+      BindPos: {x: 0.090224825, y: 0.47443044, z: 0.030878574}
+      BindNormal: {x: -0.47459528, y: -0.52693087, z: 0.70505536}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}

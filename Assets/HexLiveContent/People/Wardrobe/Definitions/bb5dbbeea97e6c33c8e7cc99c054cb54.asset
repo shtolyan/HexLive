@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_skirt_jane_rosey(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.skirt_jane_rosey
+  prototypeId: clothing.skirt_jane
+  alternateFitId: 
+  displayName: Tiered Skirt (Rosey)
+  retired: 1
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 3
+  variantMaterials:
+  - {fileID: 2100000, guid: 15f5b321b39a95343be64eb3dfa192f4, type: 2}
+  - {fileID: 2100000, guid: 114b4c016df843a4cbed1d73f724d2ff, type: 2}
+  - {fileID: 2100000, guid: 3e46354019ed2764582dd8760f11dbe4, type: 2}
+  - {fileID: 2100000, guid: 465e79e2a6af87341bf4a2a87c61d058, type: 2}
+  - {fileID: 2100000, guid: 183fe8230b4248542bb32da087978ab6, type: 2}
+  - {fileID: 2100000, guid: 91c8b5f033d9a0347bb49a98cd75b9c5, type: 2}
+  - {fileID: 2100000, guid: 2e39eb019984a344dacbee02ccb4a8e0, type: 2}
+  - {fileID: 2100000, guid: ee126d2ddb7bff04fbe4f8d6d175f337, type: 2}
+  layer: 1
+  covers: 020000000500000006000000
+  warmth: 0.08
+  armor: 0.01
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 2

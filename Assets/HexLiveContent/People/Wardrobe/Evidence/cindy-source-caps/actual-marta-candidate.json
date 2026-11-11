@@ -1,0 +1,392 @@
+{
+  "passed": true,
+  "diagnosticOnly": true,
+  "candidateSHA": "6d9c6d25ab0ff0f62416bc9f748ccf41a5b5c2bff9f41acf524310cb7f154061",
+  "rows": [
+    {
+      "actor": "Marta",
+      "postBindSurfaceEnvelope": {
+        "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+        "sampleCount": 172240,
+        "targetClearanceMetres": 0.002,
+        "minimumSignedDistanceMetres": 0.00200820039,
+        "samplesBelowMinimum": 0,
+        "physicalMinimumIsStrict": true,
+        "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+        "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+        "nonUnanimousSamples": 92,
+        "minimumValidRays": 3,
+        "insideSamples": 0,
+        "ambiguousSamples": 0,
+        "onSurfaceSamples": 0,
+        "firstAmbiguousPoint": null,
+        "toleranceMetres": 0.0005,
+        "toleranceIsDiagnosticOnly": true,
+        "samplesBelowTargetMinusTolerance": 0,
+        "samplesBelowMinus1mm": 0,
+        "samplesBelowMinus3mm": 0,
+        "maximumClearanceDeficitMetres": 0.0,
+        "maximumPenetrationDepthMetres": 0.0,
+        "worstTriangleIndex": -2,
+        "worstPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "worstBodyPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "passedSampledEnvelope": true
+      },
+      "factory": "BodyBones.Equip",
+      "views": [
+        "Build/Diagnostics/bug-wave-20261110/wardrobe/annulus-candidate-actual-20261110T190820858/annulus-Marta-front-annulus-candidate-actual-20261110T190820858.png",
+        "Build/Diagnostics/bug-wave-20261110/wardrobe/annulus-candidate-actual-20261110T190820858/annulus-Marta-back-annulus-candidate-actual-20261110T190820858.png"
+      ],
+      "requiredMartaProof": true,
+      "scope": "Exact independently solved Marta geometry, full references and actual bind",
+      "reconstruction": {
+        "maxMetres": 1.22881659E-07,
+        "p95Metres": 1.66828684E-08,
+        "worstVertex": 7396,
+        "expectedWorld": [
+          0.188238114,
+          0.763884366,
+          0.00754266651
+        ],
+        "actualWorld": [
+          0.188238144,
+          0.7638845,
+          0.00754266744
+        ],
+        "expectedBounds": {
+          "center": [
+            -0.0008406341,
+            0.368926972,
+            -0.008161455
+          ],
+          "size": [
+            0.4290098,
+            0.833317,
+            0.2614588
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            -0.000840649,
+            0.368926942,
+            -0.00816144049
+          ],
+          "size": [
+            0.429009765,
+            0.8333169,
+            0.261458844
+          ]
+        }
+      },
+      "ownReference": {
+        "maxMetres": 1.22881659E-07,
+        "p95Metres": 1.66828684E-08,
+        "worstVertex": 7396,
+        "expectedWorld": [
+          0.188238114,
+          0.763884366,
+          0.00754266651
+        ],
+        "actualWorld": [
+          0.188238144,
+          0.7638845,
+          0.00754266744
+        ],
+        "expectedBounds": {
+          "center": [
+            -0.0008406341,
+            0.368926972,
+            -0.008161455
+          ],
+          "size": [
+            0.4290098,
+            0.833317,
+            0.2614588
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            -0.000840649,
+            0.368926942,
+            -0.00816144049
+          ],
+          "size": [
+            0.429009765,
+            0.8333169,
+            0.261458844
+          ]
+        }
+      },
+      "commonReference": {
+        "maxMetres": 0.0298580062,
+        "p95Metres": 0.009799623,
+        "worstVertex": 4845,
+        "expectedWorld": [
+          -0.129653171,
+          -0.00366150262,
+          0.111644924
+        ],
+        "actualWorld": [
+          -0.141945586,
+          0.0160999335,
+          0.09293977
+        ],
+        "expectedBounds": {
+          "center": [
+            1.49011612E-08,
+            0.3690071,
+            -0.007997304
+          ],
+          "size": [
+            0.4273284,
+            0.833477259,
+            0.261130542
+          ]
+        },
+        "actualBounds": {
+          "center": [
+            -0.000840649,
+            0.368926942,
+            -0.00816144049
+          ],
+          "size": [
+            0.429009765,
+            0.8333169,
+            0.261458844
+          ]
+        }
+      },
+      "passed": true
+    },
+    {
+      "actor": "Kshishtof",
+      "postBindSurfaceEnvelope": {
+        "allVerticesAnd13BarycentricSamplesPerTriangle": true,
+        "sampleCount": 172240,
+        "targetClearanceMetres": 0.002,
+        "minimumSignedDistanceMetres": -0.0235402379,
+        "samplesBelowMinimum": 10469,
+        "physicalMinimumIsStrict": true,
+        "distanceMethod": "unsigned exact-nearest distance with three deduplicated BVH ray parity inside votes",
+        "insidePolicy": "At least two agreeing valid rays; non-unanimous majority is diagnostic, not failure.",
+        "nonUnanimousSamples": 0,
+        "minimumValidRays": 3,
+        "insideSamples": 7393,
+        "ambiguousSamples": 0,
+        "onSurfaceSamples": 0,
+        "firstAmbiguousPoint": null,
+        "toleranceMetres": 0.0005,
+        "toleranceIsDiagnosticOnly": true,
+        "samplesBelowTargetMinusTolerance": 9640,
+        "samplesBelowMinus1mm": 6096,
+        "samplesBelowMinus3mm": 4110,
+        "maximumClearanceDeficitMetres": 0.0255402382,
+        "maximumPenetrationDepthMetres": 0.0235402379,
+        "worstTriangleIndex": 12049,
+        "worstPoint": [
+          -0.162045464,
+          0.7813706,
+          0.0581612438
+        ],
+        "worstBodyPoint": [
+          -0.184087515,
+          0.778823733,
+          0.06602282
+        ],
+        "passedSampledEnvelope": false
+      },
+      "factory": "BodyBones.Equip",
+      "views": [
+        "Build/Diagnostics/bug-wave-20261110/wardrobe/annulus-candidate-actual-20261110T190820858/annulus-Kshishtof-front-annulus-candidate-actual-20261110T190820858.png",
+        "Build/Diagnostics/bug-wave-20261110/wardrobe/annulus-candidate-actual-20261110T190820858/annulus-Kshishtof-back-annulus-candidate-actual-20261110T190820858.png"
+      ],
+      "requiredMartaProof": false,
+      "scope": "Exploratory bone transfer only; no independent K clipping or reference certification"
+    }
+  ],
+  "assetsModified": false,
+  "acceptanceOverride": false,
+  "discardScope": "Original cap interior plus positive-clearance band up to4.00836mm, not asserted entirely occluded. This does not waive physical acceptance of retained geometry.",
+  "attributes": {
+    "vertices": 8479,
+    "triangles": 12597,
+    "materialSlots": 3,
+    "uvDimensions": [
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "retainedFullSkinFloatBitsExact": true,
+    "maximumDroppedWeightFraction": 0.0,
+    "sourceUnchanged": true,
+    "lineageInterpolation": true,
+    "actualChannelFormatsAndDimensions": [
+      {
+        "attribute": "Position",
+        "sourceFormat": "Float32",
+        "sourceDimension": 3,
+        "outputExists": true,
+        "outputFormat": "Float32",
+        "outputDimension": 3
+      },
+      {
+        "attribute": "Normal",
+        "sourceFormat": "Float32",
+        "sourceDimension": 3,
+        "outputExists": true,
+        "outputFormat": "Float32",
+        "outputDimension": 3
+      },
+      {
+        "attribute": "Tangent",
+        "sourceFormat": "Float32",
+        "sourceDimension": 4,
+        "outputExists": true,
+        "outputFormat": "Float32",
+        "outputDimension": 4
+      },
+      {
+        "attribute": "TexCoord0",
+        "sourceFormat": "Float32",
+        "sourceDimension": 2,
+        "outputExists": true,
+        "outputFormat": "Float32",
+        "outputDimension": 2
+      },
+      {
+        "attribute": "BlendWeight",
+        "sourceFormat": "Float32",
+        "sourceDimension": 4,
+        "outputExists": true,
+        "outputFormat": "Float32",
+        "outputDimension": 4
+      },
+      {
+        "attribute": "BlendIndices",
+        "sourceFormat": "UInt32",
+        "sourceDimension": 4,
+        "outputExists": true,
+        "outputFormat": "UInt32",
+        "outputDimension": 4
+      }
+    ],
+    "channelFormatsAndDimensionsExact": true
+  },
+  "currentSourceGapProof": {
+    "passed": true,
+    "kind": "source-body-clearance-transfer-seed",
+    "acceptanceOverride": false,
+    "sourceVertices": 8416,
+    "transferredVertices": 6907,
+    "boneOnlyOutsideContactRange": 1509,
+    "unresolvedSourceSignVertices": 0,
+    "sourceOnSurfaceVertices": 0,
+    "incompatibleTargetNormalVertices": 0,
+    "sourceInsideVertices": 10,
+    "sourceContactRangeMetres": 0.022,
+    "addedClearanceBiasMetres": 0.006,
+    "minimumTransferredSourceGapMetres": 0.0,
+    "maximumTransferredSourceGapMetres": 0.0219984259,
+    "maximumMoveFromBoneMappedPointMetres": 0.029858008,
+    "sourceGapPolicy": "nonnegative parity-signed donor gap plus6mm; retain original bone mapping beyond contact range",
+    "sourceUnchanged": true,
+    "topologyUnchanged": true,
+    "requiresFinalPhysicalAndPostBindAcceptance": true
+  },
+  "lineageWorldReconstruction": {
+    "maxMetres": 0.0,
+    "p95Metres": 0.0,
+    "worstVertex": 0,
+    "expectedWorld": [
+      0.0962003842,
+      0.21406804,
+      -0.108627476
+    ],
+    "actualWorld": [
+      0.0962003842,
+      0.21406804,
+      -0.108627476
+    ],
+    "expectedBounds": {
+      "center": [
+        -0.0008406341,
+        0.368926972,
+        -0.008161455
+      ],
+      "size": [
+        0.4290098,
+        0.833317,
+        0.2614588
+      ]
+    },
+    "actualBounds": {
+      "center": [
+        -0.0008406341,
+        0.368926972,
+        -0.008161455
+      ],
+      "size": [
+        0.4290098,
+        0.833317,
+        0.2614588
+      ]
+    }
+  },
+  "underlayers": {
+    "visibleUnderlayers": 0,
+    "verticesMoved": 0,
+    "clearanceMetres": 0.006,
+    "displacement": {
+      "maxMetres": 0.0,
+      "p95Metres": 0.0,
+      "worstVertex": 0,
+      "expectedWorld": [
+        0.0962003842,
+        0.21406804,
+        -0.108627476
+      ],
+      "actualWorld": [
+        0.0962003842,
+        0.21406804,
+        -0.108627476
+      ],
+      "expectedBounds": {
+        "center": [
+          -0.0008406341,
+          0.368926972,
+          -0.008161455
+        ],
+        "size": [
+          0.4290098,
+          0.833317,
+          0.2614588
+        ]
+      },
+      "actualBounds": {
+        "center": [
+          -0.0008406341,
+          0.368926972,
+          -0.008161455
+        ],
+        "size": [
+          0.4290098,
+          0.833317,
+          0.2614588
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: garment_Legacy_1e79c4c620c2db3758830804100fba4d_Kshishtof_19616
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: Legacy_1e79c4c620c2db3758830804100fba4d_Kshishtof
+  VertexCount: 19616
+  Version: 0
+  MeshHeight: 1.7
+  TSamples: 1
+  AzimuthSamples: 1
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: Head
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Torso
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Pelvis
+    Points:
+    - Slot: 0
+      Uv: {x: 0.664659, y: 0.5249113}
+      BindPerU: 1.9573678
+      BindPerV: 2.0804813
+      Valid: 1
+      BindPos: {x: -0.07361675, y: 0.24333358, z: -0.061272968}
+      BindNormal: {x: 0.49196407, y: 0.869537, z: 0.043320477}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmL
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmR
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegL
+    Points:
+    - Slot: 0
+      Uv: {x: 0.678365, y: 0.5207766}
+      BindPerU: 2.2314367
+      BindPerV: 3.7834256
+      Valid: 1
+      BindPos: {x: -0.07709116, y: 0.24092494, z: -0.03437977}
+      BindNormal: {x: 0.40125683, y: 0.8901803, z: 0.21580543}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegR
+    Points:
+    - Slot: 0
+      Uv: {x: 0.678365, y: 0.5207766}
+      BindPerU: 2.1246774
+      BindPerV: 0.9091393
+      Valid: 1
+      BindPos: {x: 0.07561767, y: 0.24059904, z: -0.03332462}
+      BindNormal: {x: -0.4012596, y: 0.8901781, z: 0.21580914}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}

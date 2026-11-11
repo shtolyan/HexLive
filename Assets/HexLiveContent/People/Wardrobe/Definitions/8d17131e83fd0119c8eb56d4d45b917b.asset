@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_slipons_fads_plaid(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.slipons_fads_plaid
+  prototypeId: clothing.slipons_fads
+  alternateFitId: 
+  displayName: Slip-Ons (Plaid)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 6
+  variantMaterials:
+  - {fileID: 2100000, guid: 7003afd640d3cac42a8cdf8f42379a15, type: 2}
+  - {fileID: 2100000, guid: fb0f6e071cba09a4991f51eadbc406c9, type: 2}
+  - {fileID: 2100000, guid: fe069e1f8c1a88c408abdac37b7b1eda, type: 2}
+  - {fileID: 2100000, guid: c1c6e93a9534658429b75b1f579d0f3a, type: 2}
+  - {fileID: 2100000, guid: 5bad47e0dad28444ca6e7f8eac026437, type: 2}
+  - {fileID: 2100000, guid: b4ebd04dd920cc8439f51935f78a591f, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.08
+  armor: 0.05
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

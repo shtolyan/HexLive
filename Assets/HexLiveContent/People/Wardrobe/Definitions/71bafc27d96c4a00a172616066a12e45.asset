@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_skirt_jane_lavendar(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.skirt_jane_lavendar
+  prototypeId: clothing.skirt_jane
+  alternateFitId: 
+  displayName: Tiered Skirt (Lavendar)
+  retired: 1
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 3
+  variantMaterials:
+  - {fileID: 2100000, guid: e67a7e72723c0e94a86fcf48e4906266, type: 2}
+  - {fileID: 2100000, guid: 98d71234877c93c4b87b6ce8b1431daa, type: 2}
+  - {fileID: 2100000, guid: a0665f3c86191134fbbb26e95348ba40, type: 2}
+  - {fileID: 2100000, guid: dfff130d59258ce4bbfd0ee9f33db08b, type: 2}
+  - {fileID: 2100000, guid: c8c9e3d09a1b8a9429355bd98fd028bc, type: 2}
+  - {fileID: 2100000, guid: 060f36d82e3a7554ab1ad5e81f3b9755, type: 2}
+  - {fileID: 2100000, guid: b98f172cf6c734043ad7212fd47e1d44, type: 2}
+  - {fileID: 2100000, guid: 815615f3a389f754da6ea2550124ee8d, type: 2}
+  layer: 1
+  covers: 020000000500000006000000
+  warmth: 0.08
+  armor: 0.01
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 2

@@ -1,0 +1,111 @@
+{
+  "recordedUtc": "2026-11-10T21:18:15.134503+00:00",
+  "reviewWallTimeNotInstrumented": true,
+  "geometryMode": "authored-donor-preserved",
+  "sourceOnly": true,
+  "recipientStrict": true,
+  "bodyContactAcceptance": false,
+  "actualSixPoseQualityPassed": true,
+  "actualRootAndReequipPassed": true,
+  "standingImages": [
+    {
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-Native-front.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/native-front.png",
+      "sha256": "08d3be1fdbd80404e8de87a97db89c1c8c2110958a91db62be009a4599613b28",
+      "view": "front",
+      "scope": "nativeImages",
+      "rootPersonallyViewed": true
+    },
+    {
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-Native-front-sole.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/native-front-sole.png",
+      "sha256": "559024719ba24e23e1382fb805661d59153624984fa1001cdf69b3dd73181b73",
+      "view": "front-sole",
+      "scope": "nativeImages",
+      "rootPersonallyViewed": true
+    },
+    {
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-Native-front-cuff.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/native-front-cuff.png",
+      "sha256": "c452e799bfb220714f223cc6adb3c3e91d1f5e0b624331372bec162f59ab1b0a",
+      "view": "front-cuff",
+      "scope": "nativeImages",
+      "rootPersonallyViewed": true
+    },
+    {
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-Native-back.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/native-back.png",
+      "sha256": "039cb813549394397d9b30556a6975dd2cd7c1ccf497b2aa75d3a45bbe33f12b",
+      "view": "back",
+      "scope": "nativeImages",
+      "rootPersonallyViewed": true
+    },
+    {
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-Native-back-sole.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/native-back-sole.png",
+      "sha256": "d11b805d8aca0e644700fa0427df6d139921405bba355a7b1abbcffc0cdf8ce3",
+      "view": "back-sole",
+      "scope": "nativeImages",
+      "rootPersonallyViewed": true
+    },
+    {
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-Native-back-cuff.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/native-back-cuff.png",
+      "sha256": "0409f124ed46451ba0a808f22fa24b8cb323e74a1da925c45ad5ac5375d211aa",
+      "view": "back-cuff",
+      "scope": "nativeImages",
+      "rootPersonallyViewed": true
+    },
+    {
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-BASE-front.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/derived-full-native-front.png",
+      "sha256": "cbf912f08c29dc1b32602f93e394fc08c5a099dcb12583c2a041be9ef6863c1d",
+      "view": "front",
+      "scope": "baseImages",
+      "rootPersonallyViewed": true
+    },
+    {
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-BASE-front-sole.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/derived-full-native-front-sole.png",
+      "sha256": "f3a5232ff0e18ce50a3e75dd71b1852ec2c474ad324aa813d5123e4e36fe6d5f",
+      "view": "front-sole",
+      "scope": "baseImages",
+      "rootPersonallyViewed": true
+    },
+    {
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-BASE-front-cuff.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/derived-full-native-front-cuff.png",
+      "sha256": "52680364f78453f8052944a8017a2f275911b3309deea758f90e498814c6dc35",
+      "view": "front-cuff",
+      "scope": "baseImages",
+      "rootPersonallyViewed": true
+    },
+    {
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-BASE-back.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/derived-full-native-back.png",
+      "sha256": "851429173ba392be83461d3be8767cb42f0cda3955f3423826ed5f95ca4ba562",
+      "view": "back",
+      "scope": "baseImages",
+      "rootPersonallyViewed": true
+    },
+    {
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-BASE-back-sole.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/derived-full-native-back-sole.png",
+      "sha256": "82a65ad974c0334f7ece3a53fe37b55abadf382015fa520e92e64e95f6e00fe8",
+      "view": "back-sole",
+      "scope": "baseImages",
+      "rootPersonallyViewed": true
+    },
+    {
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/fco-full-native-donor-source-evidence-20261110T210025081/fco-donor-20261110T210025081-BASE-back-cuff.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/fco-authored-donor/derived-full-native-back-cuff.png",
+      "sha256": "7d45794592f70446840bf6b0d3e93da0e77152250125ed20921a074af07ace8d",
+      "view": "back-cuff",
+      "scope": "baseImages",
+      "rootPersonallyViewed": true
+    }
+  ],
+  "visualScope": "12 standing front/back/sole/cuff views, no six-pose visual claim; actual six-pose geometry equivalence proved separately.",
+  "historicalContextPolicy": "Raw captured receipts retain original Build paths. Use evidenceFiles and standingImages mapping for owned artifacts; historical Wardrobe/catalog hashes are not new current-catalog pins.",
+  "negativeAdmissionPolicy": "Wrong source/mesh/GUID/actor/donor/full skin/raw data/settings/materials/evidence or missing actual six-pose coverage must reject. No blanket fallback, no rigid headwear label, no fake cloth2mm PASS."
+}

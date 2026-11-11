@@ -1,0 +1,118 @@
+{
+  "geometryMode": "authored-donor-preserved",
+  "sourceOnly": true,
+  "recipientStrict": true,
+  "bodyContactAcceptance": false,
+  "requiredViews": [
+    "front",
+    "back",
+    "left-wrist-hand-front",
+    "left-wrist-hand-back",
+    "right-wrist-hand-front",
+    "right-wrist-hand-back"
+  ],
+  "requiredViewScopes": [
+    "nativeImages",
+    "derivedImages"
+  ],
+  "standingImages": [
+    {
+      "scope": "nativeImages",
+      "view": "front",
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-b513d9316e7a4c0034eb5aaaeeea6ece-20261110T214327266/Native-front.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/native-front.png",
+      "sha256": "2792c35b8b990b733336868742c1a062feff0b21603b9ca9b86e457c986c535e",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "nativeImages",
+      "view": "back",
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-b513d9316e7a4c0034eb5aaaeeea6ece-20261110T214327266/Native-back.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/native-back.png",
+      "sha256": "a1bc9253ae89779c3339cbc87d21fa6835cd0d7fef31297718fc48b4d3988c57",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "nativeImages",
+      "view": "right-wrist-hand-front",
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-b513d9316e7a4c0034eb5aaaeeea6ece-20261110T214327266/Native-right-wrist-hand-front.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/native-right-wrist-hand-front.png",
+      "sha256": "4cb5c8a873e2878c35a8778ec5628059f4653222a6e33ddd9b7905373d2b7bd6",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "nativeImages",
+      "view": "right-wrist-hand-back",
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-b513d9316e7a4c0034eb5aaaeeea6ece-20261110T214327266/Native-right-wrist-hand-back.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/native-right-wrist-hand-back.png",
+      "sha256": "13a62ac99a726c0a6821691dcfd3d41402c3cc7188ef267e4321f02f77fcb552",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "nativeImages",
+      "view": "left-wrist-hand-front",
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-b513d9316e7a4c0034eb5aaaeeea6ece-20261110T214327266/Native-left-wrist-hand-front.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/native-left-wrist-hand-front.png",
+      "sha256": "e5a4a95308584b903e3ffe5abf6bef3f662e218f78af1c980af1c9ddd3d25cc4",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "nativeImages",
+      "view": "left-wrist-hand-back",
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-b513d9316e7a4c0034eb5aaaeeea6ece-20261110T214327266/Native-left-wrist-hand-back.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/native-left-wrist-hand-back.png",
+      "sha256": "31f7c85be0f3f1ef8a98e8304b57e755e4eae76671643863ea90566d01302121",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "derivedImages",
+      "view": "front",
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-b513d9316e7a4c0034eb5aaaeeea6ece-20261110T214327266/FullNativeDerived-front.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/derived-front.png",
+      "sha256": "f3f12b66c890b5b576e16f9ac70c0370d64c8bdd0db6ba4429244d3ee447641d",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "derivedImages",
+      "view": "back",
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-b513d9316e7a4c0034eb5aaaeeea6ece-20261110T214327266/FullNativeDerived-back.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/derived-back.png",
+      "sha256": "3f540ece7a12ef10c35aa40689cc837921fc46a39b6787115397171982d395c1",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "derivedImages",
+      "view": "right-wrist-hand-front",
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-b513d9316e7a4c0034eb5aaaeeea6ece-20261110T214327266/FullNativeDerived-right-wrist-hand-front.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/derived-right-wrist-hand-front.png",
+      "sha256": "1b69bb3f3e6167b8b7a3593c85fbc3339c05150762c8d4b2cfa598d19f4b132a",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "derivedImages",
+      "view": "right-wrist-hand-back",
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-b513d9316e7a4c0034eb5aaaeeea6ece-20261110T214327266/FullNativeDerived-right-wrist-hand-back.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/derived-right-wrist-hand-back.png",
+      "sha256": "1928205b8402caf0318504289aad6568a252108ac4fcf20e1c7624148f4c5135",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "derivedImages",
+      "view": "left-wrist-hand-front",
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-b513d9316e7a4c0034eb5aaaeeea6ece-20261110T214327266/FullNativeDerived-left-wrist-hand-front.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/derived-left-wrist-hand-front.png",
+      "sha256": "b4da8d77523ec9b3637c78b49f82e8ab2aabfc894440b1bfdc7215381faab32f",
+      "rootPersonallyViewed": true
+    },
+    {
+      "scope": "derivedImages",
+      "view": "left-wrist-hand-back",
+      "originalCapturedPath": "Build/Diagnostics/bug-wave-20261110/wardrobe/marta-full-native-donor-evidence-b513d9316e7a4c0034eb5aaaeeea6ece-20261110T214327266/FullNativeDerived-left-wrist-hand-back.png",
+      "ownedPath": "Assets/HexLiveContent/People/Wardrobe/Evidence/gloves-authored-donor/derived-left-wrist-hand-back.png",
+      "sha256": "89c6e69c09698f261cec2e46d63a4d9e5c3ec2a0499fa97d887b893e6ef3faa1",
+      "rootPersonallyViewed": true
+    }
+  ],
+  "visualScope": "12 standing whole/wrist/hand views personally inspected. Six poses numerically compared, not represented as six-pose PNGs.",
+  "nativeOpeningCaveat": "Native and derived glove silhouettes/cuffs/fingers match. A small skin opening below the right wrist cuff is present in BOTH Native and derived, potentially an authored closure gap; no new regression established. Do not describe the source as uniformly closed or artifact-free."
+}

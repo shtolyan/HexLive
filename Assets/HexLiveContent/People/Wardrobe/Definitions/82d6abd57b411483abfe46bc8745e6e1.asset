@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_slipons_fads_navy(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.slipons_fads_navy
+  prototypeId: clothing.slipons_fads
+  alternateFitId: 
+  displayName: Slip-Ons (Navy)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 6
+  variantMaterials:
+  - {fileID: 2100000, guid: 4f56eaf3315604f43b8ab899498a9624, type: 2}
+  - {fileID: 2100000, guid: 7184a39856ece704cba62efa2bb45616, type: 2}
+  - {fileID: 2100000, guid: af368b956defc5940b18765cd087ade5, type: 2}
+  - {fileID: 2100000, guid: 6d2161b80622a524e983e8acc084e711, type: 2}
+  - {fileID: 2100000, guid: 0c7ff707520cfeb4c969073b1ca2c19d, type: 2}
+  - {fileID: 2100000, guid: b9187ecb3599c5046a7e0b7dcc3b2b8e, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.08
+  armor: 0.05
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

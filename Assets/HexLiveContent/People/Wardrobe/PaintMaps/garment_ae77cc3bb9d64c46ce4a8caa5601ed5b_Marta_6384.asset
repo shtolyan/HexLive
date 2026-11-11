@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: garment_ae77cc3bb9d64c46ce4a8caa5601ed5b_Marta_6384
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: ae77cc3bb9d64c46ce4a8caa5601ed5b_Marta
+  VertexCount: 6384
+  Version: 0
+  MeshHeight: 1.7
+  TSamples: 1
+  AzimuthSamples: 1
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: Head
+    Points:
+    - Slot: 10
+      Uv: {x: 0.51752305, y: 0.52732605}
+      BindPerU: 0.027178148
+      BindPerV: 0.017130725
+      Valid: 1
+      BindPos: {x: -0.00006923329, y: 1.6255554, z: -0.018362358}
+      BindNormal: {x: -0.000020459674, y: -0.96411306, z: -0.26549208}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Torso
+    Points:
+    - Slot: 5
+      Uv: {x: 0.56107897, y: 0.7461815}
+      BindPerU: 0.013755375
+      BindPerV: 0.010407784
+      Valid: 1
+      BindPos: {x: 0.000037881488, y: 1.6249717, z: -0.017140722}
+      BindNormal: {x: 0.0074625313, y: -0.79320407, z: 0.6089102}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Pelvis
+    Points:
+    - Slot: 5
+      Uv: {x: 0.56107897, y: 0.7461815}
+      BindPerU: 0.013755375
+      BindPerV: 0.010407784
+      Valid: 1
+      BindPos: {x: 0.000037881488, y: 1.6249717, z: -0.017140722}
+      BindNormal: {x: 0.0074625313, y: -0.79320407, z: 0.6089102}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmL
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmR
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegL
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegR
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}

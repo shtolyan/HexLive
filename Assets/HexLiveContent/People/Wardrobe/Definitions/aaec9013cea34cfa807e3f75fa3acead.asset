@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_heels_luxury_golden_color(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.heels_luxury_golden_color
+  prototypeId: clothing.heels_luxury
+  alternateFitId: 
+  displayName: Strap Heels (Golden Color)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 6
+  variantMaterials:
+  - {fileID: 2100000, guid: b5d9aab9c06ceff46b24f0e2c1bd4659, type: 2}
+  - {fileID: 2100000, guid: 557ad3186421c834b843ce0a367cab9a, type: 2}
+  - {fileID: 2100000, guid: 5e4e40816c675cb408f65ada43f0ed13, type: 2}
+  - {fileID: 2100000, guid: 1e42edb30b44dde48ab450fe91be8f21, type: 2}
+  - {fileID: 2100000, guid: fc06ae2c8b072094ea13b2ffa8a73bf3, type: 2}
+  - {fileID: 2100000, guid: ec429a7615b256045bab2e21249a27d3, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.02
+  armor: 0.02
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: garment_9dfbb97d0b65c3e02646f4be1f7b08ec_Marta_21257
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: 9dfbb97d0b65c3e02646f4be1f7b08ec_Marta
+  VertexCount: 21257
+  Version: 0
+  MeshHeight: 1.7
+  TSamples: 1
+  AzimuthSamples: 1
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: Head
+    Points:
+    - Slot: 0
+      Uv: {x: 0.68777615, y: 0.35625422}
+      BindPerU: 0.015592574
+      BindPerV: 0.016037142
+      Valid: 1
+      BindPos: {x: -0.000013624358, y: 1.6255612, z: -0.01868607}
+      BindNormal: {x: -0.018019397, y: -0.7958662, z: 0.60520434}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Torso
+    Points:
+    - Slot: 0
+      Uv: {x: 0.3679513, y: 0.16292377}
+      BindPerU: 0.01587219
+      BindPerV: 0.01610374
+      Valid: 1
+      BindPos: {x: 0.000064312735, y: 1.6250814, z: -0.016774064}
+      BindNormal: {x: 0.07512865, y: -0.9970022, z: -0.01850018}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Pelvis
+    Points:
+    - Slot: 0
+      Uv: {x: 0.3679513, y: 0.16292377}
+      BindPerU: 0.01587219
+      BindPerV: 0.01610374
+      Valid: 1
+      BindPos: {x: 0.000064312735, y: 1.6250814, z: -0.016774064}
+      BindNormal: {x: 0.07512865, y: -0.9970022, z: -0.01850018}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmL
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmR
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegL
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegR
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}

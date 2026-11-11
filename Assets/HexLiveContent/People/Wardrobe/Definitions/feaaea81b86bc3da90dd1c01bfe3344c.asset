@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_sneakers_sport_lilac_purple(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.sneakers_sport_lilac_purple
+  prototypeId: clothing.sneakers_sport
+  alternateFitId: 
+  displayName: Running Shoes (Lilac Purple)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 6
+  variantMaterials:
+  - {fileID: 2100000, guid: ee06b2273f779b747a4754e57f5f1549, type: 2}
+  - {fileID: 2100000, guid: 5040725c4374afa48ac322705e8d9734, type: 2}
+  - {fileID: 2100000, guid: af0649f200459b546a005cb876767788, type: 2}
+  - {fileID: 2100000, guid: 6123a35ddd9313d4398cad95ae595f12, type: 2}
+  - {fileID: 2100000, guid: fc5f258ceb732a24aa7e8a4e1ca2593a, type: 2}
+  - {fileID: 2100000, guid: 52f1a0d2914016f4b9710036212f9456, type: 2}
+  - {fileID: 2100000, guid: 0c9a8694eafa03b4795b262c85db13e7, type: 2}
+  - {fileID: 2100000, guid: 4cb31fb5dd2809f468309cc53d2a4b80, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.08
+  armor: 0.05
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

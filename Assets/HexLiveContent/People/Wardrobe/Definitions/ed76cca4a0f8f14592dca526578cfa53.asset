@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_outfit_reiko_default(Clone)
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.outfit_reiko_default
+  prototypeId: clothing.outfit_reiko
+  alternateFitId: 
+  displayName: Boxing Outfit (Default)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 0
+  category: 15
+  variantMaterials:
+  - {fileID: 2100000, guid: 932a088aa50da92439c7bc8463c4e251, type: 2}
+  - {fileID: 2100000, guid: f900bae517f8cb64a99f222779ab9d06, type: 2}
+  - {fileID: 2100000, guid: 0974844de39083448a84d5673bf6392d, type: 2}
+  - {fileID: 2100000, guid: ad74192dc188086499ba42f5116d5204, type: 2}
+  - {fileID: 2100000, guid: f78e91395a90c7042b09f696f0b051c5, type: 2}
+  - {fileID: 2100000, guid: 1dc2c8de1a5cc4d40946b86281407b2d, type: 2}
+  - {fileID: 2100000, guid: e5991d5da103f0941bc276abe4b8aec4, type: 2}
+  - {fileID: 2100000, guid: e24b51d1512aaa040a5c199366aaa3c9, type: 2}
+  - {fileID: 2100000, guid: 73f30b2ac6c1deb45888925a350550ae, type: 2}
+  - {fileID: 2100000, guid: 7ad902813190f7645b1cbdd55e8d8b24, type: 2}
+  - {fileID: 2100000, guid: ac9e1679f2efde146bcc3bcf35573cb1, type: 2}
+  - {fileID: 2100000, guid: 0ef3d017a3fc9814398237c36eddfcbd, type: 2}
+  - {fileID: 2100000, guid: 2b59caeee28463f4caac930c73ad31c3, type: 2}
+  - {fileID: 2100000, guid: 7803bbba561fce74cb255e29e3cce904, type: 2}
+  - {fileID: 2100000, guid: d46aa9c34cab9d44ca56e3f0d45bfe9d, type: 2}
+  - {fileID: 2100000, guid: fa4778d8198e5c84287af203f369e67d, type: 2}
+  - {fileID: 2100000, guid: 88f93022a0739ec4f99b404c4260ced9, type: 2}
+  layer: 1
+  covers: 0200000003000000040000000500000006000000
+  warmth: 0.1
+  armor: 0.06
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 2

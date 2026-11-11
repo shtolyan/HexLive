@@ -1,0 +1,387 @@
+{
+  "schemaVersion": 1,
+  "excludedModels": [
+    {
+      "id": "FCO Gloves Male",
+      "source": "Assets/HexLiveContent/Wear/FCO Gloves Male/FCO Gloves Male.prefab",
+      "reason": "Около кончиков перчаток на обоих телах выступают крупные полупрозрачные треугольники.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "front",
+        "frameSHA256Base64": "gsAiJt5pWDjs8vMFEL8Yv5/hfKbJR6B7hE6nlOWhMGg=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.armguards_fighter",
+      "source": "Assets/HexLiveContent/Wear/clothing.armguards_fighter/FighterArmGuards.prefab",
+      "reason": "На краях обеих кистей торчат угловатые лоскуты, серые панели предплечий распадаются на фрагменты. В исходной модели отверстия округлые.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "front",
+        "frameSHA256Base64": "Ibd9BSWkAnQF79n7kVtN1EQhPfQz6AEb0XWaDXIXbXQ=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.babydoll_sweety",
+      "source": "Assets/HexLiveContent/Wear/clothing.babydoll_sweety/SweetyBabydoll.prefab",
+      "reason": "В нескольких фазах бега ноги проходят сквозь плотный подол, оставляя широкие рваные отверстия.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "pose": "run-late",
+        "back": false,
+        "frameSHA256": "72d1139f39f5895f5871caa6b253e827ef0730548fe7123f3b1968e15cbf19a8",
+        "unityMotionReportSHA256": "4324e3979c08b6b6547c0c6c0e98b6a78e7faf95f08d856e9e0d6b935763d85e"
+      }
+    },
+    {
+      "id": "clothing.belt_fighter",
+      "source": "Assets/HexLiveContent/Wear/clothing.belt_fighter/FighterBelt.prefab",
+      "reason": "На Кшиштофе серая поверхность пояса сзади превращается в широкую рваную светлую полосу.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "back",
+        "frameSHA256Base64": "lkHBYf4mwiM+ly52LcPxP/TlbtkvmgpD+bGcm+PHCpA=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.boots_leather",
+      "source": "Assets/HexLiveContent/Wear/clothing.boots_leather/LeatherBoots.prefab",
+      "reason": "Сплошные лицевые панели сапог на Кшиштофе распадаются на рваные чёрно-белые пятна.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "front",
+        "frameSHA256Base64": "o0S/fjpgApt+DSHnnEJUC4E6wvQPNhmSVblwlIELROs=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.cap_riot",
+      "source": "Assets/HexLiveContent/Wear/clothing.cap_riot/RiotCap.prefab",
+      "reason": "На Кшиштофе чёрные лоскуты шапки опускаются на глаза.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "front",
+        "frameSHA256Base64": "icPZH3zlcR6iCAWCDOWCjDqp2f4fU0lHRrnFkJa/4SU=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.dress_city",
+      "source": "Assets/HexLiveContent/Wear/clothing.dress_city/CityDress.prefab",
+      "reason": "В нескольких фазах бега ноги прорезают большие участки подола на обоих телах.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "pose": "run-late",
+        "back": true,
+        "frameSHA256": "bac19be8b002e030970f396904f32cb2afd6499366d088c3227011454e5511f1",
+        "unityMotionReportSHA256": "4324e3979c08b6b6547c0c6c0e98b6a78e7faf95f08d856e9e0d6b935763d85e"
+      }
+    },
+    {
+      "id": "clothing.footwear_fighter",
+      "source": "Assets/HexLiveContent/Wear/clothing.footwear_fighter/FighterFootwear.prefab",
+      "reason": "У носков Кшиштофа из обуви торчит несколько крупных треугольников.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "front",
+        "frameSHA256Base64": "viPMIHMCufmbhYOjQ1ecCH0jFymbQNoHjkSaSQoR+bY=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.gloves_cindy",
+      "source": "Assets/HexLiveContent/Wear/clothing.gloves_cindy/CindyGloves.prefab",
+      "reason": "У обеих кистей появились треугольные выступы, которых нет на базовой сетке в той же позе.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "front",
+        "frameSHA256Base64": "Spvfs4+trEJpziWnpJnNEl6NowKAqoE+ceXz5zrFq5M=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.gloves_deadly",
+      "source": "Assets/HexLiveContent/Wear/clothing.gloves_deadly/DeadlyGloves.prefab",
+      "reason": "На перчатках появляются новые торчащие треугольники у пальцев, особенно на Кшиштофе.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "front",
+        "frameSHA256Base64": "UIypfbmUV0K2RrDzb6e6XqHlwOcoxQ1HECtutxgiz3M=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.gloves_osiris",
+      "source": "Assets/HexLiveContent/Wear/clothing.gloves_osiris/OsirisGloves.prefab",
+      "reason": "Из отверстий для пальцев на Кшиштофе торчат новые тёмные пластины.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "back",
+        "frameSHA256Base64": "qu2x2HfBCapZxrHL07Iss6zv4y6cqskUD0szMzG/kRk=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.gloves_stars",
+      "source": "Assets/HexLiveContent/Wear/clothing.gloves_stars/StarsGloves.prefab",
+      "reason": "Посадка запястья исправлена, но на Кшиштофе остались выступающие треугольники у обоих пальцевых отверстий. В исходных отверстиях таких выступов нет.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "back",
+        "frameSHA256Base64": "vwmLfDWOaQaTderKg6SucJIRHgk2E05X/vQ6BsFmHmQ=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.gloves_strap_anarchy",
+      "source": "Assets/HexLiveContent/Wear/clothing.gloves_strap_anarchy/AnarchyStrapGloves.prefab",
+      "reason": "Синие треугольные пластины выступают через пальцы, особенно на Кшиштофе.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "front",
+        "frameSHA256Base64": "K/tpj+APuIErPL3elYaRUG1wUWNXNETCtE0ecZX5O9c=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.heels_luxury",
+      "source": "Assets/HexLiveContent/Wear/clothing.heels_luxury/LuxuryHeels.prefab",
+      "reason": "На обоих телах из мыска туфель выступают крупные угловатые пластины.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "front",
+        "frameSHA256Base64": "M80xMow53nc3tP7fqFPpDmelOBdAeHKv9eHkSO3cvr8=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.jacket_autumn",
+      "source": "Assets/HexLiveContent/Wear/clothing.jacket_autumn/AutumnJacket.prefab",
+      "reason": "На груди и верхней части спины Кшиштофа серый воротник распадается на крупные зубчатые пятна на розовой ткани. На исходной модели эти панели цельные.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "front",
+        "frameSHA256Base64": "qZ4OPAwlDu/qOQ4CpKXxUqHgcEq0jTooGgce7hfoHA8=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.jacket_biker",
+      "source": "Assets/HexLiveContent/Wear/clothing.jacket_biker/BikerJacket.prefab",
+      "reason": "На Кшиштофе сплошная чёрная поверхность груди распадается на пятна, молния разрывается, край ворота сзади становится зубчатым.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "front",
+        "frameSHA256Base64": "u39kP2q7iY6BqGl7tg8O/r59LhBRFGy14a/HAOV1zVs=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.jacket_tek",
+      "source": "Assets/HexLiveContent/Wear/clothing.jacket_tek/TekJacket.prefab",
+      "reason": "На Кшиштофе бельё пробивается через подол спереди и сзади, воротник и манжеты с вывернутой кромкой.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "front",
+        "frameSHA256Base64": "ATUhTinQsIKrn0bvnRh95fOaQ+zG9zFe3ENvMbgPY0I=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.jackettied_tek",
+      "source": "Assets/HexLiveContent/Wear/clothing.jackettied_tek/TekJacketTied.prefab",
+      "reason": "Верхняя часть красной спинки на обоих телах покрыта рваной полосой из чёрно-белых треугольников.",
+      "evidence": {
+        "actor": "Marta",
+        "view": "back",
+        "frameSHA256Base64": "vb/wwhvzbB4vPh1mmHrM4fLV+3XtKnZk6J2IqoDIcW8=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.keikogi_fighter",
+      "source": "Assets/HexLiveContent/Wear/clothing.keikogi_fighter/FighterKeikogi.prefab",
+      "reason": "Внутренний лацкан на Кшиштофе распадается на чёрно-серые пятна, на поясе появляются дублированные белые фрагменты.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "front",
+        "frameSHA256Base64": "YXd5Ec4q0vPiz0wW1Sx5pQhqez/ICRk7psXICeu/stI=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.leggings_idol",
+      "source": "Assets/HexLiveContent/Wear/clothing.leggings_idol/IdolLeggings.prefab",
+      "reason": "Цельные панели на бёдрах распадаются на крупные рваные полосы и пятна.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "front",
+        "frameSHA256Base64": "DYcurjRz6KReSc3umTy9ppSPZAWifq79uT63wG7w0QM=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.pants_biker",
+      "source": "Assets/HexLiveContent/Wear/clothing.pants_biker/BikerPants.prefab",
+      "reason": "На Кшиштофе цельный пояс и задние карманы распадаются на рваные участки контрастного цвета.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "back",
+        "frameSHA256Base64": "zKclPVnBfSA/fGpU8uEmLGOD245pe2rV1wl0vbBZhMg=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.pumps_flair",
+      "source": "Assets/HexLiveContent/Wear/clothing.pumps_flair/FlairPumps.prefab",
+      "reason": "Из обеих подошв торчат острые плоские пластины, особенно заметные сзади.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "back",
+        "frameSHA256Base64": "ifSmyH/ufzWZhpmETkTnRW8/FxZlQPFmiK+KXqk7V5c=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.sandals_summer3",
+      "source": "Assets/HexLiveContent/Wear/clothing.sandals_summer3/Sandals3.prefab",
+      "reason": "Из-под подошвы на Кшиштофе свисают светлые полигоны, которых нет на базовой модели.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "front",
+        "frameSHA256Base64": "584OaT9aom6m7V8VCuskLaYixj2mU9DptqVLokkISV4=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.skirt_alloy",
+      "source": "Assets/HexLiveContent/Wear/clothing.skirt_alloy/AlloySkirt.prefab",
+      "reason": "Во всех трёх фазах бега бёдра пробиваются через крупные части ткани. Дефект повторяется на исходной Марте и на Кшиштофе.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "pose": "run-early",
+        "back": false,
+        "frameSHA256": "847f5cfec40689a1fbced2f8b00a2973ad21f99074a18aaa32dea9839008f944",
+        "unityMotionReportSHA256": "4324e3979c08b6b6547c0c6c0e98b6a78e7faf95f08d856e9e0d6b935763d85e"
+      }
+    },
+    {
+      "id": "clothing.skirt_flair",
+      "source": "Assets/HexLiveContent/Wear/clothing.skirt_flair/FlairSkirt.prefab",
+      "reason": "В нескольких фазах бега ноги пробиваются через плотную ткань подола на обоих телах.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "pose": "run-late",
+        "back": true,
+        "frameSHA256": "8b3cedf5167e3c6c3e1ef41ee8288e784a7a4622c258345c7867b202c4e46ea0",
+        "unityMotionReportSHA256": "4324e3979c08b6b6547c0c6c0e98b6a78e7faf95f08d856e9e0d6b935763d85e"
+      }
+    },
+    {
+      "id": "clothing.skirt_jane",
+      "source": "Assets/HexLiveContent/Wear/clothing.skirt_jane/JaneSkirt.prefab",
+      "reason": "Длинный подол не следует за голенью при сгибании колена. Все девять вариантов уже помечены retired.",
+      "evidence": {
+        "nativeMeshSHA256": "4aa556b92f87579e074f3806cddd7f74d0ccbfdfd0cf5197225b9bbc8970c55a",
+        "nativeBelowKneeVertices": 16520,
+        "nativeBelowKneeVerticesWithShinOrFootWeights": 0,
+        "priorRemovalCommit": "21980bfb4d2e488de8225ada8646e139e4e6c71e"
+      }
+    },
+    {
+      "id": "clothing.slipons_fads",
+      "source": "Assets/HexLiveContent/Wear/clothing.slipons_fads/SlipOns.prefab",
+      "reason": "Из подошвы выступают крупные треугольники на обоих телах.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "front",
+        "frameSHA256Base64": "3obvVCI6dBH1dxQjE2ycmiMyg1owqBmSuI78GUKvDm8=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.sneakers_nerd",
+      "source": "Assets/HexLiveContent/Wear/clothing.sneakers_nerd/NerdSneakers.prefab",
+      "reason": "На Кшиштофе белый треугольник выступает из-под мыска, а край подошвы отогнут.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "front",
+        "frameSHA256Base64": "cztZUVcGgabt8v/xxA31E/qxQBnKnkKrx5JCwct7g+Q=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.sneakers_sport",
+      "source": "Assets/HexLiveContent/Wear/clothing.sneakers_sport/SportSneakers.prefab",
+      "reason": "Подошва на Кшиштофе растягивается крупными зубчатыми полигонами.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "front",
+        "frameSHA256Base64": "KGKd82PGD5mGIzjOOvYDFsEw8IIWSZXDb2MyG3fzh+8=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.suit_bandaid",
+      "source": "Assets/HexLiveContent/Wear/clothing.suit_bandaid/BandaidSuit.prefab",
+      "reason": "Для зазора 2 мм обе проверенные посадки на Марте требуют смещения 13,06–14,32 см от общей костной опоры при лимите 12 см. Все семь вариантов исключены.",
+      "evidence": {
+        "actor": "Marta",
+        "minimumClearanceMetres": 0.002,
+        "maximumCommonReferenceDisplacementMetres": 0.12,
+        "commonReferenceDisplacementBySeedMetres": {
+          "immutable-base-fit": 0.143220931,
+          "source-clearance-donor": 0.1306449
+        },
+        "strictFitFailureSHA256": "468b8834aff58a10686790e168634a654d66a764a4e902cd4d23a857c9d1a386"
+      }
+    },
+    {
+      "id": "clothing.thighboots_amy",
+      "source": "Assets/HexLiveContent/Wear/clothing.thighboots_amy/AmyThighBoots.prefab",
+      "reason": "У носков обоих сапог на Кшиштофе выступают плоские лоскуты подошвы, отсутствующие в исходной модели.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "back",
+        "frameSHA256Base64": "LruK07DpI1INumbGAtT8KkNVodRJzUU7ynq1pq2n4O0=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.top_anarchy",
+      "source": "Assets/HexLiveContent/Wear/clothing.top_anarchy/AnarchyTop.prefab",
+      "reason": "У Кшиштофа участки двух цельных вставок и белых лацканов распадаются на заметные пятна и треугольники.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "front",
+        "frameSHA256Base64": "pkv2wUhv10lNgXBGTVIk783RojnOtuZqxbG5zZpT+ts=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "clothing.vest_stars",
+      "source": "Assets/HexLiveContent/Wear/clothing.vest_stars/StarsVest.prefab",
+      "reason": "На спине Кшиштофа две зубчатые тёмные области и отогнутые лоскуты у ворота. У исходной посадки этих дефектов нет.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "back",
+        "frameSHA256Base64": "Pho3Q6Co/Rl6z64EHc1skF09Jp8UvOjvx8TWjISlItg=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "underwear.top_luxury",
+      "source": "Assets/HexLiveContent/Wear/underwear.top_luxury/LuxuryBikiniTop.prefab",
+      "reason": "На светлых чашках и бретелях появляются рваные тёмные участки, которых нет на базовой модели.",
+      "evidence": {
+        "actor": "Kshishtof",
+        "view": "front",
+        "frameSHA256Base64": "IXxhD16/W94N9jFhOd7XX3+Voqc+6rqp+GEroY692dk=",
+        "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    }
+  ]
+}

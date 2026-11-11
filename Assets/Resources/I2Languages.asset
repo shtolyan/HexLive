@@ -32620,6 +32620,22 @@ MonoBehaviour:
       - Выключить фонарик
       Flags: 0101
       Languages_Touch: []
+    - Term: menu.storage_chest_open
+      TermType: 0
+      Description:
+      Languages:
+      - Open chest
+      - Открыть сундук
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.storage_chest_close
+      TermType: 0
+      Description:
+      Languages:
+      - Close chest
+      - Закрыть сундук
+      Flags: 0101
+      Languages_Touch: []
     - Term: toast.order_rejected.BatteryEmpty
       TermType: 0
       Description:
@@ -32754,6 +32770,22 @@ MonoBehaviour:
       Languages:
       - "A compact two-door fridge with a freezer compartment."
       - "Компактный двухдверный холодильник с морозильной камерой."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.furniture_storage_chest.name
+      TermType: 0
+      Description:
+      Languages:
+      - Wooden chest
+      - Деревянный сундук
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.furniture_storage_chest.desc
+      TermType: 0
+      Description:
+      Languages:
+      - A plank chest with a rope-hinged lid and three storage slots.
+      - Сундук из досок с крышкой на верёвочных петлях и тремя ячейками.
       Flags: 0101
       Languages_Touch: []
     - Term: item.furniture_modern_shelf.name

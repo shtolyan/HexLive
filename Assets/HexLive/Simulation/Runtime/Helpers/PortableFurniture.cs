@@ -18,7 +18,8 @@ public static class PortableFurniture
     public const float ReachWorldUnits = 2.25f;
 
     public static bool CanCarry(string definitionId) =>
-        definitionId is ContentIds.BedBasic or "chair.basic" || PortalWorld.IsFurniture(definitionId);
+        definitionId is ContentIds.BedBasic or ContentIds.StorageChest or "chair.basic" ||
+        PortalWorld.IsFurniture(definitionId);
 
     public static bool IsBuiltInBed(string definitionId, string variant, bool hasFloor) =>
         definitionId == ContentIds.BedBasic &&
@@ -31,6 +32,7 @@ public static class PortableFurniture
     public static float FootprintRadius(string definitionId) => definitionId switch
     {
         ContentIds.BedBasic => 1.25f,
+        ContentIds.StorageChest => StorageChest.FootprintRadius,
         "chair.basic" => .28f,
         "furniture.modern_bed" or "furniture.modern_sofa" => 1.04f,
         "furniture.modern_table" => .66f,
@@ -48,6 +50,13 @@ public static class PortableFurniture
         var offset = position - HexSpatialMath.TileToWorld(tile);
         var side = Math.Abs(offset.X * .5f) + Math.Abs(offset.Y) * HexSpatialMath.HexApothemFactor;
         return Math.Max(Math.Abs(offset.X), side) + radius <= HexSpatialMath.HexApothem;
+    }
+
+    public static bool CanShareTile(string definitionId, string otherId, Float2 center, Float2 otherCenter)
+    {
+        var otherRadius = FootprintRadius(otherId);
+        return definitionId == ContentIds.StorageChest && otherRadius > 0f &&
+            HexSpatialMath.Distance(center, otherCenter) >= StorageChest.FootprintRadius + otherRadius;
     }
 
     internal static string PickupRefusal(WorldState world, NPCState actor, WorldObjectState obj,
@@ -93,7 +102,8 @@ public static class PortableFurniture
                 (point.Blocked || !SpatialQueries.IsJunctionFree(world, id)) &&
                 HexSpatialMath.Distance(point.WorldPosition, anchor.WorldPosition) <= radius) ||
             world.Caches.ObjectsByTile.TryGetValue(tile.Coord, out var objects) && objects.Any(id =>
-                world.Entities.Objects.TryGetValue(id, out var other) && BlocksPlacement(world, other)))
+                world.Entities.Objects.TryGetValue(id, out var other) &&
+                BlocksPlacement(world, other, item.DefinitionId, anchor.WorldPosition)))
             return "PlacementBlocked";
 
         using var events = world.Events.DeferPublication();
@@ -115,11 +125,21 @@ public static class PortableFurniture
         return null;
     }
 
-    private static bool BlocksPlacement(WorldState world, WorldObjectState obj) =>
-        BuildSiteMath.IsSite(obj) || obj.DefinitionId == PortalWorld.DoorDefinitionId ||
-        !obj.IsArchitectureElement && (CanCarry(obj.DefinitionId) ||
+    private static bool BlocksPlacement(
+        WorldState world, WorldObjectState obj, string definitionId, Float2 center)
+    {
+        if (BuildSiteMath.IsSite(obj) || obj.DefinitionId == PortalWorld.DoorDefinitionId) return true;
+        if (obj.IsArchitectureElement) return false;
+        if (definitionId == ContentIds.StorageChest && obj.Junctions.Count > 0 &&
+            world.Junctions.Items.TryGetValue(obj.Junctions[0], out var other))
+        {
+            if (CanShareTile(definitionId, obj.DefinitionId, center, other.WorldPosition)) return false;
+            if (HexSpatialMath.Distance(center, other.WorldPosition) <= StorageChest.FootprintRadius) return true;
+        }
+        return CanCarry(obj.DefinitionId) ||
             world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def) &&
-            (def.HasTag("Furniture") || def.HasTag("Bed") || def.HasTag("Chair")));
+            (def.HasTag("Furniture") || def.HasTag("Bed") || def.HasTag("Chair"));
+    }
 
     private static bool WithinReach(WorldState world, NPCState actor, Junction anchor)
     {

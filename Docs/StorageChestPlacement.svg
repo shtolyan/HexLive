@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="560" viewBox="0 0 860 560">
+<rect width="860" height="560" fill="#13191f"/>
+<g font-family="Arial" fill="#e6edf3">
+<text x="30" y="42" font-size="23">Сундуки на одном гексе (§151.6 / #704)</text>
+<polygon points="441.87,180.00 260.00,75.00 78.13,180.00 78.13,390.00 260.00,495.00 441.87,390.00" fill="#1d2825" stroke="#82928a" stroke-width="1.5"/>
+<circle cx="260.00" cy="180.00" r="58.80" fill="#6f9b65" fill-opacity=".22" stroke="#93bf8c" stroke-dasharray="4 3"/>
+<rect x="225.00" y="133.80" width="70.00" height="92.40" rx="2" fill="#c59a68" stroke="#eed1a9"/>
+<circle cx="260.00" cy="390.00" r="58.80" fill="#6f9b65" fill-opacity=".22" stroke="#93bf8c" stroke-dasharray="4 3"/>
+<rect x="225.00" y="343.80" width="70.00" height="92.40" rx="2" fill="#c59a68" stroke="#eed1a9"/>
+<circle cx="260.00" cy="495.00" r="3.00" fill="#76818a"/>
+<circle cx="305.47" cy="468.75" r="3.00" fill="#76818a"/>
+<circle cx="350.93" cy="442.50" r="3.00" fill="#76818a"/>
+<circle cx="396.40" cy="416.25" r="3.00" fill="#76818a"/>
+<circle cx="441.87" cy="390.00" r="3.00" fill="#76818a"/>
+<circle cx="214.53" cy="468.75" r="3.00" fill="#76818a"/>
+<circle cx="260.00" cy="442.50" r="3.00" fill="#d78273"/>
+<circle cx="305.47" cy="416.25" r="3.00" fill="#d78273"/>
+<circle cx="350.93" cy="390.00" r="3.00" fill="#d78273"/>
+<circle cx="396.40" cy="363.75" r="3.00" fill="#d78273"/>
+<circle cx="441.87" cy="337.50" r="3.00" fill="#76818a"/>
+<circle cx="169.07" cy="442.50" r="3.00" fill="#76818a"/>
+<circle cx="214.53" cy="416.25" r="3.00" fill="#d78273"/>
+<circle cx="305.47" cy="363.75" r="3.00" fill="#d78273"/>
+<circle cx="350.93" cy="337.50" r="3.00" fill="#d78273"/>
+<circle cx="396.40" cy="311.25" r="3.00" fill="#d78273"/>
+<circle cx="441.87" cy="285.00" r="3.00" fill="#76818a"/>
+<circle cx="123.60" cy="416.25" r="3.00" fill="#76818a"/>
+<circle cx="169.07" cy="390.00" r="3.00" fill="#d78273"/>
+<circle cx="214.53" cy="363.75" r="3.00" fill="#d78273"/>
+<circle cx="260.00" cy="337.50" r="3.00" fill="#d78273"/>
+<circle cx="305.47" cy="311.25" r="3.00" fill="#d78273"/>
+<circle cx="350.93" cy="285.00" r="3.00" fill="#a2cb94"/>
+<circle cx="396.40" cy="258.75" r="3.00" fill="#d78273"/>
+<circle cx="441.87" cy="232.50" r="3.00" fill="#76818a"/>
+<circle cx="78.13" cy="390.00" r="3.00" fill="#76818a"/>
+<circle cx="123.60" cy="363.75" r="3.00" fill="#d78273"/>
+<circle cx="169.07" cy="337.50" r="3.00" fill="#d78273"/>
+<circle cx="214.53" cy="311.25" r="3.00" fill="#d78273"/>
+<circle cx="305.47" cy="258.75" r="3.00" fill="#d78273"/>
+<circle cx="350.93" cy="232.50" r="3.00" fill="#d78273"/>
+<circle cx="396.40" cy="206.25" r="3.00" fill="#d78273"/>
+<circle cx="441.87" cy="180.00" r="3.00" fill="#76818a"/>
+<circle cx="78.13" cy="337.50" r="3.00" fill="#76818a"/>
+<circle cx="123.60" cy="311.25" r="3.00" fill="#d78273"/>
+<circle cx="169.07" cy="285.00" r="3.00" fill="#a2cb94"/>
+<circle cx="214.53" cy="258.75" r="3.00" fill="#d78273"/>
+<circle cx="260.00" cy="232.50" r="3.00" fill="#d78273"/>
+<circle cx="305.47" cy="206.25" r="3.00" fill="#d78273"/>
+<circle cx="350.93" cy="180.00" r="3.00" fill="#d78273"/>
+<circle cx="396.40" cy="153.75" r="3.00" fill="#76818a"/>
+<circle cx="78.13" cy="285.00" r="3.00" fill="#76818a"/>
+<circle cx="123.60" cy="258.75" r="3.00" fill="#d78273"/>
+<circle cx="169.07" cy="232.50" r="3.00" fill="#d78273"/>
+<circle cx="214.53" cy="206.25" r="3.00" fill="#d78273"/>
+<circle cx="305.47" cy="153.75" r="3.00" fill="#d78273"/>
+<circle cx="350.93" cy="127.50" r="3.00" fill="#76818a"/>
+<circle cx="78.13" cy="232.50" r="3.00" fill="#76818a"/>
+<circle cx="123.60" cy="206.25" r="3.00" fill="#d78273"/>
+<circle cx="169.07" cy="180.00" r="3.00" fill="#d78273"/>
+<circle cx="214.53" cy="153.75" r="3.00" fill="#d78273"/>
+<circle cx="260.00" cy="127.50" r="3.00" fill="#d78273"/>
+<circle cx="305.47" cy="101.25" r="3.00" fill="#76818a"/>
+<circle cx="78.13" cy="180.00" r="3.00" fill="#76818a"/>
+<circle cx="123.60" cy="153.75" r="3.00" fill="#76818a"/>
+<circle cx="169.07" cy="127.50" r="3.00" fill="#76818a"/>
+<circle cx="214.53" cy="101.25" r="3.00" fill="#76818a"/>
+<circle cx="260.00" cy="75.00" r="3.00" fill="#76818a"/>
+<circle cx="260.00" cy="180.00" r="5.00" fill="#dcf9cc" stroke="#385b3f"/>
+<circle cx="260.00" cy="390.00" r="5.00" fill="#dcf9cc" stroke="#385b3f"/>
+<circle cx="260.00" cy="285.00" r="7.00" fill="#70bfdf"/>
+<path d="M 260 274 V 242 M 254 248 L 260 240 L 266 248" fill="none" stroke="#70bfdf" stroke-width="2"/>
+<circle cx="485" cy="153" r="4" fill="#c59a68"/>
+<text x="498" y="158" font-size="14">Корпус 0.50 × 0.66 wu</text>
+<circle cx="485" cy="188" r="4" fill="#93bf8c"/>
+<text x="498" y="193" font-size="14">Защитный радиус 0.42 wu</text>
+<circle cx="485" cy="223" r="4" fill="#dcf9cc"/>
+<text x="498" y="228" font-size="14">Точки сундуков (0, ±0.75) wu</text>
+<circle cx="485" cy="258" r="4" fill="#70bfdf"/>
+<text x="498" y="263" font-size="14">Персонаж, ручная установка в пределах 2.25 wu</text>
+<circle cx="485" cy="293" r="4" fill="#a2cb94"/>
+<text x="498" y="298" font-size="14">Свободная точка установки</text>
+<circle cx="485" cy="328" r="4" fill="#d78273"/>
+<text x="498" y="333" font-size="14">Защитные радиусы пересекутся или выйдут за грань</text>
+<circle cx="485" cy="363" r="4" fill="#76818a"/>
+<text x="498" y="368" font-size="14">Шаг сетки 0.375 wu, 37 внутренних и 24 граничных точки</text>
+<text x="30" y="529" font-size="14">Размеры из HexPointLayout, HexSpatialMath, StorageChest и PortableFurniture.</text>
+</g>
+</svg>

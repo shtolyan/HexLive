@@ -116,6 +116,7 @@ internal static class ContainerLootMath
 
         if (obj.DefinitionId == ContentIds.WaterCollector) return 1;
         if (obj.DefinitionId == ContentIds.ModernFridge) return ModernFoodCatalog.FridgeCapacity;
+        if (obj.DefinitionId == ContentIds.StorageChest) return StorageChest.Capacity;
         if (IsWardrobe(world, obj)) return Spec133.WardrobeCapacity;
         if (IsRack(world, obj)) return SimBalance.RackCapacity;
         if (world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
@@ -803,6 +804,7 @@ internal static class ContainerLootMath
             WorldObjectMutations.DespawnObject(world, id);
         }
         if (theft && moving.Count > 0) TheftMath.OnStolen(world, looter, obj);
+        if (obj.DefinitionId == ContentIds.StorageChest && moving.Count > 0) StorageChest.SetLid(obj, true);
     }
 
     public static void GiveToContainer(
@@ -855,6 +857,7 @@ internal static class ContainerLootMath
             else
             {
                 obj.Contents.Add(item);
+                if (obj.DefinitionId == ContentIds.StorageChest) StorageChest.SetLid(obj, true);
             }
         }
     }

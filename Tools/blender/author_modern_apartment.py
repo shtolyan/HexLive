@@ -666,7 +666,8 @@ def render_icon(row, meshes):
         bpy.context.scene.render.threads_mode = "FIXED"
         bpy.context.scene.render.threads = 1
         setup_materials(meshes, "tool")
-        fit = {"furniture.modern_chair": 1.25, "chair.basic": 1.43}.get(identifier, 1.18)
+        fit = {"furniture.modern_chair": 1.25, "chair.basic": 1.43,
+               "furniture.storage_chest": 1.43}.get(identifier, 1.18)
         render(str(icon), meshes, "tool", fit, 20)
         install(str(icon), identifier)
     finally:

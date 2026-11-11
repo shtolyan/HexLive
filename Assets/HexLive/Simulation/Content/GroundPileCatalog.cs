@@ -3384,6 +3384,7 @@ public static class GroundPileCatalog
             float apartmentSize = definitionId switch
             {
                 "furniture.modern_bed" => 1.829f,
+                ContentIds.StorageChest => StorageChest.ModelLength,
                 "furniture.modern_fridge" => 1.575f,
                 "furniture.modern_table" => 1.06f,
                 "furniture.modern_chair" => 0.92f,

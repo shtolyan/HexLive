@@ -1401,6 +1401,7 @@ public static class PrototypeContentCatalog
 
         HumanMeatCatalog.AppendDefinitions(defs);
         ModernLootCatalog.AppendDefinitions(defs);
+        defs[ContentIds.StorageChest] = StorageChest.CreateDefinition();
         return defs;
     }
 

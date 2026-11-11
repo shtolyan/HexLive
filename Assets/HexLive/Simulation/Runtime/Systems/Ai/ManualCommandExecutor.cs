@@ -3054,6 +3054,12 @@ internal static partial class ManualCommandExecutor
             return false;
         }
 
+        if (interactionType == InteractionType.SwitchChestLid && !npc.Body.HasUsableHand)
+        {
+            Reject(world, npc.Id, verb, "NeedsHand", admission);
+            return false;
+        }
+
         if (BuildSiteMath.IsDemolitionSite(worldObject) &&
             !Content.GearCatalog.HasCapability(
                 npc.Inventory.Items, Content.GearCapability.ChopWood))

@@ -9,6 +9,7 @@ using HexLive.Simulation.Runtime.Blueprints;
 using HexLive.Simulation.Spatial;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Content;
+using HexLive.UnityPresentation.Environment;
 using HexLive.UnityPresentation.Spatial;
 using HexLive.UnityPresentation.TwoPeopleTest;
 using HexLive.UnityPresentation.UI;
@@ -2284,6 +2285,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     objectView.transform.rotation = builtRot;
                 }
             }
+
+            if (worldObject.DefinitionId == ContentIds.StorageChest &&
+                objectView.GetComponentInChildren<BlueprintDoorVisual>() is { } lid &&
+                lid.IsOpen != StorageChest.IsOpen(worldObject.Variant))
+                lid.SetOpen(StorageChest.IsOpen(worldObject.Variant));
 
             // A tabletop project shares its support's authored basis and floor
             // height; character-forward yaw is not a second furniture converter.
@@ -4641,7 +4647,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         ObjectSnapshot worldObject, Dictionary<int, Float2> junctionPositions, WorldSnapshot snapshot)
     {
         int snapshotTick = snapshot.Tick;
-        if (worldObject.DefinitionId is PortalWorld.DoorDefinitionId or "chair.basic" ||
+        if (worldObject.DefinitionId is PortalWorld.DoorDefinitionId or ContentIds.StorageChest or "chair.basic" ||
             PortalWorld.IsFurniture(worldObject.DefinitionId))
         {
             var prefab = ModernApartmentView.LoadPrefab(worldObject.DefinitionId);
@@ -4653,7 +4659,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (door && ModernApartmentView.TryGetReturnDoorPose(worldObject.Tile, snapshot.Seed, GroundY(worldObject.Tile),
                     out var doorPosition, out var doorRotation))
                 root.transform.SetPositionAndRotation(doorPosition, doorRotation);
-            Instantiate(prefab, root.transform, false);
+            var model = Instantiate(prefab, root.transform, false);
+            if (worldObject.DefinitionId == ContentIds.StorageChest)
+                BlueprintArchitectureFactory.ConfigureAuthoredDoor(model, StorageChest.IsOpen(worldObject.Variant));
             if (door) root.AddComponent<ModernPortalGlow>();
             return root;
         }

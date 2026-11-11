@@ -1557,6 +1557,19 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             }
             worldObject.ResourceAmount = completedInteraction.Id == FlashlightMath.SwitchOnInteractionId ? 1f : 0f;
         }
+        else if (completedInteraction.Type == InteractionType.SwitchChestLid)
+        {
+            worldObject.IsOccupied = false;
+            worldObject.CurrentUser = null;
+            if (!npc.Body.HasUsableHand)
+            {
+                AgentCommandLedger.Finish(world, npc, "failed", "NeedsHand");
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "NeedsHand");
+                npc.Mind.CurrentGoal = GoalType.None;
+                return false;
+            }
+            StorageChest.SetLid(worldObject, completedInteraction.Id == StorageChest.OpenInteractionId);
+        }
         else if (completedInteraction.Type == InteractionType.Ignite)
         {
             if (worldObject.ResourceAmount > 0f ||

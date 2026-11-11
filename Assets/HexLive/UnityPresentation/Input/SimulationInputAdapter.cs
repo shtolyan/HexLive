@@ -357,6 +357,17 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             if (!string.IsNullOrEmpty(obj.BuildProduct) || obj.DefinitionId == PortalWorld.DoorDefinitionId)
                 return false;
             if (obj.ArchitectureOwnerObjectId.HasValue) continue;
+            if (_plantingSeedDefinitionId == ContentIds.StorageChest && obj.Junctions.Count > 0)
+            {
+                var index = candidates.FindIndex(point => point.Id == obj.Junctions[0]);
+                if (index >= 0)
+                {
+                    var other = candidates[index].Position;
+                    if (PortableFurniture.CanShareTile(_plantingSeedDefinitionId, obj.DefinitionId, position, other))
+                        continue;
+                    if (DistanceSquared(position, other) <= radiusSquared) return false;
+                }
+            }
             if (PortableFurniture.CanCarry(obj.DefinitionId) ||
                 runner.TryGetObjectDefinition(obj.DefinitionId, out var definition) && definition != null &&
                 (definition.HasTag("Furniture") || definition.HasTag("Bed") || definition.HasTag("Chair")))
@@ -1228,6 +1239,8 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             if (clicked != null && interaction.Type == InteractionType.SwitchFlashlight &&
                 (interaction.Id == FlashlightMath.SwitchOffInteractionId) !=
                     FlashlightMath.IsOn(clicked.ResourceAmount, clicked.Durability)) continue;
+            if (clicked != null && interaction.Type == InteractionType.SwitchChestLid &&
+                (interaction.Id == StorageChest.CloseInteractionId) != StorageChest.IsOpen(clicked.Variant)) continue;
 
             // §54.14 (bug #292): готовая постройка не предлагает строить себя.
             // У костра глагол Build стоит в каталоге ДВАЖДЫ (build.upgrade и
@@ -1262,6 +1275,8 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
                 ? Loc.Get(PortalWorld.IsApartmentTile(clicked.Tile) ? "portal.return" : "portal.enter")
                 : type == InteractionType.SwitchFlashlight
                     ? Loc.Get(interactionId == FlashlightMath.SwitchOnInteractionId ? "menu.flashlight_on" : "menu.flashlight_off")
+                : type == InteractionType.SwitchChestLid
+                    ? Loc.Get(interactionId == StorageChest.OpenInteractionId ? "menu.storage_chest_open" : "menu.storage_chest_close")
                 : InteractionVerb(interaction);
             _entries.Add(new ContextMenuEntry(
                 emptyDrink ? Loc.Get("menu.drink_empty") : theft && type == InteractionType.PickUp ? Loc.Get("menu.steal") : verb,

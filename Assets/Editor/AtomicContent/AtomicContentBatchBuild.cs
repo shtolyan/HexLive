@@ -638,6 +638,14 @@ public static class AtomicContentBatchBuild
                 throw new InvalidOperationException("Grouped mode requires a fresh dedicated Modern staging output and smoke or full");
 
             var target = ValidateTarget(platform);
+            if (arguments.Contains("-content-reopen-staged-output"))
+            {
+                if (!buildAll || stagedWardrobe == null || groupedMode != null)
+                    throw new InvalidOperationException("Reopening an existing output requires the dedicated Modern wardrobe build");
+                ReopenStagedModernOutput(output, platform, runtimeProfile, stagedWardrobe, modernInputHashes);
+                succeeded = true;
+                return;
+            }
             if (!buildAll)
             {
                 var type = Required(arguments, "-content-type");
@@ -812,6 +820,26 @@ public static class AtomicContentBatchBuild
         return target;
     }
 
+    private static void ReopenStagedModernOutput(string output, string platform, string runtimeProfile,
+        JArray records, Dictionary<string, string> inputHashes)
+    {
+        var summary = JObject.Parse(File.ReadAllText(Path.Combine(output, "build-all-summary.json")));
+        if ((string)summary["contentOrigin"] != "modern" || (string)summary["stage"] != "prepared-only" ||
+            (string)summary["platform"] != platform || (string)summary["runtimeProfile"] != runtimeProfile ||
+            (string)summary["unityVersion"] != Application.unityVersion ||
+            (int?)summary["built"] != records.Count || (int?)summary["discovered"] != records.Count ||
+            (int?)summary["failed"] != 0 || (summary["failures"] as JArray)?.Count != 0 ||
+            (summary["excludedTypes"] as JArray)?.Count != 0 ||
+            (string)summary["primalCatalogSHA256"] != inputHashes[PeopleCatalogPath] ||
+            (string)summary["catalogSHA256"] != inputHashes[StagedWardrobeRoot + "release-catalog.json"] ||
+            (string)summary["fitManifestSHA256"] != inputHashes[StagedWardrobeRoot + "release-fit.json"] ||
+            (string)summary["releaseSelectionSHA256"] != inputHashes[StagedWardrobeRoot + "release-selection.json"])
+            throw new InvalidOperationException("The existing Modern build does not match the complete verified inventory");
+
+        ValidatePeoplePayloads(output, platform, records);
+        RequireModernBuildInputs(inputHashes);
+    }
+
     private static void ValidatePeoplePayloads(string output, string platform, JArray stagedWardrobe = null)
     {
         var contract = JObject.Parse(File.ReadAllText("Assets/HexLiveContent/People/Source/body-contract.json"));
@@ -866,8 +894,14 @@ public static class AtomicContentBatchBuild
                         var mesh = ((GameObject)main).GetComponentInChildren<SkinnedMeshRenderer>(true).sharedMesh;
                         requiredMaps[$"HexLive/PaintMaps/garment_{mesh.name}_{mesh.vertexCount}"] = mesh.vertexCount;
                         var definition = bundle.LoadAsset<GarmentDefinition>("metadata");
-                        if (definition == null || definition.id != id || definition.variantMaterials == null ||
-                            definition.variantMaterials.Length == 0 || definition.variantMaterials.Any(m => m == null))
+                        var materials = definition?.variantMaterials;
+                        // The base Modern definition inherits the prefab's authored materials.
+                        // Each named material variant must retain its authored override array.
+                        var expectedDefinition = stagedWardrobe == null ? null :
+                            AssetDatabase.LoadAssetAtPath<GarmentDefinition>((string)row["definition"]);
+                        bool materialCountMatches = stagedWardrobe == null ? materials?.Length > 0 :
+                            expectedDefinition?.variantMaterials != null && materials?.Length == expectedDefinition.variantMaterials.Length;
+                        if (definition == null || definition.id != id || !materialCountMatches || materials.Any(m => m == null))
                             throw new InvalidOperationException(id + ": variant metadata/materials lost");
                         var wear = (main as GameObject)?.GetComponent<HexLive.UnityPresentation.Wearing.Wear>();
                         if (wear == null || wear.Layer.ToString() != definition.layer.ToString() ||

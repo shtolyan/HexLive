@@ -356,6 +356,16 @@ public static class AtomicContentBatchBuild
                 row["main"] = prefab;
                 row["metadata"]["contentOrigin"] = "modern";
                 row["metadata"]["finalFit"] = true;
+                if (final["playerReview"]?["layer"] is JObject reviewedLayer)
+                {
+                    var simulation = row["metadata"]["simulation"];
+                    string after = (string)reviewedLayer["after"];
+                    var definitionAsset = AssetDatabase.LoadAssetAtPath<GarmentDefinition>(definition);
+                    if ((string)simulation["layer"] != (string)reviewedLayer["before"] ||
+                        (string)final["settings"]?["layer"] != after || definitionAsset?.layer.ToString() != after)
+                        throw new InvalidOperationException("Reviewed Modern layer mismatch: " + RecordKey(row));
+                    simulation["layer"] = after;
+                }
                 AddRecord(row);
             }
             foreach (var map in maps)
@@ -912,11 +922,18 @@ public static class AtomicContentBatchBuild
                         if (stagedWardrobe != null)
                         {
                             var configs = new SerializedObject(wear).FindProperty("configs");
+                            var sourceWear = AssetDatabase.LoadAssetAtPath<GameObject>((string)row["main"])
+                                ?.GetComponent<HexLive.UnityPresentation.Wearing.Wear>();
                             if (configs == null || configs.arraySize != 2 ||
                                 !wear.SupportsActor(HexLive.UnityPresentation.Wearing.ActorName.Marta) ||
                                 !wear.SupportsActor(HexLive.UnityPresentation.Wearing.ActorName.Kshishtof) ||
-                                bundle.LoadAsset<Sprite>("icon") == null)
+                                bundle.LoadAsset<Sprite>("icon") == null || sourceWear == null)
                                 throw new InvalidOperationException(id + ": missing serialized fit or icon");
+                            foreach (var actor in new[] { HexLive.UnityPresentation.Wearing.ActorName.Marta,
+                                HexLive.UnityPresentation.Wearing.ActorName.Kshishtof })
+                                if (wear.GetConfigScale(actor) != sourceWear.GetConfigScale(actor) ||
+                                    wear.HidesGenitals != sourceWear.HidesGenitals)
+                                    throw new InvalidOperationException(id + ": reviewed fit settings differ from source");
                             for (int i = 0; i < configs.arraySize; i++)
                             {
                                 var fittedMesh = configs.GetArrayElementAtIndex(i).FindPropertyRelative("mesh").objectReferenceValue as Mesh;

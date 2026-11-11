@@ -14,10 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.cap_stars
   prototypeId: 
+  alternateFitId:
   displayName: Uniform Cap
+  retired: 0
+  hasSexOverride: 0
+  sexOverride: 0
   category: 8
   variantMaterials: []
-  layer: 1
+  layer: 2
   covers: 00000000
   warmth: 0.04
   armor: 0.01

@@ -257,6 +257,11 @@
       }
     },
     {
+      "id": "clothing.sandals_summer4",
+      "source": "Assets/HexLiveContent/Wear/clothing.sandals_summer4/Sandals4.prefab",
+      "reason": "Игрок отклонил всю пару после осмотра посадки на Кшиштофе. Исключены все расцветки и оба тела."
+    },
+    {
       "id": "clothing.skirt_alloy",
       "source": "Assets/HexLiveContent/Wear/clothing.skirt_alloy/AlloySkirt.prefab",
       "reason": "Во всех трёх фазах бега бёдра пробиваются через крупные части ткани. Дефект повторяется на исходной Марте и на Кшиштофе.",
@@ -381,6 +386,102 @@
         "view": "front",
         "frameSHA256Base64": "IXxhD16/W94N9jFhOd7XX3+Voqc+6rqp+GEroY692dk=",
         "unityGallerySHA256": "2df101050d1be98f8f2603668e8c1e06750db432963d97a159ae973a48b17397"
+      }
+    },
+    {
+      "id": "underwear.bra_lace",
+      "source": "Assets/HexLiveContent/Wear/underwear.bra_lace/LaceBra.prefab",
+      "reason": "Игрок снял Approve в Wardrobe Test.",
+      "evidence": {
+        "playerReview": true
+      }
+    },
+    {
+      "id": "clothing.gloves_biker",
+      "source": "Assets/HexLiveContent/Wear/clothing.gloves_biker/BikerGloves.prefab",
+      "reason": "Игрок снял Approve в Wardrobe Test.",
+      "evidence": {
+        "playerReview": true
+      }
+    },
+    {
+      "id": "clothing.bowtie_nerd",
+      "source": "Assets/HexLiveContent/Wear/clothing.bowtie_nerd/NerdBowtie.prefab",
+      "reason": "Игрок снял Approve в Wardrobe Test.",
+      "evidence": {
+        "playerReview": true
+      }
+    },
+    {
+      "id": "clothing.outfit_reiko",
+      "source": "Assets/HexLiveContent/Wear/clothing.outfit_reiko/ReikoOutfit.prefab",
+      "reason": "Игрок снял Approve в Wardrobe Test.",
+      "evidence": {
+        "playerReview": true
+      }
+    },
+    {
+      "id": "clothing.shirt_riot",
+      "source": "Assets/HexLiveContent/Wear/clothing.shirt_riot/RiotShirt.prefab",
+      "reason": "Игрок снял Approve в Wardrobe Test.",
+      "evidence": {
+        "playerReview": true
+      }
+    },
+    {
+      "id": "clothing.necklace_osiris",
+      "source": "Assets/HexLiveContent/Wear/clothing.necklace_osiris/OsirisNecklace.prefab",
+      "reason": "Игрок снял Approve в Wardrobe Test.",
+      "evidence": {
+        "playerReview": true
+      }
+    },
+    {
+      "id": "clothing.top_tod",
+      "source": "Assets/HexLiveContent/Wear/clothing.top_tod/TodTop.prefab",
+      "reason": "Игрок снял Approve в Wardrobe Test.",
+      "evidence": {
+        "playerReview": true
+      }
+    },
+    {
+      "id": "clothing.scarf_classic",
+      "source": "Assets/HexLiveContent/Wear/clothing.scarf_classic/ClassicScarf.prefab",
+      "reason": "Игрок снял Approve в Wardrobe Test.",
+      "evidence": {
+        "playerReview": true
+      }
+    },
+    {
+      "id": "clothing.boots_anarchy",
+      "source": "Assets/HexLiveContent/Wear/clothing.boots_anarchy/AnarchyBoots.prefab",
+      "reason": "Игрок снял Approve в Wardrobe Test.",
+      "evidence": {
+        "playerReview": true
+      }
+    },
+    {
+      "id": "clothing.sneakers_canvas",
+      "source": "Assets/HexLiveContent/Wear/clothing.sneakers_canvas/RealSneakers.prefab",
+      "reason": "Игрок снял Approve в Wardrobe Test.",
+      "evidence": {
+        "playerReview": true
+      }
+    },
+    {
+      "id": "clothing.boots_ranger",
+      "source": "Assets/HexLiveContent/Wear/clothing.boots_ranger/RangerBoots.prefab",
+      "reason": "Игрок снял Approve в Wardrobe Test.",
+      "evidence": {
+        "playerReview": true
+      }
+    },
+    {
+      "id": "clothing.boots_charm",
+      "source": "Assets/HexLiveContent/Wear/clothing.boots_charm/CharmBoots.prefab",
+      "reason": "Игрок снял Approve в Wardrobe Test.",
+      "evidence": {
+        "playerReview": true
       }
     }
   ]

@@ -143,7 +143,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   configs:
   - actorName: 2
-    scale: 1.05
+    scale: 0.99
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 881adc331b7923e40bed4c0890f0addc, type: 2}
     hairLodMeshes: []
@@ -155,6 +155,7 @@ MonoBehaviour:
   slots: 04000000
   noHideUnderwearSlots: 04000000
   hideWearSlots: 
+  showGenitals: 0
   layer: 2
   gender: 0
   preparedBodyFits: 1

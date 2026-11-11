@@ -401,7 +401,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Wear
   configs:
   - actorName: 2
-    scale: 1
+    scale: 1.01
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 6f5390fb62da78b41a4426ff1092b1c0, type: 2}
     hairLodMeshes: []
@@ -413,6 +413,7 @@ MonoBehaviour:
   slots: 04000000
   noHideUnderwearSlots: 04000000
   hideWearSlots: 
+  showGenitals: 0
   layer: 0
   gender: 1
   preparedBodyFits: 1

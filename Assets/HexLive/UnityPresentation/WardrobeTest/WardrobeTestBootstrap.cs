@@ -20,7 +20,7 @@ namespace HexLive.UnityPresentation.WardrobeTest
 // per-actor fit scale (WearConfig.scale) live with the arrow keys. "Save" persists the tuned
 // scales back into the wear prefab assets (editor only).
 [RequireComponent(typeof(UIDocument))]
-public sealed class WardrobeTestBootstrap : MonoBehaviour
+public sealed partial class WardrobeTestBootstrap : MonoBehaviour
 {
     // §72: no longer only girls — Kshishtof is the male outsider. A new actor
     // has to be added HERE as well as shipped as a prefab, or the scene simply
@@ -51,6 +51,8 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         public int Index;          // this prefab's rank inside its Group
         public Wear Asset;         // the PREFAB ASSET's Wear component
         public VisualElement Row;
+        public bool Approved;
+        public string ReviewSource;
 
         // §31B.4E: the items painted on this geometry, prototype first — empty
         // for the (many) garments the catalog knows only one colour of.
@@ -205,10 +207,14 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 #if UNITY_EDITOR
         LoadComments();
 #endif
-        CollectWearEntries();
+        if (!TryCollectModernReview())
+        {
+            CollectWearEntries();
+        }
         CollectHairEntries();
         BuildUi();
-        StartCoroutine(SpawnWhenRegistryReady());
+        if (_reviewMode) SpawnGirl(_girl);
+        else StartCoroutine(SpawnWhenRegistryReady());
     }
 
     // Актёры — атомарный контент: синхронный AtomicResources.Load отдаёт
@@ -465,7 +471,8 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         _phaseTime = 0f;
         ApplyActorFilter();
 
-        var prefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>($"HexLive/Actors/{girl}");
+        var prefab = LoadReviewActor(girl) ??
+            HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>($"HexLive/Actors/{girl}");
         if (prefab == null)
         {
             Debug.LogError($"Actor prefab 'HexLive/Actors/{girl}' not found");
@@ -520,9 +527,9 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         // the colour it was last wearing.
         foreach (var key in new List<string>(_equipped))
         {
-            if (_byKey.TryGetValue(key, out var entry))
+            if (_byKey.TryGetValue(key, out var entry) && entry.Asset.SupportsActor(girl))
             {
-                _bodyBones?.Equip(entry.EquipKey, entry.Asset);
+                EquipPreview(entry);
             }
         }
 
@@ -578,7 +585,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         }
         else
         {
-            _bodyBones.Equip(entry.EquipKey, entry.Asset);
+            EquipPreview(entry);
             _selectedKey = entry.Key;
             RelaxSkinCulling();
         }
@@ -641,7 +648,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         if (_bodyBones != null && _bodyBones.IsEquipped(entry.EquipKey))
         {
             _bodyBones.TakeOff(entry.EquipKey);
-            _bodyBones.Equip(entry.EquipKey, entry.Asset);
+            EquipPreview(entry);
             RelaxSkinCulling();
         }
 
@@ -1337,7 +1344,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         girlsTitle.style.marginTop = 6f;
         box.Add(girlsTitle);
 
-        foreach (var girl in Actors)
+        foreach (var girl in _reviewMode ? ReviewActors : Actors)
         {
             var captured = girl;
             var button = MakeButton(girl.ToString(), Raised, () => SpawnGirl(captured));
@@ -1490,7 +1497,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         box.style.width = 344f;
         root.Add(box);
 
-        box.Add(MakeTitle(Loc.Get("wardrobe.clothes")));
+        box.Add(MakeTitle(_reviewMode ? $"Modern · {_entries.Count}" : Loc.Get("wardrobe.clothes")));
 
         var hint = new Label(Loc.Get("wardrobe.click_hint"));
         hint.style.color = Muted;
@@ -1586,6 +1593,8 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         name.pickingMode = PickingMode.Ignore;
         tile.Add(name);
 
+        AddReviewApproval(tile, entry);
+
         return tile;
     }
 
@@ -1665,6 +1674,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 
         BuildFitSection(_scaleBox);
         BuildWearFlags(_scaleBox);
+        BuildGenitalVisibilityToggle(_scaleBox);
 
         var save = MakeButton(Loc.Get("wardrobe.save_prefabs"), Accent, SaveDirty);
         _saveLabel = (Label)save[0];
@@ -2196,7 +2206,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         if (_bodyBones != null && _bodyBones.IsEquipped(entry.EquipKey))
         {
             _bodyBones.TakeOff(entry.EquipKey);
-            _bodyBones.Equip(entry.EquipKey, entry.Asset);
+            EquipPreview(entry);
             RelaxSkinCulling();
         }
 
@@ -2385,7 +2395,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         // never by repainting what is already on the body.
         _bodyBones.TakeOff(entry.EquipKey); // no-op when it is not worn yet
         entry.VariantId = def.id;
-        _bodyBones.Equip(entry.EquipKey, entry.Asset);
+        EquipPreview(entry);
         RelaxSkinCulling();
 
         _selectedKey = entry.Key;
@@ -2620,6 +2630,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         RebuildNoHideRow(entry);
         RebuildHideWearRow(entry);
         RefreshFitSection(entry);
+        RefreshGenitalVisibilityToggle(entry);
 
         if (_commentField != null)
         {

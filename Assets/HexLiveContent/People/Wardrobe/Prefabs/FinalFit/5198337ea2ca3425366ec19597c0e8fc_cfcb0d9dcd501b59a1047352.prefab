@@ -655,6 +655,7 @@ MonoBehaviour:
   slots: 0400000009000000
   noHideUnderwearSlots: 0400000009000000
   hideWearSlots: 
+  showGenitals: 0
   layer: 1
   gender: 1
   preparedBodyFits: 1

@@ -426,7 +426,8 @@ MonoBehaviour:
   slots: 00000000
   noHideUnderwearSlots: 
   hideWearSlots: 
-  layer: 1
+  showGenitals: 0
+  layer: 2
   gender: 1
   preparedBodyFits: 1
   heel:

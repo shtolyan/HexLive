@@ -398,6 +398,7 @@ public sealed partial class ExecutionSystem
         {
             var item = stash.Contents[i];
             if (npc.Inventory.Items.Contains(item.DefinitionId) ||
+                !CampPropertyMath.CanUseStoredItem(world, npc, item.OwnerId) ||
                 !world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var def) ||
                 !def.HasTag("Tool") ||
                 !InventoryMath.MakeRoomFor(world, npc, item.DefinitionId))
@@ -405,7 +406,6 @@ public sealed partial class ExecutionSystem
                 continue;
             }
 
-                !CampPropertyMath.CanUseStoredItem(world, npc, item.OwnerId) ||
             stash.Contents.RemoveAt(i);
             npc.Inventory.Items.Add(item);
             _stashRecoverScratch.Add(item.DefinitionId);

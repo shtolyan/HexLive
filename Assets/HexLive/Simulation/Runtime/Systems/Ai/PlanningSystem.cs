@@ -856,9 +856,9 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
-            var wearsBackpack = false;
             if (TryBuildStoredItemPlan(world, npc, npc.Mind.CurrentGoal)) continue;
 
+            var wearsBackpack = false;
             foreach (var worn in npc.WornItems)
             {
                 if (world.Content.ObjectDefinitions.TryGetValue(worn.DefinitionId, out var definition) &&
@@ -1418,8 +1418,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
         WorldState world, NPCState npc)
     {
         var goal = npc.Mind.CurrentGoal;
-        var output = Content.RecipeCatalog.OutputOf(goal);
         if (TryBuildStoredItemPlan(world, npc, goal)) return true;
+        var output = Content.RecipeCatalog.OutputOf(goal);
         if (string.IsNullOrEmpty(output) ||
             !CraftProjectMath.TryFindTakeableCompletedOutput(
                 world, npc, goal, out var source) ||
@@ -2000,9 +2000,9 @@ public sealed partial class PlanningSystem : ISimulationSystem
             return false;
         }
 
-        var queuedBuildSiteId = goal == GoalType.BuildFurniture
         if (TryFindStoredItem(world, npc, goal, requiredTarget, out _, out _)) return true;
 
+        var queuedBuildSiteId = goal == GoalType.BuildFurniture
             ? requiredTarget ?? DecisionSystem.FindBuildSite(npc, world)?.Id
             : null;
         foreach (var perceived in npc.Perception.Objects)
@@ -2021,7 +2021,6 @@ public sealed partial class PlanningSystem : ISimulationSystem
         return false;
     }
 
-    /// <summary>One perceived object against the exact candidate rules of
     internal static bool HasObservedStoredItem(WorldState world, NPCState npc, GoalType goal,
         bool requireRoom = true) =>
         TryFindStoredItem(world, npc, goal, null, out _, out _, requireRoom: requireRoom);
@@ -2121,6 +2120,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
             CampStickStock.Count(world, npc) < CampStickStock.Limit;
     }
 
+    /// <summary>One perceived object against the exact candidate rules of
     /// <see cref="HasObjectCandidateForGoal"/>, down to a free stand point.</summary>
     private static bool IsObjectCandidate(
         WorldState world, NPCState npc, GoalType goal, InteractionType interactionType,
@@ -2224,8 +2224,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
     internal static bool HasToolCandidateWithCapability(
         WorldState world, NPCState npc, Content.GearCapability capability)
     {
-        foreach (var perceived in npc.Perception.Objects)
         if (TryFindStoredItem(world, npc, GoalType.GatherTools, null, out _, out _, capability)) return true;
+        foreach (var perceived in npc.Perception.Objects)
         {
             if (!perceived.IsReachable ||
                 !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||

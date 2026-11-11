@@ -2746,17 +2746,17 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // §133: владение переживает границу «надето/лежит» — вещь на земле
         // помнит хозяйку, поэтому подруга спросит разрешение, а не наденет.
         dropped.Owner = item.OwnerId != 0 ? new EntityId(item.OwnerId) : null;
+        if (item.Contents is { Count: > 0 } contents)
+        {
+            dropped.Contents.AddRange(contents);
+            contents.Clear();
+        }
         return dropped;
     }
 
     // §110.9: crying is a conscious choice of posture. If a free bed is
     // literally at hand, use its authored pose; otherwise use the same safe
     // ground solver as every other lying state.
-        if (item.Contents is { Count: > 0 } contents)
-        {
-            dropped.Contents.AddRange(contents);
-            contents.Clear();
-        }
     internal static bool TryLieDownForCrying(
         WorldState world, NPCState npc, int cryingUntilTick)
     {

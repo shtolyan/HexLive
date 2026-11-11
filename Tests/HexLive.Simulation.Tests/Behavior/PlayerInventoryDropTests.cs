@@ -16,7 +16,7 @@ public sealed class PlayerInventoryDropTests
 {
     [TestCase(false)]
     [TestCase(true)]
-    public void WearingSmallerGarmentWithFullInventoryKeepsEveryPhysicalItem(bool manual)
+    public void WearingSmallerGarmentWithFullInventoryKeepsTheOriginalOutfit(bool manual)
     {
         var world = TestWorld.CreateWorld();
         var npc = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
@@ -47,22 +47,20 @@ public sealed class PlayerInventoryDropTests
             world.Content.ObjectDefinitions[id] = new ObjectDefinition { Id = id, DisplayName = id };
             npc.Inventory.Items.Add(new ItemInstance(id));
         }
-        var cargo = npc.Inventory.Items.Where(i => !ReferenceEquals(i, replacement)).ToArray();
+        var cargo = npc.Inventory.Items.ToArray();
+        var objectsBefore = world.Entities.Objects.Count;
         var goal = npc.Mind.CurrentGoal;
         var steps = npc.Plan.Steps.ToArray();
         Assert.That(PlayerInventoryCommandExecutor.TryApply(world, npc,
             new InventoryItemRef(InventoryItemSource.Carried, 0, newId),
-            InventoryAction.Wear, out var reason), Is.True, reason);
-        var dropped = world.Entities.Objects.Values.Single(o => o.DefinitionId == oldId);
+            InventoryAction.Wear, out var reason), Is.False);
         Assert.Multiple(() =>
         {
-            Assert.That(npc.WornItems.Single(), Is.SameAs(replacement));
-            Assert.That(dropped.Dirtiness, Is.EqualTo(oldGarment.Dirtiness));
-            Assert.That(dropped.Owner, Is.EqualTo(npc.Id));
-            Assert.That(npc.Inventory.UsedSlots, Is.LessThanOrEqualTo(npc.Inventory.Capacity));
-            Assert.That(cargo.All(item => npc.Inventory.Items.Any(i => ReferenceEquals(i, item)) ||
-                dropped.Contents.Any(i => ReferenceEquals(i, item))), Is.True);
-            Assert.That(npc.Inventory.Items.Count + dropped.Contents.Count, Is.EqualTo(cargo.Length));
+            Assert.That(reason, Is.EqualTo("InsufficientSpace"));
+            Assert.That(npc.WornItems.Single(), Is.SameAs(oldGarment));
+            Assert.That(world.Entities.Objects.Count, Is.EqualTo(objectsBefore));
+            Assert.That(npc.Inventory.Items.Count, Is.EqualTo(cargo.Length));
+            Assert.That(npc.Inventory.Items.Zip(cargo, ReferenceEquals).All(same => same), Is.True);
             Assert.That(npc.Mind.ManualControl, Is.EqualTo(manual));
             Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(goal));
             Assert.That(npc.Plan.Steps, Is.EqualTo(steps));

@@ -261,6 +261,18 @@ public static class InventoryLayoutBuilder
         return true;
     }
 
+    internal static IEnumerable<List<ItemInstance>> OccupiedCells(WorldState world, NPCState npc)
+    {
+        foreach (var container in Build(world, npc).Containers)
+        foreach (var slot in container.Slots)
+        {
+            if (slot.StackCount <= 0) continue;
+            var instances = new List<ItemInstance>();
+            if (TryCollectSlotInstances(npc.Inventory.Items, slot, instances))
+                yield return instances;
+        }
+    }
+
     public static InventoryBodyAnchor AnchorFor(
         string definitionId,
         ObjectDefinition definition = null)

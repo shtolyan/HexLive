@@ -2628,20 +2628,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 : 0f,
             command: DirectiveMath.Pull(ctx.DirectiveKind, GoalType.BuildFurniture));
 
-        // Spec §52: free a slot by carrying a low-value item to the fireside
-        // stockpile — but only in peace. Life-threatening pressure (a dog, a
-        // stat below 40 %) cancels the errand: you don't tidy your pockets
-        // while something is trying to eat you.
-        var lifeThreatened = npc.IsFighting || npc.Memory.Dangers.Count > 0 ||
-            npc.Health < 0.4f || npc.Needs.Hunger >= 0.6f || npc.Needs.Thirst >= 0.6f;
-        var haulVictim = InventoryMath.LowestImportanceDroppable(world, npc);
-        var haulToFireAvail = !npc.Inventory.HasSpace && !lifeThreatened && campfireSeen &&
-            haulVictim != null &&
-            InventoryMath.Importance(world, haulVictim) <= 25 &&
-            PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.HaulToFire);
-        // §167.5: СТОКОВЫЙ рукав — несёт запрошенный запас (еда/кокос/дрова)
-        // к очагу, не будучи под угрозой. Обычный рукав выше — про мусор
-        // важностью ≤25; еда (95) им никогда не носилась.
+        // §167.5: к очагу несут конкретный запас по указанию.
         // Угроза для стоковой ходки — ПРЯМО СЕЙЧАС (как у StowClothes ниже), а
         // не память о волке: Memory.Dangers живёт 2400 тиков и закрывала бы
         // доставку почти всегда.
@@ -2651,18 +2638,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
             !stockThreatened && campfireSeen &&
             DirectiveMath.CarriedStock(world, npc, ctx.DirectiveKind) is not null &&
             PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.HaulToFire);
-        AddGoalScore(npc, world.Tick, GoalType.HaulToFire, 0.28f, haulToFireAvail || stockHaulAvail,
+        AddGoalScore(npc, world.Tick, GoalType.HaulToFire, 0.28f, stockHaulAvail,
             command: stockHaulAvail ? DirectiveMath.Pull(ctx.DirectiveKind, GoalType.HaulToFire) : 0f);
 
         // §133: одежда не должна лежать по всей карте. Скучная фоновая работа
         // «подобрать своё и отнести домой» — ставка нарочно низкая: любое живое
-        // дело её перебивает, а в спокойный час двор прибирается сам. Под
-        // угрозой (как и уборка карманов выше) не прибираются.
-        // ⭐ Гейт НЕ переиспользует lifeThreatened выше: тот считает угрозой любую
-        // запись в Memory.Dangers, а она живёт долго — у каждой колонистки их по
-        // 2-5 почти всегда, и уборка была бы недоступна навсегда (замерено: за
-        // 12000 тиков цель не выбралась ни разу). Прибираться мешает угроза
-        // ПРЯМО СЕЙЧАС, а не память о волке на том берегу.
+        // дело её перебивает, а в спокойный час двор прибирается сам.
         var stowThreatened = npc.IsFighting || npc.Perception.Hostiles.Count > 0 ||
             npc.Health < 0.4f || npc.Needs.Hunger >= 0.6f || npc.Needs.Thirst >= 0.6f;
         // Bug #314: одежда в карманах — тоже беспорядок; сдаётся домой тем же

@@ -19,8 +19,7 @@ public sealed partial class ExecutionSystem
     // displaced pieces are NOT disposed of here — they are collected in
     // _displacedGarments so the caller can don the replacement + recompute the
     // pack capacity FIRST, then call StowDisplacedGarments. That order lets a
-    // displaced garment's pocket items relocate INTO the new garment's slots
-    // wherever they fit, spilling only the true remainder.
+    // displaced garment's pocket items relocate into the new garment's slots.
     private static readonly System.Collections.Generic.List<string> _conflictScratch = new();
     private static readonly System.Collections.Generic.List<ItemInstance> _displacedGarments = new();
 
@@ -61,46 +60,21 @@ public sealed partial class ExecutionSystem
         }
     }
 
-    // §52.9 r2: where a garment displaced by the most recent ResolveWearConflicts
-    // GOES. Swapping one pair of panties for another must not litter the beach:
-    // the old piece is FOLDED INTO THE PACK when a pocket is free, and only falls
-    // to the ground when there is none (DropGarmentWithContents — the overflow
-    // rides down inside it, lowest importance first, §52.3).
-    //
-    // Call AFTER WornItems.Add(new) + Recalculate, so the capacity being tested
-    // is the live one — the replacement's pockets are already counted and the
-    // displaced piece's are already gone. Items that still fit stay in the pack
-    // ("moved into the new garment"); the true remainder spills at the end,
-    // which is also what evicts the stowed piece itself if it never fitted.
+    // §52.7: wear preflight reserves capacity for every displaced garment.
+    // Personal-care recovery also uses this path and can retain an excess.
     private static void StowDisplacedGarments(WorldState world, NPCState npc)
     {
-        for (var i = 0; i < _displacedGarments.Count; i++)
+        foreach (var garment in _displacedGarments)
         {
-            var garment = _displacedGarments[i];
-            if (npc.Inventory.HasSpace)
+            npc.Inventory.Items.Add(garment);
+            if (SimTrace.Enabled)
             {
-                // No MakeRoomFor: a swapped-out shirt never outranks what is
-                // already carried — food and tools are not shed to fold laundry.
-                npc.Inventory.Items.Add(garment);
-                if (SimTrace.Enabled)
-                {
-                    Trace.Debug(world, npc.Id, "GarmentStowed",
-                        $"{garment.DefinitionId} folded into the pack " +
-                        $"({npc.Inventory.UsedSlots}/{npc.Inventory.Capacity})");
-                }
-            }
-            else
-            {
-                if (DropGarmentWithContents(world, npc, garment) is null)
-                    npc.Inventory.Items.Add(garment);
+                Trace.Debug(world, npc.Id, "GarmentStowed",
+                    $"{garment.DefinitionId} folded into the pack " +
+                    $"({npc.Inventory.UsedSlots}/{npc.Inventory.Capacity})");
             }
         }
-
         _displacedGarments.Clear();
-        // Taking the piece off took its pockets with it — whatever no longer
-        // fits lands at her feet (the stowed garment included, if it is the
-        // least important thing she carries).
-        InventoryMath.SpillOverflow(world, npc);
     }
 
     // §35.5B: the rack holds up to SimBalance.RackCapacity garments — the
@@ -304,10 +278,8 @@ public sealed partial class ExecutionSystem
             $"Obj={rack.Id.Value} Junction={junction.Value}");
     }
 
-    // Spec §52: take a garment off the body and lay it on the ground carrying
-    // its pockets. Any pocket item that no longer fits the (now smaller) pack
-    // rides down inside the dropped garment — the NPC still knows where its
-    // bottle is and can fetch it later without dressing.
+    // §52.2: place the garment itself. The caller commits any exact pocket
+    // transfer after this placement succeeds.
     internal static WorldObjectState DropGarmentWithContents(
         WorldState world, NPCState npc, ItemInstance garment)
     {
@@ -322,7 +294,6 @@ public sealed partial class ExecutionSystem
             return null;
         }
 
-        StashOverflowInDroppedGarment(world, npc, garment, dropped);
         OutfitMaintenanceMath.TrackGroundPiece(world, npc, garment, dropped);
         return dropped;
     }
@@ -349,8 +320,8 @@ public sealed partial class ExecutionSystem
 
     /// <summary>
     /// §133: снять вещь и повесить её на гардероб/сушилку, если та указана и в
-    /// ней ещё есть место; иначе — обычная куча под ноги. Карманы едут внутри
-    /// вещи в обоих случаях (§52), владение сохраняется (§133).
+    /// ней ещё есть место; иначе положить саму вещь у ног. Вызывающий код
+    /// переносит только карманы этой вещи (§52). Владение сохраняется (§133).
     /// </summary>
     internal static WorldObjectState StowGarmentWithContents(
         WorldState world, NPCState npc, ItemInstance garment, ObjectId? stowObjectId)
@@ -363,9 +334,6 @@ public sealed partial class ExecutionSystem
         }
 
         if (!CampPropertyMath.CanUse(world, npc, station)) return null;
-
-        _garmentSpillScratch.Clear();
-        InventoryMath.MoveOverflowToGarment(world, npc.Id.Value, npc.Inventory, _garmentSpillScratch);
 
         // Рецепт тот же, что у CompleteHang: вещь становится объектом на
         // джанкшене станции и наследует её поворот (§66 — иначе висит мимо).
@@ -380,16 +348,10 @@ public sealed partial class ExecutionSystem
         hung.WaterKind = garment.WaterKind;
         hung.LastAddedWaterKind = garment.LastAddedWaterKind;
         hung.Owner = garment.OwnerId != 0 ? new EntityId(garment.OwnerId) : npc.Id;
-        if (_garmentSpillScratch.Count > 0)
-        {
-            hung.Contents.AddRange(_garmentSpillScratch);
-        }
-
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "GarmentStowed",
-                $"{garment.DefinitionId} onto Obj={station.Id.Value} " +
-                $"({station.DefinitionId}) holds [{string.Join(",", _garmentSpillScratch)}]");
+                $"{garment.DefinitionId} onto Obj={station.Id.Value} ({station.DefinitionId})");
         }
 
         OutfitMaintenanceMath.TrackGroundPiece(world, npc, garment, hung);
@@ -402,9 +364,9 @@ public sealed partial class ExecutionSystem
     internal static WorldObjectState StowWornGarmentWithContents(
         WorldState world, NPCState npc, ItemInstance garment, ObjectId? station)
     {
-        var wornIndex = InventoryMath.IndexOfReference(npc.WornItems, garment);
-        if (!InventoryLayoutBuilder.TryCollectOwnedContents(world, npc, wornIndex, out var pockets))
+        if (!InventoryMath.TryPlanGarmentStow(world, npc, garment, out var pockets))
             return null;
+        using var events = world.Events.DeferPublication();
         var laid = StowGarmentWithContents(world, npc, garment, station);
         if (laid is null) return null;
         InventoryMath.RemoveReference(npc.WornItems, garment);
@@ -414,6 +376,7 @@ public sealed partial class ExecutionSystem
             laid.Contents.Add(pocket);
         }
         EquipmentMath.Recalculate(world, npc);
+        events.Commit();
         return laid;
     }
 

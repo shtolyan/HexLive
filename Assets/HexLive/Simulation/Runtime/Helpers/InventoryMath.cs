@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
@@ -105,21 +106,8 @@ internal static class InventoryMath
         return true;
     }
 
-    public static bool CanMakeRoomFor(WorldState world, NPCState npc, string incomingDefinitionId)
-    {
-        if (!CanAcquireAdditional(world, npc, incomingDefinitionId))
-        {
-            return false;
-        }
-
-        if (FitsWithoutEviction(world, npc, incomingDefinitionId))
-        {
-            return true;
-        }
-
-        return CanDropReplacement(world, npc,
-            ReplacementVictim(world, npc, incomingDefinitionId));
-    }
+    public static bool CanMakeRoomFor(WorldState world, NPCState npc, string incomingDefinitionId) =>
+        FitsWithoutEviction(world, npc, incomingDefinitionId);
 
     // §52.3 / #378: a lower-priority item is not free capacity until it can
     // actually leave the pack. Match TryDropAutomatic's backoff and the real
@@ -134,9 +122,18 @@ internal static class InventoryMath
     /// Used by completion paths which must distinguish a truly full pack from
     /// free capacity inside an existing stack.</summary>
     internal static bool FitsWithoutEviction(
-        WorldState world, NPCState npc, string incomingDefinitionId) =>
-        CanAcquireAdditional(world, npc, incomingDefinitionId) &&
-        (npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId));
+        WorldState world, NPCState npc, string incomingDefinitionId)
+    {
+        if (!CanAcquireAdditional(world, npc, incomingDefinitionId)) return false;
+        return FitsAvailableCells(npc, incomingDefinitionId);
+    }
+
+    private static bool FitsAvailableCells(NPCState npc, string definitionId)
+    {
+        var used = npc.Inventory.UsedSlots;
+        return used < npc.Inventory.Capacity ||
+            used == npc.Inventory.Capacity && FitsExistingStack(npc, definitionId);
+    }
 
     // §63: the emergency coconut-blade chain is allowed to sacrifice an
     // ordinary tool for its ONE stick and ONE stone.  The generic importance
@@ -155,72 +152,24 @@ internal static class InventoryMath
             return false;
         }
 
-        if (FitsWithoutEviction(world, npc, incomingDefinitionId))
+        if (FitsAvailableCells(npc, incomingDefinitionId))
         {
             return true;
         }
 
-        // MakeRoomForGoal uses the ordinary victim first. Do not promise a
-        // different emergency victim when the ordinary one cannot be dropped.
-        var victim = ReplacementVictim(world, npc, incomingDefinitionId) ??
-            SurvivalKnifeMaterialVictim(world, npc, goal, incomingDefinitionId);
-        return CanDropReplacement(world, npc, victim);
+        return CanDropReplacement(world, npc, SurvivalReplacementVictim(world, npc, goal, incomingDefinitionId));
     }
 
-    public static bool MakeRoomFor(WorldState world, NPCState npc, string incomingDefinitionId)
-    {
-        if (!CanAcquireAdditional(world, npc, incomingDefinitionId))
-        {
-            return false;
-        }
+    public static bool MakeRoomFor(WorldState world, NPCState npc, string incomingDefinitionId) =>
+        FitsWithoutEviction(world, npc, incomingDefinitionId);
 
-        if (npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId))
-        {
-            return true;
-        }
-
-        var incomingImportance = Importance(world, incomingDefinitionId);
-        var guard = 0;
-        while (!npc.Inventory.HasSpace &&
-               !FitsExistingStack(npc, incomingDefinitionId) &&
-               guard++ < 64)
-        {
-            var victim = ReplacementVictim(world, npc, incomingDefinitionId);
-            if (victim is null)
-            {
-                return false;
-            }
-
-            var victimImportance = Importance(world, victim);
-            if (TryDropAutomatic(world, npc, victim) == null) return false;
-            RemoveReference(npc.Inventory.Items, victim);
-            if (SimTrace.Enabled)
-            {
-                Trace.Debug(world, npc.Id, "InventoryMadeRoom",
-                    $"Dropped {victim.DefinitionId}({victimImportance}) for " +
-                    $"{incomingDefinitionId}({incomingImportance})");
-            }
-        }
-
-        return npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId);
-    }
-
-    // §153.1: a recipient chooses its ordinary lower-priority belongings only
-    // on arrival. The incoming item and any pocket contents are projected by
-    // the same transfer validator; an offer never reserves a stranger's slot.
+    // §153.1: an offer never reserves another character's slot. Recheck the
+    // whole bundle on arrival while both characters still own their items.
     internal static bool MakeRoomForGiftTransfer(
         WorldState world, NPCState npc, string incomingDefinitionId,
         System.Func<bool> transferFits)
     {
-        if (!CanAcquireAdditional(world, npc, incomingDefinitionId)) return false;
-        for (var guard = 0; guard < 64 && !transferFits(); guard++)
-        {
-            var victim = ReplacementVictim(world, npc, incomingDefinitionId);
-            if (!CanDropReplacement(world, npc, victim) ||
-                TryDropAutomatic(world, npc, victim) == null) return false;
-            RemoveReference(npc.Inventory.Items, victim);
-        }
-        return transferFits();
+        return CanAcquireAdditional(world, npc, incomingDefinitionId) && transferFits();
     }
 
     public static bool MakeRoomForGoal(
@@ -231,86 +180,38 @@ internal static class InventoryMath
             return false;
         }
 
-        if (npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId))
+        if (FitsAvailableCells(npc, incomingDefinitionId))
         {
             return true;
         }
 
-        // Preserve the ordinary replacement order whenever it can solve the
-        // pack.  The survival exception is only the final fallback.
-        if (ReplacementVictim(world, npc, incomingDefinitionId) is not null)
-        {
-            return MakeRoomFor(world, npc, incomingDefinitionId);
-        }
-
-        var victim = SurvivalKnifeMaterialVictim(
-            world, npc, goal, incomingDefinitionId);
-        if (victim is null)
-        {
-            return false;
-        }
-
-        var victimImportance = Importance(world, victim);
+        var victim = SurvivalReplacementVictim(world, npc, goal, incomingDefinitionId);
+        if (!CanDropReplacement(world, npc, victim)) return false;
+        using var events = world.Events.DeferPublication();
         if (TryDropAutomatic(world, npc, victim) == null) return false;
         RemoveReference(npc.Inventory.Items, victim);
+        events.Commit();
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "InventoryMadeRoom",
-                $"Dropped {victim.DefinitionId}({victimImportance}) for " +
-                $"emergency knife material {incomingDefinitionId}");
+                $"Dropped {victim.DefinitionId} for emergency {goal} target {incomingDefinitionId}");
         }
 
-        return npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId);
-    }
-
-    /// <summary>
-    /// Repairs older saves (and any legacy direct-add path) which already
-    /// contain more instances than the definition permits. Extras are dropped,
-    /// never deleted, so another NPC who actually lacks the item may recover one.
-    /// </summary>
-    public static void SpillCarriedLimitExcess(WorldState world, NPCState npc)
-    {
-        System.Collections.Generic.Dictionary<string, int>? counts = null;
-        for (var i = 0; i < npc.Inventory.Items.Count;)
-        {
-            var item = npc.Inventory.Items[i];
-            if (!world.Content.ObjectDefinitions.TryGetValue(
-                    item.DefinitionId, out var definition) ||
-                definition.MaxCarriedInstances <= 0)
-            {
-                i++;
-                continue;
-            }
-
-            counts ??= new System.Collections.Generic.Dictionary<string, int>();
-            counts.TryGetValue(item.DefinitionId, out var carried);
-            if (carried < definition.MaxCarriedInstances)
-            {
-                counts[item.DefinitionId] = carried + 1;
-                i++;
-                continue;
-            }
-
-            if (TryDropAutomatic(world, npc, item) == null) return;
-            npc.Inventory.Items.RemoveAt(i);
-            if (SimTrace.Enabled)
-            {
-                Trace.Debug(world, npc.Id, "CarryLimitSpill",
-                    $"Dropped excess {item.DefinitionId}; " +
-                    $"limit={definition.MaxCarriedInstances}");
-            }
-        }
+        return true;
     }
 
     internal static bool NeedsEmergencyCoconutBlade(WorldState world, NPCState npc) =>
         npc.Body.HasUsableHand &&
         !DecisionSystem.HasCoconutBlade(npc) &&
-        (npc.Needs.Thirst >= 0.8f || npc.Needs.Hunger >= 0.8f) &&
+        ((npc.Needs.Thirst >= 0.8f && !DecisionSystem.HasBottleWater(npc) &&
+          !DecisionSystem.HasCoconutWater(npc, world)) ||
+         (npc.Needs.Hunger >= 0.8f && !DecisionSystem.HasCoconutMeal(npc, world) &&
+          npc.Inventory.FindFirstFood(world.Content) is null)) &&
         DecisionSystem.HasCoconutOpportunity(npc, world);
 
     // While the emergency knife is unfinished, every link in its stone →
     // sharp-stone → lashed-knife chain is survival cargo, not generic stockpile
-    // junk. NeedsDecay uses this when deciding what a full pack may unload.
+    // junk. The goal-specific replacement cannot unload these inputs.
     internal static bool IsReservedEmergencyKnifeMaterial(
         WorldState world, NPCState npc, string definitionId)
     {
@@ -434,8 +335,7 @@ internal static class InventoryMath
 
             // Spec §52.8: a holstered tool is strapped to the leg and costs no
             // pocket — shedding it frees nothing, so it is never the victim. It
-            // leaves the pack only when the holster itself comes off (the slots
-            // vanish first, then it spills by the normal rules).
+            // costs a cell again when its holster is removed.
             if (inventory.IsHolstered(item))
             {
                 continue;
@@ -452,8 +352,7 @@ internal static class InventoryMath
         return worst;
     }
 
-    // Shared by live garment stow and read-only capacity projection. Item fields
-    // are never changed; only the supplied inventory/list ownership is moved.
+    // Explicit worn-item drop keeps overflow inside the garment on the ground.
     internal static void MoveOverflowToGarment(WorldState world, int npcId,
         InventoryState inventory, System.Collections.Generic.List<ItemInstance> contents)
     {
@@ -467,67 +366,132 @@ internal static class InventoryMath
         }
     }
 
-    // Normal replacement follows category importance. A useful missing tool
-    // gets one narrow exception: it may displace redundant managed gear when
-    // the remaining inventory still provides every capability and at least as
-    // good a weapon. This lets a hammer/pickaxe break a pack full of duplicate
-    // knives without making the sole knife expendable.
-    private static ItemInstance ReplacementVictim(
-        WorldState world, NPCState npc, string incomingDefinitionId)
+    // §52.2: plan the complete move before touching either physical store.
+    // The garment can take its ordinary pockets and substitute whole cells
+    // for important contents that stay with the character.
+    internal static bool TryPlanGarmentStow(WorldState world, NPCState npc,
+        ItemInstance garment, out List<ItemInstance> contents)
     {
-        var incomingImportance = Importance(world, incomingDefinitionId);
-        var normalVictim = LowestImportanceDroppable(world, npc);
-        if (normalVictim is not null &&
-            Importance(world, normalVictim) < incomingImportance)
-        {
-            return normalVictim;
-        }
+        contents = new List<ItemInstance>();
+        var wornIndex = IndexOfReference(npc.WornItems, garment);
+        if (wornIndex < 0 || !world.Content.ObjectDefinitions.TryGetValue(garment.DefinitionId, out var definition) ||
+            !InventoryLayoutBuilder.TryCollectOwnedContents(world, npc, wornIndex, out var pockets))
+            return false;
 
-        if (!IsUsefulMissingTool(world, npc, incomingDefinitionId))
-        {
-            return null;
-        }
+        var worn = new List<ItemInstance>(npc.WornItems);
+        worn.RemoveAt(wornIndex);
+        var retained = PlayerInventoryMath.BuildProjectedInventory(world, npc, npc.Inventory.Items, worn);
+        var packed = new InventoryState { Capacity = definition.InventoryCapacity };
+        foreach (var slot in HolsterCatalog.SlotsFor(garment.DefinitionId))
+            packed.HolsterSlotIds.Add(slot);
+        var favorite = FavoriteWeaponInstance(npc.Id.Value, npc.Inventory);
 
-        var favoriteWeapon = FavoriteWeaponInstance(npc);
-        ItemInstance redundantVictim = null;
-        var redundantImportance = int.MaxValue;
-        foreach (var item in npc.Inventory.Items)
+        bool MustKeep(ItemInstance item) =>
+            ReferenceEquals(item, favorite) || retained.IsHolstered(item) ||
+            InventoryState.IsPersonalEffect(item.DefinitionId) ||
+            Importance(world, item) >= ItemCatalog.Importance(ItemCategory.Tool);
+
+        foreach (var pocket in pockets)
         {
-            if (!CanFreePocket(npc, item, favoriteWeapon) ||
-                !IsRedundantManagedGear(npc, item))
+            if (MustKeep(pocket)) continue;
+            RemoveReference(retained.Items, pocket);
+            packed.Items.Add(pocket);
+        }
+        if (packed.UsedSlots > packed.Capacity) return false;
+
+        if (retained.UsedSlots > retained.Capacity)
+        {
+            var candidates = new List<(int importance, List<ItemInstance> items)>();
+            foreach (var cell in InventoryLayoutBuilder.OccupiedCells(world, npc))
             {
-                continue;
+                if (cell.Exists(item => MustKeep(item) || !ContainsReference(retained.Items, item))) continue;
+                candidates.Add((Importance(world, cell[0]), cell));
             }
-
-            var importance = Importance(world, item);
-            if (importance < redundantImportance)
+            // Selection scans the existing layout order for equal-importance
+            // cells. A removed cell is no longer eligible on the next pass.
+            while (retained.UsedSlots > retained.Capacity)
             {
-                redundantVictim = item;
-                redundantImportance = importance;
+                List<ItemInstance> selected = null;
+                var bestImportance = int.MaxValue;
+                foreach (var candidate in candidates)
+                {
+                    if (candidate.importance >= bestImportance ||
+                        !ContainsReference(retained.Items, candidate.items[0])) continue;
+                    packed.Items.AddRange(candidate.items);
+                    var fits = packed.UsedSlots <= packed.Capacity;
+                    packed.Items.RemoveRange(packed.Items.Count - candidate.items.Count, candidate.items.Count);
+                    if (!fits) continue;
+                    bestImportance = candidate.importance;
+                    selected = candidate.items;
+                }
+                if (selected is null) return false;
+                foreach (var item in selected) RemoveReference(retained.Items, item);
+                packed.Items.AddRange(selected);
             }
         }
 
-        return redundantVictim;
+        contents = packed.Items;
+        return true;
     }
 
-    private static ItemInstance SurvivalKnifeMaterialVictim(
+    internal static bool FitsAfterWear(WorldState world, NPCState npc,
+        WorldObjectState replacement) =>
+        FitsAfterWear(world, npc, new ItemInstance(replacement.DefinitionId), replacement.Contents);
+
+    internal static bool FitsAfterWear(WorldState world, NPCState npc,
+        ItemInstance replacement, IReadOnlyList<ItemInstance> incomingContents = null)
+    {
+        if (!world.Content.ObjectDefinitions.TryGetValue(replacement.DefinitionId, out var definition) ||
+            definition.Layer is null)
+            return false;
+        var carried = new List<ItemInstance>(npc.Inventory.Items);
+        RemoveReference(carried, replacement);
+        if (incomingContents != null)
+            foreach (var item in incomingContents)
+                if (!ReferenceEquals(item, replacement)) carried.Add(item);
+        var worn = new List<ItemInstance>();
+        foreach (var item in npc.WornItems)
+        {
+            if (world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var current) &&
+                WearSlotCatalog.Occupies(definition, current))
+                carried.Add(item);
+            else
+                worn.Add(item);
+        }
+        worn.Add(replacement);
+        return PlayerInventoryMath.FitsProjected(world, npc, carried, worn);
+    }
+
+    private static ItemInstance SurvivalReplacementVictim(
         WorldState world, NPCState npc, GoalType goal, string incomingDefinitionId)
     {
         var exactMaterial =
             goal == GoalType.GatherWood && incomingDefinitionId == ContentIds.Stick ||
             goal == GoalType.GatherStone && incomingDefinitionId == ContentIds.Stone ||
             goal == GoalType.GatherFiber && incomingDefinitionId == ContentIds.Fiber;
-        if (!exactMaterial || !NeedsEmergencyCoconutBlade(world, npc))
+        var immediateMeal = (goal is GoalType.GetFood or GoalType.Eat) &&
+            npc.Needs.Hunger >= 0.8f && npc.Body.HasUsableHand &&
+            npc.Inventory.FindFirstFood(world.Content) is null &&
+            !DecisionSystem.HasCoconutMeal(npc, world) &&
+            world.Content.ObjectDefinitions.TryGetValue(incomingDefinitionId, out var definition) &&
+            definition.Interactions.Exists(interaction => interaction.Type == InteractionType.Eat);
+        if ((!exactMaterial || !NeedsEmergencyCoconutBlade(world, npc)) && !immediateMeal)
         {
             return null;
         }
 
+        // One exact victim must open a whole cell. Never discard a stack one
+        // item at a time while the character still cannot take the meal.
+        if (npc.Inventory.UsedSlots != npc.Inventory.Capacity) return null;
+        var favoriteWeapon = FavoriteWeaponInstance(npc.Id.Value, npc.Inventory);
         ItemInstance victim = null;
         var victimImportance = int.MaxValue;
         var victimWeaponPriority = int.MaxValue;
         foreach (var item in npc.Inventory.Items)
         {
-            if (npc.Inventory.IsHolstered(item) ||
+            if (item.DefinitionId == incomingDefinitionId ||
+                !CanFreePocket(npc, item, favoriteWeapon) ||
+                !OpensCell(npc, item) ||
                 IsReservedEmergencyKnifeMaterial(world, npc, item.DefinitionId))
             {
                 continue;
@@ -554,39 +518,15 @@ internal static class InventoryMath
         return victim;
     }
 
-    private static bool IsUsefulMissingTool(
-        WorldState world, NPCState npc, string definitionId) =>
-        !npc.Inventory.Items.Contains(definitionId) &&
-        world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition) &&
-        definition.HasTag("Tool") &&
-        Content.GearCatalog.AddsValueOver(
-            npc.Inventory.Items, definitionId, npc.Body.WeaponHands);
-
-    private static bool IsRedundantManagedGear(NPCState npc, ItemInstance candidate)
+    private static bool OpensCell(NPCState npc, ItemInstance item)
     {
-        var stats = Content.GearCatalog.For(candidate.DefinitionId);
-        return stats.Id == candidate.DefinitionId &&
-            !Content.GearCatalog.AddsValueOver(
-                ItemsExcept(npc.Inventory.Items, candidate),
-                candidate.DefinitionId,
-                npc.Body.WeaponHands);
+        if (!InventoryState.IsStackable(item.DefinitionId)) return true;
+        var count = 0;
+        foreach (var carried in npc.Inventory.Items)
+            if (carried.DefinitionId == item.DefinitionId && !npc.Inventory.IsHolstered(carried))
+                count++;
+        return count % InventoryState.StackSizeFor(item.DefinitionId) == 1;
     }
-
-    private static System.Collections.Generic.IEnumerable<ItemInstance> ItemsExcept(
-        System.Collections.Generic.IEnumerable<ItemInstance> items,
-        ItemInstance excluded)
-    {
-        foreach (var item in items)
-        {
-            if (!ReferenceEquals(item, excluded))
-            {
-                yield return item;
-            }
-        }
-    }
-
-    private static ItemInstance FavoriteWeaponInstance(NPCState npc) =>
-        FavoriteWeaponInstance(npc.Id.Value, npc.Inventory);
 
     private static ItemInstance FavoriteWeaponInstance(int npcId, InventoryState inventory)
     {
@@ -608,9 +548,9 @@ internal static class InventoryMath
         !InventoryState.IsPersonalEffect(item.DefinitionId) &&
         !npc.Inventory.IsHolstered(item);
 
-    // Drop the lowest-importance pocket items until the pack fits again. Used
-    // whenever capacity shrinks under a full load (undress, arm severed). Items
-    // land at the NPC's feet with their instance state (wetness/durability).
+    // Drop the lowest-importance pocket items when a physical loss (such as a
+    // severed arm) directly requires a world spill. Items land
+    // at the NPC's feet with their instance state (wetness/durability).
     //
     // §52.5 r2 (вслед за bug #278 r2): перелив меряется ЯЧЕЙКАМИ, как и сама
     // ёмкость. UsedSlots — ceil по стакам, поэтому: (а) гард считает

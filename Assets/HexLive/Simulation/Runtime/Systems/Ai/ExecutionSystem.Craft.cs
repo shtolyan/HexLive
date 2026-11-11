@@ -84,7 +84,7 @@ public sealed partial class ExecutionSystem
                 continue;
             }
 
-            if (!InventoryMath.MakeRoomFor(world, npc, item.DefinitionId))
+            if (!InventoryMath.MakeRoomForGoal(world, npc, npc.Plan.Goal, item.DefinitionId))
             {
                 break; // no room — leave it hanging
             }

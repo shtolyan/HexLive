@@ -224,22 +224,12 @@ public sealed partial class ExecutionSystem
 
     private static bool DropRomanceGarments(WorldState world, NPCState npc)
     {
-        var changed = false;
         for (var i = npc.WornItems.Count - 1; i >= 0; i--)
         {
             var garment = npc.WornItems[i];
             if (!RomanceMath.MustRemoveForRomance(world, npc, garment)) continue;
-            npc.WornItems.RemoveAt(i);
-            if (DropGarmentWithContents(world, npc, garment) is null)
-            {
-                npc.WornItems.Insert(i, garment);
-                EquipmentMath.Recalculate(world, npc);
-                return false;
-            }
-            changed = true;
+            if (StowWornGarmentWithContents(world, npc, garment, station: null) is null) return false;
         }
-
-        if (changed) EquipmentMath.Recalculate(world, npc);
         return true;
     }
 

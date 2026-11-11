@@ -39,7 +39,7 @@ internal static class GiftGarmentChoice
         ItemInstance best = null;
         foreach (var item in npc.Inventory.Items)
             if (item.OwnerId == npc.Id.Value && ShouldWear(world, npc, item) &&
-                PlayerInventoryTransferMath.CanWearIncoming(world, npc, item) &&
+                InventoryMath.FitsAfterWear(world, npc, item) &&
                 (best == null || Score(npc.Id.Value, item) > Score(npc.Id.Value, best))) best = item;
         if (best != null) ExecutionSystem.WearCarriedItem(world, npc, best);
     }

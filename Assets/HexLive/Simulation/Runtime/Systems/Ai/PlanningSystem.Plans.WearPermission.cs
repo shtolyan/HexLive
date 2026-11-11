@@ -60,7 +60,8 @@ public sealed partial class PlanningSystem
                 def.Layer is null ||
                 !Content.GarmentLibrary.FitsSex(npc.Sex, obj.DefinitionId) ||
                 HasWearDenial(npc, perceived.Id, world.Tick) ||
-                HasWearGrant(npc, perceived.Id, world.Tick))
+                HasWearGrant(npc, perceived.Id, world.Tick) ||
+                !InventoryMath.FitsAfterWear(world, npc, obj))
             {
                 continue;
             }

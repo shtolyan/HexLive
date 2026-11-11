@@ -1067,6 +1067,13 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     continue;
                 }
 
+                if (interactionType == InteractionType.Dress &&
+                    (!world.Entities.Objects.TryGetValue(perceived.Id, out var candidateGarment) ||
+                     !InventoryMath.FitsAfterWear(world, npc, candidateGarment)))
+                {
+                    continue;
+                }
+
                 candidateCount++;
                 if (SimTrace.Enabled)
                 {

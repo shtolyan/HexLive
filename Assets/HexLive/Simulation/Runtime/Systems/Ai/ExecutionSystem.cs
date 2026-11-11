@@ -1581,16 +1581,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                  npc.Plan.Goal == GoalType.HaulToFire &&
                  definition.HasTag("Campfire"))
         {
-            // Spec §52: set the low-value item down at the hearth (a
-            // fireside stockpile) — the pack has room again, and the item
-            // waits here to be reclaimed by normal pickup later.
-            // §167.5: по стоковому указанию у очага выгружается ЗАПАС (еда,
-            // кокос, дрова), а не самая дешёвая вещь из карманов.
+            // §167.5: deliver the stock requested by the active order.
             var directiveKind = DirectiveMath.Current(npc);
-            var victim = (DirectiveMath.IsStocking(directiveKind)
-                    ? DirectiveMath.CarriedStock(world, npc, directiveKind)
-                    : null) ??
-                InventoryMath.LowestImportanceDroppable(world, npc);
+            var victim = DirectiveMath.IsStocking(directiveKind)
+                ? DirectiveMath.CarriedStock(world, npc, directiveKind)
+                : null;
             if (victim is not null && InventoryMath.TryDropAutomatic(world, npc, victim) != null)
             {
                 InventoryMath.RemoveReference(npc.Inventory.Items, victim);
@@ -2033,13 +2028,21 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             }
 
         }
+        if (!InventoryMath.FitsAfterWear(world, npc, worldObject))
+        {
+            worldObject.IsOccupied = false;
+            worldObject.CurrentUser = null;
+            PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
+                "Dress: no room to keep displaced clothing and pockets");
+            npc.Mind.CurrentGoal = GoalType.None;
+            return false;
+        }
         npc.Mind.WearGrants.RemoveAll(g => g.Item.Equals(worldObject.Id));
 
         // Spec 31A.5B: one item per (layer, body part) — dressing
-        // over an occupied slot takes the old garment off. §52.7: the
-        // displaced piece is only COLLECTED here; it is dropped after
-        // the new garment is on and capacity recomputed, so its
-        // pockets relocate into the new garment first.
+        // over an occupied slot takes the old garment off. §52.7: defer
+        // folding the displaced piece until the new capacity is live.
         ResolveWearConflicts(world, npc, worldObject.DefinitionId);
 
         // Spec 31A.5A: dressing consumes the world object — only
@@ -2058,8 +2061,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             OwnerId = ClothingOwnership.ResolveOnTake(world, npc, worldObject)
         });
         // Spec §52: putting the garment back on recovers whatever it
-        // was carrying — the pockets pour into the pack (capacity just
-        // grew by this garment's slots); anything still over spills.
+        // was carrying. Dress preflight has already checked that
+        // the pockets and displaced garment fit into the new capacity.
         _dressPourScratch.Clear();
         _dressPourScratch.AddRange(worldObject.Contents);
         worldObject.Contents.Clear();
@@ -2069,10 +2072,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
         WorldObjectMutations.DespawnObject(world, worldObject.Id);
         EquipmentMath.Recalculate(world, npc);
-        foreach (var stashed in _dressPourScratch)
-        {
-            GiveOrDrop(world, npc, stashed);
-        }
+        npc.Inventory.Items.AddRange(_dressPourScratch);
         if (_dressPourScratch.Count > 0)
         {
             if (SimTrace.Enabled)
@@ -2081,12 +2081,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     $"{worldObject.DefinitionId} returned [{string.Join(",", _dressPourScratch)}]");
             }
         }
-        // §52.9 r2: now that the new garment is on and the pack capacity
-        // is live, put the displaced garment(s) away — into the pack if
-        // a pocket is free, on the ground only when it is not. Items
-        // that still fit stayed in the pack (backed by the new
-        // garment's pockets); the true overflow rides down inside the
-        // dropped piece (lowest importance first).
+        // §52.7: a swap keeps the entire load with its owner.
         StowDisplacedGarments(world, npc);
         if (SimTrace.Enabled)
         {

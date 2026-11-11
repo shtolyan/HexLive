@@ -13,6 +13,7 @@ namespace HexLive.Simulation.Tests.Behavior
 public sealed class GarmentPocketStowTests
 {
     private const string Coat = "test.pocket_coat";
+    private const string Trinket = "item.photo_frame";
 
     private static (WorldState world, NPCState npc, ItemInstance garment, WorldObjectState wardrobe) Setup()
     {
@@ -32,16 +33,76 @@ public sealed class GarmentPocketStowTests
         npc.WornItems.Add(garment);
         EquipmentMath.Recalculate(world, npc);
         for (var i = 0; i < npc.Inventory.Capacity; i++)
-            npc.Inventory.Items.Add(new ItemInstance(ContentIds.Bottle)
+            npc.Inventory.Items.Add(new ItemInstance(Trinket)
             {
-                ResourceAmount = i + .05f, WaterKind = WaterKind.Boiled,
-                LastAddedWaterKind = WaterKind.Rain, Durability = .2f + i * .01f
+                ResourceAmount = i + .05f, Durability = .2f + i * .01f
             });
         var wardrobe = world.Entities.Objects.Values.First(o => o.DefinitionId == ContentIds.Wardrobe);
         npc.Movement.IsMoving = false;
         npc.Movement.JunctionPath.Clear();
         npc.Mind.OutfitLocked = false;
         return (world, npc, garment, wardrobe);
+    }
+
+    [Test]
+    public void DoffingKeepsTheMacheteAndBottleAndPacksAWholeLogCell()
+    {
+        var (world, npc, garment, wardrobe) = Setup();
+        npc.Inventory.Items.Clear();
+        var blade = new ItemInstance(GearCatalog.Machete) { Durability = .71f };
+        var bottle = new ItemInstance(ContentIds.Bottle)
+        {
+            ResourceAmount = 3, WaterKind = WaterKind.Boiled, LastAddedWaterKind = WaterKind.Rain
+        };
+        npc.Inventory.Items.Add(blade);
+        npc.Inventory.Items.Add(bottle);
+        for (var i = 2; i < 4; i++)
+            npc.Inventory.Items.Add(new ItemInstance(Trinket));
+        for (var i = 4; i < npc.Inventory.Capacity - 2; i++)
+            npc.Inventory.Items.Add(new ItemInstance(ContentIds.Bottle));
+        var logs = Enumerable.Range(0, InventoryState.StackSizeFor(ContentIds.Log))
+            .Select(i => new ItemInstance(ContentIds.Log) { Durability = .41f + i * .01f }).ToArray();
+        npc.Inventory.Items.AddRange(logs);
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.Stone));
+        Assert.That(npc.Inventory.UsedSlots, Is.EqualTo(npc.Inventory.Capacity));
+        Assert.That(InventoryLayoutBuilder.TryCollectOwnedContents(world, npc, 0, out var pockets), Is.True);
+        Assert.That(pockets.Any(item => ReferenceEquals(item, blade)), Is.True);
+        Assert.That(pockets.Any(item => ReferenceEquals(item, bottle)), Is.True);
+
+        var before = world.Entities.Objects.Count;
+        var laid = ExecutionSystem.StowWornGarmentWithContents(world, npc, garment, wardrobe.Id);
+        Assert.That(laid, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(world.Entities.Objects.Count, Is.EqualTo(before + 1), "Only the garment appears.");
+            Assert.That(npc.Inventory.Items.Any(item => ReferenceEquals(item, blade)), Is.True);
+            Assert.That(npc.Inventory.Items.Any(item => ReferenceEquals(item, bottle)), Is.True);
+            Assert.That(bottle.ResourceAmount, Is.EqualTo(3));
+            Assert.That(bottle.WaterKind, Is.EqualTo(WaterKind.Boiled));
+            Assert.That(logs.All(log => laid.Contents.Any(item => ReferenceEquals(item, log))), Is.True);
+            Assert.That(npc.Inventory.Items.Any(item => item.DefinitionId == ContentIds.Log), Is.False);
+            Assert.That(npc.Inventory.UsedSlots, Is.EqualTo(npc.Inventory.Capacity));
+        });
+    }
+
+    [Test]
+    public void DoffingWithoutRoomForProtectedItemsLeavesBothStoresUnchanged()
+    {
+        var (world, npc, garment, wardrobe) = Setup();
+        npc.Inventory.Items.Clear();
+        for (var i = 0; i < npc.Inventory.Capacity; i++)
+            npc.Inventory.Items.Add(new ItemInstance(ContentIds.Bottle) { ResourceAmount = i });
+        var before = npc.Inventory.Items.ToArray();
+        var objects = world.Entities.Objects.Count;
+
+        Assert.That(ExecutionSystem.StowWornGarmentWithContents(world, npc, garment, wardrobe.Id), Is.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.WornItems.Single(), Is.SameAs(garment));
+            Assert.That(npc.Inventory.Items.Count, Is.EqualTo(before.Length));
+            Assert.That(npc.Inventory.Items.Zip(before, ReferenceEquals).All(same => same), Is.True);
+            Assert.That(world.Entities.Objects.Count, Is.EqualTo(objects));
+        });
     }
 
     [Test]

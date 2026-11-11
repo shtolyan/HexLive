@@ -258,26 +258,19 @@ public sealed class InventoryLayoutTests
     }
 
     [Test]
-    public void MissingTool_ReplacesRedundantKnifeInFullInventory()
+    public void MissingTool_DoesNotThrowAwayRedundantKnifeFromFullInventory()
     {
         var (world, npc) = CleanNpc();
         npc.Inventory.Capacity = 2;
         npc.Inventory.Items.Add(ContentIds.Knife);
         npc.Inventory.Items.Add(ContentIds.Knife);
 
-        Assert.That(InventoryMath.Importance(world, ContentIds.PickaxeStone),
-            Is.LessThanOrEqualTo(InventoryMath.Importance(world, ContentIds.Knife)),
-            "Regression setup requires the missing tool not to win the ordinary " +
-            "strict-less-than replacement comparison.");
-        Assert.That(InventoryMath.CanMakeRoomFor(world, npc, ContentIds.PickaxeStone), Is.True,
-            "A missing capability must be able to displace redundant gear.");
-
-        Assert.That(InventoryMath.MakeRoomFor(world, npc, ContentIds.PickaxeStone), Is.True);
+        var before = world.Entities.Objects.Count;
+        Assert.That(InventoryMath.CanMakeRoomFor(world, npc, ContentIds.PickaxeStone), Is.False);
+        Assert.That(InventoryMath.MakeRoomFor(world, npc, ContentIds.PickaxeStone), Is.False);
         Assert.That(npc.Inventory.Items.Count(item => item.DefinitionId == ContentIds.Knife),
-            Is.EqualTo(1));
-        Assert.That(npc.Inventory.HasSpace, Is.True);
-        Assert.That(world.Events.Items.Any(e =>
-            e.Type == "InventoryMadeRoom" && e.Message.Contains(ContentIds.PickaxeStone)), Is.True);
+            Is.EqualTo(2));
+        Assert.That(world.Entities.Objects.Count, Is.EqualTo(before));
     }
 
     [Test]

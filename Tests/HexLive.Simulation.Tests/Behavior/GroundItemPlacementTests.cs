@@ -422,7 +422,7 @@ public void SaturatedGarmentCompletionRetainsExactHandAndPocketOwnership(bool st
 [TestCase(false,true)]
 [TestCase(true,false)]
 [TestCase(true,true)]
-public void WearPreflightReservesOnlyActualDisplacedRemainderAndNeverMutates(bool external,bool saturated)
+public void WearPreflightNeedsCarriedCellsForEveryDisplacedGarment(bool external,bool saturated)
 {
     var (world,npc)=Fixture(onlyOwnPoint:true);
     var first=new ItemInstance("clothing.jacket_biker"){Durability=.32f,OwnerId=npc.Id.Value};
@@ -441,30 +441,29 @@ public void WearPreflightReservesOnlyActualDisplacedRemainderAndNeverMutates(boo
     if(saturated) Put(world,npc,new ItemInstance(ContentIds.Coconut));
     var carriedBefore=npc.Inventory.Items.ToArray();var wornBefore=npc.WornItems.ToArray();
     var nextId=world.NextRuntimeObjectId;var events=world.Events.HighestSeq;
-    var accepted=external?PlayerInventoryTransferMath.CanWearIncoming(world,npc,incoming):
+    bool Fits() => external?PlayerInventoryTransferMath.CanWearIncoming(world,npc,incoming):
         PlayerInventoryMath.FitsAfter(world,npc,new InventoryItemRef(InventoryItemSource.Carried,
             npc.Inventory.Items.Count-1,incoming.DefinitionId),InventoryAction.Wear);
-    Assert.That(accepted,Is.EqualTo(!saturated));
+    Assert.That(Fits(),Is.False,"The available ground must not make a swap fit");
     Assert.That(npc.Inventory.Items.Count,Is.EqualTo(carriedBefore.Length));
     for(var i=0;i<carriedBefore.Length;i++) Assert.That(npc.Inventory.Items[i],Is.SameAs(carriedBefore[i]));
     for(var i=0;i<wornBefore.Length;i++) Assert.That(npc.WornItems[i],Is.SameAs(wornBefore[i]));
     Assert.That(first.Durability,Is.EqualTo(.32f));Assert.That(second.OwnerId,Is.EqualTo(999998));
     Assert.That(world.NextRuntimeObjectId,Is.EqualTo(nextId));Assert.That(world.Events.HighestSeq,Is.EqualTo(events));
-    if(saturated) return;
+    npc.Inventory.Items.RemoveAt(0);
+    Assert.That(Fits(),Is.True);
     if(external) npc.Inventory.Items.Add(incoming);
     ExecutionSystem.WearCarriedItem(world,npc,incoming);
     Assert.That(npc.WornItems.Single(),Is.SameAs(incoming));
-    Assert.That(npc.Inventory.Items.Any(i=>ReferenceEquals(i,first)),Is.True,"First displaced garment fits the one free cell");
-    Assert.That(npc.Inventory.Items.Any(i=>ReferenceEquals(i,second)),Is.False);
-    var dropped=world.Entities.Objects.Values.Single();
-    Assert.That(dropped.DefinitionId,Is.EqualTo(second.DefinitionId));
-    Assert.That(dropped.Durability,Is.EqualTo(second.Durability));Assert.That(dropped.Owner?.Value,Is.EqualTo(second.OwnerId));
+    Assert.That(npc.Inventory.Items.Any(i=>ReferenceEquals(i,first)),Is.True);
+    Assert.That(npc.Inventory.Items.Any(i=>ReferenceEquals(i,second)),Is.True);
+    Assert.That(world.Entities.Objects.Count,Is.EqualTo(saturated?1:0));
     Assert.That(npc.Inventory.UsedSlots,Is.LessThanOrEqualTo(npc.Inventory.Capacity));
 }
 
 [TestCase(false)]
 [TestCase(true)]
-public void WearResidualSpillProjectionRespectsLiveRetryCooldown(bool cooldown)
+public void WearKeepsExistingOverflowEvenAfterGroundDropCooldownExpires(bool cooldown)
 {
     var (world,npc)=Fixture(onlyOwnPoint:true);
     npc.Mind.OutfitLocked=false;npc.WornItems.Clear();npc.Inventory.Items.Clear();
@@ -474,49 +473,31 @@ public void WearResidualSpillProjectionRespectsLiveRetryCooldown(bool cooldown)
     for(var i=0;i<npc.Inventory.Capacity+1;i++) npc.Inventory.Items.Add(new ItemInstance("item.plaster"));
     var original=npc.Inventory.Items.ToArray();
     npc.Inventory.NextGroundDropRetryTick=cooldown?world.Tick+100:0;
-    Assert.That(PlayerInventoryTransferMath.CanWearIncoming(world,npc,incoming),Is.EqualTo(!cooldown));
+    Assert.That(PlayerInventoryTransferMath.CanWearIncoming(world,npc,incoming),Is.False);
     Assert.That(npc.Inventory.Items.Count,Is.EqualTo(original.Length));
     for(var i=0;i<original.Length;i++) Assert.That(npc.Inventory.Items[i],Is.SameAs(original[i]));
     Assert.That(world.Entities.Objects,Is.Empty);
-    if(cooldown) return;
-    npc.Inventory.Items.Add(incoming);ExecutionSystem.WearCarriedItem(world,npc,incoming);
-    Assert.That(world.Entities.Objects.Values.Single().DefinitionId,Is.EqualTo("item.plaster"));
-    Assert.That(npc.Inventory.UsedSlots,Is.EqualTo(npc.Inventory.Capacity));
 }
 
 [Test]
-public void LegacyOverflowStowsFirst64ExactVictimsThenSpillsRemainderAfterGarment()
+public void WornOutGarmentKeepsEveryPocketInstanceEvenWithoutCapacity()
 {
     var (world,npc)=Fixture();
-    npc.WornItems.Clear();npc.Inventory.Items.Clear();npc.Inventory.Capacity=0;
-    npc.Inventory.NextGroundDropRetryTick=0;
-    var garment=new ItemInstance("clothing.jacket_biker"){Durability=.73f};
-    var cargo=Enumerable.Range(0,65).Select(i=>new ItemInstance("item.plaster")
-        {Durability=.1f+i*.01f,OwnerId=900000+i}).ToArray();
+    npc.WornItems.Clear();
+    npc.Inventory.Items.Clear();
+    var garment=new ItemInstance("clothing.jacket_biker"){Durability=0f};
+    world.Content.ObjectDefinitions[garment.DefinitionId].InventoryCapacity=3;
+    npc.WornItems.Add(garment);
+    EquipmentMath.Recalculate(world,npc);
+    var cargo=Enumerable.Range(0,npc.Inventory.Capacity).Select(i=>
+        new ItemInstance(ContentIds.Bottle){Durability=.7f,OwnerId=npc.Id.Value}).ToArray();
     npc.Inventory.Items.AddRange(cargo);
-    Assert.That(PlayerInventoryMath.FitsWearProjected(world,npc,npc.Inventory.Items,npc.WornItems,new[]{garment}),Is.True);
+    EquipmentMath.DestroyWornItems(world,npc,new System.Collections.Generic.List<ItemInstance>{garment});
+    Assert.That(npc.WornItems,Is.Empty);
     Assert.That(world.Entities.Objects,Is.Empty);
+    Assert.That(npc.Inventory.UsedSlots,Is.GreaterThan(npc.Inventory.Capacity));
+    Assert.That(npc.Inventory.Items.Count,Is.EqualTo(cargo.Length));
     for(var i=0;i<cargo.Length;i++) Assert.That(npc.Inventory.Items[i],Is.SameAs(cargo[i]));
-    // Enter the real completion seam after conflict resolution/equipment recalc:
-    // legacy overload is deliberately preserved, with no capacity left.
-    var flags=System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic;
-    var displaced=(System.Collections.Generic.List<ItemInstance>)typeof(ExecutionSystem).GetField("_displacedGarments",flags).GetValue(null);
-    Assert.That(displaced,Is.Empty);
-    try
-    {
-        displaced.Add(garment);
-        typeof(ExecutionSystem).GetMethod("StowDisplacedGarments",flags).Invoke(null,new object[]{world,npc});
-    }
-    finally {displaced.Clear();}
-    var placed=world.Entities.Objects.Values.OrderBy(o=>o.Id.Value).ToArray();
-    Assert.That(placed.Length,Is.EqualTo(2));
-    Assert.That(placed[0].DefinitionId,Is.EqualTo(garment.DefinitionId));
-    Assert.That(placed[0].Contents.Count,Is.EqualTo(64));
-    for(var i=0;i<64;i++) Assert.That(placed[0].Contents[i],Is.SameAs(cargo[i]));
-    Assert.That(placed[1].DefinitionId,Is.EqualTo(cargo[64].DefinitionId));
-    Assert.That(placed[1].Durability,Is.EqualTo(cargo[64].Durability));
-    Assert.That(placed[1].Owner?.Value,Is.EqualTo(cargo[64].OwnerId));
-    Assert.That(npc.Inventory.Items,Is.Empty);
 }
 
     [Test]

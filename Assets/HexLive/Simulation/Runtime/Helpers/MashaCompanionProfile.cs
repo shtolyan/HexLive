@@ -172,7 +172,6 @@ public static class MashaCompanionProfile
         ValidateAuthoredStarterOutfit(world, npc);
         npc.CharacterPresetVersion = AuthoredStarterOutfitVersion;
         EquipmentMath.Recalculate(world, npc);
-        InventoryMath.SpillOverflow(world, npc);
     }
 
     private static void EquipAuthoredStarterOutfit(WorldState world, NPCState npc)

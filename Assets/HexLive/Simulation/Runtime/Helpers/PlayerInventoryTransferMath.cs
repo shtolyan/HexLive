@@ -102,9 +102,7 @@ internal static class PlayerInventoryTransferMath
             InventoryMath.RemoveReference(sourceCarried, item);
         }
 
-        var giftWear = gift && moving.Count == 1 && GiftGarmentChoice.ShouldWear(world, destination, moving[0]) &&
-            CanWearIncoming(world, destination, moving[0], contents);
-        if (gift) wear = giftWear;
+        if (gift) wear = CanAutoWearGift(world, destination, moving, contents);
         var destinationCarried = new List<ItemInstance>(destination.Inventory.Items);
         var destinationWorn = new List<ItemInstance>(destination.WornItems);
         if (gift)
@@ -136,36 +134,14 @@ internal static class PlayerInventoryTransferMath
         return PlayerInventoryMath.FitsProjected(
                    world, source, sourceCarried, sourceWorn) &&
                (ignoreDestinationCapacity || (wear
-                   ? moving.Count == 1 && CanWearIncoming(world, destination, moving[0], contents)
+                   ? gift || moving.Count == 1 && CanWearIncoming(world, destination, moving[0], contents)
                    : PlayerInventoryMath.FitsProjected(
                        world, destination, destinationCarried, destinationWorn)));
     }
 
     internal static bool CanWearIncoming(WorldState world, NPCState npc, ItemInstance item,
-        IReadOnlyList<ItemInstance> contents = null)
-    {
-        if (npc.Mind.OutfitLocked ||
-            !world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition) ||
-            definition.Layer is null) return false;
-        var carried = new List<ItemInstance>(npc.Inventory.Items);
-        if (contents is not null)
-            foreach (var content in contents)
-                if (!ReferenceEquals(content, item)) carried.Add(content);
-        var worn = new List<ItemInstance>(npc.WornItems);
-        var displaced = new List<ItemInstance>();
-        for (var i = 0; i < worn.Count;)
-        {
-            if (world.Content.ObjectDefinitions.TryGetValue(worn[i].DefinitionId, out var existing) &&
-                WearSlotCatalog.Occupies(definition, existing))
-            {
-                displaced.Add(worn[i]);
-                worn.RemoveAt(i);
-            }
-            else i++;
-        }
-        worn.Add(item);
-        return PlayerInventoryMath.FitsWearProjected(world, npc, carried, worn, displaced);
-    }
+        IReadOnlyList<ItemInstance> contents = null) =>
+        !npc.Mind.OutfitLocked && InventoryMath.FitsAfterWear(world, npc, item, contents);
 
     internal static void MoveResolved(
         WorldState world,
@@ -178,8 +154,7 @@ internal static class PlayerInventoryTransferMath
     {
         if (gift)
         {
-            wear = moving.Count == 1 && GiftGarmentChoice.ShouldWear(world, destination, moving[0]) &&
-                CanWearIncoming(world, destination, moving[0], contents);
+            wear = CanAutoWearGift(world, destination, moving, contents);
             ClothingOwnership.TransferGiftOwnership(world, destination, moving);
             ClothingOwnership.TransferGiftOwnership(world, destination, contents);
         }
@@ -229,6 +204,11 @@ internal static class PlayerInventoryTransferMath
         }
 
     }
+
+    private static bool CanAutoWearGift(WorldState world, NPCState destination,
+        IReadOnlyList<ItemInstance> moving, IReadOnlyList<ItemInstance> contents) =>
+        moving.Count == 1 && GiftGarmentChoice.ShouldWear(world, destination, moving[0]) &&
+        InventoryMath.FitsAfterWear(world, destination, moving[0], contents);
 
     private static bool HasWearConflict(
         WorldState world, NPCState destination, ItemInstance garment)

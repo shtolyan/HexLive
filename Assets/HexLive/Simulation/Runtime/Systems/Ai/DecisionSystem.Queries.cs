@@ -290,7 +290,7 @@ public sealed partial class DecisionSystem
             {
                 if (world.Entities.Objects.TryGetValue(obj.Id, out var fire) &&
                     BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked) > 0 &&
-                    InventoryMath.CanMakeRoomFor(world, npc, ContentIds.MeatCooked))
+                    InventoryMath.CanMakeRoomForGoal(world, npc, GoalType.Eat, ContentIds.MeatCooked))
                 {
                     return true;
                 }
@@ -298,7 +298,7 @@ public sealed partial class DecisionSystem
                 continue;
             }
 
-            if (!InventoryMath.CanMakeRoomFor(world, npc, obj.DefinitionId) ||
+            if (!InventoryMath.CanMakeRoomForGoal(world, npc, GoalType.GetFood, obj.DefinitionId) ||
                 !definition.HasTag("Food"))
             {
                 continue;
@@ -936,8 +936,9 @@ public sealed partial class DecisionSystem
     {
         string? best = null;
         var bestWarmth = -1f;
-        foreach (var itemId in npc.WornItems)
+        foreach (var item in npc.WornItems)
         {
+            var itemId = item.DefinitionId;
             var (warmth, armor) = EquipmentMath.ItemValues(world, itemId);
             if (world.Content.ObjectDefinitions.TryGetValue(itemId, out var itemDefinition) &&
                 itemDefinition.Layer == WearLayer.Bags)
@@ -970,7 +971,7 @@ public sealed partial class DecisionSystem
                 continue;
             }
 
-            if (warmth > bestWarmth)
+            if (warmth > bestWarmth && InventoryMath.TryPlanGarmentStow(world, npc, item, out _))
             {
                 best = itemId;
                 bestWarmth = warmth;
@@ -1103,9 +1104,10 @@ public sealed partial class DecisionSystem
             return false;
         }
 
-        return !world.Entities.Objects.TryGetValue(obj.Id, out var live) ||
-            ClothingOwnership.FellowOwner(world, npc, live) == null ||
-            PlanningSystem.HasWearGrant(npc, obj.Id, world.Tick);
+        return world.Entities.Objects.TryGetValue(obj.Id, out var live) &&
+            (ClothingOwnership.FellowOwner(world, npc, live) == null ||
+             PlanningSystem.HasWearGrant(npc, obj.Id, world.Tick)) &&
+            InventoryMath.FitsAfterWear(world, npc, live);
     }
 
     // Spec 27.18A foraging: food can also be sought at a known producer

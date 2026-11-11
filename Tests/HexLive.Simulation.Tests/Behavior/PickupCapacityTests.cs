@@ -152,7 +152,7 @@ public sealed class PickupCapacityTests
     }
 
     [Test]
-    public void ReplacementIsUnavailableWhenTheVictimCannotBeDropped()
+    public void OrdinaryPickupKeepsCarriedItemEvenAfterGroundSpaceOpens()
     {
         var (world, npc, item) = Pickup(ContentIds.PickaxeStone, ExecutionStatus.None);
         var victim = new ItemInstance(ContentIds.Stick);
@@ -178,14 +178,15 @@ public sealed class PickupCapacityTests
 
         world.Occupancy.JunctionOwner.Clear();
         Assert.That(InventoryMath.CanMakeRoomForGoal(world, npc, GoalType.GatherTools,
-            item.DefinitionId), Is.True, "Available ground space must immediately restore admission.");
+            item.DefinitionId), Is.False, "A free ground point is not inventory space.");
         Assert.That(InventoryMath.MakeRoomForGoal(world, npc, GoalType.GatherTools,
-            item.DefinitionId), Is.True);
-        Assert.That(npc.Inventory.HasSpace, Is.True);
+            item.DefinitionId), Is.False);
+        Assert.That(npc.Inventory.Items.Single(), Is.SameAs(victim));
+        Assert.That(world.Entities.Objects.Count, Is.EqualTo(objectCount));
     }
 
     [Test]
-    public void DropRetryExpiryReenablesReplacementWithoutBlacklistingThePickup()
+    public void FreeingARealCellReenablesPickupWithoutBlacklistingTheTarget()
     {
         var (world, npc, item) = Pickup(ContentIds.PickaxeStone, ExecutionStatus.None);
         npc.Inventory.Items.Add(ContentIds.Stick);
@@ -193,6 +194,9 @@ public sealed class PickupCapacityTests
         Assert.That(InventoryMath.CanMakeRoomForGoal(world, npc, GoalType.GatherTools,
             item.DefinitionId), Is.False);
         world.Tick += 16;
+        Assert.That(InventoryMath.CanMakeRoomForGoal(world, npc, GoalType.GatherTools,
+            item.DefinitionId), Is.False);
+        npc.Inventory.Items.Clear();
         Assert.That(InventoryMath.CanMakeRoomForGoal(world, npc, GoalType.GatherTools,
             item.DefinitionId), Is.True);
         Assert.That(InventoryMath.MakeRoomForGoal(world, npc, GoalType.GatherTools,

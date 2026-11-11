@@ -1078,11 +1078,7 @@ public sealed partial class ExecutionSystem
             OutfitMaintenanceMath.MarkWorn(world, npc, id);
             WorldObjectMutations.DespawnObject(world, id);
             EquipmentMath.Recalculate(world, npc);
-            foreach (var stashed in _dressPourScratch)
-            {
-                GiveOrDrop(world, npc, stashed);
-            }
-
+            npc.Inventory.Items.AddRange(_dressPourScratch);
             StowDisplacedGarments(world, npc);
             reworn++;
         }

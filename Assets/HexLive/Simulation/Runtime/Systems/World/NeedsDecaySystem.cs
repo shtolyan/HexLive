@@ -325,17 +325,6 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // its own row without erasing these.
             npc.EffectImpacts.Clear(EffectImpactCadence.Slow);
 
-            // §52: definitions may cap how many physical instances one NPC can
-            // carry. Normal acquisition enforces this before pickup; this pass
-            // repairs old saves and legacy direct-add paths without deleting
-            // property — extras land at the owner's feet.
-            if (world.Tick >= npc.Inventory.NextGroundDropRetryTick)
-            {
-                if (npc.Inventory.UsedSlots > npc.Inventory.Capacity)
-                    InventoryMath.SpillOverflow(world, npc);
-                InventoryMath.SpillCarriedLimitExcess(world, npc);
-            }
-
             var prevHunger = npc.Needs.Hunger;
             var prevEnergy = npc.Needs.Energy;
             var prevComfort = npc.Needs.Comfort;
@@ -1052,53 +1041,6 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 {
                     relationship.Authority = MathUtil.MoveTowards(
                         relationship.Authority, 0f, Spec167.AuthorityDriftPerTick);
-                }
-            }
-
-            // §45 r5: emergency unload — the raft/hearth stockpile must never
-            // cost a life. getFoodAvail requires inventory SPACE, and §45 r3
-            // fills packs (3 raft logs + leaves + tools) that nothing ever
-            // empties: on the r5 25-day soak 6 of 8 starvation deaths died at
-            // Hunger=1.00 with 10/10 slots of logs/leaves and ZERO food —
-            // coconuts abundant (25-39 on the ground, producers at cap) but
-            // un-pick-up-able. A genuinely starving girl with a full pack and
-            // no food in it now drops one carried resource per slow tick
-            // (wood, then leaves, then stone — never tools) at her feet, so
-            // GetFood can fire again. Last-resort by construction (hunger
-            // >= 0.8), like food-sharing/theft — the healthy colony never
-            // sees it.
-            // Jul 2026: the same trap kills via THIRST — a pack full of
-            // logs/sticks blocks GetWater/forage exactly like it blocked
-            // GetFood, and the girl stood at Goal=None x362 cycles until the
-            // thirst threshold death (seed 42 d5-6, whole colony at one tile).
-            // Same last-resort construction, same junk order.  §63: the one
-            // stick + one stone reserved for an emergency coconut knife are
-            // excluded.  Dropping either created a literal pick-up/drop loop;
-            // the goal-aware pickup path may instead shed an ordinary tool.
-            var packStarved = npc.Needs.Hunger >= 0.8f &&
-                npc.Inventory.FindFirstFood(world.Content) is null;
-            var packParched = npc.Needs.Thirst >= 0.8f &&
-                npc.Inventory.FindFirstDrink(world.Content) is null &&
-                !npc.Inventory.Items.Contains(ContentIds.Coconut);
-            if ((packStarved || packParched) && !npc.Inventory.HasSpace)
-            {
-                foreach (var junk in new[] { ContentIds.Log, ContentIds.Stick, ContentIds.PalmLeaf, ContentIds.Stone })
-                {
-                    if (InventoryMath.IsReservedEmergencyKnifeMaterial(world, npc, junk))
-                    {
-                        continue;
-                    }
-
-                    var idx = npc.Inventory.Items.FindIndex(i => i.DefinitionId == junk);
-                    if (idx >= 0)
-                    {
-                        var item = npc.Inventory.Items[idx];
-                        if (InventoryMath.TryDropAutomatic(world, npc, item) == null) break;
-                        npc.Inventory.Items.RemoveAt(idx);
-                        Trace.Emit(world, npc.Id, "EmergencyUnload",
-                            $"Dropped {junk} (Hunger={npc.Needs.Hunger:F2}, full pack, no food)");
-                        break;
-                    }
                 }
             }
 

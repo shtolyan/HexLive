@@ -13,7 +13,6 @@ namespace HexLive.Simulation.Runtime
         {
             var carried = new List<ItemInstance>(npc.Inventory.Items);
             var worn = new List<ItemInstance>(npc.WornItems);
-            var displaced = new List<ItemInstance>();
 
             if (itemRef.Source == InventoryItemSource.Carried)
             {
@@ -30,22 +29,7 @@ namespace HexLive.Simulation.Runtime
                 }
                 else if (action == InventoryAction.Wear)
                 {
-                    if (!world.Content.ObjectDefinitions.TryGetValue(
-                            item.DefinitionId, out var newDefinition) || newDefinition.Layer is null)
-                        return false;
-                    carried.RemoveAt(itemRef.Index);
-                    for (var i = 0; i < worn.Count;)
-                    {
-                        if (world.Content.ObjectDefinitions.TryGetValue(
-                                worn[i].DefinitionId, out var oldDefinition) &&
-                            WearSlotCatalog.Occupies(newDefinition, oldDefinition))
-                        {
-                            displaced.Add(worn[i]);
-                            worn.RemoveAt(i);
-                        }
-                        else i++;
-                    }
-                    worn.Add(item);
+                    return InventoryMath.FitsAfterWear(world, npc, item);
                 }
                 else
                 {
@@ -74,53 +58,7 @@ namespace HexLive.Simulation.Runtime
                 else return false;
             }
 
-            return action == InventoryAction.Wear
-                ? FitsWearProjected(world, npc, carried, worn, displaced)
-                : FitsProjected(world, npc, carried, worn);
-        }
-
-
-        internal static bool FitsWearProjected(
-            WorldState world, NPCState npc, IReadOnlyList<ItemInstance> carried,
-            IReadOnlyList<ItemInstance> worn, IReadOnlyList<ItemInstance> displaced)
-        {
-            var layout = BuildProjectedInventory(world, npc, carried, worn);
-            var ground = new List<ItemInstance>();
-            var contents = new List<ItemInstance>();
-            foreach (var garment in displaced)
-            {
-                if (layout.HasSpace)
-                {
-                    layout.Items.Add(garment);
-                }
-                else
-                {
-                    ground.Add(garment);
-                    contents.Clear();
-                    InventoryMath.MoveOverflowToGarment(world, npc.Id.Value, layout, contents);
-                }
-            }
-
-            // Same final SpillOverflow order/cell guard as live StowDisplacedGarments.
-            // These victims are independent ground objects, unlike garment contents.
-            if (layout.UsedSlots > layout.Capacity && world.Tick < npc.Inventory.NextGroundDropRetryTick)
-                return false;
-            var freedCells = 0;
-            var used = layout.UsedSlots;
-            while (layout.UsedSlots > layout.Capacity && freedCells < 64)
-            {
-                var victim = InventoryMath.LowestImportanceDroppable(world, npc.Id.Value, layout);
-                if (victim is null) break;
-                ground.Add(victim);
-                InventoryMath.RemoveReference(layout.Items, victim);
-                if (layout.UsedSlots < used)
-                {
-                    freedCells++;
-                    used = layout.UsedSlots;
-                }
-            }
-            return layout.UsedSlots <= layout.Capacity &&
-                (ground.Count == 0 || GroundItemPlacement.CanPlaceBatch(world, npc, ground));
+            return FitsProjected(world, npc, carried, worn);
         }
 
         internal static bool FitsProjected(
@@ -133,7 +71,7 @@ namespace HexLive.Simulation.Runtime
             return layout.UsedSlots <= layout.Capacity;
         }
 
-        private static InventoryState BuildProjectedInventory(WorldState world, NPCState npc,
+        internal static InventoryState BuildProjectedInventory(WorldState world, NPCState npc,
             IReadOnlyList<ItemInstance> carried, IReadOnlyList<ItemInstance> worn)
         {
             var capacity = npc.Inventory.Capacity;

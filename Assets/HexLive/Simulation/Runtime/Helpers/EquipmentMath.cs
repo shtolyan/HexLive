@@ -253,10 +253,8 @@ internal static class EquipmentMath
         }
 
         Recalculate(world, npc);
-        // Spec §52: rags destroy the garment, NOT the pockets' contents. Losing
-        // the slots a torn piece provided spills whatever no longer fits onto the
-        // ground at the NPC's feet — the bottle in the ripped panties just drops.
-        InventoryMath.SpillOverflow(world, npc);
+        // §52: worn-out fabric costs its slots. The contents stay with the
+        // owner, including any excess pending recovery of carrying capacity.
     }
 
     // Spec 35.5 / §49.7: soggy clothes drag. Only REAL garments (Wear/Outerwear)
@@ -395,12 +393,9 @@ internal static class EquipmentMath
 
         if (stripped > 0)
         {
-            // Снятое отдало и свои карманы, поэтому вместимость пересчитывается
-            // ПЕРЕД разбором переполнения — иначе вещь просто уляжется сверх
-            // ёмкости и останется там навсегда. Что не влезло, падает под ноги
-            // (§52.3), а не исчезает.
+            // §52: repair old outfits without moving the owner's belongings
+            // into the world. Existing excess can remain carried.
             Recalculate(world, npc);
-            InventoryMath.SpillOverflow(world, npc);
         }
 
         return stripped;

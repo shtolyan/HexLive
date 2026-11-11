@@ -168,32 +168,25 @@ public sealed class GiftTransferTests
     }
 
     [Test]
-    public void OneGiftCanBeOfferedToAFullPackAndRecipientMakesRoomOnlyOnArrival()
+    public void AnOfferToAFullPackDoesNotDropTheRecipientsBelongings()
     {
         var(engine,giver,receiver)=Scene();var world=engine.World;
         var before=FillResourceSlots(receiver);
         var gift=new ItemInstance(ContentIds.Hammer){Durability=.371f,Wetness=.219f,Dirtiness=.417f};
         giver.Inventory.Items.Add(gift);
-        var dryingControl=new ItemInstance(ContentIds.Hammer){Wetness=gift.Wetness};
-        giver.Inventory.Items.Add(dryingControl);
-        Assert.That(InventoryMath.CanMakeRoomFor(world,receiver,gift.DefinitionId),Is.True,
-            "The fixture must have a physical drop location and an ordinary lower-priority replacement.");
+        var belongings = before.Select(item => item.DefinitionId).ToHashSet();
+        int DroppedBelongings() => world.Entities.Objects.Values.Count(obj =>
+            obj.Owner == receiver.Id && belongings.Contains(obj.DefinitionId));
+        var objects = DroppedBelongings();
+        Assert.That(InventoryMath.CanMakeRoomFor(world,receiver,gift.DefinitionId),Is.False);
         var result=engine.ApplyManualCommand(new TransferInventoryCommand(giver.Id,receiver.Id,
             new InventoryItemRef(InventoryItemSource.Carried,0,gift.DefinitionId),1,InventoryTransferDirection.Give));
         Assert.That(result.Accepted,Is.True,result.Reason);
-        Assert.That(receiver.Inventory.Items.SequenceEqual(before),Is.True,
-            "Offering a gift must not evict the recipient's belongings before arrival.");
         engine.Step();
-        Assert.That(receiver.Inventory.Items.Any(i=>ReferenceEquals(i,gift)),Is.True);
-        Assert.That(gift.Durability,Is.EqualTo(.371f));
-        Assert.That(gift.Wetness,Is.EqualTo(dryingControl.Wetness),
-            "The normal simulation tick dries both physical hammers equally.");
-        Assert.That(giver.Inventory.Items.Any(i=>ReferenceEquals(i,gift)),Is.False);
-        var dropped=before.Where(old=>!receiver.Inventory.Items.Any(i=>ReferenceEquals(i,old))).ToArray();
-        Assert.That(dropped.Length,Is.GreaterThan(0));
-        foreach(var old in dropped)Assert.That(world.Entities.Objects.Values.Any(o=>o.DefinitionId==old.DefinitionId&&
-            o.Durability==old.Durability&&o.Dirtiness==old.Dirtiness),Is.True,"Evicted physical contents must remain in the world.");
-        Assert.That(receiver.Inventory.UsedSlots,Is.LessThanOrEqualTo(receiver.Inventory.Capacity));
+        Assert.That(giver.Inventory.Items.Any(i=>ReferenceEquals(i,gift)),Is.True);
+        Assert.That(receiver.Inventory.Items.Zip(before, ReferenceEquals).All(same => same), Is.True);
+        Assert.That(receiver.Inventory.Items.Count, Is.EqualTo(before.Length));
+        Assert.That(DroppedBelongings(), Is.EqualTo(objects));
     }
 
     [Test]

@@ -42,14 +42,16 @@ public sealed partial class PlanningSystem
 
         if (TryFindCoconutObject(npc, world, ContentIds.CoconutPierced, requireWater: true, out var pierced))
         {
-            return BuildCoconutWorldPlan(world, npc, GoalType.Drink, pierced, InteractionType.PickUp);
+            return BuildCoconutWorldPlan(world, npc, GoalType.Drink, pierced,
+                TakeOrConsumeCoconut(world, npc, ContentIds.CoconutPierced, InteractionType.Drink));
         }
 
         if (HasCoconutBlade(npc) &&
             TryFindCoconutObject(npc, world, ContentIds.Coconut, requireWater: false, out var whole))
         {
             return BuildCoconutWorldPlan(world, npc, GoalType.Drink, whole,
-                InteractionType.Process, InteractionType.PickUp);
+                InteractionType.Process,
+                TakeOrConsumeCoconut(world, npc, ContentIds.CoconutPierced, InteractionType.Drink));
         }
 
         return false;
@@ -73,7 +75,7 @@ public sealed partial class PlanningSystem
             return false; // the pack already holds a meal at least as good
         }
 
-        if (!InventoryMath.CanMakeRoomFor(world, npc, ContentIds.MeatCooked))
+        if (!InventoryMath.CanMakeRoomForGoal(world, npc, GoalType.Eat, ContentIds.MeatCooked))
         {
             return false; // take.from.spit must be able to make a real slot
         }
@@ -174,14 +176,16 @@ public sealed partial class PlanningSystem
         if (!inventoryOnly &&
             TryFindCoconutObject(npc, world, ContentIds.CoconutOpen, requireWater: false, out var open))
         {
-            return BuildCoconutWorldPlan(world, npc, GoalType.Eat, open, InteractionType.PickUp);
+            return BuildCoconutWorldPlan(world, npc, GoalType.Eat, open,
+                TakeOrConsumeCoconut(world, npc, ContentIds.CoconutOpen, InteractionType.Eat));
         }
 
         if (!inventoryOnly && HasCoconutBlade(npc) &&
             TryFindCoconutObject(npc, world, ContentIds.Coconut, requireWater: false, out var whole))
         {
             return BuildCoconutWorldPlan(world, npc, GoalType.Eat, whole,
-                InteractionType.Process, InteractionType.Process, InteractionType.PickUp);
+                InteractionType.Process, InteractionType.Process,
+                TakeOrConsumeCoconut(world, npc, ContentIds.CoconutOpen, InteractionType.Eat));
         }
 
         if (!inventoryOnly && HasCoconutBlade(npc) &&
@@ -189,7 +193,8 @@ public sealed partial class PlanningSystem
                 out var pierced, preferDrained: true))
         {
             return BuildCoconutWorldPlan(world, npc, GoalType.Eat, pierced,
-                InteractionType.Process, InteractionType.PickUp);
+                InteractionType.Process,
+                TakeOrConsumeCoconut(world, npc, ContentIds.CoconutOpen, InteractionType.Eat));
         }
 
         if (HasCoconutBlade(npc) &&
@@ -201,6 +206,10 @@ public sealed partial class PlanningSystem
 
         return false;
     }
+
+    private static InteractionType TakeOrConsumeCoconut(WorldState world, NPCState npc, string preparedId,
+        InteractionType consume) =>
+        InventoryMath.FitsWithoutEviction(world, npc, preparedId) ? InteractionType.PickUp : consume;
 
     private static bool BuildCoconutInventoryPlan(
         WorldState world,

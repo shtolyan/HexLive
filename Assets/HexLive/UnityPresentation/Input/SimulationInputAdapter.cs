@@ -1557,10 +1557,11 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             }
             else
             {
-                var trusted = carrier != null && TrustTo(target,carrier.Id.Value) > TravelPartyMath.RequiredTrust;
+                var blocked = !canOrderSocial || carrier is null
+                    ? socialBlocked : TravelInviteBlockedHint(carrier, target);
                 _entries.Add(new ContextMenuEntry(Loc.Get("menu.travel.invite"),
                     () => EnqueueOrder(carrier!.Id.Value,new RequestTravelPartyCommand(carrier.Id,target.Id)),
-                    canOrderSocial && trusted, trusted ? socialBlocked : Loc.Get("menu.travel.need_trust")));
+                    blocked is null, blocked));
             }
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.romance"),
                 () => EnqueueOrder(carrier!.Id.Value, new RomancePersonCommand(
@@ -1772,6 +1773,18 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             () => NpcSelection.Activate(npcId)));
 
         ContextMenuPanel.Open(mousePos, NpcTitle(npcId), _entries);
+    }
+
+    private static string? TravelInviteBlockedHint(NpcSnapshot leader, NpcSnapshot target)
+    {
+        if (leader.IsFighting || target.IsFighting || leader.TravelLeaderNpcId.HasValue)
+            return Loc.Get("toast.order_rejected.TargetUnavailable");
+        if (target.IsManualControl) return Loc.Get("menu.travel.target_manual");
+        var trust = TrustTo(target, leader.Id.Value);
+        if (trust <= TravelPartyMath.RequiredTrust)
+            return string.Format(Loc.Get("menu.travel.need_trust"), Mathf.FloorToInt(Mathf.Clamp01(trust) * 100f));
+        return TravelPartyMath.IsWithinInviteRange(leader.Position, target.Position)
+            ? null : Loc.Get("toast.order_rejected.TravelTargetTooFar");
     }
 
     private static float TrustTo(NpcSnapshot source, int otherId)

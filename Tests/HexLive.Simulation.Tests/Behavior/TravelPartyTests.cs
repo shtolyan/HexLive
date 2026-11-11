@@ -1,7 +1,9 @@
 using System.IO;
 using System.Linq;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Persistence;
 using HexLive.Simulation.Runtime;
@@ -50,6 +52,37 @@ public sealed class TravelPartyTests
             Assert.That(FactionRelations.AreAllies(leader,member),Is.True);
             Assert.That(FactionRelations.AreHostile(leader,member),Is.False);
         }
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void InvitationChecksCompanionTrustBeforeGrantingControl(bool far)
+    {
+        var (engine, leader, member) = Setup(far ? 1f : 0f);
+        leader.Social.GetOrCreate(member.Id).Trust = 1f;
+        if (far) member.Position = leader.Position + new Float2(4.5f, 0f);
+
+        var result = engine.ApplyManualCommand(new RequestTravelPartyCommand(leader.Id, member.Id));
+
+        Assert.That(result.Reason, Is.EqualTo(far ? "TravelTargetTooFar" : "TravelTrustTooLow"));
+        Assert.That(member.Mind.TravelLeaderNpcId, Is.Null);
+        Assert.That(member.Mind.ManualControl, Is.False);
+    }
+
+    [Test]
+    public void ATrustingCompanionCanAcceptAnInvitationWhileGardening()
+    {
+        var (engine, leader, member) = Setup();
+        member.Mind.CurrentGoal = member.Plan.Goal = GoalType.TendGarden;
+        member.Plan.Status = PlanStatus.Active;
+        member.Execution.Status = ExecutionStatus.InProgress;
+        member.Execution.CurrentInteraction = InteractionType.PickUp;
+
+        var result = engine.ApplyManualCommand(new RequestTravelPartyCommand(leader.Id, member.Id));
+
+        Assert.That(result.Accepted, Is.True, result.Reason);
+        Assert.That(member.Mind.TravelLeaderNpcId, Is.EqualTo(leader.Id));
+        Assert.That(member.Execution.CurrentInteraction, Is.Null);
     }
 
     [TestCase(false)]

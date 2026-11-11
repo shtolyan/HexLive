@@ -32016,8 +32016,32 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - 'Their trust in the leader must be greater than 60'
-      - 'Доверие персонажа к лидеру должно быть выше 60'
+      - 'Their trust in your leader is {0}%. It must be above 60%.'
+      - 'Персонаж доверяет вашему лидеру на {0}%. Нужно больше 60%.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.travel.target_manual'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This character is under manual control'
+      - 'Персонаж под ручным управлением'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.TravelTrustTooLow'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The companion must trust your leader by more than 60%'
+      - 'Спутник должен доверять вашему лидеру больше чем на 60%'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.TravelTargetTooFar'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Move closer to invite this companion'
+      - 'Подойдите ближе, чтобы позвать спутника'
       Flags: 0101
       Languages_Touch: []
     - Term: 'history.TravelPartyJoined'

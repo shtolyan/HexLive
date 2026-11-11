@@ -1766,7 +1766,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
     {
-        var bottleItem = BottleInventoryMath.FirstEmpty(npc) ?? BottleInventoryMath.FirstBottle(npc);
+        var bottleItem = npc.Plan.Goal == GoalType.StowBottle
+            ? npc.Inventory.Items.FindLast(item =>
+                BottleInventoryMath.IsBottle(item) && BottleInventoryMath.Amount(item) <= 0f)
+            : BottleInventoryMath.FirstEmpty(npc) ?? BottleInventoryMath.FirstBottle(npc);
         if (bottleItem is null ||
             worldObject.Junctions.Count == 0 ||
             WaterCollectorMath.FindVessel(world, worldObject) is not null)

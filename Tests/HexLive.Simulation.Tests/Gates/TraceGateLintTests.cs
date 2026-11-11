@@ -52,6 +52,10 @@ public sealed class TraceGateLintTests
         // §160.6: personal observations wake the witnessing controller even
         // with diagnostics off; they never join the public GameEventTypes feed.
         "AgentObservedIntruder", "AgentObservedTheft", "AgentObservedLoot", "AgentObservedDeath",
+        // §176: portal lifecycle, the resident's spoken reaction, and manual
+        // travel or furniture outcomes must be available with tracing disabled.
+        "PortalOpened", "PortalEntered", "PortalReturned", "PortalResidentJoined",
+        "PortalResidentStartled", "PortalTravelRefused", "FurniturePlaced",
     };
 
     [Test]

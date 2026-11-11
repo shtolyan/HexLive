@@ -21,6 +21,9 @@ public sealed class ConstructionArtContractTests
         using var document = Manifest();
         var ids = document.RootElement.GetProperty("definitions").EnumerateArray()
             .Select(d => d.GetProperty("id").GetString()).ToHashSet();
+        using var props = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepoPaths.Root, "Tools/world_prop_manifest.json")));
+        var propModels = props.RootElement.GetProperty("entries").EnumerateArray()
+            .ToDictionary(row => row.GetProperty("id").GetString(), row => row.GetProperty("native").GetString());
         foreach (var entry in BuildCatalogDefinition.All)
         {
             if (entry.DefinitionId == "architecture.floor.open") continue; // tool, not another model
@@ -34,6 +37,15 @@ public sealed class ConstructionArtContractTests
             if (entry.DefinitionId == ContentIds.Torch)
             {
                 AssertPortableTorchArtAndBill();
+                continue;
+            }
+            if (entry.CategoryId == BuildCatalogCategories.Modern)
+            {
+                // Placement consumes existing furniture with its finished model.
+                Assert.That(PortalWorld.IsFurniture(entry.DefinitionId), Is.True);
+                Assert.That(propModels.TryGetValue(entry.DefinitionId, out var model), Is.True, entry.DefinitionId);
+                var path = Path.Combine(RepoPaths.Root, "Assets/HexLiveContent/RuntimeSource/Objects", model);
+                Assert.That(File.Exists(path) && new FileInfo(path).Length > 1024, Is.True, path);
                 continue;
             }
             Assert.That(ids, Does.Contain(entry.DefinitionId), entry.DefinitionId);

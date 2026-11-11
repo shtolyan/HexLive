@@ -69,7 +69,8 @@ public sealed class CorneredAnswerTests
         // Любой ходибельный гекс подальше от якоря: guard не должен задеть
         // штатное отступление §109.8 из чужого двора.
         var far = world.Tiles.Items.Values
-            .Where(t => t.Flags.HasFlag(TileFlags.Walkable) &&
+            .Where(t => !PortalWorld.IsApartmentTile(t.Coord) &&
+                        t.Flags.HasFlag(TileFlags.Walkable) &&
                         !t.Flags.HasFlag(TileFlags.Water) &&
                         t.Junctions.Count > 0)
             .OrderByDescending(t => HexSpatialMath.HexDistance(t.Coord, camp))

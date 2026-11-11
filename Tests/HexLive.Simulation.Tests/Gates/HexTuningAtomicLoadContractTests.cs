@@ -58,8 +58,9 @@ public sealed class HexTuningAtomicLoadContractTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(renderer, Does.Contain(
-                "pose = new Pose(GetObjectAnchorPosition(snapshot, seat), rotation)"));
+            Assert.That(renderer, Does.Contain("var position = GetObjectAnchorPosition(snapshot, seat)"));
+            Assert.That(renderer, Does.Contain("offset.y -= HexLive.UnityPresentation.Environment.StumpFactory.Height"));
+            Assert.That(renderer, Does.Contain("pose = new Pose(position, rotation)"));
             Assert.That(renderer, Does.Contain("surfaceY = point.position.y"));
             Assert.That(stump, Does.Contain("public const float Height = 0.30f"));
             Assert.That(bed, Does.Contain("public const float SleepRootLocalY = 0.37f"));

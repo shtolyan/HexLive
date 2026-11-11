@@ -119,12 +119,14 @@ public sealed class GroundItemPlacementTests
     }
 
     [Test]
-    public void EveryPortableDefinitionHasSharedGeometryAndCampfireIsExcluded()
+    public void EveryPortableDefinitionHasPlacementGeometryAndCampfireIsExcluded()
     {
         var world=TestWorld.CreateWorld();
         var missing=world.Content.ObjectDefinitions.Values
             .Where(d=>GroundItemPlacement.IsLoose(d))
-            .Where(d=>!GroundPileCatalog.TryGet(d.Id,d.Layer!=null,out _))
+            .Where(d => PortableFurniture.CanCarry(d.Id)
+                ? PortableFurniture.FootprintRadius(d.Id) <= 0f
+                : !GroundPileCatalog.TryGet(d.Id, d.Layer != null, out _))
             .Select(d=>d.Id).OrderBy(id=>id).ToArray();
         Assert.That(missing,Is.Empty,"Every active loose factory branch requires explicit shared geometry");
         Assert.That(GroundItemPlacement.IsLoose(world.Content.ObjectDefinitions["campfire.spot"]),Is.False);
@@ -674,7 +676,6 @@ public void LegacyOverflowStowsFirst64ExactVictimsThenSpillsRemainderAfterGarmen
         var searchRings=2+(int)Math.Ceiling((profile.FullBounds.RadiusXZ+GroundPileCatalog.MaximumRadiusXZ)/
             (HexSpatialMath.HexRadius*HexSpatialMath.HexRowStepFactor));
         Assert.That(Distance(far.Tiles[0]),Is.GreaterThan(searchRings),"Fixture needs a genuinely distant region");
-        for(var i=0;i<100;i++) GroundItemPlacement.TryFind(world,npc,item,out _,out _,out _,out _);
         var baseline=Measure();
         for(var i=0;i<1000;i++) WorldObjectMutations.SpawnObject(world,ContentIds.Stick,far.Fragment,far.Tiles[0],far.Id);
         var populated=Measure();
@@ -685,6 +686,8 @@ public void LegacyOverflowStowsFirst64ExactVictimsThenSpillsRemainderAfterGarmen
 
         (int inspected,int candidates,long bytes,double ms) Measure()
         {
+            for (var i = 0; i < 100; i++)
+                GroundItemPlacement.TryFind(world, npc, item, out _, out _, out _, out _);
             GroundItemPlacement.TryFind(world,npc,item,out _,out _,out _,out var metrics);
             var started=Stopwatch.GetTimestamp();var before=GC.GetAllocatedBytesForCurrentThread();
             for(var i=0;i<1000;i++) GroundItemPlacement.TryFind(world,npc,item,out _,out _,out _,out _);

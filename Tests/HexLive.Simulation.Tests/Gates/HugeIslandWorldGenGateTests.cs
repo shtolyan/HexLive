@@ -38,7 +38,8 @@ public sealed class HugeIslandWorldGenGateTests
         {
             var world = Build(seed);
             Assert.That(world.Mode, Is.EqualTo(GameMode.HugeIsland), $"seed {seed}");
-            Assert.That(world.Tiles.Items, Has.Count.EqualTo(102 * 80), $"seed {seed}");
+            Assert.That(world.Tiles.Items.Keys.Count(tile => !PortalWorld.IsApartmentTile(tile)),
+                Is.EqualTo(102 * 80), $"seed {seed}");
 
             var girlFactions = new[]
             {

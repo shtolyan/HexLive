@@ -48,7 +48,8 @@ public sealed class IslandsWorldGenGateTests
         {
             var world = Build(seed);
             Assert.That(world.Mode, Is.EqualTo(GameMode.Islands), $"seed {seed}");
-            Assert.That(world.Tiles.Items, Has.Count.EqualTo(314 * 168), $"seed {seed}");
+            Assert.That(world.Tiles.Items.Keys.Count(tile => !PortalWorld.IsApartmentTile(tile)),
+                Is.EqualTo(314 * 168), $"seed {seed}");
             Assert.That(world.FactionHomes.Keys, Is.EquivalentTo(GirlFactions),
                 $"seed {seed}: только шесть девичьих лагерей, стоянки чужаков нет");
 

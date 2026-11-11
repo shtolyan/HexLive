@@ -35,7 +35,8 @@ public sealed class ManiacWorldGenGateTests
         Assert.Multiple(() =>
         {
             Assert.That(world.Mode, Is.EqualTo(GameMode.Maniac));
-            Assert.That(world.Tiles.Items, Has.Count.EqualTo(102 * 80));
+            Assert.That(world.Tiles.Items.Keys.Count(tile => !PortalWorld.IsApartmentTile(tile)),
+                Is.EqualTo(102 * 80));
             Assert.That(world.FactionHomes, Has.Count.EqualTo(7),
                 "Six women camps plus the central Outsiders camp.");
             Assert.That(player.Faction, Is.EqualTo(Faction.Colony));

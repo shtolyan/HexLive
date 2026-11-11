@@ -10,13 +10,13 @@ namespace HexLive.Simulation.Tests.Blueprints
     public sealed class BuildCatalogTests
     {
         [Test]
-        public void EveryBuildableDefinitionHasOneCatalogCardAndMarkersDefaultOn()
+        public void EveryBuildableDefinitionHasOneCatalogCardAndOnlyConstructionUsesPlanningMarkers()
         {
             var entries = BuildCatalogDefinition.All;
             Assert.That(entries.Select(entry => entry.DefinitionId).Distinct().Count(),
                 Is.EqualTo(entries.Count));
             Assert.That(entries, Has.All.Matches<BuildCatalogEntryDefinition>(entry =>
-                entry.ShowPlanningMarkers));
+                entry.ShowPlanningMarkers == (entry.CategoryId != BuildCatalogCategories.Modern)));
         }
 
         [Test]

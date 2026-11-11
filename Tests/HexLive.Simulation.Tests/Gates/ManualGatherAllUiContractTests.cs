@@ -14,6 +14,9 @@ public sealed class ManualGatherAllUiContractTests
     private static string Adapter() => RepoPaths.ReadText(Path.Combine(
         RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Input",
         "SimulationInputAdapter.cs")).Replace("\r\n", "\n");
+    private const string GatherAllCondition =
+        "if (type == InteractionType.PickUp && interactionId != \"take.from.spit\" &&\n" +
+        "                !PortableFurniture.CanCarry(view.ContextDefinitionId))";
 
     [Test]
     public void PickUpMenuOffersBothGatherAndGatherAllOnHex()
@@ -27,10 +30,8 @@ public sealed class ManualGatherAllUiContractTests
                 "Одиночное «Подобрать» обязано остаться прежним InteractCommand.");
             // Bug #331: у вертела мясо и так берётся по кусочку — «собрать
             // все» там не предлагается.
-            Assert.That(adapter, Does.Contain(
-                "if (type == InteractionType.PickUp && interactionId != \"take.from.spit\")"),
-                "Второй пункт вешается на действие подбора (кроме вертела), " +
-                "а не на весь каталог.");
+            Assert.That(adapter, Does.Contain(GatherAllCondition),
+                "Второй пункт доступен для обычного подбора. Вертел и переносимая мебель исключены.");
             Assert.That(adapter, Does.Contain("Loc.Get(\"menu.gather_all\")"),
                 "§58: подпись пункта — термин I2, а не строка в C#.");
             Assert.That(adapter, Does.Contain(
@@ -78,9 +79,9 @@ public sealed class ManualGatherAllUiContractTests
     public void GatherAllMenuEntryShowsNoCount()
     {
         var adapter = Adapter();
-        var entry = adapter.Substring(adapter.IndexOf(
-            "if (type == InteractionType.PickUp && interactionId != \"take.from.spit\")",
-            System.StringComparison.Ordinal));
+        var start = adapter.IndexOf(GatherAllCondition, System.StringComparison.Ordinal);
+        Assert.That(start, Is.GreaterThanOrEqualTo(0));
+        var entry = adapter.Substring(start);
         entry = entry.Substring(0, entry.IndexOf('}'));
 
         Assert.That(entry, Does.Not.Contain("Count"),

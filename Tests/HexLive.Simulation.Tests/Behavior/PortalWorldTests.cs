@@ -259,7 +259,8 @@ public sealed class PortalWorldTests
     {
         var world = CreateWorld();
         var clothing = new[] { "clothing.shorts_classic", "clothing.halter_vamp", "clothing.croptop_fit" };
-        Assert.That(clothing.All(id => GarmentLibrary.IsSpawnable(id) && world.Content.ObjectDefinitions.ContainsKey(id)), Is.True);
+        Assert.That(clothing.All(id => GarmentLibrary.IsPortalWearAvailable(id) &&
+            !GarmentLibrary.IsSpawnable(id) && world.Content.ObjectDefinitions.ContainsKey(id)), Is.True);
         var foundLoot = false;
         NPCState resident = null;
         for (var day = 0; day < 12; day++)

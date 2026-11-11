@@ -12,8 +12,11 @@ namespace HexLive.Simulation.Runtime
 // a coconut half was invisible to both and the colony lived on coconuts no
 // matter how much meat it had. These are the only readers of an item's hunger
 // payoff; keep them the only ones.
-internal static class FoodMath
+public static class FoodMath
 {
+    public static bool CanEat(ObjectDefinition? definition) =>
+        definition is not null && definition.Interactions.Exists(interaction => interaction.Type == InteractionType.Eat);
+
     // The Hunger the food's own Eat interaction removes; the §53 flat value
     // when the definition declares none.
     public static float NutritionOf(WorldState world, string definitionId)

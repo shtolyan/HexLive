@@ -749,11 +749,11 @@ public sealed partial class ExecutionSystem
         }
 
         var starting = npc.Execution.Status == ExecutionStatus.None;
-        var item = starting
+        var item = starting && npc.Plan.Goal != GoalType.PlayerOrder
             ? FindConsumableInventoryItem(npc, itemId, verb, itemDefinition)
             : npc.Execution.TargetInventoryItem;
         if (item is null || item.DefinitionId != itemId ||
-            (!starting && !InventoryMath.ContainsReference(npc.Inventory.Items, item)) ||
+            !InventoryMath.ContainsReference(npc.Inventory.Items, item) ||
             (IsPortableCoconutDrink(itemDefinition, verb) && item.ResourceAmount <= 0f))
         {
             npc.Plan.Status = PlanStatus.Failed;

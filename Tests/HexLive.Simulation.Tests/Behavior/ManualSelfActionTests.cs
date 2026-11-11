@@ -180,6 +180,31 @@ public sealed class ManualSelfActionTests
     }
 
     [Test]
+    public void EatSelectedCookedCrabConsumesOnlyThePhysicalSelection()
+    {
+        var engine = TestWorld.CreateEngine();
+        var npc = Colonists(engine.World)[0];
+        TakeControl(engine, npc);
+        npc.Inventory.Items.Clear();
+        var other = new ItemInstance(ContentIds.CrabCooked);
+        var selected = new ItemInstance(ContentIds.CrabCooked);
+        npc.Inventory.Items.Add(other);
+        npc.Inventory.Items.Add(selected);
+        npc.Needs.Hunger = .8f;
+
+        var admission = engine.ApplyManualCommand(new ManageInventoryCommand(npc.Id,
+            new InventoryItemRef(InventoryItemSource.Carried, 1, ContentIds.CrabCooked), InventoryAction.Eat));
+        Assert.That(admission.Accepted, Is.True, admission.Reason);
+        npc.Inventory.Items.Reverse();
+        for (var i = 0; i < 50 && npc.Inventory.Items.Any(item => ReferenceEquals(item, selected)); i++)
+            engine.Step();
+
+        Assert.That(npc.Inventory.Items.Any(item => ReferenceEquals(item, selected)), Is.False);
+        Assert.That(npc.Inventory.Items.Any(item => ReferenceEquals(item, other)), Is.True);
+        Assert.That(npc.Needs.Hunger, Is.LessThan(.8f));
+    }
+
+    [Test]
     public void ExplicitDrinkBelowAutoThresholdAlsoSurvivesDecisionAndUsesOneRealSip()
     {
         var engine = TestWorld.CreateEngine();

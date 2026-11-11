@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="490" viewBox="0 0 840 490">
+<rect width="840" height="490" fill="#151b21"/>
+<defs><marker id="arrow" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto"><path d="M0 0 L5 2.5 L0 5Z" fill="#7cc7e5"/></marker></defs>
+<g font-family="Arial, sans-serif" fill="#edf2f4">
+<text x="30" y="36" font-size="23">Гардероб у стены квартиры</text>
+<polygon points="404.78,148.75 245.00,56.50 85.22,148.75 85.22,333.25 245.00,425.50 404.78,333.25" fill="#212c2b" stroke="#798781" stroke-width="1.5"/>
+<circle cx="85.22" cy="333.25" r="2.5" fill="#506460"/>
+<circle cx="85.22" cy="287.12" r="2.5" fill="#506460"/>
+<circle cx="85.22" cy="241.00" r="2.5" fill="#506460"/>
+<circle cx="85.22" cy="194.88" r="2.5" fill="#506460"/>
+<circle cx="85.22" cy="148.75" r="2.5" fill="#506460"/>
+<circle cx="125.16" cy="356.31" r="2.5" fill="#506460"/>
+<circle cx="125.16" cy="310.19" r="2.5" fill="#657871"/>
+<circle cx="125.16" cy="264.06" r="2.5" fill="#657871"/>
+<circle cx="125.16" cy="217.94" r="2.5" fill="#657871"/>
+<circle cx="125.16" cy="171.81" r="2.5" fill="#657871"/>
+<circle cx="125.16" cy="125.69" r="2.5" fill="#506460"/>
+<circle cx="165.11" cy="379.38" r="2.5" fill="#506460"/>
+<circle cx="165.11" cy="333.25" r="2.5" fill="#657871"/>
+<circle cx="165.11" cy="287.12" r="2.5" fill="#657871"/>
+<circle cx="165.11" cy="241.00" r="2.5" fill="#657871"/>
+<circle cx="165.11" cy="194.88" r="2.5" fill="#657871"/>
+<circle cx="165.11" cy="148.75" r="2.5" fill="#657871"/>
+<circle cx="165.11" cy="102.62" r="2.5" fill="#506460"/>
+<circle cx="205.05" cy="402.44" r="2.5" fill="#506460"/>
+<circle cx="205.05" cy="356.31" r="2.5" fill="#657871"/>
+<circle cx="205.05" cy="310.19" r="2.5" fill="#657871"/>
+<circle cx="205.05" cy="264.06" r="2.5" fill="#657871"/>
+<circle cx="205.05" cy="217.94" r="2.5" fill="#657871"/>
+<circle cx="205.05" cy="171.81" r="2.5" fill="#657871"/>
+<circle cx="205.05" cy="125.69" r="2.5" fill="#657871"/>
+<circle cx="205.05" cy="79.56" r="2.5" fill="#506460"/>
+<circle cx="245.00" cy="425.50" r="2.5" fill="#506460"/>
+<circle cx="245.00" cy="379.38" r="2.5" fill="#657871"/>
+<circle cx="245.00" cy="333.25" r="2.5" fill="#657871"/>
+<circle cx="245.00" cy="287.12" r="2.5" fill="#657871"/>
+<circle cx="245.00" cy="241.00" r="2.5" fill="#657871"/>
+<circle cx="245.00" cy="194.88" r="2.5" fill="#657871"/>
+<circle cx="245.00" cy="148.75" r="2.5" fill="#657871"/>
+<circle cx="245.00" cy="102.62" r="2.5" fill="#657871"/>
+<circle cx="245.00" cy="56.50" r="2.5" fill="#506460"/>
+<circle cx="284.95" cy="402.44" r="2.5" fill="#506460"/>
+<circle cx="284.95" cy="356.31" r="2.5" fill="#657871"/>
+<circle cx="284.95" cy="310.19" r="2.5" fill="#657871"/>
+<circle cx="284.95" cy="264.06" r="2.5" fill="#657871"/>
+<circle cx="284.95" cy="217.94" r="2.5" fill="#657871"/>
+<circle cx="284.95" cy="171.81" r="2.5" fill="#657871"/>
+<circle cx="284.95" cy="125.69" r="2.5" fill="#657871"/>
+<circle cx="284.95" cy="79.56" r="2.5" fill="#506460"/>
+<circle cx="324.89" cy="379.38" r="2.5" fill="#506460"/>
+<circle cx="324.89" cy="333.25" r="2.5" fill="#657871"/>
+<circle cx="324.89" cy="287.12" r="2.5" fill="#657871"/>
+<circle cx="324.89" cy="241.00" r="2.5" fill="#657871"/>
+<circle cx="324.89" cy="194.88" r="2.5" fill="#657871"/>
+<circle cx="324.89" cy="148.75" r="2.5" fill="#657871"/>
+<circle cx="324.89" cy="102.62" r="2.5" fill="#506460"/>
+<circle cx="364.84" cy="356.31" r="2.5" fill="#506460"/>
+<circle cx="364.84" cy="310.19" r="2.5" fill="#657871"/>
+<circle cx="364.84" cy="264.06" r="2.5" fill="#e98071"/>
+<circle cx="364.84" cy="217.94" r="2.5" fill="#e98071"/>
+<circle cx="364.84" cy="171.81" r="2.5" fill="#657871"/>
+<circle cx="364.84" cy="125.69" r="2.5" fill="#506460"/>
+<circle cx="404.78" cy="333.25" r="2.5" fill="#506460"/>
+<circle cx="404.78" cy="287.12" r="2.5" fill="#506460"/>
+<circle cx="404.78" cy="241.00" r="2.5" fill="#506460"/>
+<circle cx="404.78" cy="194.88" r="2.5" fill="#506460"/>
+<circle cx="404.78" cy="148.75" r="2.5" fill="#506460"/>
+<rect x="340.82" y="190.20" width="51.66" height="101.60" fill="#c49b6e" fill-opacity=".43" stroke="#e4ba85" stroke-width="2"/>
+<line x1="404.78" y1="333.25" x2="404.78" y2="148.75" stroke="#a7beaf" stroke-width="5"/>
+<line x1="392.48" y1="291.80" x2="392.48" y2="190.20" stroke="#eec99b" stroke-width="3"/>
+<line x1="340.82" y1="291.80" x2="340.82" y2="190.20" stroke="#aad5b4" stroke-width="3"/>
+<circle cx="366.65" cy="241.00" r="4.5" fill="#f5d2a6"/>
+<circle cx="284.95" cy="217.94" r="5" fill="#7cc7e5"/>
+<line x1="293.56" y1="217.94" x2="337.13" y2="241.00" stroke="#7cc7e5" stroke-width="2" marker-end="url(#arrow)"/>
+<circle cx="461" cy="113" r="4" fill="#e4ba85"/>
+<text x="475" y="118" font-size="14">Корпус 0.826 × 0.420 wu, высота 1.360 wu</text>
+<circle cx="461" cy="149" r="4" fill="#eec99b"/>
+<text x="475" y="154" font-size="14">Спинка вдоль стены, зазор 0.10 wu</text>
+<circle cx="461" cy="185" r="4" fill="#aad5b4"/>
+<text x="475" y="190" font-size="14">Открытый фасад обращён внутрь комнаты</text>
+<circle cx="461" cy="221" r="4" fill="#f5d2a6"/>
+<text x="475" y="226" font-size="14">Центр основания на уровне пола</text>
+<circle cx="461" cy="257" r="4" fill="#7cc7e5"/>
+<text x="475" y="262" font-size="14">Пример подхода, дальность 0.80 wu</text>
+<circle cx="461" cy="293" r="4" fill="#e98071"/>
+<text x="475" y="298" font-size="14">Узлы сетки под корпусом</text>
+<circle cx="461" cy="329" r="4" fill="#657871"/>
+<text x="475" y="334" font-size="14">Шаг 0.375 wu, 37 внутренних узлов и 24 граничных</text>
+<text x="30" y="444" font-size="14">Радиус ручной установки 0.47 wu. Основание на схеме ориентировано по грани +X.</text>
+<text x="30" y="465" font-size="13">Геометрия рассчитана по HexPointLayout, HexSpatialMath, PortalWorld и ModernLootCatalog.</text>
+</g>
+</svg>

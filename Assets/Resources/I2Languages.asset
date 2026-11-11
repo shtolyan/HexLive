@@ -32852,6 +32852,22 @@ MonoBehaviour:
       - "Деревянный стеллаж с четырьмя полками для домашних мелочей."
       Flags: 0101
       Languages_Touch: []
+    - Term: item.furniture_modern_wardrobe.name
+      TermType: 0
+      Description:
+      Languages:
+      - Apartment wardrobe
+      - Современный гардероб
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.furniture_modern_wardrobe.desc
+      TermType: 0
+      Description:
+      Languages:
+      - An open walnut wardrobe with a clothes rail, shelves and two drawers.
+      - Открытый шкаф из орехового дерева с перекладиной, полками и двумя ящиками.
+      Flags: 0101
+      Languages_Touch: []
     - Term: item.furniture_modern_table.name
       TermType: 0
       Description:

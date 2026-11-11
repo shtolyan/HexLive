@@ -16,7 +16,7 @@ import bpy
 from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from author_atomic_world_props import collection, material, panel
+from author_atomic_world_props import beam, collection, material, panel
 
 ROOT = Path(__file__).resolve().parents[2]
 OBJECTS = ROOT / "Assets/HexLiveContent/RuntimeSource/Objects"
@@ -35,6 +35,7 @@ DOOR_HEIGHT = 1.500
 OPENING_CLEAR_WIDTH = .426
 OPENING_CLEAR_HEIGHT = 1.452
 WINDOW_APERTURE = (1.048, .866, 1.946)
+WARDROBE_ID = "furniture.modern_wardrobe"
 
 # Linear colours. Timber and wall trim are derived from the authored island palette.
 PALETTE = {
@@ -110,8 +111,8 @@ def load_dimensions():
     return radius, sqrt3 * radius / 2, radius / ring
 
 
-def load_palette():
-    with bpy.data.libraries.load(str(ROOT / "Assets/HexLiveContent/source.blend")) as (source, target):
+def load_palette(path=ROOT / "Assets/HexLiveContent/source.blend"):
+    with bpy.data.libraries.load(str(path)) as (source, target):
         target.materials = [name for name in ("Heartwood", "Sapwood") if name in source.materials]
     woods = {entry.name: entry for entry in target.materials if entry}
     if set(woods) != {"Heartwood", "Sapwood"}:
@@ -241,6 +242,40 @@ def shelf():
         block(owner, name, (0, 0, height - .019), (.300, .670, .038), "ApartmentWalnutLight", .007)
         block(owner, name + "_back_rail", (.134, 0, height + .043),
               (.029, .632, .086), "ApartmentWalnut", .004)
+
+
+def wardrobe_dimensions():
+    catalog = (ROOT / "Assets/HexLive/Simulation/Content/ModernLootCatalog.cs").read_text(encoding="utf-8")
+    return tuple(float(re.search(rf"const float Wardrobe{axis} = ([\d.]+)f;", catalog)[1])
+                 for axis in ("Width", "Depth", "Height"))
+
+
+def wardrobe():
+    width, depth, height = wardrobe_dimensions()
+    owner = model(WARDROBE_ID, "standing", True)
+    block(owner, "recessed_plinth", (0, 0, .024), (.360, .762, .048), "ApartmentCharcoal")
+    block(owner, "base", (0, 0, .066), (depth, width, .036), "ApartmentWalnutLight", .006)
+    block(owner, "top", (0, 0, height - .017), (depth, width, .034), "ApartmentWalnutLight", .008)
+    side_height = height - .084 - .034
+    side_z = .084 + side_height / 2
+    for side in (-1, 1):
+        block(owner, f"walnut_side_{side}", (0, side * (width - .036) / 2, side_z),
+              (depth - .016, .036, side_height), "ApartmentWalnut", .004)
+    block(owner, "back", (depth / 2 - .014, 0, side_z),
+          (.028, width - .072, side_height), "ApartmentWalnut")
+    block(owner, "drawer_top", (0, 0, .285), (.382, width - .072, .026), "ApartmentWalnutLight")
+    block(owner, "shelf_divider", (-.002, .108, (.298 + height - .034) / 2),
+          (.370, .022, height - .034 - .298), "ApartmentWalnutLight")
+    for i, z in enumerate((.550, .818, 1.086), 1):
+        block(owner, f"folded_clothes_shelf_{i}", (-.004, .248, z),
+              (.365, .254, .024), "ApartmentWalnutLight")
+    for i, y in enumerate((-.186, .186), 1):
+        block(owner, f"sage_drawer_{i}", (-.182, y, .183),
+              (.034, .355, .168), "ApartmentSage", .006)
+        block(owner, f"steel_drawer_pull_{i}", (-depth / 2 + .005, y, .201),
+              (.010, .084, .014), "ApartmentSteel")
+    beam(owner, "clothes_rail", Vector((-.038, -.375, 1.135)),
+         Vector((-.038, .097, 1.135)), .012, MATS["ApartmentSteel"], 8)
 
 
 def portal():
@@ -614,6 +649,12 @@ def verify_export(row, radius, apothem):
                                 abs(maximum[2] - 1.954) > .0001 or abs(minimum[1] + .047) > .0001 or
                                 abs(maximum[1] - .047) > .0001):
         raise ValueError(f"{row['id']} does not match the wall-mounted window envelope")
+    if row["id"] == WARDROBE_ID:
+        width, depth, height = wardrobe_dimensions()
+        if any(abs(actual - expected) > .0001 for actual, expected in zip((x, y, z), (depth, width, height))):
+            raise ValueError(f"{WARDROBE_ID} diverges from the placement dimensions")
+        if row["triangles"] > 400:
+            raise ValueError(f"{WARDROBE_ID} exceeded its WebGL mesh budget")
     if "wallAperture" in row:
         width, bottom, top = row["wallAperture"]
         shell = next(mesh for mesh in meshes if mesh.name == "wall_shell")
@@ -659,7 +700,7 @@ def render_icon(row, meshes):
     icon_dir.mkdir(parents=True, exist_ok=True)
     icon = icon_dir / (identifier + ".png")
     default = STYLES["tool"]
-    direction = Vector((-1, -.58, .61) if identifier in ("furniture.modern_sofa", "furniture.modern_tv", "furniture.modern_shelf")
+    direction = Vector((-1, -.58, .61) if identifier in ("furniture.modern_sofa", "furniture.modern_tv", "furniture.modern_shelf", WARDROBE_ID)
                        else (.72, -1, .54))
     STYLES["tool"] = (direction, *default[1:])
     try:
@@ -667,7 +708,7 @@ def render_icon(row, meshes):
         bpy.context.scene.render.threads = 1
         setup_materials(meshes, "tool")
         fit = {"furniture.modern_chair": 1.25, "chair.basic": 1.43,
-               "furniture.storage_chest": 1.43}.get(identifier, 1.18)
+               "furniture.storage_chest": 1.43, WARDROBE_ID: 1.23}.get(identifier, 1.18)
         render(str(icon), meshes, "tool", fit, 20)
         install(str(icon), identifier)
     finally:
@@ -686,7 +727,7 @@ def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.context.scene.unit_settings.system = "METRIC"
     load_palette()
-    for author in (bed, fridge, table, chair, sofa, television, shelf, portal, window):
+    for author in (bed, fridge, table, chair, sofa, television, shelf, wardrobe, portal, window):
         author()
     for style in STYLES:
         wall(style, radius)

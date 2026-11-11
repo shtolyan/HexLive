@@ -175,6 +175,7 @@ namespace HexLive.Simulation.Content
             ModernFurniture("furniture.modern_sofa", "▰", 350),
             ModernFurniture("furniture.modern_tv", "▣", 360),
             ModernFurniture("furniture.modern_shelf", "▤", 370),
+            ModernFurniture(ContentIds.ModernWardrobe, "▥", 380),
         };
 
         private static BuildCatalogEntryDefinition ModernFurniture(string id, string glyph, int order)

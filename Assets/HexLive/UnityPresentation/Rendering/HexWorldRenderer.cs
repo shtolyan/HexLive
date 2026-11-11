@@ -87,10 +87,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // measured 1.299 wu straight out through the wall line.
     private readonly Dictionary<int, Float2> _planOwnerAnchors = new();
 
-    // §120: plan buildings that are RAISED (not still a site) — the cutaway
-    // owners, matching the monolith, whose _hutCutawayViews are only collected
-    // for a finished building.hut_1hex.
-    private readonly HashSet<int> _planRaisedOwners = new();
+    // §120: owners of completed wall or roof modules drawn in this snapshot.
+    private readonly HashSet<int> _planCutawayOwners = new();
 
     // §120: every hex a raised plan building covers. Furniture standing here is
     // the plan's OWN furniture, so it is drawn on its footprint centre and in
@@ -170,14 +168,18 @@ public sealed class HexWorldRenderer : MonoBehaviour
             : HexLive.Simulation.Agents.Faction.Colony;
         int owner = _cutawayPieceOwners.TryGetValue(_hoveredHutObjectId,out var proxy) ? proxy : _hoveredHutObjectId;
         if(_cutawayOwners.TryGetValue(owner,out var direct))
-            return HutHoverRevealMath.CanReveal(snapshot,direct,camp,true) ? owner : -1;
+            return HutHoverRevealMath.CanReveal(snapshot, direct, camp, true,
+                _planCutawayOwners.Contains(owner)) ? owner : -1;
         if(_hoveredHutGroundTile is not {} tile || (_cullActive && !_cullVisibleTiles.Contains(tile)))return -1;
         foreach(var pair in _cutawayOwners)
         {
-            bool covers = pair.Value.DefinitionId == ContentIds.HutPlan
-                ? _planRaisedOwners.Contains(pair.Key) && _planFootprints.TryGetValue(pair.Key,out var footprint) && Covers(footprint,tile)
+            var hasEnvelope = _planCutawayOwners.Contains(pair.Key);
+            var unfinished = pair.Value.BuildProduct == ContentIds.HutPlan;
+            bool covers = pair.Value.DefinitionId == ContentIds.HutPlan || unfinished
+                ? hasEnvelope && _planFootprints.TryGetValue(pair.Key, out var footprint) && Covers(footprint, tile) &&
+                  (!unfinished || _indoorCoords.Contains(tile))
                 : pair.Value.Tile == tile;
-            if(covers && HutHoverRevealMath.CanReveal(snapshot,pair.Value,camp,true))return pair.Key;
+            if(covers && HutHoverRevealMath.CanReveal(snapshot, pair.Value, camp, true, hasEnvelope))return pair.Key;
         }
         return -1;
     }
@@ -1027,7 +1029,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         if (_planCutawayModules.Count == 0) return;
         var hasCamera = _cutawayCamera != null;
 
-        foreach (var ownerKey in _planRaisedOwners)
+        foreach (var ownerKey in _planCutawayOwners)
         {
             // Which modules are this building's, in snapshot order.
             var owned = _planCutawayIndexScratch;
@@ -1110,14 +1112,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
         ObjectSnapshot piece,
         HexLive.UnityPresentation.Environment.ArchitectureModuleView view)
     {
-        if (piece.ArchitectureOwnerObjectId is not { } ownerKey) return;
-        if (!_planRaisedOwners.Contains(ownerKey)) return;
-        if (piece.ArchitectureElements.Count != 1) return;
+        if (!HutHoverRevealMath.IsCompletedCutawayModule(piece) ||
+            piece.ArchitectureOwnerObjectId is not { } ownerKey ||
+            !_planOwnerAnchors.TryGetValue(ownerKey, out var anchor))
+        {
+            view.SetCutawayHidden(false);
+            return;
+        }
         var element = piece.ArchitectureElements[0];
         var roof = element.DefinitionId.StartsWith(
             "architecture.roof.", System.StringComparison.Ordinal);
-        if (!roof && System.Array.IndexOf(CutawayEnvelopeIds, element.DefinitionId) < 0) return;
-        if (!_planOwnerAnchors.TryGetValue(ownerKey, out var anchor)) return;
 
         // The module's own point: its local offset turned by the building's yaw
         // about the anchor. Simulation yaw is CCW about +X, which is the plane
@@ -1129,19 +1133,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var x = anchor.X + element.LocalX * cos - element.LocalZ * sin;
         var z = anchor.Y + element.LocalX * sin + element.LocalZ * cos;
         _planCutawayModules.Add(new PlanCutawayModule(ownerKey, roof, new Vector2(x, z), view));
+        _planCutawayOwners.Add(ownerKey);
     }
-
-    /// <summary>
-    /// The full-height pieces a cutaway may take away. Corner supports belong
-    /// here for the reason the constructor preview learned: they are full-height
-    /// posts, and leaving them out left one standing in front of the colonist
-    /// the player had just selected.
-    /// </summary>
-    private static readonly string[] CutawayEnvelopeIds =
-    {
-        "architecture.wall.wood", "architecture.window.wood", "architecture.door.wood",
-        "architecture.support.wood"
-    };
 
     // Bug #321: сколько видов памяти тумана строится за один снапшот-пасс —
     // большая разведка после загрузки раскатывается за несколько секунд, а не
@@ -1718,7 +1711,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _planBuildingOwners.Clear();
         _unfinishedPlanBuildingOwners.Clear();
         _planOwnerAnchors.Clear();
-        _planRaisedOwners.Clear();
+        _planCutawayOwners.Clear();
         _planFootprintTiles.Clear();
         _planCutawayModules.Clear();
         _architectureFloorTiles.Clear();
@@ -1726,9 +1719,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
         foreach (var worldObject in snapshot.Objects)
         {
             liveObjectIds.Add(worldObject.Id.Value);
-            if(worldObject.DefinitionId is ContentIds.HutPlan or ContentIds.Hut1Hex)
+            if (worldObject.DefinitionId is ContentIds.HutPlan or ContentIds.Hut1Hex ||
+                worldObject.BuildProduct == ContentIds.HutPlan)
                 _cutawayOwners[worldObject.Id.Value] = worldObject;
-            if(worldObject.ArchitectureOwnerObjectId is {} cutawayOwner)
+            if (worldObject.ArchitectureOwnerObjectId is { } cutawayOwner)
                 _cutawayPieceOwners[worldObject.Id.Value] = cutawayOwner;
 
             // §120: known before any view is created, because whether an
@@ -1749,12 +1743,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 var footprint = HexLive.Simulation.Bootstrap.BuildingBootstrap.FootprintTiles(
                     ContentIds.HutPlan, worldObject.Tile, worldObject.RotationDegrees);
                 _planFootprints[ownerKey] = footprint;
-                // A site is not a house yet: the monolith only cuts away a
-                // finished building.hut_1hex, and the furniture of a plan is
-                // staked only once the plan is raised.
+                // Plan furniture uses the footprint of an already raised house.
                 if (worldObject.DefinitionId == ContentIds.HutPlan)
                 {
-                    _planRaisedOwners.Add(ownerKey);
                     for (var i = 0; i < footprint.Count; i++) _planFootprintTiles.Add(footprint[i]);
                 }
             }

@@ -9,11 +9,17 @@ namespace HexLive.UnityPresentation.Rendering
 // Presentation permission only; never changes simulation sight or building access.
 public static class HutHoverRevealMath
 {
-    public static bool CanReveal(WorldSnapshot snapshot,ObjectSnapshot house,Faction playerCamp,bool hasLivingOwnedSelection)
+    public static bool CanReveal(WorldSnapshot snapshot,ObjectSnapshot house,Faction playerCamp,
+        bool hasLivingOwnedSelection, bool hasCompletedEnvelope = false)
     {
-        if(!hasLivingOwnedSelection||snapshot==null||house==null||house.Durability<=0f||
-           house.DefinitionId is not (ContentIds.HutPlan or ContentIds.Hut1Hex)||
-           !string.IsNullOrEmpty(house.BuildProduct))return false;
+        if (!hasLivingOwnedSelection || snapshot == null || house == null || house.Durability <= 0f)
+            return false;
+        if (house.DefinitionId is not (ContentIds.HutPlan or ContentIds.Hut1Hex) &&
+            !(house.DefinitionId == ContentIds.BuildSite && house.BuildProduct == ContentIds.HutPlan))
+            return false;
+        if (!string.IsNullOrEmpty(house.BuildProduct) &&
+            !(house.BuildProduct == ContentIds.HutPlan && hasCompletedEnvelope))
+            return false;
         bool explicitOwner=false;
         if(house.PropertyOwnerFaction is {} faction)
         {if(faction!=playerCamp)return false;explicitOwner=true;}
@@ -36,6 +42,18 @@ public static class HutHoverRevealMath
             ourGround=true;
         }
         return ourGround;
+    }
+
+    public static bool IsCompletedCutawayModule(ObjectSnapshot piece)
+    {
+        if (piece.Durability <= 0f || !piece.ArchitectureOwnerObjectId.HasValue ||
+            piece.ArchitectureElements.Count != 1)
+            return false;
+
+        var element = piece.ArchitectureElements[0];
+        return element.Complete && (element.DefinitionId is "architecture.wall.wood" or
+            "architecture.window.wood" or "architecture.door.wood" or "architecture.support.wood" ||
+            element.DefinitionId.StartsWith("architecture.roof.", System.StringComparison.Ordinal));
     }
 }
 }

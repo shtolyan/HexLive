@@ -55,4 +55,40 @@ public sealed class HutHoverRevealTests
         house.Durability=1;house.DefinitionId=ContentIds.WaterCollector;
         Assert.That(HutHoverRevealMath.CanReveal(snapshot,house,Faction.Colony,true),Is.False);
     }
+
+    [TestCase(ContentIds.HutPlan)]
+    [TestCase(ContentIds.BuildSite)]
+    public void CompletedEnvelopeAllowsOwnedPlanToRevealDuringExpansion(string definitionId)
+    {
+        var snapshot = new WorldSnapshot();
+        var house = House();
+        house.DefinitionId = definitionId;
+        house.BuildProduct = ContentIds.HutPlan;
+        house.PropertyOwnerFaction = Faction.Colony;
+
+        Assert.That(HutHoverRevealMath.CanReveal(snapshot, house, Faction.Colony, true), Is.False);
+        Assert.That(HutHoverRevealMath.CanReveal(snapshot, house, Faction.Colony, true,
+            hasCompletedEnvelope: true), Is.True);
+        Assert.That(HutHoverRevealMath.CanReveal(snapshot, house, Faction.Colony2, true,
+            hasCompletedEnvelope: true), Is.False);
+    }
+
+    [TestCase("architecture.wall.wood", 4, true)]
+    [TestCase("architecture.wall.wood", 3, false)]
+    [TestCase("architecture.window.wood", 4, true)]
+    [TestCase("architecture.door.wood", 4, true)]
+    [TestCase("architecture.support.wood", 4, true)]
+    [TestCase("architecture.roof.palm", 4, true)]
+    [TestCase("architecture.roof.palm", 0, false)]
+    [TestCase("architecture.floor.board", 4, false)]
+    public void CutawayCollectsOnlyCompletedEnvelopeModules(string definitionId, int delivered, bool expected)
+    {
+        var piece = new ObjectSnapshot { ArchitectureOwnerObjectId = 661 };
+        piece.ArchitectureElements.Add(new ArchitectureElementSnapshot
+        {
+            DefinitionId = definitionId, Buildable = true, RequiredSticks = 4, DeliveredSticks = delivered,
+        });
+
+        Assert.That(HutHoverRevealMath.IsCompletedCutawayModule(piece), Is.EqualTo(expected));
+    }
 }

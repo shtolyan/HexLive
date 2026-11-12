@@ -72,6 +72,35 @@ public sealed partial class ExecutionSystem
                     world, looter, other, anchor, reach,
                     $"Player inventory transfer with NPC{other.Id.Value}"))
             {
+                // #742: получательница, которую попросили подождать, доезжает
+                // свой шаг и встаёт чуть в стороне от точки, к которой шла
+                // дарительница. Это не провал приказа: пока она ждёт именно
+                // нас, подходим заново (не больше трёх раз за приглашение).
+                if (looter.Movement.Status != MovementStatus.Blocked && !take && standing &&
+                    other.Mind.PendingGiftFrom == looter.Id)
+                {
+                    if (other.Movement.IsMoving) return;
+                    if (looter.Mind.GiftReapproachCount < 3 &&
+                        KenshiRescueMath.TryFindApproach(world, looter, other, out var again))
+                    {
+                        looter.Mind.GiftReapproachCount++;
+                        looter.Plan.Steps.Clear();
+                        looter.Plan.Steps.Add(new PlanStep
+                        {
+                            Type = PlanStepType.MoveToJunction,
+                            TargetJunction = again
+                        });
+                        looter.Plan.Steps.Add(step);
+                        looter.Plan.CurrentStepIndex = 0;
+                        looter.Plan.TargetJunctionId = again;
+                        looter.Plan.TargetTile = other.Tile;
+                        looter.Movement.JunctionPath.Clear();
+                        looter.Movement.PathIndex = 0;
+                        looter.Movement.Status = MovementStatus.Idle;
+                        return;
+                    }
+                }
+
                 FailPlayerInventoryTransfer(world, looter, "OutOfReach");
                 return;
             }

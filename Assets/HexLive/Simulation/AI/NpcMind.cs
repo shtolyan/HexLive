@@ -208,6 +208,16 @@ public sealed class NPCMind
     // Self-healed each decision pass.
     public HexLive.Simulation.Common.EntityId? PendingTalkFrom { get; set; }
 
+    // #742: transient, like the gift session itself — how many times the giver
+    // re-approached a recipient who settled a step away. Never persisted.
+    public int GiftReapproachCount { get; set; }
+
+    // §123.5: the last instant inventory operation that succeeded, to swallow
+    // its exact repeat (double click / click before the snapshot arrived).
+    // Transient, wall-clock stamped, never persisted.
+    public string LastInventoryOpKey { get; set; } = string.Empty;
+    public double LastInventoryOpAtSeconds { get; set; }
+
     public int PendingTalkSinceTick { get; set; }
 
     // §127: the same transient handshake as PendingTalkFrom, but kept

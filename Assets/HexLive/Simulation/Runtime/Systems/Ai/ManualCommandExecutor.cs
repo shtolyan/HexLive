@@ -1215,9 +1215,15 @@ internal static partial class ManualCommandExecutor
 
         ClearForNewOrder(world, npc, "Приказ поговорить", keepCarriedPerson: true);
         ClearAttackOrder(world, npc);
+        npc.Mind.GiftReapproachCount = 0;
+        // #742: адресат приказа игрока бросает дела СРАЗУ и ждёт. Раньше её
+        // останавливал только следующий проход DecisionSystem: за эти тики она
+        // успевала уйти («out of talk range») или не успевала освободиться к
+        // приходу («Talk rejected … Busy»). Замер на живой колонии: 7 из 18.
+        HoldInvitee(world, partner, "Player asked her to talk; waiting");
         if (!PlanningSystem.TryInstallTalkPlan(
                 world, npc, partner, partner.Id, partnerJunction, partner.Tile,
-                out _))
+                out _, allowAdjacentFallback: true))
         {
             npc.Mind.CurrentGoal = GoalType.None;
             Reject(world, npc.Id, "TalkTo", "Unreachable", admission);
@@ -1232,6 +1238,44 @@ internal static partial class ManualCommandExecutor
             Trace.Debug(world, npc.Id, "ManualOrderAccepted",
                 $"Order=TalkTo Target=NPC{partner.Id.Value}");
         }
+    }
+
+    /// <summary>#742: попросить адресата приказа остановиться и подождать.
+    /// Только автономную и только когда ей ничто не грозит: ручную (свою или
+    /// чужого игрока), дерущуюся, бегущую, несущую человека, спящую, занятую
+    /// другим разговором и умирающую от голода/жажды не трогаем — там отказ
+    /// «занята» остаётся честным ответом мира.</summary>
+    internal static bool HoldInvitee(WorldState world, NPCState target, string reason)
+    {
+        if (target is null || ManualControlMath.IsManual(target) || target.Health <= 0f ||
+            target.IsDying || target.IsUnconscious(world.Tick) || target.IsFighting ||
+            target.IsBeingCarried || target.IsCarryingPerson ||
+            target.Mind.CurrentGoal == GoalType.Flee ||
+            target.Mind.IsStarving || target.Mind.IsDehydrated ||
+            target.Mind.ExternalControl?.IsActive == true)
+        {
+            return false;
+        }
+
+        if (target.Execution.Status == ExecutionStatus.InProgress &&
+            target.Execution.CurrentInteraction is InteractionType.Talk or InteractionType.Sleep)
+        {
+            return false;
+        }
+
+        if (target.Plan.Status != PlanStatus.Active && !target.Movement.IsMoving &&
+            target.Execution.Status != ExecutionStatus.InProgress)
+        {
+            return true;
+        }
+
+        if (!PlanInterruption.TryAbort(world, target, InterruptionCause.Auction, reason))
+        {
+            return false;
+        }
+
+        target.Mind.CurrentGoal = GoalType.None;
+        return true;
     }
 
     private static void ApplyRomancePerson(
@@ -2361,6 +2405,8 @@ internal static partial class ManualCommandExecutor
             command.Enabled ? 0 : accepted);
     }
 
+    private const double InventoryRepeatGraceSeconds = 1.0;
+
     private static void ApplyManageInventory(
         WorldState world, ManageInventoryCommand command, AdmissionTracker admission)
     {
@@ -2377,12 +2423,29 @@ internal static partial class ManualCommandExecutor
             return;
         }
 
+        var opKey = $"{command.Action}|{command.Item.Source}|{command.Item.Index}|" +
+            $"{command.Item.ExpectedDefinitionId}|{command.Count}";
         if (!PlayerInventoryCommandExecutor.TryApply(
                 world, npc, command.Item, command.Action, out var reason, command.Count))
         {
+            // §123.5: повтор только что ИСПОЛНЕННОЙ операции — не ошибка игрока.
+            // Двойной клик или второй клик до прихода снапшота шлёт ту же ячейку
+            // второй раз; первая команда вещь уже выбросила/надела, вторая видит
+            // «устарело». Раньше это давало тост об ошибке при том, что всё
+            // получилось. Точный повтор в пределах секунды гасится молча.
+            if (reason == "StaleItem" && npc.Mind.LastInventoryOpKey == opKey &&
+                world.RuntimeClock.RealtimeSeconds - npc.Mind.LastInventoryOpAtSeconds <=
+                    InventoryRepeatGraceSeconds)
+            {
+                return;
+            }
+
             Reject(world, npc.Id, "Inventory", reason, admission);
             return;
         }
+
+        npc.Mind.LastInventoryOpKey = opKey;
+        npc.Mind.LastInventoryOpAtSeconds = world.RuntimeClock.RealtimeSeconds;
 
         if (SimTrace.Enabled)
         {
@@ -2586,6 +2649,22 @@ internal static partial class ManualCommandExecutor
         {
             Reject(world, looter.Id, "TransferInventory", "StaleOrNoSpace", admission);
             return;
+        }
+
+        // #742: вручение человеку в сознании — приказ с подходом. Он берёт
+        // управление и сам открывает приглашение, даже если клиент его не
+        // прислал или оно было отклонено: иначе получатель уходил по своим
+        // делам, а дарительница приходила в пустое место (OutOfReach).
+        if (!take && !carriedBySelf && PlayerLootTargets.CanReactToGift(world, other) &&
+            PlayerLootTargets.IsStandingRecipient(world, other))
+        {
+            if (!TakeControlForGift(world, looter, "TransferInventory", admission)) return;
+            if (looter.Mind.GiftRecipientId != other.Id &&
+                !GiftSessionMath.TryStart(world, looter, other.Id, out _, out _, out var giftReason))
+            {
+                Reject(world, looter.Id, "TransferInventory", giftReason, admission);
+                return;
+            }
         }
 
         // §128: транзакция плана не роняет того, в чьих карманах роемся.

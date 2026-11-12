@@ -9,11 +9,28 @@ namespace HexLive.Simulation.Runtime
 // Ephemeral invitation, not ownership or a forced social scene. Never persisted.
 internal static class GiftSessionMath
 {
+    // #742: только опасность, которая идёт СЕЙЧАС. Раньше сюда входила память
+    // об опасности (Memory.Dangers живёт 2400 тиков = 10 минут): один увиденный
+    // волк или труп на десять минут делал получателя «недоступной целью», и
+    // подарок отклонялся почти всегда (замер: 3 из 36 доходили).
     private static bool Emergency(WorldState world, NPCState npc) =>
         npc.Health <= 0f || npc.IsDying || npc.IsUnconscious(world.Tick) || npc.IsFighting ||
-        npc.IsBeingCarried || npc.IsCarryingPerson || npc.Mind.CurrentGoal == GoalType.Flee ||
-        npc.Memory.Dangers.Count > 0 || npc.Needs.Hunger >= SimBalance.StarvingEnterThreshold ||
+        npc.IsBeingCarried || npc.IsCarryingPerson || npc.Mind.CurrentGoal == GoalType.Flee;
+
+    // Критический голод или жажда подарку НЕ мешают (воду жаждущей как раз и
+    // дарят) — но такую получательницу не просят стоять и ждать: ей нужнее
+    // дойти до воды, чем дождаться дарительницы с другого конца острова.
+    private static bool NeedsCritical(NPCState npc) =>
+        npc.Needs.Hunger >= SimBalance.StarvingEnterThreshold ||
         npc.Needs.Thirst >= SimBalance.StarvingEnterThreshold;
+
+    /// <summary>Получательницу можно попросить подождать: она под ИИ и не занята
+    /// чужим подарком. Ручная (своя или чужого игрока) не замораживается — ей
+    /// вручают, если она сама стоит на месте.</summary>
+    private static bool CanHold(NPCState giver, NPCState recipient) =>
+        !ManualControlMath.IsManual(recipient) && !NeedsCritical(recipient) &&
+        !recipient.Mind.GiftRecipientId.HasValue &&
+        (recipient.Mind.PendingGiftFrom is not { } incoming || incoming == giver.Id);
 
     internal static bool TryStart(WorldState world, NPCState giver, EntityId recipientId,
         out NPCState recipient, out JunctionId? approach, out string reason)
@@ -23,9 +40,7 @@ internal static class GiftSessionMath
             !PlayerLootTargets.TryResolve(world, giver, recipientId, InventoryTransferDirection.Give, out recipient, out _) ||
             !world.Entities.Npcs.ContainsKey(recipientId) || Emergency(world, recipient)) return false;
         var standing = PlayerLootTargets.IsStandingRecipient(world, recipient);
-        if (standing && (ManualControlMath.IsManual(recipient) || recipient.Mind.GiftRecipientId.HasValue ||
-            recipient.Mind.PendingGiftFrom is { } incoming && incoming != giver.Id ||
-            recipient.Mind.PendingAidFrom.HasValue || recipient.Mind.PendingTalkFrom.HasValue)) return false;
+        var hold = standing && CanHold(giver, recipient);
         var close = InteractionReach.CheckPersonStart(world, giver, recipient,
             standing ? recipient.Position : LyingStations.Point(recipient, LyingStations.SlotFor(world, giver, recipient)),
             standing ? InteractionReach.Aid : LyingStations.Reach(LyingStations.SlotFor(world, giver, recipient)), "Gift invitation");
@@ -35,19 +50,27 @@ internal static class GiftSessionMath
             { reason = "Unreachable"; return false; }
             approach = found;
         }
-        if (standing && (recipient.Plan.Status == PlanStatus.Active || recipient.Movement.IsMoving ||
-            recipient.Execution.Status == ExecutionStatus.InProgress))
+        if (hold)
         {
-            if (!PlanInterruption.TryAbort(world, recipient, InterruptionCause.Auction,
-                "Accepted gift invitation, waiting for giver")) return false;
-            recipient.Mind.CurrentGoal = GoalType.None;
+            if (recipient.Plan.Status == PlanStatus.Active || recipient.Movement.IsMoving ||
+                recipient.Execution.Status == ExecutionStatus.InProgress)
+            {
+                if (!PlanInterruption.TryAbort(world, recipient, InterruptionCause.Auction,
+                    "Accepted gift invitation, waiting for giver")) return false;
+                recipient.Mind.CurrentGoal = GoalType.None;
+            }
+            // Приказ игрока старше чужого приглашения поговорить или помочь:
+            // звавшая увидит, что её не ждут, штатным self-heal приглашения.
+            recipient.Mind.PendingTalkFrom = null;
+            recipient.Mind.PendingAidFrom = null;
         }
         End(world, giver, giver.Mind.GiftRecipientId, cancelApproach: false);
         giver.Mind.GiftRecipientId = recipientId;
         giver.Mind.GiftUntilTick = world.Tick + AiBalance.TalkWaitTimeoutTicks;
         giver.Mind.GiftCloseRequested = false;
+        giver.Mind.GiftReapproachCount = 0;
         giver.Mind.GiftManualAtStart = giver.Mind.ManualControl;
-        if (standing) recipient.Mind.PendingGiftFrom = giver.Id;
+        if (hold) recipient.Mind.PendingGiftFrom = giver.Id;
         reason = string.Empty;
         return true;
     }
@@ -67,6 +90,14 @@ internal static class GiftSessionMath
         foreach (var giver in world.Entities.Npcs.Values)
         {
             if (giver.Mind.GiftRecipientId is not { } id) continue;
+            // #742: пока дарительница ИДЁТ к получателю или вручает, срок ожидания
+            // не тикает — получатель ждёт до конца её действия. 30 секунд
+            // (TalkWaitTimeoutTicks) отсчитываются только от простоя «пришла и
+            // ждёт, пока игрок выберет вещь».
+            if (giver.Plan.Status == PlanStatus.Active && giver.Plan.TargetAgentId == id &&
+                giver.Plan.Goal is GoalType.PlayerOrder or GoalType.PlayerInventory)
+                giver.Mind.GiftUntilTick = System.Math.Max(
+                    giver.Mind.GiftUntilTick, world.Tick + AiBalance.TalkWaitTimeoutTicks);
             var otherOrder = giver.Plan.Status == PlanStatus.Active &&
                 (giver.Plan.TargetAgentId != id || giver.Plan.Goal is not GoalType.PlayerOrder and not GoalType.PlayerInventory);
             if (!world.Entities.Npcs.TryGetValue(id, out var recipient) ||
@@ -79,7 +110,8 @@ internal static class GiftSessionMath
         }
         foreach (var recipient in world.Entities.Npcs.Values)
             if (recipient.Mind.PendingGiftFrom is { } id &&
-                (!world.Entities.Npcs.TryGetValue(id, out var giver) || giver.Mind.GiftRecipientId != recipient.Id))
+                (!world.Entities.Npcs.TryGetValue(id, out var giver) || giver.Mind.GiftRecipientId != recipient.Id ||
+                 NeedsCritical(recipient)))
                 recipient.Mind.PendingGiftFrom = null;
     }
 

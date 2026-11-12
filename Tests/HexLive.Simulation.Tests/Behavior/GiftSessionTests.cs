@@ -84,7 +84,13 @@ public sealed class GiftSessionTests
     {
         var (engine, giver, receiver) = Scene(); var world = engine.World;
         Assert.That(engine.ApplyManualCommand(new BeginGiftSessionCommand(giver.Id, receiver.Id)).Accepted, Is.True);
-        if (boundary == "timeout") world.Tick = giver.Mind.GiftUntilTick + 1;
+        // #742: the wait deadline only runs while the giver stands and waits
+        // for the player to pick an item — not while she is still walking over.
+        if (boundary == "timeout")
+        {
+            PlanInterruption.TryAbort(world, giver, InterruptionCause.PlayerCommand, "arrived, waiting for a choice");
+            world.Tick = giver.Mind.GiftUntilTick + 1;
+        }
         if (boundary == "danger") receiver.IsFighting = true;
         if (boundary == "control") receiver.Mind.ManualControl = true;
         if (boundary == "death") giver.Health = 0f;
@@ -133,8 +139,11 @@ public sealed class GiftSessionTests
     public void ManualRecipientIsNotFrozenAndNewCommandsHaveReservedOpcodesWithUnchangedOldBytes()
     {
         var (engine, giver, receiver) = Scene(); receiver.Mind.ManualControl = true;
-        Assert.That(engine.ApplyManualCommand(new BeginGiftSessionCommand(giver.Id, receiver.Id)).Accepted, Is.False);
+        // #742: a manual recipient is never frozen, but she is no longer an
+        // "unavailable target" either — the giver simply walks up to her.
+        Assert.That(engine.ApplyManualCommand(new BeginGiftSessionCommand(giver.Id, receiver.Id)).Accepted, Is.True);
         Assert.That(receiver.Mind.PendingGiftFrom, Is.Null);
+        Assert.That(giver.Mind.GiftRecipientId, Is.EqualTo(receiver.Id));
         Assert.That(Encode(new StopCommand(new EntityId(7))), Is.EqualTo(new byte[] { 9, 0, 7, 0, 0, 0 }));
         Assert.That(Encode(new SetManualControlCommand(new EntityId(7), true)), Is.EqualTo(new byte[] { 1, 0, 7, 0, 0, 0, 1 }));
         foreach (var command in new ISimulationCommand[] { new BeginGiftSessionCommand(giver.Id, receiver.Id), new EndGiftSessionCommand(giver.Id, receiver.Id) })
@@ -162,6 +171,127 @@ public sealed class GiftSessionTests
         Assert.That(loaded.Entities.Npcs[receiver.Id].Mind.PendingGiftFrom, Is.Null);
         engine.ApplyManualCommand(new StopCommand(giver.Id));
         Assert.That(giver.Mind.GiftRecipientId, Is.Null); Assert.That(receiver.Mind.PendingGiftFrom, Is.Null);
+    }
+
+    // ── #737 / #741 / #742: подарок на живой колонии ─────────────────────
+
+    [Test]
+    public void GiftOrderedFromAiModeTakesControlAndIsDelivered()
+    {
+        var (engine, giver, receiver) = Scene(); var world = engine.World;
+        giver.Mind.ManualControl = false;
+        giver.Inventory.Items.Clear(); receiver.Inventory.Items.Clear();
+        var gift = new ItemInstance(ContentIds.Stick); giver.Inventory.Items.Add(gift);
+        var owner = new[] { giver.Id.Value };
+        Assert.That(engine.ApplyManualCommand(new BeginGiftSessionCommand(giver.Id, receiver.Id), "player", owner).Accepted, Is.True);
+        Assert.That(giver.Mind.ManualControl, Is.True, "A gift is an order: it takes control like any other order.");
+        Assert.That(engine.ApplyManualCommand(new TransferInventoryCommand(giver.Id, receiver.Id,
+            new InventoryItemRef(InventoryItemSource.Carried, 0, gift.DefinitionId), 1, InventoryTransferDirection.Give), "player", owner).Accepted, Is.True);
+        engine.ApplyManualCommand(new EndGiftSessionCommand(giver.Id, receiver.Id), "player", owner);
+        for (var i = 0; i < 200 && !receiver.Inventory.Items.Any(x => ReferenceEquals(x, gift)); i++) engine.Step();
+        Assert.That(receiver.Inventory.Items.Any(x => ReferenceEquals(x, gift)), Is.True);
+        Assert.That(world.Events.Items.Any(e => e.Type == "ManualOrderRejected" && e.EntityId == giver.Id.Value), Is.False,
+            "A delivered gift must not leave a refusal toast behind.");
+    }
+
+    [Test]
+    public void RememberedDangerAndOrdinaryNeedsDoNotMakeTheRecipientUnavailable()
+    {
+        var (engine, giver, receiver) = Scene(); var world = engine.World;
+        // A wolf seen ten minutes ago is a memory, not an emergency.
+        receiver.Memory.Dangers.Add(new HexLive.Simulation.Memory.DangerMemory { Tile = receiver.Tile, Tick = world.Tick });
+        giver.Memory.Dangers.Add(new HexLive.Simulation.Memory.DangerMemory { Tile = giver.Tile, Tick = world.Tick });
+        giver.Needs.Thirst = 1f;
+        var result = engine.ApplyManualCommand(new BeginGiftSessionCommand(giver.Id, receiver.Id));
+        Assert.That(result.Accepted, Is.True, result.Reason);
+        Assert.That(receiver.Mind.PendingGiftFrom, Is.EqualTo(giver.Id));
+    }
+
+    [Test]
+    public void DyingOfThirstRecipientCanStillBeGiftedButIsNotAskedToWait()
+    {
+        var (engine, giver, receiver) = Scene();
+        receiver.Needs.Thirst = 1f;
+        var result = engine.ApplyManualCommand(new BeginGiftSessionCommand(giver.Id, receiver.Id));
+        Assert.That(result.Accepted, Is.True, result.Reason);
+        Assert.That(receiver.Mind.PendingGiftFrom, Is.Null, "Water is exactly what she is given; she is not held away from it.");
+    }
+
+    [Test]
+    public void RecipientKeepsWaitingForAsLongAsTheGiverIsStillWalkingOver()
+    {
+        var (engine, giver, receiver) = Scene(); var world = engine.World;
+        Assert.That(engine.ApplyManualCommand(new BeginGiftSessionCommand(giver.Id, receiver.Id)).Accepted, Is.True);
+        Assert.That(giver.Plan.Status, Is.EqualTo(PlanStatus.Active));
+        // A walk across the island outlasts the 30-second invitation window.
+        world.Tick = giver.Mind.GiftUntilTick + 500;
+        giver.Mind.GiftUntilTick = world.Tick - 1;
+        GiftSessionMath.Update(world);
+        Assert.That(receiver.Mind.PendingGiftFrom, Is.EqualTo(giver.Id));
+        Assert.That(giver.Mind.GiftRecipientId, Is.EqualTo(receiver.Id));
+    }
+
+    [Test]
+    public void GiveTransferAloneHoldsTheRecipientEvenWhenNoInvitationWasSent()
+    {
+        var (engine, giver, receiver) = Scene();
+        giver.Inventory.Items.Clear(); var gift = new ItemInstance(ContentIds.Stick); giver.Inventory.Items.Add(gift);
+        receiver.Movement.IsMoving = true;
+        receiver.Plan.Status = PlanStatus.Active; receiver.Plan.Goal = GoalType.GatherTools;
+        var result = engine.ApplyManualCommand(new TransferInventoryCommand(giver.Id, receiver.Id,
+            new InventoryItemRef(InventoryItemSource.Carried, 0, gift.DefinitionId), 1, InventoryTransferDirection.Give));
+        Assert.That(result.Accepted, Is.True, result.Reason);
+        Assert.That(receiver.Mind.PendingGiftFrom, Is.EqualTo(giver.Id));
+        Assert.That(receiver.Plan.Status, Is.Not.EqualTo(PlanStatus.Active));
+        for (var i = 0; i < 200 && !receiver.Inventory.Items.Any(x => ReferenceEquals(x, gift)); i++) engine.Step();
+        Assert.That(receiver.Inventory.Items.Any(x => ReferenceEquals(x, gift)), Is.True);
+    }
+
+    [Test]
+    public void TalkOrderStopsABusyTargetAtOnceAndSheWaitsPastTheInvitationTimeout()
+    {
+        var (engine, giver, receiver) = Scene(); var world = engine.World;
+        receiver.Movement.IsMoving = true;
+        receiver.Movement.JunctionPath.Add(receiver.CurrentJunction.Value);
+        receiver.Plan.Status = PlanStatus.Active; receiver.Plan.Goal = GoalType.GatherTools;
+        var result = engine.ApplyManualCommand(new TalkToCommand(giver.Id, receiver.Id));
+        Assert.That(result.Accepted, Is.True, result.Reason);
+        Assert.That(receiver.Plan.Status, Is.Not.EqualTo(PlanStatus.Active), "She drops her errand the moment the order is given.");
+        Assert.That(receiver.Mind.PendingTalkFrom, Is.EqualTo(giver.Id));
+        // The initiator is still on her way long after the 120-tick window.
+        // The window is about to run out: the next medium pass of the manual
+        // order system refreshes it for as long as the initiator is on her way.
+        receiver.Mind.PendingTalkSinceTick =
+            world.Tick - AiBalance.TalkWaitTimeoutTicks + engine.Settings.MediumInterval * 2 + 1;
+        var spot = receiver.Position;
+        for (var i = 0; i < engine.Settings.MediumInterval * 4 &&
+             giver.Execution.CurrentInteraction != InteractionType.Talk; i++) engine.Step();
+        Assert.That(receiver.Position, Is.EqualTo(spot));
+        Assert.That(giver.Execution.CurrentInteraction == InteractionType.Talk ||
+            world.Tick - receiver.Mind.PendingTalkSinceTick <= engine.Settings.MediumInterval, Is.True);
+        Assert.That(world.Events.Items.Any(e => e.Type == "TalkWaitTimeout"), Is.False);
+        for (var i = 0; i < 200 && !world.Events.Items.Any(e => e.Type == "TalkStarted"); i++) engine.Step();
+        Assert.That(world.Events.Items.Any(e => e.Type == "TalkStarted" && e.EntityId == giver.Id.Value), Is.True);
+    }
+
+    [Test]
+    public void ExactRepeatOfAJustAppliedInventoryDropIsSilentNotAnError()
+    {
+        var (engine, giver, _) = Scene(); var world = engine.World;
+        giver.Inventory.Items.Clear();
+        giver.Inventory.Items.Add(new ItemInstance(ContentIds.Stick));
+        giver.Inventory.Items.Add(new ItemInstance(ContentIds.Bottle));
+        var drop = new ManageInventoryCommand(giver.Id,
+            new InventoryItemRef(InventoryItemSource.Carried, 0, ContentIds.Stick), InventoryAction.Drop);
+        Assert.That(engine.ApplyManualCommand(drop).Accepted, Is.True);
+        Assert.That(engine.ApplyManualCommand(drop).Accepted, Is.True, "A double click is not a failure.");
+        Assert.That(giver.Inventory.Items.Select(i => i.DefinitionId), Is.EqualTo(new[] { ContentIds.Bottle }),
+            "The repeat must not act on whatever slid into the slot.");
+        Assert.That(world.Events.Items.Any(e => e.Type == "ManualOrderRejected"), Is.False);
+        // A genuinely stale reference is still reported.
+        var stale = engine.ApplyManualCommand(new ManageInventoryCommand(giver.Id,
+            new InventoryItemRef(InventoryItemSource.Carried, 0, ContentIds.Knife), InventoryAction.Drop));
+        Assert.That(stale.Accepted, Is.False); Assert.That(stale.Reason, Is.EqualTo("StaleItem"));
     }
 
     private static byte[] Encode(ISimulationCommand command)

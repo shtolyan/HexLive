@@ -95,12 +95,56 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        // #742: приказ игрока. Адресат ждёт именно нас — значит, «занята» и
+        // «ушла на шаг» лечатся, а не роняют приказ: её просят освободиться,
+        // а если она встала чуть в стороне — подходим заново (до трёх раз).
+        var orderedByPlayer = npc.Execution.Status == ExecutionStatus.None &&
+            ManualControlMath.IsManual(npc) &&
+            // §167: просьба-указание («постирай», «помойся») сохраняет свой
+            // честный ответ «занята» — её не снимают с дела ради просьбы.
+            (npc.Plan.RequestedTalkTopic is not { } asked || DirectiveMath.KindOf(asked) is null) &&
+            target.Mind.PendingTalkFrom is { } askedBy && askedBy.Equals(npc.Id);
+        if (orderedByPlayer &&
+            (target.Movement.IsMoving || target.Plan.Status == PlanStatus.Active ||
+             target.Execution.Status == ExecutionStatus.InProgress) &&
+            ManualCommandExecutor.HoldInvitee(world, target, "Player talk order arrived; waiting") &&
+            target.Movement.IsMoving)
+        {
+            return;
+        }
+
         if (npc.Execution.Status == ExecutionStatus.None)
         {
             var distance = HexSpatialMath.Distance(npc.Position, target.Position);
             if (!InteractionReach.CheckStart(world, npc, target.Position,
                     InteractionReach.Talk, $"Talk NPC{targetId.Value}"))
             {
+                if (orderedByPlayer && !target.Movement.IsMoving &&
+                    npc.Mind.GiftReapproachCount < 3 &&
+                    target.CurrentJunction is { } settledAt)
+                {
+                    var keptTopic = npc.Plan.RequestedTalkTopic;
+                    if (npc.Plan.TargetJunctionId is { } stale)
+                    {
+                        SpatialMutations.FreeJunction(world, stale, npc.Id);
+                        SpatialMutations.ReleaseJunctionReservation(world, stale, npc.Id);
+                    }
+
+                    npc.Plan.Steps.Clear();
+                    npc.Movement.JunctionPath.Clear();
+                    npc.Movement.PathIndex = 0;
+                    npc.Movement.Status = MovementStatus.Idle;
+                    if (PlanningSystem.TryInstallTalkPlan(
+                            world, npc, target, target.Id, settledAt, target.Tile, out _,
+                            allowAdjacentFallback: true))
+                    {
+                        npc.Mind.GiftReapproachCount++;
+                        npc.Plan.RequestedTalkTopic = keptTopic;
+                        npc.Plan.Goal = GoalType.Socialize;
+                        return;
+                    }
+                }
+
                 AbortTalk(world, npc, $"Target NPC{targetId.Value} out of talk range");
                 return;
             }
@@ -172,7 +216,9 @@ public sealed partial class ExecutionSystem
                     $"(Busy={targetBusy} Starving={target.Mind.IsStarving} " +
                     $"Moving={target.Movement.IsMoving} Dislikes={dislikes} " +
                     $"ListenerAff={listenerAffinity:F2}) MyAff->{rejectedRel.Affinity:F2}");
-                AbortTalk(world, npc, $"Talk rejected by NPC{targetId.Value}");
+                AbortTalk(world, npc, $"Talk rejected by NPC{targetId.Value} " +
+                    (dislikes ? "Dislike" : target.Mind.IsStarving ? "Starving" :
+                     target.Movement.IsMoving ? "Moving" : "Busy"));
                 return;
             }
 

@@ -769,11 +769,23 @@ public sealed partial class PlanningSystem
     internal static bool TryInstallTalkPlan(
         WorldState world, NPCState npc, NPCState partner, EntityId targetId,
         JunctionId partnerJunction, TileCoord? partnerTile,
-        out JunctionId approachJunction)
+        out JunctionId approachJunction, bool allowAdjacentFallback = false)
     {
         approachJunction = default;
-        if (TryReserveArmsLengthApproach(world, npc, partner, partnerJunction)
-            is not { } approach)
+        var reserved = TryReserveArmsLengthApproach(world, npc, partner, partnerJunction);
+        // #742: приказ игрока не сдаётся, когда точки «на расстоянии вытянутой
+        // руки» нет (адресат у воды, у стены, в тесном лагере). Запасной подход —
+        // достижимый свободный сосед её узла, тот же, каким к человеку подходят
+        // помощь и подарок: он заведомо в радиусе разговора (2·R против 1 шага
+        // суб-сетки). Автономный выбор флаг не ставит и считается как раньше.
+        if (reserved is null && allowAdjacentFallback && partner is not null &&
+            KenshiRescueMath.TryFindApproach(world, npc, partner, out var adjacent) &&
+            SpatialMutations.TryReserveJunction(world, adjacent, npc.Id, world.Tick, 48))
+        {
+            reserved = adjacent;
+        }
+
+        if (reserved is not { } approach)
         {
             return false;
         }

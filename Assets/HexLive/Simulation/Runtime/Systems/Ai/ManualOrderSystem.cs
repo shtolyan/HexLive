@@ -122,6 +122,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
                 ManualCommandExecutor.ContinueBuildAll(world, npc, orderCompleted);
             }
 
+            KeepInviteeWaiting(world, npc);
             ManualCommandExecutor.AdvancePlayerOrders(world, npc);
 
             // §121.7: some actions clear their own goal before this system runs.
@@ -142,6 +143,37 @@ public sealed class ManualOrderSystem : ISimulationSystem
                 ManualCommandExecutor.ReleaseToAi(
                     world, npc, "Таймаут ручного управления", expired: true);
             }
+        }
+    }
+
+    // #742: пока ручная ИДЁТ к человеку по приказу игрока, тот ждёт её без
+    // срока. Штатное ожидание приглашения — 120 тиков (30 с): автономной паре
+    // этого хватает, потому что она выбирает соседку, а игрок посылает через
+    // пол-острова, и адресат уходил за минуту до прихода. Свежая отметка
+    // приглашения — тот же механизм, без второго таймера; снимает ожидание
+    // по-прежнему конец приказа (self-heal приглашения в DecisionSystem).
+    private static void KeepInviteeWaiting(WorldState world, NPCState npc)
+    {
+        if (npc.Plan.Status != PlanStatus.Active ||
+            npc.Plan.TargetAgentId is not { } inviteeId ||
+            !world.Entities.Npcs.TryGetValue(inviteeId, out var invitee))
+        {
+            return;
+        }
+
+        if (invitee.Mind.PendingTalkFrom is { } talk && talk.Equals(npc.Id))
+        {
+            invitee.Mind.PendingTalkSinceTick = world.Tick;
+        }
+
+        if (invitee.Mind.PendingAidFrom is { } aid && aid.Equals(npc.Id))
+        {
+            invitee.Mind.PendingAidSinceTick = world.Tick;
+        }
+
+        if (invitee.Mind.PendingRomanceFrom is { } romance && romance.Equals(npc.Id))
+        {
+            invitee.Mind.PendingRomanceSinceTick = world.Tick;
         }
     }
 

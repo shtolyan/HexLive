@@ -60,7 +60,7 @@ internal static class ContainerLootMath
             return false;
         }
 
-        if (BuildingRules.IsCompletedBuilding(obj) && obj.InstalledBuildMaterials != null)
+        if (KeepsInstalledMaterials(obj))
         {
             System.Span<int> seen = stackalloc int[BuildSiteMath.AllMaterials.Length];
             seen.Clear();
@@ -263,9 +263,18 @@ internal static class ContainerLootMath
         !IsInstalledHouseMaterial(obj, item) &&
         (!IsCampfire(world, obj) || IsQueuedCampfireFuel(obj, item) || IsSpitMeat(item));
 
+    // Палки готового дома — это его стены, а не запас в ящике. То же верно
+    // для свободной детали §120.10 (стена, дверь, пол): она сама себе
+    // владелец, и без этого правила готовую дверь обыскивали как сундук и
+    // уносили из неё материал — сейв потом не грузился (5 установлено, 0 лежит).
+    private static bool KeepsInstalledMaterials(WorldObjectState obj) =>
+        obj.InstalledBuildMaterials != null &&
+        (BuildingRules.IsCompletedBuilding(obj) ||
+         (Blueprints.FreeArchitectureRules.IsFreePiece(obj) && string.IsNullOrEmpty(obj.BuildProduct)));
+
     private static bool IsInstalledHouseMaterial(WorldObjectState obj, ItemInstance item)
     {
-        if (!BuildingRules.IsCompletedBuilding(obj) || obj.InstalledBuildMaterials == null) return false;
+        if (!KeepsInstalledMaterials(obj)) return false;
         var material = System.Array.IndexOf(BuildSiteMath.AllMaterials, item.DefinitionId);
         if (material < 0 || obj.InstalledBuildMaterials[material] <= 0) return false;
         var ordinal = 0;

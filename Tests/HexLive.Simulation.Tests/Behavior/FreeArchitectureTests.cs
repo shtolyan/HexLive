@@ -293,6 +293,94 @@ public sealed class FreeArchitectureTests
             Is.False);
     }
 
+    private static WorldObjectState FinishedDoor(WorldState world, SimulationEngine engine)
+    {
+        FreeArchitecturePlacementData placement = null;
+        foreach (var segment in BlueprintGeometry.HexPerimeter(BuildableTile(world))
+                     .Where(segment => BlueprintGeometry.TryDoorPortal(segment, out _)))
+        {
+            var candidate = FreeArchitecturePlacementData.FromElement(new BlueprintElementData
+            {
+                Id = "door",
+                Kind = BlueprintElementKind.Door,
+                Segment = segment
+            });
+            if (!engine.ApplyManualCommand(new ApplyFreeArchitectureCommand(
+                    new[] { candidate }, new string[0])).Accepted) continue;
+            placement = candidate;
+            break;
+        }
+        Assert.That(placement, Is.Not.Null, "No door bay on the test hex.");
+        var door = FreeArchitectureRules.FreePieces(world).Single(piece =>
+            piece.ArchitectureElements.Single().SlotKey == placement.SlotKey);
+        FillBill(world, door);
+        FreeArchitectureRules.Complete(world, door);
+        Assert.That(door.BuildProduct, Is.Empty);
+        Assert.That(door.Contents, Is.Not.Empty);
+        return door;
+    }
+
+    [Test]
+    public void AFinishedDoorIsNotAChestOfSticks()
+    {
+        var engine = TestWorld.CreateEngine(12013);
+        var world = engine.World;
+        var door = FinishedDoor(world, engine);
+
+        Assert.That(ContainerLootMath.IsLootable(world, door), Is.False,
+            "Its sticks are the door itself; taking them left a save that would not load.");
+        var cells = new System.Collections.Generic.List<(string ItemId, int Count, int SourceIndex)>();
+        ContainerLootMath.BuildCells(door, cells);
+        Assert.That(cells, Is.Empty);
+    }
+
+    [Test]
+    public void ASaveWhoseFinishedDoorWasAlreadyRobbedStillLoads()
+    {
+        const int seed = 12014;
+        var engine = TestWorld.CreateEngine(seed);
+        var world = engine.World;
+        var door = FinishedDoor(world, engine);
+        var installed = door.InstalledBuildMaterials.Sum();
+        Assert.That(installed, Is.GreaterThan(0));
+        door.Contents.Clear();
+
+        using var blob = new MemoryStream();
+        using (var writer = new BinaryWriter(blob, System.Text.Encoding.UTF8, true))
+            WorldSaveSerializer.Write(world, writer);
+        blob.Position = 0;
+        var restored = TestWorld.CreateWorld(seed);
+        using (var reader = new BinaryReader(blob, System.Text.Encoding.UTF8, true))
+            WorldSaveSerializer.Read(restored, reader);
+
+        var loaded = restored.Entities.Objects[door.Id];
+        Assert.That(loaded.DefinitionId, Is.EqualTo(door.DefinitionId));
+        Assert.That(loaded.BuildProduct, Is.Empty, "The door still stands.");
+        Assert.That(loaded.InstalledBuildMaterials.Sum(), Is.Zero);
+    }
+
+    [Test]
+    public void AConstructionSiteClaimingMoreThanItHoldsIsStillACorruptSave()
+    {
+        const int seed = 12015;
+        var world = TestWorld.CreateWorld(seed);
+        var anchor = world.Junctions.Items.Values.First(j => !j.Blocked && j.Tiles.Count > 0);
+        var site = WorldObjectMutations.SpawnObject(world, ContentIds.BuildSite,
+            anchor.Fragment, anchor.Tiles[0], anchor.Id);
+        site.BuildProduct = ContentIds.Wardrobe;
+        site.BillSticks = 4;
+        site.InstalledBuildMaterials = new int[BuildSiteMath.AllMaterials.Length];
+        site.InstalledBuildMaterials[System.Array.IndexOf(BuildSiteMath.AllMaterials, ContentIds.Stick)] = 3;
+
+        using var blob = new MemoryStream();
+        using (var writer = new BinaryWriter(blob, System.Text.Encoding.UTF8, true))
+            WorldSaveSerializer.Write(world, writer);
+        blob.Position = 0;
+        var restored = TestWorld.CreateWorld(seed);
+        using var reader = new BinaryReader(blob, System.Text.Encoding.UTF8, true);
+        Assert.Throws<InvalidDataException>(() => WorldSaveSerializer.Read(restored, reader));
+    }
+
     private static TileCoord BuildableTile(WorldState world) =>
         world.Tiles.Items.Values
             .Where(tile => tile.Flags.HasFlag(TileFlags.Walkable) &&

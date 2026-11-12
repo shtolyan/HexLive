@@ -1719,7 +1719,14 @@ public static class WorldSaveSerializer
             for (var i = 0; i < obj.InstalledBuildMaterials.Length; i++)
             {
                 var count = r.ReadInt32();
-                if (count < 0 || count > Runtime.BuildSiteMath.Delivered(obj, Runtime.BuildSiteMath.AllMaterials[i]))
+                var delivered = Runtime.BuildSiteMath.Delivered(obj, Runtime.BuildSiteMath.AllMaterials[i]);
+                // У ГОТОВОЙ детали счётчик уже ничего не решает: она стоит.
+                // Миры, где из готовой двери успели унести палки (до правки
+                // ContainerLootMath.KeepsInstalledMaterials), обязаны грузиться,
+                // поэтому здесь счётчик подрезается, а не роняет весь мир.
+                // У стройки расхождение по-прежнему означает битый файл.
+                if (count > delivered && string.IsNullOrEmpty(obj.BuildProduct)) count = delivered;
+                if (count < 0 || count > delivered)
                     throw new InvalidDataException("Invalid installed construction material count.");
                 obj.InstalledBuildMaterials[i] = count;
             }

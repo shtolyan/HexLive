@@ -33208,8 +33208,6 @@ MonoBehaviour:
       - 'Этого предмета там уже нет'
       Flags: 0101
       Languages_Touch: []
-    CaseInsensitiveTerms: 0
-    OnMissingTranslation: 1
     - Term: 'panel.orders.action'
       TermType: 0
       Description:
@@ -33234,6 +33232,8 @@ MonoBehaviour:
       - 'Отменить: {0}'
       Flags: 0101
       Languages_Touch: []
+    CaseInsensitiveTerms: 0
+    OnMissingTranslation: 1
     mTerm_AppName:
     mLanguages:
     - Name: English

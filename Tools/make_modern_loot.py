@@ -133,11 +133,16 @@ def baseball_bat():
     end = shade("Heartwood", "BatEnd", (0.43, 0.41, 0.35))
     grip = shade("Bark", "BatGrip", (0.34, 0.36, 0.48))
     band = shade("LeafGreen", "BatBand", (0.42, 0.52, 0.71))
+    # #759: a real bat is ~8% as wide as it is long; the first cut was twice
+    # that, so a fist could not close around the handle.
+    slim = .62
     profile = [(-.218, .039), (-.203, .054), (-.181, .055), (-.163, .029),
                (-.085, .028), (.073, .029), (.084, .030), (.175, .032),
                (.377, .047), (.595, .075), (.745, .079), (.789, .066)]
-    rings("Tapered bat", [(0, y, 0) for y, _ in profile], [(r, r) for _, r in profile],
+    rings("Tapered bat", [(0, y, 0) for y, _ in profile], [(r * slim, r * slim) for _, r in profile],
           [barrel, end, grip, band], [1, 1, 1, 2, 2, 3, 0, 0, 0, 0, 1, 1])
+    # Knob end at the pivot, like the spear butt the two-handed carry was tuned on.
+    seat_grip(-.218)
 
 
 def apple():

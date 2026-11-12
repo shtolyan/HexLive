@@ -391,7 +391,11 @@ public sealed class PeoplePaintRuntimeTests
             var handle = hand.InverseTransformPoint(mesh.TransformPoint(new Vector3(0f, -.002055f, .00018f)));
             var tip = hand.InverseTransformPoint(mesh.TransformPoint(new Vector3(0f, .00649f, .00060f)));
             var teeth = hand.InverseTransformPoint(mesh.TransformPoint(new Vector3(0f, .00250f, .00138f)));
-            Assert.That(handle.magnitude, Is.LessThan(.0001f), field);
+            // #759: the handle sits in the palm, not in the wrist joint (hand origin).
+            var left = field == "_handProp" ? leftHanded : !leftHanded;
+            var palm = new Vector3(.054f, -.033f, 0f); // HandPropVisual.PalmGripPoint (internal)
+            var expected = left ? new Vector3(-palm.x, palm.y, palm.z) : palm;
+            Assert.That((handle - expected).magnitude, Is.LessThan(.0001f), field);
             Assert.That(tip.z, Is.GreaterThan(.25f), field);
             Assert.That(teeth.y, Is.LessThan(-.02f), field);
             Assert.That(ObjectFit.TryMeasuredSize(prop, ContentIds.FoldingSaw, out var size), Is.True);

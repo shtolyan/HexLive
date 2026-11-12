@@ -9,6 +9,12 @@ internal static class HandPropVisual
     // imported mesh coordinates. The prefab origin is near the blade hinge.
     private static readonly Vector3 FoldingSawGripPoint = new(0f, -.002055f, .00018f);
 
+    // §59.5 (#759): where the shipped tools' handle axis crosses the closed fist,
+    // in right-hand anchor space — the position of their shared GearConfig pose
+    // with the along-handle offset removed. Hand origin is the WRIST joint, so a
+    // prop seated at the origin sits inside the wrist, not in the palm.
+    internal static readonly Vector3 PalmGripPoint = new(.054f, -.033f, 0f);
+
     public static GameObject Create(string itemId, Transform hand, bool leftHanded)
     {
         var model = CreateModel(itemId, hand, leftHanded);
@@ -25,8 +31,9 @@ internal static class HandPropVisual
         if (modern && itemId is not (Simulation.Content.ContentIds.KitchenKnife or
             Simulation.Content.ContentIds.BaseballBat))
         {
-            // These objects have no independent GearConfig. A placement root keeps
-            // the art's native import rotation intact under the acting hand.
+            // Pocket objects (flashlight, lighters) and the folding saw have no
+            // GearConfig. A placement root keeps the art's native import
+            // rotation intact under the acting hand and is seated in the PALM.
             var prefab = Rendering.ModernApartmentView.LoadPrefab(itemId);
             if (prefab == null || !ObjectFit.HasRenderableGeometry(prefab)) return null;
             var grip = new GameObject($"HandProp {itemId}");
@@ -34,12 +41,23 @@ internal static class HandPropVisual
             var native = Object.Instantiate(prefab, grip.transform, false);
             bool foldingSaw = itemId == Simulation.Content.ContentIds.FoldingSaw;
             // Match the sawing clip's +Z blade and -Y teeth in either hand.
-            if (foldingSaw)
-                grip.transform.localRotation = Quaternion.Euler(180f, 0f, 0f);
+            // The pocket objects turn their authored +Y end (lens, flame) from
+            // behind the fist (-Z) to the thumb side (+Z), like a tool head.
+            grip.transform.localRotation = foldingSaw
+                ? Quaternion.Euler(180f, 0f, 0f)
+                : Quaternion.Euler(0f, 180f, 0f);
             ApplyObjectFitScale(grip, itemId, Vector3.one, Vector3.one);
-            if (foldingSaw)
-                grip.transform.localPosition = -hand.InverseTransformPoint(
-                    native.transform.TransformPoint(FoldingSawGripPoint));
+            var palm = leftHanded
+                ? new Vector3(-PalmGripPoint.x, PalmGripPoint.y, PalmGripPoint.z)
+                : PalmGripPoint;
+            // Centre the held point on the grip root, then put the root in the
+            // palm: the flashlight's beam aim rotates this root, so it must
+            // turn about the fist rather than about the wrist joint.
+            var held = foldingSaw
+                ? native.transform.TransformPoint(FoldingSawGripPoint)
+                : RenderableCentre(native);
+            native.transform.localPosition -= grip.transform.InverseTransformPoint(held);
+            grip.transform.localPosition = palm;
             return grip;
         }
 
@@ -159,6 +177,18 @@ internal static class HandPropVisual
     {
         var fit = ObjectFit.FitScaleFactor(prop, itemId);
         prop.transform.localScale = Vector3.Scale(prefabLocalScale, fineMultiplier) * fit;
+    }
+
+    /// <summary>World centre of the model's first mesh, from its own local
+    /// bounds — rotation-exact, unlike a Renderer's world AABB.</summary>
+    private static Vector3 RenderableCentre(GameObject model)
+    {
+        foreach (var filter in model.GetComponentsInChildren<MeshFilter>(true))
+        {
+            if (filter.sharedMesh != null && filter.sharedMesh.vertexCount > 0)
+                return filter.transform.TransformPoint(filter.sharedMesh.bounds.center);
+        }
+        return ObjectFit.WorldBounds(model, out var bounds) ? bounds.center : model.transform.position;
     }
 
     // Attach-point authoring: if the model carries a direct child transform

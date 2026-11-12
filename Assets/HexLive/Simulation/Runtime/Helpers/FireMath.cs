@@ -41,6 +41,7 @@ internal static class FireMath
         }
 
         var indoor = ShelterMath.IsIndoor(world, fire.Tile);
+        var roofed = ShelterMath.IsUnderRoof(world, fire.Tile); // §35.4 r3
         var dryBurn = WorldBalance.FireBurnPerSlowTick;
         if (BuildSiteMath.CampfireRingComplete(fire))
         {
@@ -60,7 +61,7 @@ internal static class FireMath
             // крышей ставка постоянна и всё окно — один отрезок.
             bool raining;
             int segmentEnd;
-            if (indoor)
+            if (roofed)
             {
                 raining = false;
                 segmentEnd = lastTick;

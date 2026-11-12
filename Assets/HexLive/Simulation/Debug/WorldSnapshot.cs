@@ -275,6 +275,10 @@ public sealed class TileSnapshot
 
     public bool HasFloor { get; set; }
 
+    // §35.4 r3 (bug #750): this hex's own roof is finished. Rain and the
+    // rain-wet look read Roofed||Indoor (ShelterMath.IsUnderRoof).
+    public bool Roofed { get; set; }
+
     public bool Water { get; set; }
 
     // §148: колония держала этот гекс в восприятии хоть раз. Только по нему

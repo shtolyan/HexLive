@@ -295,20 +295,23 @@ public static class WorldSnapshotCodec
         var changed = 0;
         foreach (var tile in snapshot.Tiles)
         {
-            if (tile.HasFloor || tile.Indoor) changed++;
+            if (tile.HasFloor || tile.Indoor || tile.Roofed) changed++;
         }
 
         w.Write((ushort)changed);
         foreach (var tile in snapshot.Tiles)
         {
-            if (!tile.HasFloor && !tile.Indoor) continue;
+            if (!tile.HasFloor && !tile.Indoor && !tile.Roofed) continue;
             WireIo.WriteTile(w, tile.Coord);
             w.Write(tile.Elevation);
             w.Write((byte)((tile.Walkable ? 1 : 0) |
                            (tile.Blocked ? 2 : 0) |
                            (tile.Indoor ? 4 : 0) |
                            (tile.Water ? 8 : 0) |
-                           (tile.HasFloor ? 16 : 0)));
+                           (tile.HasFloor ? 16 : 0) |
+                           // §35.4 r3: a free bit of the same byte — an older
+                           // reader ignores it, so no protocol bump.
+                           (tile.Roofed ? 32 : 0)));
         }
     }
 
@@ -383,6 +386,7 @@ public static class WorldSnapshotCodec
         {
             tile.HasFloor = false;
             tile.Indoor = false;
+            tile.Roofed = false;
         }
 
         var changed = r.ReadUInt16();
@@ -408,6 +412,7 @@ public static class WorldSnapshotCodec
                 t.Indoor = (flags & 4) != 0;
                 t.Water = (flags & 8) != 0;
                 t.HasFloor = (flags & 16) != 0;
+                t.Roofed = (flags & 32) != 0;
                 break;
             }
         }

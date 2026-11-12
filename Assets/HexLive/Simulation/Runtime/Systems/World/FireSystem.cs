@@ -104,7 +104,10 @@ public sealed class FireSystem : ISimulationSystem
         WorldState world, WorldObjectState fire, bool reserveForRain = false)
     {
         var indoor = ShelterMath.IsIndoor(world, fire.Tile);
-        var rainExposed = !indoor && (reserveForRain || world.Environment.IsRaining);
+        // §35.4 r3 (bug #750): rain is stopped by THIS hex's roof, not by the
+        // whole building's sanctuary; the indoor burn bonus below stays Indoor.
+        var rainExposed = !ShelterMath.IsUnderRoof(world, fire.Tile) &&
+            (reserveForRain || world.Environment.IsRaining);
         var burn = BurnPerSlowTick * (rainExposed ? 4f : 1f);
         // §54.14 (r2): a finished stone ring (stage 2) banks the coals —
         // fuel burns at half rate, so the same wood keeps the fire twice

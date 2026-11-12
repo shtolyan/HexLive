@@ -1387,6 +1387,17 @@ public static class WorldSaveSerializer
             if (plan.DefinitionId == ContentIds.HutPlan)
                 HexLive.Simulation.Bootstrap.BuildingBootstrap.StakePlanFurnitureSites(world, plan);
         }
+        // §35.4 r3 (bug #750): a blob written before per-hex roofs carries
+        // Roofed=false over a finished roof hex of an unfinished house. The
+        // flag is derived state — recompute it once, for all plans together.
+        var planRoofTiles = new HashSet<TileCoord>();
+        foreach (var plan in plansToRepair)
+        {
+            var planTiles = Runtime.Blueprints.HouseArchitectureEditing.PlanTilesOf(world, plan);
+            if (planTiles != null) planRoofTiles.UnionWith(planTiles);
+        }
+        if (planRoofTiles.Count > 0)
+            Runtime.Blueprints.HouseArchitectureEditing.RefreshWorldFlags(world, planRoofTiles, roofOnly: true);
 
         var hutsToRepair = new List<WorldObjectState>();
         foreach (var obj in world.Entities.Objects.Values)

@@ -757,6 +757,11 @@ public static class BuildingRules
             target.DeliveredLeaves >= target.RequiredLeaves)
             target.WorkDone = target.WorkRequired;
         RefreshRoofBuildability(elements);
+        // §35.4 r3 (bug #750): a finished roof sector may complete its hex's
+        // roof while the rest of the house is still open — the rain stops there
+        // now, not at CompleteHut. Only on the completing edge of a roof piece.
+        if (target.DefinitionId == "architecture.roof.palm" && target.Complete)
+            Blueprints.HouseArchitectureEditing.RefreshRoofFlags(world, owner);
         return true;
     }
 
@@ -771,6 +776,7 @@ public static class BuildingRules
         // Allocating deliveries from the static product silently mixed them.
         var definitions = DefinitionsFor(world, owner);
         var elements = Elements(world, owner).ToArray();
+        var roofsBefore = CompletedRoofSectors(elements);
         var byKey = elements.ToDictionary(element => element.SlotKey);
         // A completed HutPlan can become a site in place while an extension is
         // built. Its finished modules are the existing house, not material in
@@ -812,6 +818,18 @@ public static class BuildingRules
             if (piece.ArchitectureElements[0].DeliveredLeaves <= 0) continue;
             foreach (var item in owner.Contents) LeafDryingMath.Receive(piece,item,world.Tick);
         }
+        // §35.4 r3 (bug #750): the legacy reallocation path finishes roof
+        // sectors too; refresh the per-hex roof only when that count moved.
+        if (CompletedRoofSectors(elements) != roofsBefore)
+            Blueprints.HouseArchitectureEditing.RefreshRoofFlags(world, owner);
+    }
+
+    private static int CompletedRoofSectors(ArchitectureElementState[] elements)
+    {
+        var count = 0;
+        foreach (var element in elements)
+            if (element.DefinitionId == "architecture.roof.palm" && element.Complete) count++;
+        return count;
     }
 
     private static void RefreshRoofBuildability(IEnumerable<ArchitectureElementState> elements)

@@ -46,6 +46,7 @@ public sealed class NpcFieldGroupDeltaGateTests
                 Indoor = tile.Indoor,
                 Water = tile.Water,
                 HasFloor = tile.HasFloor,
+                Roofed = tile.Roofed,
             });
         }
 

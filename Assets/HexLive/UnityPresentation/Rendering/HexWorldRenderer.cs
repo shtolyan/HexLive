@@ -1626,6 +1626,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             _swimCoords.Clear();
             _tileElevations.Clear();
             _indoorCoords.Clear();
+            _rainShelterCoords.Clear();
             _floorTiles.Clear();
             foreach (var tile in snapshot.Tiles)
             {
@@ -1645,6 +1646,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 if (tile.Indoor)
                 {
                     _indoorCoords.Add(tile.Coord);
+                }
+                if (tile.Indoor || tile.Roofed)
+                {
+                    _rainShelterCoords.Add(tile.Coord);
                 }
                 if (tile.HasFloor)
                 {
@@ -3304,7 +3309,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         pelvis.y = ActorGroundY(GroundTileUnder(npc));
         EnsureIntimacyStains().Spawn(npcId, pelvis, snapshot.Tick,
-            !_indoorCoords.Contains(npc.Tile));
+            !_rainShelterCoords.Contains(npc.Tile));
     }
 
     private void SyncActorView(WorldSnapshot snapshot, NpcSnapshot npc, bool paintHidden = false)
@@ -3385,7 +3390,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
         var earlyThermalForSweat = UI.DebugControlsPanel.SweatOverride ?? npc.ThermalComfort;
         var earlyUncoveredForDecals = UI.DebugControlsPanel.HideClothing ? AllBodyZones : npc.UncoveredParts;
-        var earlyRainWet = snapshot.IsRaining && !_indoorCoords.Contains(npc.Tile) ? 1f : 0f;
+        var earlyRainWet = snapshot.IsRaining && !_rainShelterCoords.Contains(npc.Tile) ? 1f : 0f;
         var earlyWaterWet = _waterCoords.Contains(npc.Tile) ? 1f : 0f;
         // Body condition can raise a wound alarm, so publish the new speech
         // state before applying wound effects or starting conversation.
@@ -3627,7 +3632,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // their own sim wetness (soaked cloth shines/darkens, dries back).
         // Water tiles (swim AND wade — the sim's TileFlags.Water) dunk the
         // skin outright, so she climbs out of the sea wet and dries slowly.
-        var rainWet = snapshot.IsRaining && !_indoorCoords.Contains(npc.Tile) ? 1f : 0f;
+        var rainWet = snapshot.IsRaining && !_rainShelterCoords.Contains(npc.Tile) ? 1f : 0f;
         var waterWet = _waterCoords.Contains(npc.Tile) ? 1f : 0f;
         actorView.SetBodyCondition(npc.BodyParts, uncoveredForDecals, npc.Hygiene, thermalForSweat,
             rainWet, waterWet, npc.WornWetness, npc.WornDirtiness, npc.WornBloodiness,
@@ -4345,6 +4350,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     // Spec 35.5: rain wets only NPCs standing outdoors.
     private readonly HashSet<TileCoord> _indoorCoords = new();
+
+    // §35.4 r3 (bug #750): rain stops at THIS hex's own roof (or the
+    // sanctuary) — the same Roofed||Indoor truth as ShelterMath.IsUnderRoof.
+    private readonly HashSet<TileCoord> _rainShelterCoords = new();
 
     // Spec 20.16: elevation registry — every movable and object view takes
     // its Y from its tile's top.
@@ -5671,9 +5680,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var hash = unchecked((long)0xcbf29ce484222325) ^ snapshot.Tiles.Count;
         foreach (var tile in snapshot.Tiles)
         {
-            var bits = tile.Elevation * 32 +
+            var bits = tile.Elevation * 64 +
                        (tile.Water ? 1 : 0) + (tile.Walkable ? 2 : 0) + (tile.Indoor ? 4 : 0) +
-                       (tile.HasFloor ? 8 : 0);
+                       (tile.HasFloor ? 8 : 0) + (tile.Roofed ? 16 : 0);
             hash = unchecked((hash ^ bits) * 0x100000001b3L);
         }
 

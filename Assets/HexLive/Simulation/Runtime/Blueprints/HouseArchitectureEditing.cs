@@ -141,10 +141,33 @@ public static class HouseArchitectureEditing
         RefreshWorldFlags(world, touched);
     }
 
+    /// <summary>
+    /// §35.4 r3 (bug #750): a house under construction gets its per-hex
+    /// <see cref="TileFlags.Roofed"/> the moment that hex's sixth roof sector
+    /// is finished — not when the whole building completes. Only Roofed is
+    /// touched: the sanctuary (Indoor/HasFloor) keeps its whole-building
+    /// contract. Event-driven (one call per completed roof sector, and once
+    /// per plan on load), never per tick or per query.
+    /// </summary>
+    internal static void RefreshRoofFlags(WorldState world, WorldObjectState owner)
+    {
+        var tiles = PlanTilesOf(world, owner);
+        if (tiles != null) RefreshWorldFlags(world, tiles, roofOnly: true);
+    }
+
+    internal static IEnumerable<TileCoord> PlanTilesOf(WorldState world, WorldObjectState owner)
+    {
+        var physical = PhysicalPlan(world, owner);
+        return physical == null
+            ? null
+            : ConstructionAccess.PlanTiles(physical, owner.Tile, owner.RotationDegrees);
+    }
+
     // Floor/roof/enclosure are properties of the physical union, not of the
     // construction owner: five old house sectors plus one independent sector
     // still form one floor. Desired demolition remains physical until work.
-    internal static void RefreshWorldFlags(WorldState world, IEnumerable<TileCoord> touched)
+    internal static void RefreshWorldFlags(WorldState world, IEnumerable<TileCoord> touched,
+        bool roofOnly = false)
     {
         var physical = new BuildingBlueprintDraft { HasAnchor = true };
         var slots = new HashSet<string>(StringComparer.Ordinal);
@@ -170,11 +193,28 @@ public static class HouseArchitectureEditing
             global.Id = $"physical_{physical.Elements.Count}";
             physical.Elements.Add(global);
         }
+        var roofsByTile = physical.Elements.Where(e => e.Kind == BlueprintElementKind.RoofSector)
+            .GroupBy(e => e.RoofSector.Hex).ToDictionary(g => g.Key, g => g.Count());
+        if (roofOnly)
+        {
+            // Grant-only: completion and load can only ADD a roof. Removal
+            // (demolition, revision) runs the full pass below, so this path can
+            // never strip a Roofed that another writer (portal flat, legacy
+            // hut, CompleteHut footprint) legitimately set.
+            foreach (var coord in touched.Distinct())
+            {
+                if (!world.Tiles.Items.TryGetValue(coord, out var tile) ||
+                    (tile.Flags & TileFlags.Roofed) != 0) continue;
+                if (!canonical.Contains(coord) &&
+                    !(roofsByTile.TryGetValue(coord, out var count) && count == 6)) continue;
+                tile.Flags |= TileFlags.Roofed;
+                WorldTopology.NoteTile(world, coord);
+            }
+            return;
+        }
         var regions = BlueprintValidator.CalculateRoomRegions(physical);
         var floorsByTile = physical.Elements.Where(e => e.Kind == BlueprintElementKind.FloorSector)
             .GroupBy(e => e.FloorSector.Hex).ToDictionary(g => g.Key, g => g.Count());
-        var roofsByTile = physical.Elements.Where(e => e.Kind == BlueprintElementKind.RoofSector)
-            .GroupBy(e => e.RoofSector.Hex).ToDictionary(g => g.Key, g => g.Count());
         var indoor = new HashSet<TileCoord>(regions.Where(region => BlueprintValidator.IsIndoorRegion(physical, region))
             .SelectMany(region => region.Select(f => f.Hex)));
         foreach (var coord in touched.Distinct())

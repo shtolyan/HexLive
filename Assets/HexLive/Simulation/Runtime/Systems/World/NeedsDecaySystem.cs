@@ -100,8 +100,8 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             perNight += Spec49.SleepComfortFireBonusNight;
         }
 
-        var roofed = world.Tiles.Items.TryGetValue(npc.Tile, out var tile) &&
-            tile.Flags.HasFlag(TileFlags.Indoor);
+        // §35.4 r3 (bug #750): the roof over THIS hex, not the house's sanctuary.
+        var roofed = ShelterMath.IsUnderRoof(world, npc.Tile);
         var daytime = world.Environment.Phase is DayPhase.Day or DayPhase.Morning;
         if (daytime && !roofed && !TemperatureSystem.IsShaded(world, npc.Tile))
         {

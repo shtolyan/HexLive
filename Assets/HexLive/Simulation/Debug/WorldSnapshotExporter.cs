@@ -494,6 +494,7 @@ public static class WorldSnapshotExporter
                 cached.Blocked = (tile.Flags & TileFlags.Blocked) != 0;
                 cached.Indoor = (tile.Flags & TileFlags.Indoor) != 0;
                 cached.HasFloor = (tile.Flags & TileFlags.HasFloor) != 0;
+                cached.Roofed = (tile.Flags & TileFlags.Roofed) != 0;
                 cached.Water = (tile.Flags & TileFlags.Water) != 0;
                 cached.Explored = world.ExploredTiles.Contains(tile.Coord); // §148
                 cached.Elevation = tile.Elevation;
@@ -516,6 +517,7 @@ public static class WorldSnapshotExporter
                 Blocked = (tile.Flags & TileFlags.Blocked) != 0,
                 Indoor = (tile.Flags & TileFlags.Indoor) != 0,
                 HasFloor = (tile.Flags & TileFlags.HasFloor) != 0,
+                Roofed = (tile.Flags & TileFlags.Roofed) != 0,
                 Water = (tile.Flags & TileFlags.Water) != 0,
                 Explored = world.ExploredTiles.Contains(tile.Coord), // §148
                 Elevation = tile.Elevation

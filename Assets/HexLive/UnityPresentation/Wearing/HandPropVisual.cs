@@ -15,13 +15,14 @@ internal static class HandPropVisual
     // prop seated at the origin sits inside the wrist, not in the palm.
     internal static readonly Vector3 PalmGripPoint = new(.054f, -.033f, 0f);
 
-    // §59.5 (#754): a modern tool built in the shipped tools' mesh frame
+    // §59.5 (#754/#761): a modern tool built in the shipped tools' mesh frame
     // (grip end at the pivot, handle +Y, head +Z) borrows the tuned grip of the
     // tool it imitates instead of a second hand-made copy of the same numbers.
     // The owner's GearConfig is already published, so no new bundle entry is
     // needed for the grip to exist.
     internal static string GripOwner(string itemId) => itemId switch
     {
+        Simulation.Content.ContentIds.SteelHatchet => Simulation.Content.GearCatalog.Axe,
         Simulation.Content.ContentIds.ClawHammer => Simulation.Content.GearCatalog.Hammer,
         _ => itemId,
     };
@@ -40,7 +41,8 @@ internal static class HandPropVisual
     {
         bool modern = Simulation.Content.ModernLootCatalog.IsModernProp(itemId);
         if (modern && itemId is not (Simulation.Content.ContentIds.KitchenKnife or
-            Simulation.Content.ContentIds.BaseballBat or Simulation.Content.ContentIds.ClawHammer))
+            Simulation.Content.ContentIds.BaseballBat or Simulation.Content.ContentIds.SteelHatchet or
+            Simulation.Content.ContentIds.ClawHammer))
         {
             // Pocket objects (flashlight, lighters) and the folding saw have no
             // GearConfig. A placement root keeps the art's native import

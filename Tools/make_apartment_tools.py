@@ -16,6 +16,8 @@ import bpy
 from mathutils import Matrix, Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import bmesh
+
 from make_modern_loot import BUILD, OBJECTS, ROOT, box, mesh, palette, prism, rings, seat_grip, shade
 import render_item_icon as icon
 
@@ -36,21 +38,63 @@ def face_along_z():
         part.data.transform(rotation)
 
 
+def wedge_head(name, stations, materials, levels):
+    """Loft a forged axe head along its length (profile -X = bit).
+
+    Each station is (top, middle, bottom, half-thickness): three side-profile
+    points that share one cheek thickness. A real head is a WEDGE — thick at
+    the eye, thinning through the cheeks to a ground bevel — which a constant
+    prism cannot show; #761 read the old 11%-thick slab as "not a real axe".
+    """
+    vertices, faces, indices = [], [], []
+    for points, half in ((s[:3], s[3]) for s in stations):
+        for x, y in points:
+            vertices += [(x, y, half), (x, y, -half)]
+    for i, level in zip(range(len(stations) - 1), levels):
+        a, b = 6 * i, 6 * (i + 1)
+        for k in (0, 2):                          # top-middle, middle-bottom
+            faces += [(a + k, b + k, b + k + 2, a + k + 2),            # +Z cheek
+                      (a + k + 1, a + k + 3, b + k + 3, b + k + 1)]    # -Z cheek
+            indices += [level, level]
+        faces += [(a, a + 1, b + 1, b), (a + 4, b + 4, b + 5, a + 5)]  # top, bottom
+        indices += [level, level]
+    last = 6 * (len(stations) - 1)
+    faces += [(0, 2, 4, 5, 3, 1), (last, last + 1, last + 3, last + 5, last + 4, last + 2)]
+    indices += [levels[0], levels[-1]]
+    head = mesh(name, vertices, faces, materials, indices)
+    solid = bmesh.new()
+    solid.from_mesh(head.data)
+    bmesh.ops.recalc_face_normals(solid, faces=solid.faces)  # Unity culls back faces
+    solid.to_mesh(head.data)
+    solid.free()
+    return head
+
+
 def steel_hatchet():
-    steel = shade("Prosthetic_Metal", "HatchetSteel", (.71, .84, 1.06), .48)
-    edge = shade("Prosthetic_Metal", "HatchetEdge", (1.32, 1.34, 1.35), .38)
+    # Material creation order is the manifest's slot order: Handle, Grip, Steel, Edge.
     shaft = shade("Heartwood", "HatchetHandle", (.78, .62, .38), .75)
     grip = shade("Bark", "HatchetGrip", (.28, .37, .43))
+    steel = shade("Prosthetic_Metal", "HatchetSteel", (.71, .84, 1.06), .48)
+    edge = shade("Prosthetic_Metal", "HatchetEdge", (1.32, 1.34, 1.35), .38)
+    # Proportions of a ~38 cm forged hatchet, as fractions of its length:
+    # oval handle 8 x 6 %, swelling at the butt into a knob that hooks toward
+    # the bit; head 36 % from poll to edge, 7 % thick at the eye, 25 % bit.
+    # Grip end at the origin, handle along +Y (TOOL_GENERATION_SPEC §6).
     rings("Curved handle",
-          [(0, -.23, 0), (.008, -.20, 0), (.015, .08, 0), (-.010, .39, 0), (0, .70, 0)],
-          [(.065, .044), (.070, .045), (.060, .040), (.044, .041), (.049, .039)],
-          [shaft, grip], [1, 1, 0, 0, 0], sides=8)
-    profile("Forged head", [(-.333, .458), (-.298, .575), (-.236, .682), (-.120, .726),
-                            (.111, .728), (.141, .693), (.138, .603), (.021, .593),
-                            (-.105, .552), (-.275, .415)], -.055, .055, steel)
-    profile("Cutting bevel", [(-.333, .458), (-.298, .575), (-.236, .682), (-.265, .625),
-                             (-.274, .550), (-.292, .473), (-.270, .432), (-.275, .415)],
-            -.056, .056, edge)
+          [(-.026, 0, 0), (-.024, .022, 0), (-.012, .070, 0), (-.002, .150, 0),
+           (.006, .330, 0), (.006, .560, 0), (0, .790, 0), (0, .975, 0)],
+          [(.036, .027), (.048, .034), (.039, .029), (.035, .026),
+           (.039, .028), (.032, .024), (.036, .026), (.033, .025)],
+          [shaft, grip], [1, 1, 1, 1, 0, 0, 0, 0], sides=8)
+    wedge_head("Forged head", [
+        ((.072, .936), (.077, .876), (.072, .818), .029),       # flat poll
+        ((.040, .950), (.040, .876), (.040, .810), .034),       # eye
+        ((-.040, .953), (-.040, .874), (-.040, .806), .034),
+        ((-.105, .956), (-.108, .868), (-.105, .794), .022),    # cheek, hollow beard line
+        ((-.175, .963), (-.183, .862), (-.175, .764), .013),
+        ((-.232, .974), (-.250, .859), (-.234, .732), .007),    # bevel shoulder
+        ((-.258, .986), (-.291, .858), (-.262, .714), .0015),   # flared convex edge, bearded heel
+    ], [steel, edge], [0, 0, 0, 0, 0, 1])
     face_along_z()
 
 

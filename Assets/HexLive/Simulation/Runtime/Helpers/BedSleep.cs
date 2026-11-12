@@ -3,6 +3,7 @@ using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Spatial;
 
 namespace HexLive.Simulation.Runtime
@@ -65,6 +66,7 @@ public static class BedSleep
         ApplyPose(world, sleeper, bed, routeAnchor);
         sleeper.CurrentJunction = wakeJunction;
         sleeper.Movement.IsMoving = false;
+        sleeper.Movement.SetStatus(MovementStatus.Arrived);
         sleeper.Movement.JunctionPath.Clear();
         sleeper.Movement.PathIndex = 0;
         sleeper.Execution.Status = ExecutionStatus.InProgress;

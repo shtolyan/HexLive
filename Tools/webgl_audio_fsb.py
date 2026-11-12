@@ -162,7 +162,7 @@ def main() -> int:
 
     for stem, path in cached.items():
         shutil.copyfile(path, root / f"{stem}.fsb")
-    for entry in loose + dropped:
+    for entry in (*loose, *dropped):
         (root / entry).unlink(missing_ok=True)
     files = sorted(kept + [f"{stem}.fsb" for stem in chosen])
     manifest_path.write_text(json.dumps({"files": files}, ensure_ascii=False, indent=0) + "\n", encoding="utf-8")

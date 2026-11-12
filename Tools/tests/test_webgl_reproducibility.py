@@ -97,14 +97,28 @@ class AudioReuseProofTests(unittest.TestCase):
 
     def test_full_fsb_packaging_keeps_hexkufa_by_default(self):
         root = self.repo / "StreamingAssets/HexLive"
-        root.mkdir(parents=True)
+        voice = root / "Sfx/Voices/marta/test.wav"
+        voice.parent.mkdir(parents=True)
+        voice.write_bytes(b"fixture voice")
+        visemes = voice.with_suffix(".vis")
+        visemes.write_bytes(b"fixture visemes")
         (root / "web-audio-manifest.json").write_text(
             '{"files":["Sfx/Voices/marta/test.wav","Sfx/Voices/marta/test.vis"]}')
-        output = io.StringIO()
-        with patch.object(sys, "argv", ["fsb", str(self.repo), "--dry-run"]), contextlib.redirect_stdout(output):
+
+        def encode(_, jobs):
+            for _, cached in jobs:
+                cached.write_bytes(b"FSB5 fixture")
+            return []
+
+        arguments = ["fsb", str(self.repo), "--hexfsb", str(self.source), "--cache", str(self.repo / "cache")]
+        with (patch.object(sys, "argv", arguments), patch.object(fsb, "encode_batch", side_effect=encode),
+              contextlib.redirect_stdout(io.StringIO())):
             self.assertEqual(fsb.main(), 0)
-        self.assertIn("Sfx/Voices/marta/test.wav -> Sfx/Voices/marta/test.fsb", output.getvalue())
-        self.assertIn("1 sidecars kept", output.getvalue())
+        self.assertFalse(voice.exists())
+        self.assertEqual(voice.with_suffix(".fsb").read_bytes(), b"FSB5 fixture")
+        self.assertEqual(visemes.read_bytes(), b"fixture visemes")
+        manifest = json.loads((root / "web-audio-manifest.json").read_text())
+        self.assertEqual(manifest["files"], ["Sfx/Voices/marta/test.fsb", "Sfx/Voices/marta/test.vis"])
 
 
 class WebGlCompileCheckTests(unittest.TestCase):

@@ -4607,6 +4607,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _speech?.SetState(state);
     }
 
+    public void SetSpeechRomance(bool active)
+    {
+        EnsureSpeechBubble();
+        _speech?.SetRomanceScene(active);
+    }
+
     // §67.10: the verb she is doing right now — a work beat on the rising edge.
     public void SetSpeechInteraction(string interaction)
     {

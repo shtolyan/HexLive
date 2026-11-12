@@ -66,6 +66,25 @@ public sealed class CharacterViewTests
     }
 
     [Test]
+    public void FullHealthAndSevereThirstDoNotImplyLifeIsInDanger()
+    {
+        using var state = JsonDocument.Parse("""{"bodyNeeds":{"health":1,"thirst":1,"dying":false}}""");
+        Assert.That(CharacterView.Build(state.RootElement),
+            Does.Contain("Здоровье сейчас: в норме").And.Contain("Самочувствие: мучительная жажда")
+                .And.Not.Contain("умирает").And.Not.Contain("угроза жизни"));
+    }
+
+    [Test]
+    public void ExplicitDyingStateIsReportedEvenWithFullHealth()
+    {
+        using var state = JsonDocument.Parse("""
+            {"bodyNeeds":{"health":1,"thirst":1,"dying":true,"dyingCause":"Dehydration"}}
+            """);
+        Assert.That(CharacterView.Build(state.RootElement),
+            Does.Contain("угроза жизни подтверждена (обезвоживание)").And.Not.Contain("Здоровье сейчас: в норме"));
+    }
+
+    [Test]
     public void AManSpeaksOfHimselfInTheMasculine()
     {
         // §58.9: a Kshishtof body on the phone said «я устала» and «голодна».

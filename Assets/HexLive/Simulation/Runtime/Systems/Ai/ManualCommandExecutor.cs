@@ -128,7 +128,7 @@ internal static partial class ManualCommandExecutor
                 ApplyCraft(world, craft.Npc, GoalType.None, craft.OutputDefinitionId, admission);
                 break;
             case CraftItemCommand craft:
-                ApplyCraft(world, craft.Npc, craft.RecipeGoal, null, admission);
+                ApplyCraft(world, craft.Npc, craft.RecipeGoal, null, admission, craft.Station);
                 break;
             case TalkToCommand talkTo:
                 ApplyTalkTo(world, talkTo, admission);
@@ -2342,9 +2342,9 @@ internal static partial class ManualCommandExecutor
             return;
         }
 
-        if (command.Action == InventoryAction.Eat)
+        if (command.Action is InventoryAction.Eat or InventoryAction.Cook)
         {
-            ApplyEatInventory(world, npc, command, admission);
+            ApplyInventoryUse(world, npc, command, admission);
             return;
         }
 
@@ -2365,7 +2365,7 @@ internal static partial class ManualCommandExecutor
         }
     }
 
-    private static void ApplyEatInventory(
+    private static void ApplyInventoryUse(
         WorldState world, NPCState npc, ManageInventoryCommand command, AdmissionTracker admission)
     {
         if (!TryTakeOrder(world, npc.Id, "Inventory", requireManual: true, admission, out _)) return;
@@ -2390,6 +2390,17 @@ internal static partial class ManualCommandExecutor
         }
 
         var selected = npc.Inventory.Items[reference.Index];
+        if (command.Action == InventoryAction.Cook)
+        {
+            if (!HumanMeatCatalog.IsRaw(selected.DefinitionId))
+            {
+                Reject(world, npc.Id, "Inventory", "InvalidAction", admission);
+                return;
+            }
+            var option = CraftingOptions.Resolve(world, npc, GoalType.CookMeat);
+            ApplyCraftOption(world, npc, option, admission, selectedIngredient: selected);
+            return;
+        }
         if (!world.Content.ObjectDefinitions.TryGetValue(selected.DefinitionId, out var definition) ||
             !FoodMath.CanEat(definition))
         {
@@ -3682,7 +3693,8 @@ internal static partial class ManualCommandExecutor
     }
 
     private static void ApplyCraft(
-        WorldState world, EntityId npcId, GoalType goal, string outputId, AdmissionTracker admission)
+        WorldState world, EntityId npcId, GoalType goal, string outputId, AdmissionTracker admission,
+        ObjectId? exactStation = null)
     {
         if (!TryTakeOrder(world, npcId, "Craft", requireManual: true,
                 admission, out var npc))
@@ -3696,13 +3708,14 @@ internal static partial class ManualCommandExecutor
             return;
         }
 
-        var option = outputId == null ? CraftingOptions.Resolve(world, npc, goal)
+        var option = outputId == null ? CraftingOptions.Resolve(world, npc, goal, exactStation)
             : CraftingOptions.Resolve(world, npc, outputId);
         ApplyCraftOption(world, npc, option, admission);
     }
 
     private static void ApplyCraftOption(WorldState world, NPCState npc,
-        CraftRecipeOption option, AdmissionTracker admission, ObjectId? exactProject = null)
+        CraftRecipeOption option, AdmissionTracker admission, ObjectId? exactProject = null,
+        ItemInstance selectedIngredient = null)
     {
         if (!option.CanCraft)
         {
@@ -3718,7 +3731,7 @@ internal static partial class ManualCommandExecutor
         npc.Plan.TargetTile = option.WorkTile;
         npc.Plan.TargetJunctionId = option.WorkJunction;
         npc.Plan.TargetObjectId = null;
-        npc.Plan.TargetItemDefinitionId = option.OutputDefinitionId;
+        npc.Plan.TargetItemDefinitionId = selectedIngredient?.DefinitionId ?? option.OutputDefinitionId;
 
         if (string.IsNullOrEmpty(option.StationTag))
         {
@@ -3806,6 +3819,7 @@ internal static partial class ManualCommandExecutor
 
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
+        npc.Execution.TargetInventoryItem = selectedIngredient;
         npc.Mind.CurrentGoal = option.Goal;
         if (SimTrace.Enabled)
         {

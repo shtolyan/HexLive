@@ -1304,11 +1304,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatCooked) <
                 SimBalance.CampfireSpitCapacity)
             {
-                var raw = HumanMeatCatalog.FirstRaw(npc);
-                if (raw == null) return false;
+                var raw = CookMeatInput(npc);
+                if (raw == null)
+                    return FailHearthScene(world, npc, worldObject, "Selected raw portion is no longer carried");
                 InventoryMath.RemoveReference(npc.Inventory.Items, raw);
                 raw.ResourceAmount = 0f;
                 worldObject.Contents.Add(raw);
+                npc.Execution.TargetInventoryItem = null;
                 Trace.Emit(world, npc.Id, "MeatHungOnSpit",
                     $"{raw.DefinitionId} on the spit at Tile={worldObject.Tile.Q},{worldObject.Tile.R} " +
                     $"hanging raw={BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatRaw)} " +
@@ -1479,11 +1481,21 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 return false;
             }
         }
-        else if (completedInteraction.Type == InteractionType.Eat &&
-                 worldObject.DefinitionId == ContentIds.CoconutOpen)
+        else if (completedInteraction.Type == InteractionType.Eat && definition.HasTag(ObjectTags.Food))
         {
-            WorldObjectMutations.DespawnObject(world, worldObject.Id);
-            Trace.Emit(world, npc.Id, "CoconutEaten", $"{worldObject.DefinitionId} consumed");
+            var remaining = FoodMath.RemainingAfterBite(worldObject.DefinitionId, worldObject.ResourceAmount);
+            if (remaining > 0)
+            {
+                worldObject.ResourceAmount = remaining;
+                worldObject.IsOccupied = false;
+                worldObject.CurrentUser = null;
+            }
+            else
+            {
+                WorldObjectMutations.DespawnObject(world, worldObject.Id);
+                if (worldObject.DefinitionId == ContentIds.CoconutOpen)
+                    Trace.Emit(world, npc.Id, "CoconutEaten", $"{worldObject.DefinitionId} consumed");
+            }
         }
         else if (completedInteraction.Type == InteractionType.Butcher)
         {
@@ -1766,7 +1778,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
     {
-        var bottleItem = BottleInventoryMath.FirstEmpty(npc) ?? BottleInventoryMath.FirstBottle(npc);
+        var bottleItem = npc.Plan.Goal == GoalType.StowBottle
+            ? npc.Inventory.Items.FindLast(item =>
+                BottleInventoryMath.IsBottle(item) && BottleInventoryMath.Amount(item) <= 0f)
+            : BottleInventoryMath.FirstEmpty(npc) ?? BottleInventoryMath.FirstBottle(npc);
         if (bottleItem is null ||
             worldObject.Junctions.Count == 0 ||
             WaterCollectorMath.FindVessel(world, worldObject) is not null)

@@ -5469,6 +5469,22 @@ MonoBehaviour:
       - "\u043A\u0440\u0438\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0439 \u0438\u0437\u043D\u043E\u0441"
       Flags: 0101
       Languages_Touch: []
+    - Term: inv.food_mass
+      TermType: 0
+      Description:
+      Languages:
+      - Portion weight
+      - Масса порции
+      Flags: 0101
+      Languages_Touch: []
+    - Term: inv.grams_format
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} g'
+      - '{0} г'
+      Flags: 0101
+      Languages_Touch: []
     - Term: inv.restores
       TermType: 0
       Description: 

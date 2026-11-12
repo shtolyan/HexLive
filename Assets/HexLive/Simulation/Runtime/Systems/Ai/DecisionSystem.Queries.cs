@@ -1182,22 +1182,20 @@ public sealed partial class DecisionSystem
     // StowBottle chore's target (park the bottle, let the rain do the rest).
     internal static PerceivedObject? FindStowableCollector(NPCState npc, WorldState world)
     {
-        if (BottleInventoryMath.FirstEmpty(npc) is null)
-        {
-            return null;
-        }
-
+        var hasEmpty = BottleInventoryMath.FirstEmpty(npc) is not null;
         PerceivedObject? best = null;
         foreach (var seen in npc.Perception.Objects)
         {
             if (seen.DefinitionId != WaterCollectorMath.CollectorId ||
-                !seen.IsReachable || !ObjectUsableBy(world, npc, seen))
+                !seen.IsReachable || !ObjectUsableBy(world, npc, seen) ||
+                npc.Memory.IsShunned(seen.Id, world.Tick))
             {
                 continue;
             }
 
             if (!world.Entities.Objects.TryGetValue(seen.Id, out var collector) ||
-                WaterCollectorMath.FindVessel(world, collector) is not null)
+                WaterCollectorMath.FindVessel(world, collector) is not null ||
+                !hasEmpty && FindLooseCollectorBottle(npc, world, seen) is null)
             {
                 continue;
             }
@@ -1208,6 +1206,27 @@ public sealed partial class DecisionSystem
             }
         }
 
+        return best;
+    }
+
+    internal static PerceivedObject? FindLooseCollectorBottle(
+        NPCState npc, WorldState world, PerceivedObject collector)
+    {
+        PerceivedObject? best = null;
+        foreach (var seen in npc.Perception.Objects)
+        {
+            if (seen.DefinitionId is not (ContentIds.Bottle or ContentIds.LeatherFlask) ||
+                !seen.IsReachable || !ObjectUsableBy(world, npc, seen) ||
+                HexSpatialMath.HexDistance(collector.Tile, seen.Tile) > 2 ||
+                npc.Memory.IsShunned(seen.Id, world.Tick) ||
+                !world.Entities.Objects.TryGetValue(seen.Id, out var bottle) ||
+                bottle.IsOccupied || bottle.WaterKind != WaterKind.None && bottle.ResourceAmount > 0f ||
+                bottle.SurfaceObjectId.HasValue || WaterCollectorMath.IsParked(world, bottle) ||
+                !InventoryMath.CanMakeRoomFor(world, npc, seen.DefinitionId)) continue;
+
+            if (best is null || seen.Distance < best.Distance ||
+                seen.Distance == best.Distance && seen.Id.Value < best.Id.Value) best = seen;
+        }
         return best;
     }
 }

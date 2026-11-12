@@ -227,6 +227,36 @@ public sealed class ManualSelfActionTests
         Assert.That(npc.Needs.Hunger, Is.GreaterThanOrEqualTo(.5f));
     }
 
+    [TestCase(HumanMeatCatalog.ArmCooked, 5000)]
+    [TestCase(HumanMeatCatalog.LegCooked, 10000)]
+    [TestCase(HumanMeatCatalog.MaleTorsoCooked, 20000)]
+    public void FoodGramsReadLegacyWholePartsAndPreservePartialBites(string id, int whole)
+    {
+        Assert.That(FoodMath.GramsRemaining(id, 0f), Is.EqualTo(whole));
+        Assert.That(FoodMath.GramsRemaining(id, 1f), Is.EqualTo(whole));
+        var world = TestWorld.CreateWorld();
+        var npc = Colonists(world)[0];
+        npc.Inventory.Items.Clear();
+        var item = new ItemInstance(id);
+        npc.Inventory.Items.Add(item);
+        FoodMath.SpendInventoryBite(npc, item);
+        Assert.That(item.ResourceAmount, Is.EqualTo(whole - 100));
+
+        using var bytes = new System.IO.MemoryStream();
+        using (var writer = new System.IO.BinaryWriter(bytes, System.Text.Encoding.UTF8, true))
+            HexLive.Simulation.Persistence.WorldSaveSerializer.Write(world, writer);
+        bytes.Position = 0;
+        var restored = TestWorld.CreateWorld();
+        using (var reader = new System.IO.BinaryReader(bytes, System.Text.Encoding.UTF8, true))
+            HexLive.Simulation.Persistence.WorldSaveSerializer.Read(restored, reader);
+        var actor = restored.Entities.Npcs[npc.Id];
+        var portion = actor.Inventory.Items.Single();
+        Assert.That(FoodMath.GramsRemaining(portion.DefinitionId, portion.ResourceAmount), Is.EqualTo(whole - 100));
+        portion.ResourceAmount = 100f;
+        FoodMath.SpendInventoryBite(actor, portion);
+        Assert.That(actor.Inventory.Items, Is.Empty);
+    }
+
     [Test]
     public void ExplicitDrinkBelowAutoThresholdAlsoSurvivesDecisionAndUsesOneRealSip()
     {

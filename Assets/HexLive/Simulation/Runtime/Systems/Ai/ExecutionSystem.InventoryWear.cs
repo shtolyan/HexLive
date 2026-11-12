@@ -852,7 +852,8 @@ public sealed partial class ExecutionSystem
             }
             else
             {
-                InventoryMath.RemoveReference(npc.Inventory.Items, item);
+                if (verb == InteractionType.Eat) FoodMath.SpendInventoryBite(npc, item);
+                else InventoryMath.RemoveReference(npc.Inventory.Items, item);
                 // §55: a consumed item may transform rather than vanish — cracking a
                 // coconut (Drink) yields the opened husk straight into the hand.
                 foreach (var yield in interaction.Yields)

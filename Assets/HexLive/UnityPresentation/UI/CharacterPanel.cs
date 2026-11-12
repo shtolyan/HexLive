@@ -220,6 +220,7 @@ namespace HexLive.UnityPresentation.UI
         private int _inventoryActorId = -1;
         private bool _inventoryMutable;
         private bool _inventoryManual;
+        private NpcSnapshot _inventoryNpc;
         private bool _inventoryHasTwoHands;
         private string _invDraggedId;
         private bool _invDraggedWorn;
@@ -3821,6 +3822,7 @@ namespace HexLive.UnityPresentation.UI
             }
             _inventoryActorId = npc.Id.Value;
             _inventoryManual = npc.IsManualControl;
+            _inventoryNpc = npc;
             _inventoryHasTwoHands = BodyPartFunctionSnapshotMath.HasTwoUsableHands(npc.BodyPartConditions);
             _inventoryMutable = _runner != null && _runner.SupportsNpcCommands &&
                 NpcSelection.Count == 1 &&
@@ -3897,6 +3899,7 @@ namespace HexLive.UnityPresentation.UI
                 + "|" + string.Join(",", npc.InventoryOwnerIds)
                 + "|" + string.Join(",", npc.InventoryStacks) + "|" + npc.InventoryUsedSlots
                 + "|" + npc.HeldItemId + "|" + npc.FavoriteWeaponId
+                + "|manual=" + (npc.IsManualControl ? "1" : "0")
                 + "|lock=" + (npc.OutfitLocked ? "1" : "0")
                 + "|wornOwners=" + string.Join(",", npc.WornOwnerIds)
                 + "|page=" + (_clothesPage ? "clothes" : "backpack")
@@ -4305,16 +4308,19 @@ namespace HexLive.UnityPresentation.UI
 
             BuildItemStats(
                 def, info, worn, durability, water, stacks, wetness, dirtiness,
-                sourceIndex, ResolveInventoryOwnerId(id, worn, sourceIndex));
+                sourceIndex, ResolveInventoryOwnerId(id, worn, sourceIndex),
+                resourceAmount: worn ? 0f : InventoryResourceAmount(_inventoryNpc, id, sourceIndex));
 
             var wearable = def != null && def.Layer.HasValue;
             var outfitChangeBlocked = _outfitLockedNow && (worn || wearable);
             var canEat = CanEatInventory(def, worn);
+            var canCook = CanCookInventory(id, worn);
             _invPrimaryInventoryAction = canEat ? InventoryAction.Eat
+                : canCook ? InventoryAction.Cook
                 : id == ContentIds.Flashlight ? InventoryAction.ToggleFlashlight
                 : worn ? InventoryAction.Stow : InventoryAction.Wear;
             _invPrimaryAction.style.display = _inventoryMutable &&
-                (canEat || id == ContentIds.Flashlight || (worn || wearable) && !outfitChangeBlocked)
+                (canEat || canCook || id == ContentIds.Flashlight || (worn || wearable) && !outfitChangeBlocked)
                 ? DisplayStyle.Flex : DisplayStyle.None;
             _invPlantAction.style.display = _inventoryMutable && !worn &&
                 (InventoryPlacementMath.CanPlace(id) || PortableFurniture.CanCarry(id))
@@ -4332,8 +4338,7 @@ namespace HexLive.UnityPresentation.UI
             _invFillActionLabel.text = Loc.Get("inv.action.fill");
             _invReadOnlyLabel.style.display = !_inventoryMutable || outfitChangeBlocked
                 ? DisplayStyle.Flex : DisplayStyle.None;
-            _invPrimaryActionLabel.text = Loc.Get(canEat ? "inv.action.eat" : id == ContentIds.Flashlight
-                ? "inv.action.switch_light" : worn ? "inv.action.stow" : "inv.action.wear");
+            _invPrimaryActionLabel.text = Loc.Get(PrimaryInventoryActionKey(_invPrimaryInventoryAction));
             _invPlantActionLabel.text = Loc.Get(InventoryPlacementVerb(_invSelectedId));
             _invDropActionLabel.text = Loc.Get("inv.action.drop");
             _invReadOnlyLabel.text = Loc.Get(outfitChangeBlocked
@@ -4346,6 +4351,27 @@ namespace HexLive.UnityPresentation.UI
 
         private bool CanEatInventory(ObjectDefinition def, bool worn) =>
             _inventoryMutable && _inventoryManual && !worn && FoodMath.CanEat(def);
+
+        private bool CanCookInventory(string id, bool worn) =>
+            _inventoryMutable && _inventoryManual && !worn && HumanMeatCatalog.IsRaw(id);
+
+        private static string PrimaryInventoryActionKey(InventoryAction action) => action switch
+        {
+            InventoryAction.Eat => "inv.action.eat",
+            InventoryAction.Cook => "menu.cook_meat",
+            InventoryAction.ToggleFlashlight => "inv.action.switch_light",
+            InventoryAction.Stow => "inv.action.stow",
+            _ => "inv.action.wear"
+        };
+
+        private static float InventoryResourceAmount(NpcSnapshot npc, string id, int sourceIndex)
+        {
+            if (npc == null || sourceIndex < 0) return 0f;
+            foreach (var container in npc.InventoryContainers)
+                foreach (var slot in container.Slots)
+                    if (slot.SourceIndex == sourceIndex && slot.ItemDefinitionId == id) return slot.ResourceAmount;
+            return 0f;
+        }
 
         // §55.4 (bug #317): «Наполнить» доступна у неполной бутылки при
         // кокосовой воде в карманах — зеркало симового VesselTransferMath
@@ -4645,7 +4671,8 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, float> dirtiness,
             int sourceIndex,
             int ownerId,
-            VisualElement destination = null)
+            VisualElement destination = null,
+            float resourceAmount = 0f)
         {
             var rows = destination ?? _invDetailStats;
             rows.Clear();
@@ -4753,6 +4780,13 @@ namespace HexLive.UnityPresentation.UI
             {
                 rows.Add(MakeStatRow(
                     Loc.Get("inv.restores"), $"+{Mathf.RoundToInt(-hunger * 100f)}%", CategoryColor(ItemCategory.Food)));
+            }
+
+            if (FoodMath.CanEat(def) || HumanMeatCatalog.IsRaw(def.Id))
+            {
+                var grams = FoodMath.GramsRemaining(def.Id, resourceAmount);
+                rows.Add(MakeStatRow(Loc.Get("inv.food_mass"),
+                    string.Format(Loc.Get("inv.grams_format"), grams), CategoryColor(ItemCategory.Food)));
             }
 
             var gear = GearCatalog.For(info.DefinitionId);
@@ -8082,8 +8116,7 @@ namespace HexLive.UnityPresentation.UI
             if (_invPlantActionLabel != null) _invPlantActionLabel.text = Loc.Get(InventoryPlacementVerb(_invSelectedId));
             if (_invReadOnlyLabel != null) _invReadOnlyLabel.text = Loc.Get("inv.readonly");
             if (_invPrimaryActionLabel != null && _invSelectedId != null)
-                _invPrimaryActionLabel.text = Loc.Get(_invSelectedWorn
-                    ? "inv.action.stow" : "inv.action.wear");
+                _invPrimaryActionLabel.text = Loc.Get(PrimaryInventoryActionKey(_invPrimaryInventoryAction));
 
             // §76: row names, and force the perk badges to re-localize (they
             // are rebuilt only when the perk SET changes, which a language

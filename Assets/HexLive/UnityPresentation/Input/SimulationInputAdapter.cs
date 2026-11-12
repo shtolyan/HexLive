@@ -1378,10 +1378,11 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         if (definition.HasTag(ObjectTags.Campfire))
         {
             var hasRawMeat = carried.Any(HumanMeatCatalog.IsRaw);
+            var fireId = new ObjectId(view.ContextObjectId);
             _entries.Add(new ContextMenuEntry(
                 Loc.Get("menu.cook_meat"),
                 () => EnqueueOrder(actorId,
-                    new CraftItemCommand(actor, GoalType.CookMeat)),
+                    new CraftItemCommand(actor, GoalType.CookMeat, fireId)),
                 hasRawMeat,
                 hasRawMeat ? null : Loc.Get("menu.cook_meat.no_meat")));
         }

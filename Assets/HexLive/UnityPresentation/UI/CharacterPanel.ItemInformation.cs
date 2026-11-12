@@ -56,7 +56,8 @@ namespace HexLive.UnityPresentation.UI
             var ownerId = owner == null ? int.MaxValue : owners != null && sourceIndex >= 0 && sourceIndex < owners.Count ? owners[sourceIndex] : 0;
             if (_runner != null && _runner.IsReady) RefreshInventoryOwnerNames(_runner.CreateSnapshot());
             BuildItemStats(definition, info, worn, durability, water,
-                new Dictionary<string, int> { [id] = count }, wetness, dirtiness, sourceIndex, ownerId, rows);
+                new Dictionary<string, int> { [id] = count }, wetness, dirtiness, sourceIndex, ownerId, rows,
+                containerSlot?.ResourceAmount ?? (worn ? 0f : InventoryResourceAmount(owner, id, sourceIndex)));
             return content;
         }
     }

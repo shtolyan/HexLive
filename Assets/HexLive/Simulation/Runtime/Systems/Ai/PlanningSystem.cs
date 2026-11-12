@@ -488,6 +488,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
+            if (npc.Mind.CurrentGoal == GoalType.StowBottle &&
+                TryBuildCollectorBottlePickupPlan(world, npc))
+            {
+                continue;
+            }
+
             if (npc.Mind.CurrentGoal == GoalType.Socialize)
             {
                 BuildTalkPlan(world, npc);
@@ -2552,6 +2558,23 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 "Steps=[MoveToJunction,Interact(TakeVessel)]");
         }
         return true;
+    }
+
+    private static bool TryBuildCollectorBottlePickupPlan(WorldState world, NPCState npc)
+    {
+        var collector = DecisionSystem.FindStowableCollector(npc, world);
+        if (collector is null) return false;
+
+        var empty = BottleInventoryMath.FirstEmpty(npc);
+        if (empty != null)
+        {
+            foreach (var item in npc.Inventory.Items)
+                if (!ReferenceEquals(item, empty) && BottleInventoryMath.IsBottle(item)) return false;
+        }
+
+        var bottle = DecisionSystem.FindLooseCollectorBottle(npc, world, collector);
+        return bottle != null &&
+            TryInstallObjectPlan(world, npc, bottle, InteractionType.PickUp, 1, out _, out _);
     }
 }
 

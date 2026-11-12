@@ -3387,6 +3387,24 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var earlyUncoveredForDecals = UI.DebugControlsPanel.HideClothing ? AllBodyZones : npc.UncoveredParts;
         var earlyRainWet = snapshot.IsRaining && !_indoorCoords.Contains(npc.Tile) ? 1f : 0f;
         var earlyWaterWet = _waterCoords.Contains(npc.Tile) ? 1f : 0f;
+        // Body condition can raise a wound alarm, so publish the new speech
+        // state before applying wound effects or starting conversation.
+        actorView.SetSpeechState(new UI.SpeechCatalog.BodyState
+        {
+            Hunger = npc.Hunger,
+            Thirst = npc.Thirst,
+            Energy = npc.Energy,
+            ThermalComfort = npc.ThermalComfort,
+            Hygiene = npc.Hygiene,
+            Social = npc.Social,
+            Wetness = Mathf.Max(earlyRainWet, earlyWaterWet),
+            Wounded = HasPainfulWound(npc),
+            Sick = HasEffect(npc, "Sick"),
+            Asleep = npc.CurrentInteraction == "Sleep",
+            // §105, §105.14: incapacitated actors and actors playing dead stay silent.
+            Fainted = npc.IsFainted || npc.IsUnconscious || npc.IsDying || npc.IsPlayingDead,
+            Crying = npc.IsCrying
+        });
         // Спрятанная туманом не красится: бейки кожи невидимой — расход
         // тикового кадра впустую. Painter диффит по уже нанесённому, поэтому
         // на тике появления (paintHidden=false в том же цикле, что и
@@ -3459,25 +3477,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         actorView.SetTalkTopic(npc.TalkTopic, topicFace);
-        actorView.SetSpeechState(new UI.SpeechCatalog.BodyState
-        {
-            Hunger = npc.Hunger,
-            Thirst = npc.Thirst,
-            Energy = npc.Energy,
-            ThermalComfort = npc.ThermalComfort,
-            Hygiene = npc.Hygiene,
-            Social = npc.Social,
-            Wetness = Mathf.Max(earlyRainWet, earlyWaterWet),
-            Wounded = npc.Wounds.Count > 0,
-            Sick = HasEffect(npc, "Sick"),
-            Asleep = npc.CurrentInteraction == "Sleep",
-            // §105: умирающая для речи и мимики — такое же выключенное тело,
-            // как потерявшая сознание: реплик не подаёт, пузырей не рисует.
-            // §105.14: притворяющаяся молчит по своей воле — труп не болтает.
-            Fainted = npc.IsFainted || npc.IsUnconscious || npc.IsDying || npc.IsPlayingDead,
-            // §110: рыдающая, наоборот, ГОВОРИТ — всхлипы и есть смысл сцены.
-            Crying = npc.IsCrying
-        });
         actorView.SetSpeechInteraction(npc.CurrentInteraction);
         if (npc.SocialCueTick > 0 && !string.IsNullOrEmpty(npc.SocialCueKind))
         {
@@ -4038,6 +4037,20 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private static bool IsToolOrWeapon(string itemId) =>
         !string.IsNullOrEmpty(itemId) &&
         itemId.StartsWith("tool.", System.StringComparison.Ordinal);
+
+    private static bool HasPainfulWound(NpcSnapshot npc)
+    {
+        foreach (var wound in npc.OpenWounds)
+        {
+            if (wound.Severity > 0f && wound.Heal01 < 1f &&
+                !npc.BodyPartConditions.Exists(part => part.Part == wound.Part && part.Prosthetic != null))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     // §67.10: the snapshot ships effects as "<Kind>\t<intensity>" rows.
     private static bool HasEffect(NpcSnapshot npc, string kind)

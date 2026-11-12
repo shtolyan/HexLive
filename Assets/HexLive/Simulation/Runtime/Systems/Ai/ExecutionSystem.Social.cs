@@ -1180,7 +1180,7 @@ public sealed partial class ExecutionSystem
         Consider(TalkTopic.Tired, 1f - speaker.Needs.Energy, 0.82f);
         Consider(TalkTopic.Cold, -speaker.Needs.ThermalComfort, 0.35f);
         // An open wound speaks for itself — count it as a hard complaint.
-        Consider(TalkTopic.Pain, speaker.Wounds.Count > 0 ? 1f : 0f, 0.5f);
+        Consider(TalkTopic.Pain, WoundMath.HasPainfulWound(speaker) ? 1f : 0f, 0.5f);
 
         if (complaint is not { } personal)
         {

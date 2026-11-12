@@ -46,10 +46,21 @@ namespace HexLive.Tests
         {
             var stage = new Stage();
             var director = new NpcSpeechDirector(stage);
+            director.SetState(new SpeechCatalog.BodyState { Wounded = true });
             Assert.That(director.SayExternal("test.wav", "test.vis", "warm", SpeechCatalog.Rank.Talk), Is.True);
             yield return null;
             Assert.That(director.Say("hurt_wound"), Is.True);
             Assert.That(stage.Stopped, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void WoundAlarmRequiresACurrentInjury()
+        {
+            var stage = new Stage();
+            var director = new NpcSpeechDirector(stage);
+            Assert.That(director.Say("hurt_wound"), Is.False);
+            director.SetState(new SpeechCatalog.BodyState { Wounded = true });
+            Assert.That(director.Say("hurt_wound"), Is.True);
         }
 
         [Test]

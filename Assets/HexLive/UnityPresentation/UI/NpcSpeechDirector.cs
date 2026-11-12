@@ -306,6 +306,11 @@ public sealed class NpcSpeechDirector
             return false;
         }
 
+        if (speechId == "hurt_wound" && !_state.Wounded)
+        {
+            return false;
+        }
+
         var line = SpeechCatalog.Get(speechId);
         var alarm = line.Rank == SpeechCatalog.Rank.Alarm;
         if (!_stage.CanSpeak(alarm))

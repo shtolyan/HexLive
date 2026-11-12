@@ -163,7 +163,8 @@ internal sealed class ProstheticVisual
             endPath,
             startBoneOriginalLocalScale,
             wrapper.transform,
-            grip);
+            grip,
+            DistalForwardBoneName(condition.Part));
 
         var visual = new ProstheticVisual(
             condition.Part,
@@ -299,6 +300,17 @@ internal sealed class ProstheticVisual
                 return false;
         }
     }
+
+    /// <summary>
+    /// Bone below the end bone whose direction from it is the prosthetic's +Z
+    /// (toes). Arms have none and use the skeleton body frame instead.
+    /// </summary>
+    internal static string DistalForwardBoneName(BodyPart part) => part switch
+    {
+        BodyPart.LegL => "lToe",
+        BodyPart.LegR => "rToe",
+        _ => null,
+    };
 
     private static bool TryBuildEndPath(Transform start, Transform end, out Transform[] path)
     {

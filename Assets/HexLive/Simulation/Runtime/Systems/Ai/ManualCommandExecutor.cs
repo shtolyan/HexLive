@@ -3640,7 +3640,7 @@ internal static partial class ManualCommandExecutor
             // Подбор, после которого предмет всё ещё лежит в мире.
             var idleFetch = !previous.Equals(sessionSiteId) &&
                 world.Entities.Objects.TryGetValue(previous, out var unconsumed) &&
-                System.Array.IndexOf(BuildSiteMath.AllMaterials, unconsumed.DefinitionId) >= 0;
+                BuildSiteMath.Bill(site, unconsumed.DefinitionId) > 0;
             if (idleBuild || idleFetch)
             {
                 FinishBuildAll(world, npc, "NoProgress", visible: true);

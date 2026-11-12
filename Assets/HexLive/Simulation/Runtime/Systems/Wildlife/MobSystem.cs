@@ -1151,6 +1151,44 @@ public sealed class MobSystem : ISimulationSystem
         // на месте и не отвечал ни разу. Некуда бежать — не бегство: вернуть
         // false и пусть вызывающий дерётся (форма §108 TryFleeHome, где
         // refuge.Equals(from) стоял с самого начала).
+        InstallFleePlan(world, npc, refuge, reason);
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "FleeStarted",
+                $"To camp Junction={refuge.Value} ({reason} Health={npc.Health:F2})");
+        }
+        return true;
+    }
+
+    internal static bool TryFleeFromPoint(WorldState world, NPCState npc, TileCoord source,
+        int sourceRadius, string reason)
+    {
+        if (!NpcControlPolicy.MayFlee(npc) || npc.CurrentJunction is not { } start ||
+            IsFleeOnCooldown(world, npc)) return false;
+
+        var candidates = new System.Collections.Generic.List<Junction>();
+        LocalSearch.CollectWithinTiles(world, npc.Tile, sourceRadius + 1, candidates);
+        candidates.RemoveAll(junction => junction.Blocked || junction.Tiles.Count == 0 ||
+            HexSpatialMath.HexDistance(junction.Tiles[0], source) <= sourceRadius ||
+            !SpatialQueries.IsJunctionFree(world, junction.Id));
+        candidates.Sort((a, b) =>
+        {
+            var byDistance = HexSpatialMath.Distance(npc.Position, a.WorldPosition)
+                .CompareTo(HexSpatialMath.Distance(npc.Position, b.WorldPosition));
+            return byDistance != 0 ? byDistance : a.Id.Value.CompareTo(b.Id.Value);
+        });
+        if (!TryReserveReachableFleeTarget(world, npc, start, candidates, out var refuge)) return false;
+
+        InstallFleePlan(world, npc, refuge, reason);
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "FleeStarted", $"Away from {reason} Junction={refuge.Value}");
+        }
+        return true;
+    }
+
+    private static void InstallFleePlan(WorldState world, NPCState npc, JunctionId refuge, string reason)
+    {
         if (npc.Plan.Status == PlanStatus.Active ||
             npc.Execution.Status == ExecutionStatus.InProgress)
         {
@@ -1178,13 +1216,6 @@ public sealed class MobSystem : ISimulationSystem
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-
-        if (SimTrace.Enabled)
-        {
-            Trace.Debug(world, npc.Id, "FleeStarted",
-                $"To camp Junction={refuge.Value} ({reason} Health={npc.Health:F2})");
-        }
-        return true;
     }
 
     internal static bool TryStartFlee(

@@ -41,6 +41,7 @@ public sealed class SystemRegistryGateTests
         "ShipwreckSurvivorSystem",
         "ObjectReservationSystem",
         "PerceptionSystem",
+        "HeadPikeWarningSystem", // live object sighting before AI planning
         "AgentIncidentSystem",
         // §118: rescue claims patients before the ordinary decision auction,
         // so the same medium pass cannot send the free helper to a chore.

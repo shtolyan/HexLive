@@ -35,6 +35,7 @@ public static class SimulationSystemRegistry
         engine.Register(new ShipwreckSurvivorSystem());
         engine.Register(new ObjectReservationSystem()); // §26.26: before perception reads occupancy
         engine.Register(new PerceptionSystem());
+        engine.Register(new HeadPikeWarningSystem()); // §120.14: react to a nearby, visible foreign pike
         engine.Register(new AgentIncidentSystem()); // §160.6: personal observations, no autonomous reaction
         engine.Register(new RescueSystem());
         // §32.15: opt-in LLM adapter. The shipped constructor is double-safe:

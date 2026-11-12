@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Runtime.Blueprints;
+using HexLive.UnityPresentation.Content;
 using HexLive.UnityPresentation.Environment;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -35,6 +36,7 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
         private readonly List<Vector2> _cutawayPositions = new();
         private readonly List<int> _cutawayHidden = new();
         private readonly List<Transform> _conflictMarkers = new();
+        private readonly List<FurniturePlacementData> _pendingHeadPikes = new();
         private Transform? _elementRoot;
         private Transform? _overlayRoot;
         private Material? _green;
@@ -164,6 +166,7 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
             ClearChildren(_overlayRoot!);
             _objects.Clear();
             _walls.Clear();
+            _pendingHeadPikes.Clear();
             _conflictMarkers.Clear();
             _draft = draft;
             _architectureContext = architectureContext ?? BlueprintArchitectureRenderContext.Local(draft);
@@ -239,6 +242,18 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
 
         public void UpdateCutaway(Camera? camera)
         {
+            if (_pendingHeadPikes.Count > 0)
+            {
+                var availability = ContentPrefabCache.Request("object", ContentIds.HeadPike, out _);
+                if (availability == ContentPrefabCache.Availability.Ready)
+                {
+                    foreach (var item in _pendingHeadPikes) BuildFurniture(item, waitForModel: false);
+                    ApplyModeVisibility();
+                    ApplyGhostFeedback();
+                }
+                if (availability != ContentPrefabCache.Availability.Loading) _pendingHeadPikes.Clear();
+            }
+
             if (_mode != BlueprintEditorMode.Furniture || camera == null || _walls.Count == 0)
             {
                 foreach (var wall in _walls)
@@ -291,10 +306,14 @@ namespace HexLive.UnityPresentation.HutTest.BlueprintEditor
             }
         }
 
-        private void BuildFurniture(FurniturePlacementData item)
+        private void BuildFurniture(FurniturePlacementData item, bool waitForModel = true)
         {
             var root = BuildCatalogFurnitureFactory.Build(item.DefinitionId);
-            if (root == null) return;
+            if (root == null)
+            {
+                if (waitForModel && item.DefinitionId == ContentIds.HeadPike) _pendingHeadPikes.Add(item);
+                return;
+            }
             root.name = $"Blueprint furniture {item.DefinitionId} {item.Id}";
             root.transform.SetParent(_elementRoot, false);
             // Draw the model on the CENTRE of its occupied junctions, not on the

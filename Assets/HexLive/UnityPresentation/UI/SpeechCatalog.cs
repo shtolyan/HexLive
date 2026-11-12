@@ -322,6 +322,9 @@ public static class SpeechCatalog
         // §80: чужак-человек. Над ним всплывает ЛИЦО (портрет перекрывает
         // иконку), а кричит она про чужака, а не про зверюгу.
         ["DangerStranger"] = new("Warning", "fear_stranger"),
+        ["HeadPikeUneasy"] = new("Warning", "fear_stranger"),
+        ["HeadPikeDefiant"] = new("Warning", "angry_topic_grumble"),
+        ["HeadPikeRetreat"] = new("Flee", "fear_flee", Rank.Alarm),
 
         // §49.13: immediate answer to a rejected/interrupted sleep order.
         // These are deliberately silent: the icon names the body reason while

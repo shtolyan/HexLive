@@ -268,12 +268,19 @@ public sealed class PlayerCharacterAssignmentsTests
                     assigned, leases, "ws:player", out var unassignedRefusal),
                 Is.False);
             Assert.That(unassignedRefusal, Is.EqualTo("NotAssigned"));
+            // #741: приказ своего игрока сам берёт свободный лиз — отказа
+            // «NoLease» для назначенного персонажа больше нет.
             Assert.That(PlayerCommandAuthorization.TryAuthorize(
                     new MoveToCommand(new EntityId(1), new Float2(1f, 2f)),
                     assigned, leases, "ws:player", out var movementRefusal),
+                Is.True, movementRefusal);
+            Assert.That(leases.HolderOf(1), Is.EqualTo("ws:player"));
+            Assert.That(PlayerCommandAuthorization.TryAuthorize(
+                    new BeginGiftSessionCommand(new EntityId(1), new EntityId(2)),
+                    assigned, leases, "ws:other", out var foreignRefusal),
                 Is.False);
-            Assert.That(movementRefusal, Is.EqualTo("NoLease"),
-                "Only inventory/garment actions bypass the manual-control lease.");
+            Assert.That(foreignRefusal, Is.EqualTo("ControlledByOther"),
+                "A lease held by another controller is the only lease refusal left.");
         });
     }
 

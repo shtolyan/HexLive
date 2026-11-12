@@ -121,22 +121,34 @@ public static class PlayerCommandAuthorization
                 return true;
 
             case IGroupSimulationCommand group:
+                // #741: приказ своего игрока сам берёт управление. Отказывает
+                // только чужой держатель — и тогда целиком, до первого захвата.
                 foreach (var actor in group.Actors)
                 {
-                    if (!leases.TryRenew(actor.Value, owner, out var groupHolder))
+                    var groupHolder = leases.HolderOf(actor.Value);
+                    if (groupHolder.Length > 0 &&
+                        !string.Equals(groupHolder, owner, StringComparison.Ordinal))
                     {
-                        refusal = groupHolder.Length > 0 ? "ControlledByOther" : "NoLease";
+                        refusal = "ControlledByOther";
                         return false;
                     }
+                }
+
+                foreach (var actor in group.Actors)
+                {
+                    leases.TryAcquire(actor.Value, owner, out _, out _);
                 }
 
                 return true;
 
             default:
+                // #741: «NoLease» своему игроку больше не существует. Постоянное
+                // назначение проверено выше; свободный лиз приказ берёт сам
+                // (идемпотентно для своего владельца), занятый чужим — отказ.
                 if (command.TargetEntity is { } actorId &&
-                    !leases.TryRenew(actorId.Value, owner, out var holder))
+                    !leases.TryAcquire(actorId.Value, owner, out _, out _))
                 {
-                    refusal = holder.Length > 0 ? "ControlledByOther" : "NoLease";
+                    refusal = "ControlledByOther";
                     return false;
                 }
 

@@ -34,6 +34,9 @@ namespace HexLive.Simulation.Runtime.Blueprints
         {
             new JunctionKey(0, -2), new JunctionKey(0, 0), new JunctionKey(0, 2)
         };
+        // #723/#724: стол и верстак — три ряда «4, 3, 4», как у кровати, только
+        // короче: 0,65 × 1,125 wu, 11 точек, якорь в середине.
+        private static readonly JunctionKey[] Table = BuildTable();
         private static readonly JunctionKey[] StationDisc =
         {
             FromAxial(0, 0), FromAxial(1, 0), FromAxial(1, -1), FromAxial(0, -1),
@@ -58,15 +61,15 @@ namespace HexLive.Simulation.Runtime.Blueprints
             if (string.Equals(definitionId, "furniture.wardrobe", StringComparison.Ordinal)) return Wardrobe;
             if (string.Equals(definitionId, "furniture.hearth", StringComparison.Ordinal)) return Hearth;
             if (string.Equals(definitionId, ContentIds.Campfire, StringComparison.Ordinal)) return OutdoorCampfire;
-            if (string.Equals(definitionId, ContentIds.DryingRack, StringComparison.Ordinal) ||
-                string.Equals(definitionId, ContentIds.Workbench, StringComparison.Ordinal)) return WideStation;
+            if (string.Equals(definitionId, ContentIds.DryingRack, StringComparison.Ordinal)) return WideStation;
+            if (string.Equals(definitionId, ContentIds.Workbench, StringComparison.Ordinal) ||
+                string.Equals(definitionId, "furniture.modern_table", StringComparison.Ordinal)) return Table;
             if (string.Equals(definitionId, ContentIds.WaterCollector, StringComparison.Ordinal)) return StationDisc;
             // §120.13/§176: современная мебель ставится по той же сетке. Крупные
             // предметы занимают симметричный диск из семи точек (0,75 wu в
             // поперечнике) — ориентация модели на след не влияет; мелкие — одну.
             if (string.Equals(definitionId, "furniture.modern_bed", StringComparison.Ordinal) ||
-                string.Equals(definitionId, "furniture.modern_sofa", StringComparison.Ordinal) ||
-                string.Equals(definitionId, "furniture.modern_table", StringComparison.Ordinal)) return StationDisc;
+                string.Equals(definitionId, "furniture.modern_sofa", StringComparison.Ordinal)) return StationDisc;
             return null;
         }
 
@@ -147,6 +150,19 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 result.Add(new JunctionKey(1, y));
             }
             for (var y = -2; y <= 4; y += 2)
+                result.Add(new JunctionKey(0, y));
+            return result.ToArray();
+        }
+
+        private static JunctionKey[] BuildTable()
+        {
+            var result = new List<JunctionKey>(11);
+            for (var y = -3; y <= 3; y += 2)
+            {
+                result.Add(new JunctionKey(-1, y));
+                result.Add(new JunctionKey(1, y));
+            }
+            for (var y = -2; y <= 2; y += 2)
                 result.Add(new JunctionKey(0, y));
             return result.ToArray();
         }

@@ -1625,7 +1625,8 @@ internal static partial class ManualCommandExecutor
             npc.Mind.CurrentGoal = GoalType.None;
             // Провал внутри — либо нет подхода, либо станции лежачей заняты.
             var stationBusy = false;
-            if (patient.IsLyingDown(world.Tick))
+            if (patient.IsLyingDown(world.Tick) &&
+                !BedSleep.TryGetOccupiedBed(world, patient, out _))
             {
                 stationBusy = true;
                 for (var slot = 0; slot < LyingStations.Count; slot++)

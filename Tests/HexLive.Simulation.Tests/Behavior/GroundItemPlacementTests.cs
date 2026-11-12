@@ -336,21 +336,24 @@ public void MixedStateBulkStackUsesOnePointWithoutMergingInstanceState()
     }
 }
 
-[Test]
-public void RegisteredConsumedProcessSourceReleasesItsOnlyGroundPointForYields()
+[TestCase(ContentIds.Log, false, 3)]
+[TestCase("resource.palm_crown", true, 1)]
+public void RegisteredConsumedProcessSourceReleasesItsOnlyGroundPointForYields(
+    string sourceId, bool scatter, int groundCount)
 {
     var (world,npc)=Fixture(onlyOwnPoint:true);
     npc.Inventory.Items.Clear();npc.WornItems.Clear();npc.Inventory.Capacity=0;
-    var source=WorldObjectMutations.SpawnObject(world,"resource.log",npc.Fragment,npc.Tile,npc.CurrentJunction.Value);
+    var source=WorldObjectMutations.SpawnObject(world,sourceId,npc.Fragment,npc.Tile,npc.CurrentJunction.Value);
     var interaction=new InteractionDefinition {Type=InteractionType.Process};
     interaction.Yields.Add(new HarvestDrop{DefinitionId=ContentIds.Stick,Count=3,Scatter=true});
     var method=typeof(ExecutionSystem).GetMethod("CompleteProcess",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
     Assert.That(method.Invoke(null,new object[]{world,npc,source,world.Content.ObjectDefinitions[source.DefinitionId],interaction,""}),Is.EqualTo(true));
     Assert.That(world.Entities.Objects.ContainsKey(source.Id),Is.False);
-    Assert.That(world.Entities.Objects.Count,Is.EqualTo(1));
-    Assert.That(world.Entities.Objects.Values.Single().IsHarvestScatter,Is.True);
-    Assert.That(world.Entities.Objects.Values.Single().Junctions.Single(),Is.EqualTo(npc.CurrentJunction.Value));
-    Assert.That(npc.Inventory.Items.Count(i=>i.DefinitionId==ContentIds.Stick),Is.EqualTo(2),"No space: retain remaining loot without stacking it on the first piece");
+    Assert.That(world.Entities.Objects.Count,Is.EqualTo(groundCount));
+    Assert.That(world.Entities.Objects.Values.All(o=>o.IsHarvestScatter==scatter &&
+        o.Junctions.Single()==npc.CurrentJunction.Value),Is.True);
+    Assert.That(npc.Inventory.Items.Count(i=>i.DefinitionId==ContentIds.Stick),
+        Is.EqualTo(3-groundCount),"Any yield that cannot be placed is retained.");
 }
 
 [TestCase(PersonalCarePhase.Bathing)]
@@ -726,6 +729,49 @@ public void WornOutGarmentKeepsEveryPocketInstanceEvenWithoutCapacity()
         Assert.That(redrop,Is.Not.Null);
         Assert.That(redrop!.IsHarvestScatter,Is.False);
         Assert.That(loot.Skip(1).All(o=>o.Junctions[0]!=redrop.Junctions[0]),Is.True);
+    }
+
+    [TestCase("saw.log", ContentIds.Board)]
+    [TestCase("split.log", ContentIds.Stick)]
+    public void ProcessedLogsFillNearbyStacksAndOpenANewStackAtCapacity(
+        string interactionId, string productId)
+    {
+        var (world, npc) = Fixture();
+        var tile = TileCoord.Zero;
+        var center = HexSpatialMath.TileToWorld(tile);
+        var nearby = world.Junctions.Items.Values
+            .Where(j => j.Fragment == npc.Fragment && !j.Blocked && j.Tiles.Contains(tile))
+            .OrderBy(j => HexSpatialMath.Distance(j.WorldPosition, center)).ToArray();
+        var first = nearby[0];
+        var second = nearby.First(j => HexSpatialMath.Distance(j.WorldPosition, center) > 1f);
+        npc.CurrentJunction = first.Id;
+        npc.Position = first.WorldPosition;
+        npc.Tile = tile;
+        var firstSource = new WorldObjectState { DefinitionId = ContentIds.Log, Tile = tile, Fragment = npc.Fragment };
+        firstSource.Junctions.Add(first.Id);
+        var secondSource = new WorldObjectState { DefinitionId = ContentIds.Log, Tile = tile, Fragment = npc.Fragment };
+        secondSource.Junctions.Add(second.Id);
+        var yields = world.Content.ObjectDefinitions[ContentIds.Log].Interactions
+            .Single(interaction => interaction.Id == interactionId).Yields;
+        var count = yields.Single(yield => yield.DefinitionId == productId).Count;
+        var capacity = GroundPileCatalog.Capacity(productId);
+        var batches = capacity / count + 1;
+
+        for (var i = 0; i < batches; i++)
+        {
+            ExecutionSystem.ApplyHarvestYields(world, npc, i == 0 ? firstSource : secondSource, yields);
+        }
+
+        var products = world.Entities.Objects.Values.Where(o => o.DefinitionId == productId).ToArray();
+        var stacks = products.GroupBy(o => o.Junctions.Single()).ToArray();
+        Assert.Multiple(() =>
+        {
+            Assert.That(products, Has.Length.EqualTo(batches * count));
+            Assert.That(products.All(o => !o.IsHarvestScatter), Is.True);
+            Assert.That(stacks, Has.Length.EqualTo(2));
+            Assert.That(stacks.Max(stack => stack.Count()), Is.EqualTo(capacity));
+            Assert.That(stacks.Single(stack => stack.Key == first.Id).Count(), Is.EqualTo(capacity));
+        });
     }
 
     [TestCase("resource.palm_crown",42)]

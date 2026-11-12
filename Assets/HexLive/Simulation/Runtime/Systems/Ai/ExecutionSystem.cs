@@ -1479,11 +1479,21 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 return false;
             }
         }
-        else if (completedInteraction.Type == InteractionType.Eat &&
-                 worldObject.DefinitionId == ContentIds.CoconutOpen)
+        else if (completedInteraction.Type == InteractionType.Eat && definition.HasTag(ObjectTags.Food))
         {
-            WorldObjectMutations.DespawnObject(world, worldObject.Id);
-            Trace.Emit(world, npc.Id, "CoconutEaten", $"{worldObject.DefinitionId} consumed");
+            var remaining = FoodMath.RemainingAfterBite(worldObject.DefinitionId, worldObject.ResourceAmount);
+            if (remaining > 0)
+            {
+                worldObject.ResourceAmount = remaining;
+                worldObject.IsOccupied = false;
+                worldObject.CurrentUser = null;
+            }
+            else
+            {
+                WorldObjectMutations.DespawnObject(world, worldObject.Id);
+                if (worldObject.DefinitionId == ContentIds.CoconutOpen)
+                    Trace.Emit(world, npc.Id, "CoconutEaten", $"{worldObject.DefinitionId} consumed");
+            }
         }
         else if (completedInteraction.Type == InteractionType.Butcher)
         {

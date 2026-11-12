@@ -151,7 +151,11 @@ public sealed class ManualCannibalismTests
         actor.Needs.Hunger=.8f;
         var eat=ManualCommandExecutor.Apply(world,new SelfActionCommand(actor.Id,SelfActionKind.EatFromPack));
         Assert.That(eat.Status,Is.EqualTo(ManualCommandAdmissionStatus.Accepted),eat.Reason);
-        Until(engine,()=>!actor.Inventory.Items.Any(i=>i.DefinitionId==cooked));
+        var serving = actor.Inventory.Items.Single(item => item.DefinitionId == cooked);
+        var fullWeight = FoodMath.GramsRemaining(cooked, serving.ResourceAmount);
+        Until(engine, () => serving.ResourceAmount > 0f);
+        Assert.That(serving.ResourceAmount, Is.EqualTo(fullWeight - FoodMath.BiteGrams));
+        Assert.That(actor.Inventory.Items.Any(item => ReferenceEquals(item, serving)), Is.True);
         Assert.That(actor.Needs.Hunger,Is.LessThan(.7f));
     }
 

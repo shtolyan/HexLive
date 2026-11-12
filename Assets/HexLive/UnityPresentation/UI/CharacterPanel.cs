@@ -220,6 +220,7 @@ namespace HexLive.UnityPresentation.UI
         private int _inventoryActorId = -1;
         private bool _inventoryMutable;
         private bool _inventoryManual;
+        private NpcSnapshot _inventoryNpc;
         private bool _inventoryHasTwoHands;
         private string _invDraggedId;
         private bool _invDraggedWorn;
@@ -3816,6 +3817,7 @@ namespace HexLive.UnityPresentation.UI
             }
             _inventoryActorId = npc.Id.Value;
             _inventoryManual = npc.IsManualControl;
+            _inventoryNpc = npc;
             _inventoryHasTwoHands = BodyPartFunctionSnapshotMath.HasTwoUsableHands(npc.BodyPartConditions);
             _inventoryMutable = _runner != null && _runner.SupportsNpcCommands &&
                 NpcSelection.Count == 1 &&
@@ -4300,7 +4302,8 @@ namespace HexLive.UnityPresentation.UI
 
             BuildItemStats(
                 def, info, worn, durability, water, stacks, wetness, dirtiness,
-                sourceIndex, ResolveInventoryOwnerId(id, worn, sourceIndex));
+                sourceIndex, ResolveInventoryOwnerId(id, worn, sourceIndex),
+                resourceAmount: worn ? 0f : InventoryResourceAmount(_inventoryNpc, id, sourceIndex));
 
             var wearable = def != null && def.Layer.HasValue;
             var outfitChangeBlocked = _outfitLockedNow && (worn || wearable);
@@ -4341,6 +4344,15 @@ namespace HexLive.UnityPresentation.UI
 
         private bool CanEatInventory(ObjectDefinition def, bool worn) =>
             _inventoryMutable && _inventoryManual && !worn && FoodMath.CanEat(def);
+
+        private static float InventoryResourceAmount(NpcSnapshot npc, string id, int sourceIndex)
+        {
+            if (npc == null || sourceIndex < 0) return 0f;
+            foreach (var container in npc.InventoryContainers)
+                foreach (var slot in container.Slots)
+                    if (slot.SourceIndex == sourceIndex && slot.ItemDefinitionId == id) return slot.ResourceAmount;
+            return 0f;
+        }
 
         // §55.4 (bug #317): «Наполнить» доступна у неполной бутылки при
         // кокосовой воде в карманах — зеркало симового VesselTransferMath
@@ -4640,7 +4652,8 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, float> dirtiness,
             int sourceIndex,
             int ownerId,
-            VisualElement destination = null)
+            VisualElement destination = null,
+            float resourceAmount = 0f)
         {
             var rows = destination ?? _invDetailStats;
             rows.Clear();
@@ -4748,6 +4761,13 @@ namespace HexLive.UnityPresentation.UI
             {
                 rows.Add(MakeStatRow(
                     Loc.Get("inv.restores"), $"+{Mathf.RoundToInt(-hunger * 100f)}%", CategoryColor(ItemCategory.Food)));
+            }
+
+            if (FoodMath.CanEat(def) || HumanMeatCatalog.IsRaw(def.Id))
+            {
+                var grams = FoodMath.GramsRemaining(def.Id, resourceAmount);
+                rows.Add(MakeStatRow(Loc.Get("inv.food_mass"),
+                    string.Format(Loc.Get("inv.grams_format"), grams), CategoryColor(ItemCategory.Food)));
             }
 
             var gear = GearCatalog.For(info.DefinitionId);

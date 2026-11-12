@@ -1087,7 +1087,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                         continue;
                     }
 
-                    other.Inventory.Items.Remove(food);
+                    FoodMath.SpendInventoryBite(other, other.Inventory.Items.Find(item => item.DefinitionId == food));
                     npc.Needs.Hunger = MathUtil.Clamp01(npc.Needs.Hunger - 0.5f);
                     starved = npc.Needs.Hunger >= SimBalance.StarveDeathThreshold;
                     Trace.Emit(world, npc.Id, "FoodShared",
@@ -1139,7 +1139,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                         continue;
                     }
 
-                    victim.Inventory.Items.Remove(loot);
+                    FoodMath.SpendInventoryBite(victim, victim.Inventory.Items.Find(item => item.DefinitionId == loot));
                     npc.Needs.Hunger = MathUtil.Clamp01(npc.Needs.Hunger - 0.5f);
                     starved = npc.Needs.Hunger >= SimBalance.StarveDeathThreshold;
                     Trace.EmitSystem(world, "FoodStolen",

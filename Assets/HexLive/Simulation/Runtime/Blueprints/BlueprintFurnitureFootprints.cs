@@ -66,6 +66,8 @@ namespace HexLive.Simulation.Runtime.Blueprints
             if (string.Equals(definitionId, ContentIds.Workbench, StringComparison.Ordinal) ||
                 string.Equals(definitionId, "furniture.modern_table", StringComparison.Ordinal)) return Table;
             if (string.Equals(definitionId, ContentIds.WaterCollector, StringComparison.Ordinal)) return StationDisc;
+            // §151.6 r2 (#732): the chest has the collector's footprint.
+            if (string.Equals(definitionId, ContentIds.StorageChest, StringComparison.Ordinal)) return StationDisc;
             // §120.13/§176: современная мебель ставится по той же сетке. Крупные
             // предметы занимают симметричный диск из семи точек (0,75 wu в
             // поперечнике) — ориентация модели на след не влияет; мелкие — одну.

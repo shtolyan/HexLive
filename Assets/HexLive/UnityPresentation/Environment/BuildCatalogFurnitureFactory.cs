@@ -47,6 +47,16 @@ namespace HexLive.UnityPresentation.Environment
                 model.transform.SetParent(root.transform, false);
                 return root;
             }
+            if (definitionId == ContentIds.StorageChest)
+            {
+                // §151.6 r2: the same authored chest the world renderer draws,
+                // shown closed.
+                var prefab = ModernApartmentView.LoadPrefab(definitionId);
+                if (prefab == null) return null;
+                var chest = Object.Instantiate(prefab);
+                BlueprintArchitectureFactory.ConfigureAuthoredDoor(chest, startOpen: false);
+                return chest;
+            }
             if (PortalWorld.IsFurniture(definitionId))
             {
                 var prefab = ModernApartmentView.LoadPrefab(definitionId);

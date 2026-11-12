@@ -32964,8 +32964,8 @@ MonoBehaviour:
       TermType: 0
       Description:
       Languages:
-      - A plank chest with a rope-hinged lid and three storage slots.
-      - Сундук из досок с крышкой на верёвочных петлях и тремя ячейками.
+      - A knee-high plank chest with a rope-hinged lid. Built from sticks, boards and rope; holds as much as three backpacks.
+      - Сундук из досок чуть выше колена, крышка на верёвочных петлях. Строится из палок, досок и верёвок, вмещает столько же, сколько три рюкзака.
       Flags: 0101
       Languages_Touch: []
     - Term: item.furniture_modern_shelf.name

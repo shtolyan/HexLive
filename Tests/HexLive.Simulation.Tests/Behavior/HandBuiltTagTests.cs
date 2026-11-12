@@ -40,6 +40,8 @@ public sealed class HandBuiltTagTests
         "building.hut_1hex",
         "building.hut_plan",
         "campfire.spot",
+        ContentIds.HeadPike, // #675: one spear and one head, put together by hand.
+        ContentIds.StorageChest, // #732: posts, boards and rope lashings; replaced a no-tool hand craft.
         "station.drying_rack",
         "station.water_collector",
         ContentIds.Torch, // #627: the same portable item can be assembled by hand at its placement site.

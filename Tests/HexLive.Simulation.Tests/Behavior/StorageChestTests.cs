@@ -7,6 +7,7 @@ using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Persistence;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
@@ -20,20 +21,91 @@ public sealed class StorageChestTests
     public void LoadShippedContent() => SimDataFile.Require(RepoPaths.SimData);
 
     [Test]
-    public void HandCraftConsumesItsBillAndCreatesOnePortableChest()
+    public void ChestIsABuildMenuFurnitureWithTheCollectorFootprintAndNoHandCraft()
     {
-        var (engine, actor) = Create();
-        var option = CraftingOptions.Resolve(engine.World, actor, ContentIds.StorageChest);
-        Assert.That(option.Ingredients.Select(i => (i.DefinitionId, i.Required)),
-            Is.EquivalentTo(new[] { (ContentIds.Board, 6), (ContentIds.Stick, 4), (ContentIds.Rope, 2) }));
-        foreach (var ingredient in option.Ingredients)
-            for (var i = 0; i < ingredient.Required; i++)
-                actor.Inventory.Items.Add(new ItemInstance(ingredient.DefinitionId));
+        Assert.That(BuildCatalogDefinition.TryGet(ContentIds.StorageChest, out var entry), Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(entry.Mode, Is.EqualTo(BuildCatalogMode.Furniture));
+            Assert.That(entry.PlacementKind, Is.EqualTo(BuildCatalogPlacementKind.Furniture));
+            Assert.That(entry.CategoryId, Is.EqualTo(BuildCatalogCategories.Storage));
+            Assert.That(entry.RequiresCompletedFloor, Is.False);
+            Assert.That(RecipeCatalog.ByOutput.ContainsKey(ContentIds.StorageChest), Is.False);
+            Assert.That(Runtime.Blueprints.BlueprintFurnitureFootprints.LocalOffsets(ContentIds.StorageChest),
+                Is.EqualTo(Runtime.Blueprints.BlueprintFurnitureFootprints.LocalOffsets(ContentIds.WaterCollector)));
+            // #732: three backpacks' worth of cells, measured from the shipped packs.
+            foreach (var pack in new[] { "gear.backpack_riot", "gear.backpack_osiris" })
+                Assert.That(Create().Engine.World.Content.ObjectDefinitions[pack].InventoryCapacity,
+                    Is.EqualTo(StorageChest.BackpackCells));
+            Assert.That(StorageChest.Capacity, Is.EqualTo(3 * StorageChest.BackpackCells));
+            // 40 % of the 1.046 wu water collector, between knee and waist.
+            Assert.That(StorageChest.ModelHeight, Is.EqualTo(.4f * 1.046f).Within(.01f));
+        });
+    }
 
-        Assert.That(CraftingOptions.Resolve(engine.World, actor, ContentIds.StorageChest).CanCraft, Is.True);
-        Apply(engine, new CraftByOutputCommand(actor.Id, ContentIds.StorageChest));
-        Finish(engine, actor);
-        Assert.That(actor.Inventory.Items.Single().DefinitionId, Is.EqualTo(ContentIds.StorageChest));
+    [Test]
+    public void BuildMenuOrderRaisesAnEmptyClosedChestFromSticksBoardsAndRope()
+    {
+        var engine = TestWorld.CreateEngine(732);
+        var world = engine.World;
+        var npc = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        Apply(engine, new SetManualControlCommand(npc.Id, true));
+        npc.Needs.Hunger = npc.Needs.Thirst = 0f;
+        npc.Needs.Stamina = npc.Needs.Energy = 1f;
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Capacity = 24;
+        world.Mobs.Clear();
+        engine.Step();
+
+        var anchor = world.Junctions.Items.Values.First(j => j.Tiles.Count == 1 &&
+            j.Id != npc.CurrentJunction && j.Fragment == npc.Fragment &&
+            HexSpatialMath.HexDistance(npc.Tile, j.Tiles[0]) <= 2 &&
+            SpatialQueries.IsJunctionFree(world, j.Id) &&
+            FurniturePlacement.Validate(world, ContentIds.StorageChest, j, 1) is null &&
+            Connectivity.Reachable(world, npc.CurrentJunction!.Value, j.Id));
+        var key = FurniturePlacement.KeyOf(anchor.WorldPosition);
+        // The exact command the build menu (HutLayoutDesigner) sends.
+        Apply(engine, new PlaceFurnitureCommand(ContentIds.StorageChest, key.XKey, key.YKey, 1));
+        var site = FurniturePlacement.FindAt(world, ContentIds.StorageChest, key);
+        Assert.That(site, Is.Not.Null);
+        Assert.That(site.DefinitionId, Is.EqualTo(ContentIds.BuildSite));
+        Assert.That(BuildSiteMath.NeedsHammer(world, site), Is.False);
+        Assert.That(new[] { ContentIds.Stick, ContentIds.Board, ContentIds.Rope }
+                .Select(id => BuildSiteMath.Bill(site, id)),
+            Is.EqualTo(new[] { StorageChest.BillSticks, StorageChest.BillBoards, StorageChest.BillRope }));
+        Assert.That(BuildSiteMath.Bill(site, ContentIds.Log) + BuildSiteMath.Bill(site, ContentIds.Stone) +
+                    BuildSiteMath.Bill(site, ContentIds.PalmLeaf), Is.Zero);
+
+        var materials = Enumerable.Repeat(ContentIds.Stick, StorageChest.BillSticks)
+            .Concat(Enumerable.Repeat(ContentIds.Board, StorageChest.BillBoards))
+            .Concat(Enumerable.Repeat(ContentIds.Rope, StorageChest.BillRope))
+            .Select(id => new ItemInstance(id)).ToArray();
+        npc.Inventory.Items.AddRange(materials);
+        for (var order = 0; order < 30 && world.Entities.Objects.ContainsKey(site.Id); order++)
+        {
+            Apply(engine, new InteractCommand(npc.Id, site.Id, InteractionType.Build));
+            for (var i = 0; i < 700 && world.Entities.Objects.ContainsKey(site.Id) &&
+                            npc.Plan.Status == PlanStatus.Active; i++) engine.Step();
+            engine.Step();
+        }
+
+        Assert.That(world.Entities.Objects.ContainsKey(site.Id), Is.False, "the site was never raised");
+        var chest = FurniturePlacement.FindAt(world, ContentIds.StorageChest, key);
+        Assert.That(chest, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(chest.DefinitionId, Is.EqualTo(ContentIds.StorageChest));
+            Assert.That(materials.Any(item => InventoryMath.ContainsReference(npc.Inventory.Items, item)), Is.False);
+            // §120.10: the bill is consumed; a finished chest is not a pile of sticks.
+            Assert.That(chest.Contents, Is.Empty);
+            Assert.That(StorageChest.IsOpen(chest.Variant), Is.False);
+            Assert.That(chest.OwnerFaction, Is.EqualTo(npc.Faction));
+            Assert.That(chest.RotationDegrees, Is.EqualTo(60f));
+            Assert.That(ContainerLootMath.IsLootable(world, chest), Is.True);
+            Assert.That(ContainerLootMath.Capacity(world, chest), Is.EqualTo(StorageChest.Capacity));
+            Assert.That(chest.BlockedJunctions.Select(id => FurniturePlacement.KeyOf(world.Junctions.Items[id].WorldPosition)),
+                Is.EquivalentTo(FurniturePlacement.FootprintKeys(ContentIds.StorageChest, key, 1)));
+        });
     }
 
     [Test]
@@ -71,20 +143,31 @@ public sealed class StorageChestTests
             TileCoord.Zero, Point(world, 0, 2));
         Assert.That(StorageChest.IsOpen(chest.Variant), Is.False);
         Assert.That(ContainerLootMath.IsLootable(world, chest), Is.True);
-        Assert.That(ContainerLootMath.Capacity(world, chest), Is.EqualTo(3));
+        Assert.That(ContainerLootMath.Capacity(world, chest), Is.EqualTo(StorageChest.Capacity));
         const string pack = "gear.backpack_riot";
-        Assert.That(world.Content.ObjectDefinitions[pack].InventoryCapacity, Is.GreaterThan(0));
-        var packs = Enumerable.Range(1, 4).Select(i => new ItemInstance(pack) { Durability = .10f * i }).ToArray();
+        Assert.That(world.Content.ObjectDefinitions[pack].InventoryCapacity, Is.EqualTo(StorageChest.BackpackCells));
+        // #732: three backpacks' worth — every cell holds one non-stackable pack.
+        var packs = Enumerable.Range(1, StorageChest.Capacity + 1)
+            .Select(i => new ItemInstance(pack) { Durability = .01f * i }).ToArray();
+        actor.Inventory.Capacity = packs.Length + 2;
         actor.Inventory.Items.AddRange(packs);
-        for (var i = 0; i < 3; i++)
+        for (var i = 0; i < StorageChest.Capacity; i++)
         {
             Apply(engine, new TransferContainerCommand(actor.Id, chest.Id, 0, pack, 1, InventoryTransferDirection.Give));
             Finish(engine, actor);
         }
 
-        Assert.That(chest.Contents, Is.EqualTo(packs.Take(3)));
+        Assert.That(chest.Contents, Is.EqualTo(packs.Take(StorageChest.Capacity)));
         Assert.That(StorageChest.IsOpen(chest.Variant), Is.True);
-        Assert.That(ContainerLootMath.CanAccept(world, chest, new[] { packs[3] }), Is.False);
+        var extra = packs[StorageChest.Capacity];
+        Assert.That(ContainerLootMath.CanAccept(world, chest, new[] { extra }), Is.False);
+        // A 28th pack is refused at admission or left in hand by the transfer.
+        engine.ApplyManualCommand(new TransferContainerCommand(
+            actor.Id, chest.Id, 0, pack, 1, InventoryTransferDirection.Give));
+        for (var tick = 0; tick < 220 && actor.Plan.Status == PlanStatus.Active; tick++) engine.Step();
+        Assert.That(chest.Contents.Count, Is.EqualTo(StorageChest.Capacity));
+        Assert.That(InventoryMath.ContainsReference(actor.Inventory.Items, extra), Is.True);
+        InventoryMath.RemoveReference(actor.Inventory.Items, extra);
         Assert.That(PortableFurniture.PickupRefusal(world, actor, chest), Is.EqualTo("Occupied"));
 
         Apply(engine, new InteractCommand(actor.Id, chest.Id, InteractionType.SwitchChestLid,
@@ -94,7 +177,8 @@ public sealed class StorageChestTests
         Apply(engine, new TransferContainerCommand(actor.Id, chest.Id, 1, pack, 1, InventoryTransferDirection.Take));
         Finish(engine, actor);
         Assert.That(actor.Inventory.Items.Last(), Is.SameAs(packs[1]));
-        Assert.That(chest.Contents, Is.EqualTo(new[] { packs[0], packs[2] }));
+        var kept = packs.Take(StorageChest.Capacity).Where((_, index) => index != 1).ToArray();
+        Assert.That(chest.Contents, Is.EqualTo(kept));
         Assert.That(StorageChest.IsOpen(chest.Variant), Is.True);
 
         using var stream = new MemoryStream();
@@ -107,7 +191,8 @@ public sealed class StorageChestTests
         WorldSaveSerializer.Read(restored, reader);
         var restoredChest = restored.Entities.Objects[chest.Id];
         Assert.That(StorageChest.IsOpen(restoredChest.Variant), Is.True);
-        Assert.That(restoredChest.Contents.Select(item => item.Durability), Is.EqualTo(new[] { .10f, .30f }));
+        Assert.That(restoredChest.Contents.Select(item => item.Durability),
+            Is.EqualTo(kept.Select(item => item.Durability)));
     }
 
     private static void Apply(SimulationEngine engine, ISimulationCommand command)

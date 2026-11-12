@@ -103,10 +103,8 @@ public static class RecipeCatalog
                     new[] { new RecipeIngredient(ContentIds.Stick, 1), new RecipeIngredient(ContentIds.Cloth, 1),
                         new RecipeIngredient(ContentIds.Rope, 1) }, needsLitFire: true, baseWorkTicks: 32,
                     outputDefinitionId: ContentIds.Torch));
-                _byOutput.Add(ContentIds.StorageChest, new Recipe(GoalType.CraftItem,
-                    new[] { new RecipeIngredient(ContentIds.Board, 6), new RecipeIngredient(ContentIds.Stick, 4),
-                        new RecipeIngredient(ContentIds.Rope, 2) }, station: "", baseWorkTicks: 48,
-                    outputDefinitionId: ContentIds.StorageChest));
+                // §151.6 r2 (#732): the wooden chest is no longer a hand craft —
+                // it is raised from the build menu (StorageChest.Bill*).
             }
             return _byOutput;
         }

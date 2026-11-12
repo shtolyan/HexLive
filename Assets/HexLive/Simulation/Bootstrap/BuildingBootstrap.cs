@@ -1230,6 +1230,11 @@ public static class BuildingBootstrap
                 site.BillSticks = SimBalance.WardrobeBillSticks;
                 site.BillRope = SimBalance.WardrobeBillRope;
                 break;
+            case ContentIds.StorageChest:
+                site.BillSticks = StorageChest.BillSticks;
+                site.BillBoards = StorageChest.BillBoards;
+                site.BillRope = StorageChest.BillRope;
+                break;
             case ContentIds.Workbench:
                 site.BillSticks = Spec119.WorkbenchBillSticks;
                 site.BillBoards = Spec119.WorkbenchBillBoards;

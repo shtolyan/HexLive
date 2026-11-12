@@ -29,9 +29,12 @@ DIAGNOSTICS = ROOT / "Build/Diagnostics/storage-chest"
 
 
 def geometry_constants():
+    """§151.6 r2 (#732): the chest's size is simulation data, read from code.
+    ModelLength/ModelWidth follow the water collector's 0.93 wu footprint and
+    ModelHeight is 40 % of its 1.046 wu height."""
     source = (ROOT / "Assets/HexLive/Simulation/Content/StorageChest.cs").read_text(encoding="utf-8")
     return tuple(float(re.search(rf"const float {name} = ([.\d]+)f", source)[1])
-                 for name in ("ModelWidth", "ModelLength", "FootprintRadius"))
+                 for name in ("ModelWidth", "ModelLength", "ModelHeight", "FootprintRadius"))
 
 
 def load_palette(path):
@@ -57,43 +60,61 @@ def empty(name, parent=None, location=(0, 0, 0), rotation=(0, 0, 0)):
     return obj
 
 
-def author(mats, width, length):
+def author(mats, width, length, height):
+    """Corner posts are the bill's sticks, wall and lid planks its boards, the
+    hinge loops, corner lashings and pull its rope (StorageChest.Bill*)."""
     wood, dark, bark, rope = (mats[name] for name in PALETTE)
     body = collection("Chest body source")
     lid = collection("Chest lid source")
     half_width, half_length = width / 2, length / 2
-    block(body, "bottom", (0, 0, .032), (width - .044, length - .048, .042), dark)
+    # Vertical budget, bottom to top: three plank rows, a rim, the lid boards
+    # and the lid battens, whose top is exactly the authored height.
+    batten = .022
+    lid_board = .036
+    lid_bottom = height - batten - lid_board
+    rim = .030
+    rim_bottom = lid_bottom - rim
+    rows = 3
+    row_bottom = .040
+    row_height = (rim_bottom - row_bottom) / rows
+    block(body, "bottom", (0, 0, .024), (width - .050, length - .056, .040), dark)
     for side in (-1, 1):
-        x, y = side * (half_width - .023), side * (half_length - .023)
-        for row, z in enumerate((.108, .216)):
-            finish = (wood, dark)[row]
-            block(body, f"long_plank_{side}_{row}", (x, 0, z), (.038, length - .048, .103), finish)
-            block(body, f"end_plank_{side}_{row}", (0, y, z), (width - .064, .036, .103), finish)
-        block(body, f"long_rim_{side}", (x, 0, .275), (.040, length - .054, .030), dark)
-        block(body, f"end_rim_{side}", (0, y, .275), (width - .070, .038, .030), dark)
+        x, y = side * (half_width - .026), side * (half_length - .026)
+        for row in range(rows):
+            z = row_bottom + (row + .5) * row_height
+            finish = (wood, dark, wood)[row]
+            block(body, f"long_plank_{side}_{row}", (x, 0, z),
+                  (.040, length - .060, row_height - .006), finish)
+            block(body, f"end_plank_{side}_{row}", (0, y, z),
+                  (width - .074, .040, row_height - .006), finish)
+        block(body, f"long_rim_{side}", (x, 0, rim_bottom + rim / 2), (.044, length - .064, rim), dark)
+        block(body, f"end_rim_{side}", (0, y, rim_bottom + rim / 2), (width - .080, .044, rim), dark)
         for end in (-1, 1):
-            block(body, f"corner_{side}_{end}", (x, end * (half_length - .024), .145),
-                  (.046, .048, .290), bark)
-        block(body, f"hinge_lower_{side}", (-half_width + .012, side * .192, .251),
-              (.018, .033, .057), rope)
+            # The stick posts stand proud of the plank walls at the corners.
+            post = (side * (half_width - .022), end * (half_length - .028), lid_bottom / 2)
+            block(body, f"corner_post_{side}_{end}", post, (.040, .040, lid_bottom), bark)
+            block(body, f"corner_lashing_{side}_{end}", (post[0], post[1], rim_bottom - .036),
+                  (.044, .044, .030), rope)
+        block(body, f"hinge_lower_{side}", (-half_width + .010, side * .27, rim_bottom - .012),
+              (.020, .040, .070), rope)
 
+    board = width / 3
     for i in range(3):
-        board = width / 3
-        block(lid, f"lid_plank_{i}", ((i - 1) * board, 0, .313),
-              (board - .003, length, .039), (dark, wood, wood)[i])
+        block(lid, f"lid_plank_{i}", ((i - 1) * board, 0, lid_bottom + lid_board / 2),
+              (board - .004, length, lid_board), (dark, wood, wood)[i])
     for side in (-1, 1):
-        block(lid, f"lid_batten_{side}", (0, side * .195, .337),
-              (width - .045, .033, .020), bark)
-        block(lid, f"hinge_upper_{side}", (-half_width + .013, side * .192, .292),
-              (.021, .033, .038), rope)
-        block(lid, f"pull_foot_{side}", (half_width - .019, side * .043, .308),
-              (.038, .014, .017), rope)
-    block(lid, "rope_pull", (half_width - .007, 0, .306), (.014, .086, .014), rope)
+        block(lid, f"lid_batten_{side}", (0, side * .30, height - batten / 2),
+              (width - .060, .040, batten), bark)
+        block(lid, f"hinge_upper_{side}", (-half_width + .012, side * .27, lid_bottom + .010),
+              (.024, .040, .044), rope)
+        block(lid, f"pull_foot_{side}", (half_width - .022, side * .055, lid_bottom + .010),
+              (.044, .016, .020), rope)
+    block(lid, "rope_pull", (half_width - .008, 0, lid_bottom + .006), (.016, .110, .016), rope)
 
     root = empty(ID)
     base_mesh = bake_parts("ChestBody", body.objects)
     base_mesh.parent = root
-    hinge = Vector((-half_width + .040, 0, .292))
+    hinge = Vector((-half_width + .040, 0, lid_bottom))
     pivot = empty(PIVOT, root, hinge)
     lid_mesh = bake_parts("ChestLid", lid.objects)
     lid_mesh.data.transform(Matrix.Translation(-hinge))
@@ -127,7 +148,7 @@ def export(objects):
     return path
 
 
-def verify(path, width, length, radius):
+def verify(path, width, length, height, radius):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.fbx(filepath=str(path))
     root, pivot, closed, opened = [bpy.data.objects[name] for name in (ID, PIVOT, CLOSED, OPEN)]
@@ -149,14 +170,15 @@ def verify(path, width, length, radius):
     lower = [min(p[i] for p in points) for i in range(3)]
     upper = [max(p[i] for p in points) for i in range(3)]
     if (abs(lower[2]) > .0001 or abs(upper[0] - lower[0] - width) > .0001 or
-            abs(upper[1] - lower[1] - length) > .0001 or
+            abs(upper[1] - lower[1] - length) > .0001 or abs(upper[2] - height) > .0005 or
             max(math.hypot(p.x, p.y) for p in points) > radius):
-        raise ValueError("The imported chest lies outside its authored closed footprint")
+        raise ValueError(f"The imported chest lies outside its authored closed footprint: "
+                         f"{lower} .. {upper}")
     for mesh in meshes:
         mesh.data.calc_loop_triangles()
     triangles = sum(len(mesh.data.loop_triangles) for mesh in meshes)
     names = {slot.material.name for mesh in meshes for slot in mesh.material_slots}
-    if triangles > 400 or names != PALETTE.keys():
+    if triangles > 600 or names != PALETTE.keys():
         raise ValueError("The chest exceeded its triangle budget or lost a material")
 
     pivot.rotation_euler = opened.rotation_euler
@@ -177,15 +199,15 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--palette", type=Path, default=ROOT / "Assets/HexLiveContent/source.blend")
     args = parser.parse_args(sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else [])
-    width, length, radius = geometry_constants()
+    width, length, height, radius = geometry_constants()
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.context.scene.unit_settings.system = "METRIC"
     shades = load_palette(args.palette)
     mats = {name: material(name, (*rgb, 1), roughness) for name, (rgb, roughness) in shades.items()}
     for name in mats:
         write_unity_material(name, directory=OBJECTS, palette=shades)
-    path = export(author(mats, width, length))
-    meshes, receipt = verify(path, width, length, radius)
+    path = export(author(mats, width, length, height))
+    meshes, receipt = verify(path, width, length, height, radius)
     render_icon({"id": ID}, meshes)
     DIAGNOSTICS.mkdir(parents=True, exist_ok=True)
     (DIAGNOSTICS / "authoring.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")

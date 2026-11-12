@@ -39,6 +39,16 @@ public sealed class ConstructionArtContractTests
                 AssertPortableTorchArtAndBill();
                 continue;
             }
+            // #675/#732: these sites show the delivered material pile
+            // (BuildSitePile) and raise one finished world-prop model; there
+            // is no staged construction FBX to reveal piece by piece.
+            if (entry.DefinitionId is ContentIds.HeadPike or ContentIds.StorageChest)
+            {
+                Assert.That(propModels.TryGetValue(entry.DefinitionId, out var prop), Is.True, entry.DefinitionId);
+                var propPath = Path.Combine(RepoPaths.Root, "Assets/HexLiveContent/RuntimeSource/Objects", prop);
+                Assert.That(File.Exists(propPath), Is.True, propPath);
+                continue;
+            }
             if (entry.CategoryId == BuildCatalogCategories.Modern)
             {
                 // Placement consumes existing furniture with its finished model.

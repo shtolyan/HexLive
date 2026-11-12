@@ -146,6 +146,10 @@ namespace HexLive.Simulation.Content
                 BuildCatalogCategories.Storage, BuildCatalogPlacementKind.Furniture,
                 "blueprint.catalog.wardrobe.name", "blueprint.catalog.wardrobe.description", "╫", 120,
                 requiresCompletedFloor: true),
+            // §151.6 r2 (#732): a chest stands indoors or out, like the collector.
+            new(ContentIds.StorageChest, BuildCatalogMode.Furniture,
+                BuildCatalogCategories.Storage, BuildCatalogPlacementKind.Furniture,
+                "item.furniture_storage_chest.name", "item.furniture_storage_chest.desc", "▭", 125),
             new(ContentIds.Workbench, BuildCatalogMode.Furniture,
                 BuildCatalogCategories.Workstations, BuildCatalogPlacementKind.Furniture,
                 "blueprint.catalog.workbench.name", "blueprint.catalog.workbench.description", "⚒", 130,

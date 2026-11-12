@@ -261,6 +261,15 @@ internal static class BuildSiteMath
         (MaterialRope, 1)
     };
 
+    // §151.6 r2 (#732): corner posts, then the wall and lid boards, then the
+    // rope lashings that hold the lid.
+    private static readonly (string Material, int Count)[] StorageChestStages =
+    {
+        (MaterialSticks, StorageChest.BillSticks),
+        (MaterialBoards, StorageChest.BillBoards),
+        (MaterialRope, StorageChest.BillRope)
+    };
+
     private static readonly (string Material, int Count)[] IndoorHearthStages =
     {
         (MaterialSticks, SimBalance.HutHearthBillSticks),
@@ -278,6 +287,7 @@ internal static class BuildSiteMath
         "station.water_collector" => WaterCollectorStages,
         ContentIds.Workbench => WorkbenchStages,
         ContentIds.Wardrobe => WardrobeStages,
+        ContentIds.StorageChest => StorageChestStages,
         _ => null
     };
 

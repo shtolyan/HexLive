@@ -108,6 +108,7 @@ public static class SimulationCommandCodec
         PlaceFurniture = 58, // §120.13 append-only
         MoveFurniture = 59,
         RemoveFurniture = 60,
+        SetConstructionHold = 61,
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -397,6 +398,10 @@ public static class SimulationCommandCodec
                 WireIo.WriteString(w, c.CatalogId);
                 w.Write(c.XKey); w.Write(c.YKey);
                 break;
+            case SetConstructionHoldCommand c:
+                w.Write((ushort)CommandType.SetConstructionHold);
+                w.Write(c.Active);
+                break;
             case PlacePlantingSiteCommand c:
                 w.Write((ushort)CommandType.PlacePlantingSite);
                 WireIo.WriteString(w, c.CatalogId);
@@ -621,6 +626,8 @@ public static class SimulationCommandCodec
                     r.ReadInt32(), r.ReadInt32(), r.ReadInt32());
             case CommandType.RemoveFurniture:
                 return new RemoveFurnitureCommand(r.ReadString(), r.ReadInt32(), r.ReadInt32());
+            case CommandType.SetConstructionHold:
+                return new SetConstructionHoldCommand(r.ReadBoolean());
             case CommandType.PlacePlantingSite:
                 return new PlacePlantingSiteCommand(r.ReadString(),
                     new TileCoord(r.ReadInt32(), r.ReadInt32()), new JunctionId(r.ReadInt32()));

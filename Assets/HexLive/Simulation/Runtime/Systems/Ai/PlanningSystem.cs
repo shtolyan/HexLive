@@ -1346,7 +1346,18 @@ public sealed partial class PlanningSystem : ISimulationSystem
         // Keeping this predicate shared is important: otherwise a manual
         // sleep could still use a different junction than an autonomous
         // sleep and the turn-back pose would start from the wrong side.
-        if (targetJunction is { } anchorId &&
+        // §120.14: у дома нет одной точки стройки — она идёт к своей детали
+        // (кусок стены, сектор пола), с любой доступной стороны. Только если у
+        // детали встать негде вовсе, остаётся прежний подход к якорю здания.
+        var atPiece = false;
+        if (interaction == InteractionType.Build && worldObject != null &&
+            BuildWorkPoint.TryReserve(world, npc, worldObject, 48, out var pieceStand))
+        {
+            targetJunction = pieceStand;
+            atPiece = true;
+        }
+
+        if (!atPiece && targetJunction is { } anchorId &&
             RequiresBesideApproach(world, anchorId, interaction))
         {
             var besideReach = SpatialQueries.BesideReach(
@@ -1686,6 +1697,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
             return Connectivity.Reachable(
                 world, rememberedFrom, rememberedJunction,
                 CanUseRoutineTraversal(npc));
+        }
+
+        // §120.14: то же правило, что у настоящего планировщика.
+        if (interaction == InteractionType.Build && BuildWorkPoint.HasStand(world, npc, target))
+        {
+            return true;
         }
 
         var anchor = interaction == InteractionType.Craft &&

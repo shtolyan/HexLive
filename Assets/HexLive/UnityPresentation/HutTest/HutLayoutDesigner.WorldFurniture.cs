@@ -61,6 +61,29 @@ namespace HexLive.UnityPresentation.HutTest
 
         private bool WorldFurniture => DirectWorldConstruction;
 
+        // ─────────────────────────────────────────────────────────────────
+        // #721: пока режим открыт, лагерь не начинает новых строек. Пауза
+        // продлевается раз в пару секунд и снимается кнопкой «Готово».
+        // ─────────────────────────────────────────────────────────────────
+
+        private const float HoldBeatSeconds = 2f;
+        private float _nextHoldBeat;
+        private bool _holdRefused;
+
+        private void BeatConstructionHold()
+        {
+            if (!WorldFurniture || _runner == null || _holdRefused ||
+                Time.unscaledTime < _nextHoldBeat) return;
+            _nextHoldBeat = Time.unscaledTime + HoldBeatSeconds;
+            _runner.EnqueueCommand(new SetConstructionHoldCommand(true));
+        }
+
+        private void ReleaseConstructionHold()
+        {
+            if (!WorldFurniture || _runner == null || _holdRefused) return;
+            _runner.EnqueueCommand(new SetConstructionHoldCommand(false));
+        }
+
         private void ConfigureWorldPreview()
         {
             if (!WorldFurniture || _preview == null) return;

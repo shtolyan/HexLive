@@ -158,7 +158,7 @@ internal static class BuildSiteMath
         return false;
     }
 
-    public static bool TryInstallOne(WorldState world, WorldObjectState site)
+    public static bool TryInstallOne(WorldState world, WorldObjectState site, Float2? near = null)
     {
         if (!IsSite(site) || IsDemolitionSite(site)) return false;
         TrackWork(site);
@@ -170,7 +170,7 @@ internal static class BuildSiteMath
             if (Installed(site, material) >= Bill(site, material) ||
                 Installed(site, material) >= Delivered(site, material)) continue;
             if (IsArchitecturalBuilding(site.BuildProduct) &&
-                !BuildingRules.AssignDeliveredMaterial(world, site, material, staged: true)) continue;
+                !BuildingRules.AssignDeliveredMaterial(world, site, material, staged: true, near: near)) continue;
             site.InstalledBuildMaterials[index]++;
             if (IsFreeArchitectureSite(site)) FreeArchitectureRules.SyncProgress(world, site);
             if (IsArchitecturalBuilding(site.BuildProduct) && BuildingRules.FloorComplete(world, site))

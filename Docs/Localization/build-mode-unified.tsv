@@ -1,5 +1,4 @@
 # §120.13 — единый режим строительства. Залить: python Tools/i2_add_terms.py Docs/Localization/build-mode-unified.tsv
-build.mode.hint	Pick an item, click a green point to place · Q/E — rotate · drag a placed item to move it · Esc — drop the item	Выберите предмет и кликните по зелёной точке · Q/E — поворот · поставленное перетаскивается мышью · Esc — отпустить предмет
 build.mode.blocked	Can't place here — the point is taken or outside your camp	Сюда нельзя — место занято или вне вашего лагеря
 blueprint.shortcuts	Furniture: pick, click a green point, click again for one more · drag to move · Q/E — rotate · Construction: drag walls and floors, click a room and pull its arrows to stretch it · Del — delete · Ctrl+Z — undo · RMB/Esc — select mode	Мебель: выбрать, кликнуть по зелёной точке, ещё клик — ещё один · перетащить — передвинуть · Q/E — поворот · Строительство: тянуть стены и пол, кликнуть по комнате и тянуть за стрелки, чтобы растянуть · Del — удалить · Ctrl+Z — отмена · ПКМ/Esc — режим выбора
 blueprint.catalog.hut.name	Ready-made house	Готовый дом
@@ -8,3 +7,6 @@ blueprint.category.house	Ready-made	Готовое
 toast.order_rejected.PlacementOccupied	This spot is taken by another item	Место занято другим предметом
 toast.order_rejected.FurnitureBuilt	Finished furniture can be moved but not removed in build mode	Готовую мебель в режиме стройки можно передвинуть, но не убрать
 toast.order_rejected.NoSuchFurniture	That item is no longer there	Этого предмета там уже нет
+# r2 (#721): стройка начинается только после «Готово».
+blueprint.action.done	Done — start building	Готово — строить
+build.mode.hint	Pick an item, click a green point · Q/E — rotate · drag a placed item to move it · nobody builds until you press Done	Выберите предмет и кликните по зелёной точке · Q/E — поворот · поставленное перетаскивается мышью · строить начнут только после «Готово»

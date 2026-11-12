@@ -259,6 +259,7 @@ namespace HexLive.UnityPresentation.HutTest
             if (WorldMode)
             {
                 // Превью — отдельный корневой GO; в игре за собой прибираем.
+                ReleaseConstructionHold();
                 WorldEditorOpen = false;
                 DirectWorldEditorOpen = false;
                 HiddenWorldObjects.Clear();
@@ -280,6 +281,7 @@ namespace HexLive.UnityPresentation.HutTest
             // Dev-сцена конструктора держит мир на паузе; ИГРОВОЙ режим — нет
             // (§120.7: на сервере часы операторские, паузу игрок ставит сам).
             if (!WorldMode && _runner != null && !_runner.IsPaused) _runner.TogglePause();
+            BeatConstructionHold();
             SyncWorld();
             UpdateHtml();
             HandleKeyboard();
@@ -300,6 +302,10 @@ namespace HexLive.UnityPresentation.HutTest
             {
                 _worldRejectionRevision = ManualOrderFeedback.WorldRevision;
                 _pendingRevisionJson = null;
+                // У зрителя без своего персонажа пауза стройки отклоняется —
+                // не слать её дальше, иначе отказ сбрасывал бы режим каждые 2 с.
+                if (ManualOrderFeedback.WorldReasonKey.EndsWith("NotAssigned", StringComparison.Ordinal))
+                    _holdRefused = true;
                 if (DirectWorldConstruction && _runner?.CreateSnapshot() is { } snapshot)
                 {
                     _draft = UI.BuildModePanel.FreeWorldProjection(snapshot);
@@ -1346,6 +1352,11 @@ namespace HexLive.UnityPresentation.HutTest
                 (sum, point) => sum + new Vector2(point.X, point.Y)) / Mathf.Max(1, footprint.Length);
             _rotationHandleRadius = Mathf.Max(0.48f, footprint.Max(point =>
                 Vector2.Distance(centre, new Vector2(point.X, point.Y))) + 0.26f);
+            // #722: стрелки поворота стоят СНАРУЖИ модели, а не внутри неё —
+            // диван длиннее своего логического следа.
+            _rotationHandleRadius = Mathf.Max(_rotationHandleRadius,
+                Mathf.Max(OwnBlockingRadius(selectedFurniture.DefinitionId),
+                    PortableFurniture.FootprintRadius(selectedFurniture.DefinitionId)) + 0.3f);
             _handles = new GameObject("Selection handles").transform;
             _handles.SetParent(_preview.transform, false);
             var handleY = WorldFurniture
@@ -1909,7 +1920,11 @@ namespace HexLive.UnityPresentation.HutTest
             Text<Button>(root, "undo", "blueprint.action.undo");
             Text<Button>(root, "redo", "blueprint.action.redo");
             Text<Button>(root, "select-tool", "blueprint.action.select");
-            Text<Button>(root, "save", WorldMode ? "blueprint.action.exit" : "blueprint.action.save");
+            // §120.13: в игровом режиме стройки кнопка выхода — это «Готово»:
+            // по ней лагерь и начинает строить размеченное (#721).
+            Text<Button>(root, "save", DirectWorldConstruction
+                ? "blueprint.action.done"
+                : WorldMode ? "blueprint.action.exit" : "blueprint.action.save");
             Text<Button>(root, "export", EditingExisting
                 ? "blueprint.action.apply"
                 : WorldMode && !DirectWorldConstruction

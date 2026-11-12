@@ -164,7 +164,7 @@ public sealed partial class ExecutionSystem
         // model. A missing hammer must not grant free installed progress.
         var needsWorkTool = BuildSiteMath.NeedsHammer(world, site);
         if (!needsWorkTool || BuildSiteMath.HammerAvailable(world, npc, site))
-            BuildSiteMath.TryInstallOne(world, site);
+            BuildSiteMath.TryInstallOne(world, site, npc.Position);
 
         // §54.14: a campfire site raises EARLY — the moment the stage-1 stick
         // pile is delivered it becomes a real (cold, lightable) campfire that

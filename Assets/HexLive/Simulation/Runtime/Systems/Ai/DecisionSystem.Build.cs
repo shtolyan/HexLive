@@ -428,6 +428,9 @@ public sealed partial class DecisionSystem
     // стоянки, достраивала её (см. IsValidTargetFor: Build/BuildFurniture).
     internal static bool IsOurSite(WorldState world, NPCState npc, WorldObjectState site)
     {
+        // §120.13 r2 (#721): игрок ещё расставляет — стройка лагеря ждёт «Готово».
+        if (ConstructionHold.Active(world, npc.Faction)) return false;
+
         if (site.Owner is { } owner)
         {
             return world.Entities.Npcs.TryGetValue(owner, out var builder) &&

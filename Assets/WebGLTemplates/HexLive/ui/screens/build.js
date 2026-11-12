@@ -16,7 +16,7 @@
 //   selection: { name, desc, availability: 'ready'|'blocked'|'floor'|null, canDelete, canEdit, canFinish },
 //   status | statusText,                        // a term, or text C# already wrote (a validation message)
 //   arrows: null | { x, y },                    // the ghost or chosen site on screen, 0–1 from the top left
-//   editor?: { select, canUndo, canRedo, build: 'build'|'apply'|null },
+//   editor?: { select, canUndo, canRedo, build: 'build'|'apply'|null, done?: bool },  // done: the exit button reads «Готово»
 // }
 // Commands — tray: mode { value }, category { id }, card { id }, rotate { dir: -1|1 }, delete, edit, finish.
 // Commands — blueprint: mode, category, card, select, undo, redo, delete, done (drop the selection), exit, build.
@@ -52,7 +52,7 @@ function Header({ model, send }) {
         <button type="button" class="hx-seg hx-seg--wide" disabled=${!ed.canUndo} title="Ctrl+Z" onClick=${() => send('undo')}>${icons.turnLeft()}${t('blueprint.action.undo')}</button>
         <button type="button" class="hx-seg hx-seg--wide" disabled=${!ed.canRedo} title="Ctrl+Y" onClick=${() => send('redo')}>${icons.turnRight()}${t('blueprint.action.redo')}</button>
       </div>
-      <${Button} onClick=${() => send('exit')}>${t('blueprint.action.exit')}<//>
+      <${Button} variant=${ed.done ? 'primary' : undefined} onClick=${() => send('exit')}>${t(ed.done ? 'blueprint.action.done' : 'blueprint.action.exit')}<//>
       ${ed.build && html`<${Button} variant="primary" onClick=${() => send('build')}>${t(`blueprint.action.${ed.build}`)}<//>`}`
     : html`<${Button} variant="primary" onClick=${() => send('finish')}>${t('blueprint.action.finish')}<//>`}
   </header>`;

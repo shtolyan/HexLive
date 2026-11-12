@@ -451,7 +451,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // was being reached ACROSS the gap, so fail + retarget instead of
                 // interacting from afar. Belt-and-braces over the planner cap:
                 // covers remembered targets and every interaction kind.
-                if (!InteractionReach.CheckObjectStart(world, npc, worldObject,
+                // §120.14: дом строят у его детали, а не у якоря здания.
+                var atOwnPiece = GetPlannedInteractionType(npc.Plan) == InteractionType.Build &&
+                    BuildWorkPoint.StandsAtPiece(world, npc, worldObject);
+                if (!atOwnPiece &&
+                    !InteractionReach.CheckObjectStart(world, npc, worldObject,
                         definition.ObstacleRadius))
                 {
                     npc.Memory.Shun(worldObject.Id, world.Tick + AiBalance.ShunTicks);

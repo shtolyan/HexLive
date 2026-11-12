@@ -142,6 +142,7 @@ public sealed class CommandCodecCoverageGateTests
         new PlaceFurnitureCommand("bed.basic", xKey: 41, yKey: -17, yawStep: 4),
         new MoveFurnitureCommand("furniture.wardrobe", 11, -12, 13, -14, yawStep: 5),
         new RemoveFurnitureCommand("station.drying_rack", xKey: -21, yKey: 22),
+        new SetConstructionHoldCommand(active: true),
         new RotateBuildSiteCommand(new ObjectId(217), rotationDegrees: 180f),
         new CancelBuildSiteCommand(new ObjectId(218)),
         new PlaceBuildingBlueprintCommand(

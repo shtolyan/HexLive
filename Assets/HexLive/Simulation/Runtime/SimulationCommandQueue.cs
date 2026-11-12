@@ -851,6 +851,18 @@ public sealed class RemoveFurnitureCommand : ISimulationCommand
     public EntityId? TargetEntity => null;
 }
 
+/// <summary>§120.13 r2 (#721): игрок открыл режим стройки и ещё проектирует —
+/// его лагерь не начинает новых строек, пока пауза активна. Клиент продлевает
+/// её, пока режим открыт, и снимает кнопкой «Готово»; без продления пауза
+/// истекает сама через <c>ConstructionHold.Ticks</c>.</summary>
+public sealed class SetConstructionHoldCommand : ISimulationCommand
+{
+    public SetConstructionHoldCommand(bool active) => Active = active;
+
+    public bool Active { get; }
+    public EntityId? TargetEntity => null;
+}
+
 /// <summary>§120.8: разметить ПРОИЗВОЛЬНЫЙ чертёж игрока (свободная
 /// архитектура из конструктора). Чертёж едет своим же JSON-форматом
 /// (<c>BuildingBlueprintJson</c>) — исполнитель парсит, валидирует

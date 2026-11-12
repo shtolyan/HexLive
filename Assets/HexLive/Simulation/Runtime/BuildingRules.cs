@@ -717,7 +717,7 @@ public static class BuildingRules
             NextElementMaterial(element) == materialId);
 
     public static bool AssignDeliveredMaterial(WorldState world, WorldObjectState owner, string materialId,
-        bool staged = false)
+        bool staged = false, Float2? near = null)
     {
         EnsureHutElements(world, owner);
         var elements = Elements(world, owner).ToArray();
@@ -729,6 +729,20 @@ public static class BuildingRules
 
         var delivered = elements.Sum(element => element.DeliveredTotal);
         var target = candidates[StableIndex(owner.Id.Value, delivered, materialId, candidates.Count)];
+        if (near is { } builder)
+        {
+            // §120.14: она строит ту деталь, у которой стоит — ближайшую к себе.
+            var best = float.MaxValue;
+            foreach (var candidate in candidates)
+            {
+                var distance = Spatial.HexSpatialMath.Distance(
+                    BuildWorkPoint.ModulePosition(world, owner, candidate), builder);
+                if (distance > best ||
+                    distance == best && string.CompareOrdinal(candidate.SlotKey, target.SlotKey) >= 0) continue;
+                best = distance;
+                target = candidate;
+            }
+        }
         switch (materialId)
         {
             case ContentIds.Stick: target.DeliveredSticks++; break;

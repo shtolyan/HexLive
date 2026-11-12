@@ -63,9 +63,11 @@ internal static class GardenMath
         if (ColonyQueries.Home(world, npc.Faction) is not { } home) return false;
         // Explicit player blueprints outrank topping up the autonomous garden,
         // and also support crops (palms) whose autonomous target is zero.
+        // §120.13 r2 (#721): размеченные грядки тоже ждут «Готово».
+        var held = ConstructionHold.Active(world, npc.Faction);
         foreach (var seen in npc.Perception.Objects)
         {
-            if (!seen.IsReachable || !world.Entities.Objects.TryGetValue(seen.Id, out var site) ||
+            if (held || !seen.IsReachable || !world.Entities.Objects.TryGetValue(seen.Id, out var site) ||
                 !BuildSiteMath.IsPlantingSite(site) || site.Junctions.Count == 0 ||
                 !ConstructionAccess.CanEditObject(world, new[] { npc.Faction }, site)) continue;
             var claimed = false;

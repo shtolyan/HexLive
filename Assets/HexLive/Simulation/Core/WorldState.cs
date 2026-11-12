@@ -105,6 +105,11 @@ public sealed class WorldState
 
     public int NextPlayerBlueprintId { get; set; } = 1;
 
+    /// <summary>§120.13 r2 (#721): лагеря, чей игрок сейчас расставляет в режиме
+    /// стройки, и тик, до которого их строители не берут новых строек. В сейв и
+    /// на провод не едет: после загрузки паузы нет, а клиент продлевает её сам.</summary>
+    public System.Collections.Generic.Dictionary<Agents.Faction, int> ConstructionHoldUntil { get; } = new();
+
     // §72.14/§132: how many post-start raid BOUNDARIES were processed.
     // A boundary can spawn a raider or be consumed by a full camp; persisting
     // the latter is what prevents a death tomorrow from releasing a backlog.

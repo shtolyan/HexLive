@@ -25041,8 +25041,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - 'Pick an item, click a green point to place · Q/E — rotate · drag a placed item to move it · Esc — drop the item'
-      - 'Выберите предмет и кликните по зелёной точке · Q/E — поворот · поставленное перетаскивается мышью · Esc — отпустить предмет'
+      - 'Pick an item, click a green point · Q/E — rotate · drag a placed item to move it · nobody builds until you press Done'
+      - 'Выберите предмет и кликните по зелёной точке · Q/E — поворот · поставленное перетаскивается мышью · строить начнут только после «Готово»'
       Flags: 0101
       Languages_Touch: []
     - Term: 'build.mode.blocked'
@@ -33062,6 +33062,14 @@ MonoBehaviour:
       Languages:
       - 'That item is no longer there'
       - 'Этого предмета там уже нет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'blueprint.action.done'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Done — start building'
+      - 'Готово — строить'
       Flags: 0101
       Languages_Touch: []
     CaseInsensitiveTerms: 0

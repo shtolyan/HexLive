@@ -211,6 +211,9 @@ internal static partial class ManualCommandExecutor
             case PlaceBuildingPlanCommand placePlan:
                 ApplyPlaceBuildingPlan(world, placePlan, admission);
                 break;
+            case SetConstructionHoldCommand hold:
+                ConstructionHold.Set(world, admission.BuildFactions, hold.Active);
+                break;
             case PlaceFurnitureCommand gridFurniture:
                 ApplyGridFurniture(world, "PlaceFurniture", admission, FurniturePlacement.Place(world,
                     gridFurniture.CatalogId, new Blueprints.JunctionKey(gridFurniture.XKey, gridFurniture.YKey),
@@ -336,6 +339,7 @@ internal static partial class ManualCommandExecutor
         TransferContainerCommand => "TransferContainer",
         PlaceBuildingPlanCommand => "PlaceBuildingPlan",
         PlaceFurnitureSiteCommand => "PlaceFurnitureSite",
+        SetConstructionHoldCommand => "SetConstructionHold",
         PlaceFurnitureCommand => "PlaceFurniture",
         MoveFurnitureCommand => "MoveFurniture",
         RemoveFurnitureCommand => "RemoveFurniture",

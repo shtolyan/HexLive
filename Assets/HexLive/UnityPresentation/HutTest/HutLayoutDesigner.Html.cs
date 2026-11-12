@@ -102,6 +102,8 @@ namespace HexLive.UnityPresentation.HutTest
                     ["canUndo"] = _history.CanUndo,
                     ["canRedo"] = _history.CanRedo,
                     ["build"] = EditingExisting ? "apply" : !DirectWorldConstruction ? "build" : null,
+                    // §120.13/#721: выход из игрового режима стройки — «Готово».
+                    ["done"] = DirectWorldConstruction,
                 },
             };
         }

@@ -556,6 +556,13 @@ public static class Program
                 leases.CollectExpired(expired);
                 foreach (var (npcId, owner) in expired)
                 {
+                    if (owner.StartsWith("ws:", StringComparison.Ordinal))
+                    {
+                        // §121.7: the simulation drains accepted player orders before returning to AI.
+                        Console.WriteLine($"[control] viewer lease of NPC{npcId} expired");
+                        continue;
+                    }
+
                     var admission = AgentControlActions.Release(worlds.Host, npcId);
                     Console.WriteLine(
                         $"[control] lease of NPC{npcId} by {owner} expired — " +

@@ -1350,6 +1350,29 @@ public sealed class ManualControlTests
     }
 
     [Test]
+    public void CompletedInteractionThatClearsItsOwnGoalStartsAFreshIdleWindow()
+    {
+        var now = 0d;
+        var engine = TestWorld.CreateEngine(clock: new SimulationClock(() => now));
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+        var orders = new ManualOrderSystem();
+        // A participant in a paired interaction may have no plan or goal of their own.
+        npc.Execution.Status = ExecutionStatus.InProgress;
+        npc.Execution.CurrentInteraction = InteractionType.Romance;
+        now += Spec121.ManualIdleReleaseSeconds * 2;
+        orders.Run(world);
+        Assert.That(npc.Mind.ManualControl, Is.True);
+
+        npc.Execution.Status = ExecutionStatus.None;
+        npc.Execution.CurrentInteraction = null;
+        orders.Run(world);
+        Assert.That(npc.Mind.ManualControl, Is.True);
+        Assert.That(npc.Mind.ManualControlLeaseRenewedAtSeconds, Is.EqualTo(now));
+    }
+
+    [Test]
     public void OrderCompletionRestartsTheIdleWindow()
     {
         var realtimeSeconds = 0d;

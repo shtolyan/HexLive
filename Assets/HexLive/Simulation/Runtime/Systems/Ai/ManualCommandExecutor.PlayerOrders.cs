@@ -160,7 +160,11 @@ internal static partial class ManualCommandExecutor
             npc.Mind.ManualAttackNpcId.HasValue || npc.Mind.ManualAttackMobId.HasValue)
             return;
 
-        queue.Active = null;
+        if (queue.Active != null)
+        {
+            queue.Active = null;
+            ManualControlMath.RenewInactivityLease(world, npc);
+        }
         if (queue.Pending.Count == 0 || Incapacitated(world, npc))
             return;
 

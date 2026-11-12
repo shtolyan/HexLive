@@ -29,6 +29,18 @@ namespace HexLive.Tests
             Assert.That(stage.PlaybackGain, Is.EqualTo(1.2f));
         }
 
+        [Test]
+        public void PublicPlayerSpeechUsesTalkPriorityAndStaysPositional()
+        {
+            var stage = new Stage { AllowOrdinary = true };
+            var director = new NpcSpeechDirector(stage, () => 0f);
+            Assert.That(director.Say("sad_hunger"), Is.True);
+            Assert.That(director.SayExternal("speech.wav", "speech.vis", "neutral",
+                SpeechCatalog.Rank.Talk, positional: true), Is.True);
+            Assert.That(stage.ListenerRelative, Is.False);
+            Assert.That(stage.Stopped, Is.EqualTo(1));
+        }
+
         [UnityTest]
         public IEnumerator AlarmInterruptsExternalTalkThroughTheSameDirector()
         {

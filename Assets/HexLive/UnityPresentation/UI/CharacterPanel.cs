@@ -7142,6 +7142,7 @@ namespace HexLive.UnityPresentation.UI
             button.Add(_controlAiSegment);
             button.Add(_controlPlayerSegment);
             button.Add(BuildPhoneControlSegment());
+            button.Add(BuildPlayerSpeechButton());
             button.Add(BuildToggleDivider());
             var secondDivider = BuildToggleDivider(); secondDivider.style.left = 87f; button.Add(secondDivider);
 

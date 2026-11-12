@@ -33,6 +33,7 @@ public enum AgentSpeechDelivery : byte
 {
     PlayerReply = 0,
     World = 1,
+    PlayerBroadcast = 2,
 }
 
 public enum AgentSpeechPriority : byte

@@ -28044,6 +28044,22 @@ MonoBehaviour:
       - 'Позвонить персонажу и поговорить голосом'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'agent.speak.button'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Speak as your character'
+      - 'Сказать голосом персонажа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.speak.sending'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Preparing speech…'
+      - 'Готовим реплику…'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'agent.call.hangup'
       TermType: 0
       Description:

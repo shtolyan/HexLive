@@ -130,7 +130,7 @@ public sealed class MashaPresentationContractTests
         {
             Assert.That(admin, Does.Contain("new BugReportMicrophoneCapture("));
             Assert.That(reporter, Does.Contain("new BugReportMicrophoneCapture("));
-            Assert.That(capture, Does.Contain("HexLiveBugMicStart()"));
+            Assert.That(capture, Does.Contain("HexLiveBugMicStart(_maxSeconds)"));
             Assert.That(capture, Does.Contain("if (ReferenceEquals(_browserOwner, this))"));
             Assert.That(admin, Does.Contain("BugReportWav.Prepare(wav)"));
             Assert.That(overlay, Does.Contain("command == \"done\" && owner._ready"));

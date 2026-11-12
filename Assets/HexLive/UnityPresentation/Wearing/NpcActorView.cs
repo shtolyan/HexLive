@@ -4767,13 +4767,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     /// <summary>§160: external reply routed through the existing mouth director.</summary>
     public bool SayExternalVoice(
         string wavPath, string visemePath, string emotion, bool playerReply,
-        float playbackGain = 1f)
+        float playbackGain = 1f, bool playerBroadcast = false)
     {
         EnsureSpeechBubble();
         return _speech != null && _speech.SayExternal(
             wavPath, visemePath, emotion,
-            playerReply ? UI.SpeechCatalog.Rank.Talk : UI.SpeechCatalog.Rank.Ambient,
-            playbackGain);
+            playerReply || playerBroadcast ? UI.SpeechCatalog.Rank.Talk : UI.SpeechCatalog.Rank.Ambient,
+            playbackGain, positional: playerBroadcast);
     }
 
     // §armed-stance: while ANY tool/weapon (tool.*) is in the hand, the base Idle

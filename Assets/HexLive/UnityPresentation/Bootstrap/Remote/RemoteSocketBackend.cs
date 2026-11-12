@@ -919,7 +919,9 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
                     var begin = AgentWire.ReadAgentSpeechBegin(payload);
                     lock (_inbox)
                     {
-                        if (_handshake?.AssignedNpcIds.Contains(begin.NpcId) != true) return;
+                        if (begin.Delivery == AgentSpeechDelivery.PlayerBroadcast
+                                ? _handshake?.ControlEnabled != true
+                                : _handshake?.AssignedNpcIds.Contains(begin.NpcId) != true) return;
                         if (_pendingSpeech.Count >= 20 && !_pendingSpeech.ContainsKey(begin.UtteranceId)) return;
                         if (_pendingSpeech.TryGetValue(begin.UtteranceId, out var old))
                             old.Bytes.Dispose();

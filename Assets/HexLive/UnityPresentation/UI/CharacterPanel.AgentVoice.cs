@@ -110,6 +110,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void DisableAgentVoice()
         {
+            DisablePlayerSpeech();
             _controlIntentSequence++; _controlModePending = false; _callPreparing = false; _phoneControlNpc = -1; _controlInputNpc = -1;
             _serverVoice?.Stop(); // §171.11: never leave a billed conversation running behind a closed panel
             ReleaseServerCallActor();
@@ -138,6 +139,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void ResetAgentVoiceSelection()
         {
+            CancelPlayerSpeechCapture();
             _controlIntentSequence++; _controlModePending = false; _callPreparing = false; _phoneControlNpc = -1; _controlInputNpc = -1;
             _serverVoice?.Stop(); ReleaseServerCallActor();
             _awaitingAgentTurn = false;
@@ -250,6 +252,7 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
             TickServerVoice();
+            TickPlayerSpeech();
             RefreshAgentVoiceButton();
             RefreshCaptureOverlay();
         }
@@ -431,7 +434,11 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
             while (_runner.TryTakeAgentSpeech(out var speech))
+            {
+                if (speech.Metadata.Delivery == AgentSpeechDelivery.PlayerBroadcast &&
+                    !TryGetAudibleBroadcastActor(speech.Metadata.NpcId, out _)) continue;
                 _ = BakeAndPresentAgentSpeechAsync(speech, _agentCts?.Token ?? CancellationToken.None);
+            }
         }
 
         private void SendPendingPlayerText()
@@ -515,6 +522,8 @@ namespace HexLive.UnityPresentation.UI
             CancellationToken cancellationToken)
         {
             var metadata = speech.Metadata;
+            var broadcastDeadline = metadata.Delivery == AgentSpeechDelivery.PlayerBroadcast
+                ? Time.unscaledTime + 5f : 0f;
             try
             {
                 await _agentBakeGate.WaitAsync(cancellationToken);
@@ -557,7 +566,7 @@ namespace HexLive.UnityPresentation.UI
                     _preparedAgentSpeech.Enqueue(new PreparedAgentSpeech
                     { Metadata = metadata, WavPath = playbackGain > 0f ? wavPath : string.Empty,
                       VisPath = visPath, PlaybackGain = playbackGain > 0f ? playbackGain : 1f,
-                      Deadline = Time.unscaledTime + 35f });
+                      Deadline = broadcastDeadline > 0f ? broadcastDeadline : Time.unscaledTime + 35f });
                 });
                 }
                 finally { _agentBakeGate.Release(); }
@@ -570,11 +579,17 @@ namespace HexLive.UnityPresentation.UI
         private void PresentPreparedAgentSpeech()
         {
             if (_preparedAgentSpeech.Count == 0 || _agentReplyFocusUntil > 0f ||
-                _agentMicrophone?.IsRecording == true) return;
+                _agentMicrophone?.IsRecording == true || _playerSpeechMic?.IsRecording == true) return;
             var pending = _preparedAgentSpeech.Peek();
             var metadata = pending.Metadata;
-            if (_runner == null || !_runner.TryGetAgentState(
-                    new HexLive.Simulation.Common.EntityId(metadata.NpcId), out var state) || !state.Attached)
+            var broadcast = metadata.Delivery == AgentSpeechDelivery.PlayerBroadcast;
+            if (broadcast && Time.unscaledTime >= pending.Deadline)
+            {
+                _preparedAgentSpeech.Dequeue();
+                return;
+            }
+            if (!broadcast && (_runner == null || !_runner.TryGetAgentState(
+                    new HexLive.Simulation.Common.EntityId(metadata.NpcId), out var state) || !state.Attached))
             {
                 _preparedAgentSpeech.Dequeue();
                 return;
@@ -582,11 +597,14 @@ namespace HexLive.UnityPresentation.UI
             var direct = metadata.Delivery == AgentSpeechDelivery.PlayerReply;
             var played = false;
             _worldRenderer ??= FindAnyObjectByType<Rendering.HexWorldRenderer>();
-            if (pending.WavPath.Length > 0 && _worldRenderer != null &&
-                _worldRenderer.TryGetActorView(metadata.NpcId, out var actor))
+            Wearing.NpcActorView? actor = null;
+            var audible = broadcast
+                ? TryGetAudibleBroadcastActor(metadata.NpcId, out actor)
+                : _worldRenderer != null && _worldRenderer.TryGetActorView(metadata.NpcId, out actor);
+            if (pending.WavPath.Length > 0 && audible && actor != null)
             {
                 played = actor.SayExternalVoice(pending.WavPath, pending.VisPath, metadata.Emotion,
-                    direct, pending.PlaybackGain);
+                    direct, pending.PlaybackGain, playerBroadcast: broadcast);
                 if (played && direct)
                 {
                     StartAgentReplyFocus(metadata.DurationMilliseconds);
@@ -596,12 +614,13 @@ namespace HexLive.UnityPresentation.UI
             }
             // A direct reply waits for an existing Talk/Alarm and lazy-loaded
             // actor. It is never discarded merely because the mouth was busy.
-            if (!played && direct && pending.WavPath.Length > 0 &&
+            if (!played && (direct || broadcast && audible) && pending.WavPath.Length > 0 &&
                 Time.unscaledTime < pending.Deadline) return;
             _preparedAgentSpeech.Dequeue();
+            if (broadcast && !played) return;
             var name = _runner?.CreateSnapshot()?.Npcs.Find(n => n.Id.Value == metadata.NpcId)?.DisplayName;
             ShowAgentSubtitle((string.IsNullOrEmpty(name) ? Loc.Get("agent.default_name") :
-                Loc.Get("npc." + name.ToLowerInvariant() + ".name")) + ": " + metadata.Text,
+                Loc.NpcName(name)) + ": " + metadata.Text,
                 Mathf.Clamp(Mathf.Max(metadata.Text.Length / 12f, metadata.DurationMilliseconds / 1000f), 2.5f, 31f));
         }
 

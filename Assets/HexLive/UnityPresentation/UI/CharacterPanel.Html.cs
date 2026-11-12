@@ -347,6 +347,10 @@ namespace HexLive.UnityPresentation.UI
                 ["controlLocked"] = _controlAvailable || call ? null : agentControlled ? "panel.control.agent" : "panel.control.readonly",
                 ["canCall"] = ServerVoiceEligible || call,
                 ["call"] = HtmlCallState(npc),
+                ["speak"] = PlayerSpeechVisible ? new JObject
+                {
+                    ["state"] = PlayerSpeechState, ["enabled"] = CanSpeakAsCharacter
+                } : null,
                 // §121: why her last order was refused or cut short — the card's toast, 2.5 s.
                 ["toast"] = ManualOrderFeedback.IsFresh(npc.Id.Value) ? ManualOrderFeedback.ReasonKey : null,
                 ["pace"] = _runByDefaultNow ? "run" : "walk",
@@ -457,6 +461,7 @@ namespace HexLive.UnityPresentation.UI
                     else NpcSelection.Activate(id);
                     return;
                 case "selectClan": SelectWholeClan(); return;
+                case "speak": TogglePlayerSpeech(); return;
                 case "control":
                     var mode = (string)args["mode"];
                     if (mode == "call") SelectCharacterControlMode(ServerVoiceActive || _callPreparing ? CharacterControlMode.Ai : CharacterControlMode.Call);

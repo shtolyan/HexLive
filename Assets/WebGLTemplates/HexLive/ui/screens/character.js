@@ -146,7 +146,12 @@ function Identity({ npc, send }) {
               class=${mode === 'call' && call ? `hx-call is-${call.state}` : undefined}
               title=${mode === 'call' ? callTitle(call) : t(`panel.control.${mode}`)}
               onClick=${() => send('control', { mode })}>${MODE_ICON[mode]()}${mode !== 'call' && html`<span>${t(`panel.control.${mode}`)}</span>`}</button>`)}
+          ${npc.speak && html`<button type="button" aria-label=${t('agent.speak.button')}
+            title=${t(npc.speak.state === 'sending' ? 'agent.speak.sending' : 'agent.speak.button')}
+            disabled=${!npc.speak.enabled} aria-pressed=${npc.speak.state === 'recording'}
+            onClick=${() => send('speak')}>${icons.mic()}</button>`}
         </div>
+        ${npc.speak?.state === 'sending' && html`<span class="hx-call-state" role="status">${t('agent.speak.sending')}</span>`}
         ${call && html`<span class="hx-call-state" data-state=${call.state} role="status">${t(CALL_TEXT[call.state] || call.reason)}</span>`}
         <${NameCopy} npc=${npc} />
         ${npc.toast && html`<p class="hx-order-toast" role="status" key=${npc.toast}>${t(npc.toast)}</p>`}

@@ -127,7 +127,7 @@ public sealed class ManualCannibalismTests
         actor.Inventory.Items.Clear(); actor.Inventory.Items.Add(selected);
         ISimulationCommand hang = viaContainer
             ? new TransferContainerCommand(actor.Id, fire.Id, 0, raw, 1, InventoryTransferDirection.Give)
-            : new CraftItemCommand(actor.Id, GoalType.CookMeat);
+            : new CraftItemCommand(actor.Id, GoalType.CookMeat, fire.Id);
         var cook = ManualCommandExecutor.Apply(world, hang);
         Assert.That(cook.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted), cook.Reason);
         Until(engine, ()=>fire.Contents.Any(i=>i.DefinitionId==raw));

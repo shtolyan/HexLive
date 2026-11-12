@@ -3894,6 +3894,7 @@ namespace HexLive.UnityPresentation.UI
                 + "|" + string.Join(",", npc.InventoryOwnerIds)
                 + "|" + string.Join(",", npc.InventoryStacks) + "|" + npc.InventoryUsedSlots
                 + "|" + npc.HeldItemId + "|" + npc.FavoriteWeaponId
+                + "|manual=" + (npc.IsManualControl ? "1" : "0")
                 + "|lock=" + (npc.OutfitLocked ? "1" : "0")
                 + "|wornOwners=" + string.Join(",", npc.WornOwnerIds)
                 + "|page=" + (_clothesPage ? "clothes" : "backpack")
@@ -4308,11 +4309,13 @@ namespace HexLive.UnityPresentation.UI
             var wearable = def != null && def.Layer.HasValue;
             var outfitChangeBlocked = _outfitLockedNow && (worn || wearable);
             var canEat = CanEatInventory(def, worn);
+            var canCook = CanCookInventory(id, worn);
             _invPrimaryInventoryAction = canEat ? InventoryAction.Eat
+                : canCook ? InventoryAction.Cook
                 : id == ContentIds.Flashlight ? InventoryAction.ToggleFlashlight
                 : worn ? InventoryAction.Stow : InventoryAction.Wear;
             _invPrimaryAction.style.display = _inventoryMutable &&
-                (canEat || id == ContentIds.Flashlight || (worn || wearable) && !outfitChangeBlocked)
+                (canEat || canCook || id == ContentIds.Flashlight || (worn || wearable) && !outfitChangeBlocked)
                 ? DisplayStyle.Flex : DisplayStyle.None;
             _invPlantAction.style.display = _inventoryMutable && !worn &&
                 (InventoryPlacementMath.CanPlace(id) || PortableFurniture.CanCarry(id))
@@ -4330,8 +4333,7 @@ namespace HexLive.UnityPresentation.UI
             _invFillActionLabel.text = Loc.Get("inv.action.fill");
             _invReadOnlyLabel.style.display = !_inventoryMutable || outfitChangeBlocked
                 ? DisplayStyle.Flex : DisplayStyle.None;
-            _invPrimaryActionLabel.text = Loc.Get(canEat ? "inv.action.eat" : id == ContentIds.Flashlight
-                ? "inv.action.switch_light" : worn ? "inv.action.stow" : "inv.action.wear");
+            _invPrimaryActionLabel.text = Loc.Get(PrimaryInventoryActionKey(_invPrimaryInventoryAction));
             _invPlantActionLabel.text = Loc.Get(InventoryPlacementVerb(_invSelectedId));
             _invDropActionLabel.text = Loc.Get("inv.action.drop");
             _invReadOnlyLabel.text = Loc.Get(outfitChangeBlocked
@@ -4344,6 +4346,18 @@ namespace HexLive.UnityPresentation.UI
 
         private bool CanEatInventory(ObjectDefinition def, bool worn) =>
             _inventoryMutable && _inventoryManual && !worn && FoodMath.CanEat(def);
+
+        private bool CanCookInventory(string id, bool worn) =>
+            _inventoryMutable && _inventoryManual && !worn && HumanMeatCatalog.IsRaw(id);
+
+        private static string PrimaryInventoryActionKey(InventoryAction action) => action switch
+        {
+            InventoryAction.Eat => "inv.action.eat",
+            InventoryAction.Cook => "menu.cook_meat",
+            InventoryAction.ToggleFlashlight => "inv.action.switch_light",
+            InventoryAction.Stow => "inv.action.stow",
+            _ => "inv.action.wear"
+        };
 
         private static float InventoryResourceAmount(NpcSnapshot npc, string id, int sourceIndex)
         {
@@ -8097,8 +8111,7 @@ namespace HexLive.UnityPresentation.UI
             if (_invPlantActionLabel != null) _invPlantActionLabel.text = Loc.Get(InventoryPlacementVerb(_invSelectedId));
             if (_invReadOnlyLabel != null) _invReadOnlyLabel.text = Loc.Get("inv.readonly");
             if (_invPrimaryActionLabel != null && _invSelectedId != null)
-                _invPrimaryActionLabel.text = Loc.Get(_invSelectedWorn
-                    ? "inv.action.stow" : "inv.action.wear");
+                _invPrimaryActionLabel.text = Loc.Get(PrimaryInventoryActionKey(_invPrimaryInventoryAction));
 
             // §76: row names, and force the perk badges to re-localize (they
             // are rebuilt only when the perk SET changes, which a language

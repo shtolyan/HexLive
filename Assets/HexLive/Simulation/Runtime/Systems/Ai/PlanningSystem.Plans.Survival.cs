@@ -64,7 +64,7 @@ public sealed partial class PlanningSystem
     // and a vanished/contested fire must not cost the meal she already holds.
     // Bug #323: ручная (§121.6) берёт готовое мясо с вертела только у БЛИЗКОГО
     // костра — шаг к огню рядом не «ушла сама», а поход через карту — ушла.
-    private const int ManualSpitTakeRadiusTiles = 2;
+    internal const int ManualSpitTakeRadiusTiles = 2;
 
     private static bool TryBuildSpitTakePlan(
         WorldState world, NPCState npc, string? bestInPack, int maxTiles = int.MaxValue)

@@ -403,15 +403,17 @@ public sealed class CraftByOutputCommand : ISimulationCommand
 /// <summary>§138: legacy goal-based command, still revalidated at admission.</summary>
 public sealed class CraftItemCommand : ISimulationCommand
 {
-    public CraftItemCommand(EntityId npc, GoalType recipeGoal)
+    public CraftItemCommand(EntityId npc, GoalType recipeGoal, ObjectId? station = null)
     {
         Npc = npc;
         RecipeGoal = recipeGoal;
+        Station = station;
     }
 
     public EntityId Npc { get; }
 
     public GoalType RecipeGoal { get; }
+    public ObjectId? Station { get; }
 
     public EntityId? TargetEntity => Npc;
 }
@@ -1028,7 +1030,8 @@ public enum InventoryAction
     Stow,
     Drop,
     ToggleFlashlight,
-    Eat
+    Eat,
+    Cook
 }
 
 public sealed class ManageInventoryCommand : ISimulationCommand

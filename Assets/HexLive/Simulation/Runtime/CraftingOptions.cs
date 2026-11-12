@@ -236,9 +236,9 @@ public static class CraftingOptions
     }
 
     internal static CraftRecipeOption Resolve(
-        WorldState world, NPCState npc, GoalType goal) =>
+        WorldState world, NPCState npc, GoalType goal, ObjectId? exactStation = null) =>
         Resolve(world, npc, RecipeCatalog.ByGoal.TryGetValue(goal, out var recipe) ? recipe : null,
-            new GroundScan(world, npc));
+            new GroundScan(world, npc), exactStation);
 
     // §138.6: admission resolves a requested output independently of the active plan.
     internal static CraftRecipeOption Resolve(WorldState world, NPCState npc, string outputId) =>
@@ -279,7 +279,7 @@ public static class CraftingOptions
     }
 
     private static CraftRecipeOption Resolve(
-        WorldState world, NPCState npc, Recipe recipe, GroundScan scan)
+        WorldState world, NPCState npc, Recipe recipe, GroundScan scan, ObjectId? exactStation = null)
     {
         var goal = recipe?.Goal ?? GoalType.None;
         var option = new CraftRecipeOption
@@ -315,7 +315,7 @@ public static class CraftingOptions
         }
         else
         {
-            ResolveAtStation(world, npc, recipe, option, scan);
+            ResolveAtStation(world, npc, recipe, option, scan, exactStation);
         }
 
         var actorBlock = ActorBlock(world, npc, goal);
@@ -468,21 +468,26 @@ public static class CraftingOptions
         NPCState npc,
         Recipe recipe,
         CraftRecipeOption option,
-        GroundScan scan)
+        GroundScan scan,
+        ObjectId? exactStation)
     {
         StationCandidate bestReady = null;
         StationCandidate bestFallback = null;
         foreach (var station in world.Entities.Objects.Values)
         {
-            if (!station.Fragment.Equals(npc.Fragment) ||
+            if (exactStation is { } selectedStation && station.Id != selectedStation ||
+                !station.Fragment.Equals(npc.Fragment) ||
                 !world.Content.ObjectDefinitions.TryGetValue(
                     station.DefinitionId, out var definition) ||
                 !definition.HasTag(recipe.Station) ||
-                station.Junctions.Count == 0 ||
-                !StationReachable(world, npc, station))
+                station.Junctions.Count == 0)
             {
                 continue;
             }
+            var distance = HexSpatialMath.HexDistance(npc.Tile, station.Tile);
+            if (exactStation is null && option.Goal == GoalType.CookMeat &&
+                distance > PlanningSystem.ManualSpitTakeRadiusTiles ||
+                !StationReachable(world, npc, station)) continue;
 
             var ingredients = new List<CraftIngredientOption>();
             FillIngredientCounts(world, npc, recipe, station.Tile,
@@ -491,7 +496,7 @@ public static class CraftingOptions
             var candidate = new StationCandidate
             {
                 Station = station,
-                Distance = HexSpatialMath.HexDistance(npc.Tile, station.Tile),
+                Distance = distance,
                 GateOk = StationGateOk(world, recipe, option.Goal, station),
                 Busy = StationBusy(npc, station, scan),
                 BillCovered = BillCovered(ingredients),

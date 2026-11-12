@@ -29,6 +29,9 @@ public sealed partial class ExecutionSystem
             return CraftProjectMath.CanBeginCycle(world, npc, goal, worldObject);
         }
 
+        if (goal == GoalType.CookMeat && CookMeatInput(npc) == null)
+            return false;
+
         foreach (var ing in recipe.Inputs)
         {
             if ((goal == GoalType.CookMeat ? HumanMeatCatalog.CountRaw(npc) : DecisionSystem.CountInventory(npc, ing.Id)) < ing.Count)
@@ -48,6 +51,16 @@ public sealed partial class ExecutionSystem
         }
 
         return true;
+    }
+
+    private static ItemInstance? CookMeatInput(NPCState npc)
+    {
+        if (!HumanMeatCatalog.IsRaw(npc.Plan.TargetItemDefinitionId))
+            return HumanMeatCatalog.FirstRaw(npc);
+
+        var selected = npc.Execution.TargetInventoryItem;
+        return selected != null && selected.DefinitionId == npc.Plan.TargetItemDefinitionId &&
+            InventoryMath.ContainsReference(npc.Inventory.Items, selected) ? selected : null;
     }
 
     private static bool CraftNeedsToolsOrWeapons(GoalType goal) =>

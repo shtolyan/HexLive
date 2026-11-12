@@ -40,7 +40,8 @@ public static class SimulationCommandCodec
     // 10: §138.6 append-only CraftByOutput (48).
     // 11: §173.2 inventory seed placement (49).
     // 12: §176 manual placement of one carried furniture item (57).
-    public const int WireVersion = 12;
+    // 13: §54.14 craft at a selected station, with legacy opcode 10 unchanged.
+    public const int WireVersion = 13;
 
     // Защита от мусора в потоке: злонамеренный клиент не должен уметь
     // заказать аллокацию на гигабайт одним ushort'ом.
@@ -105,6 +106,7 @@ public static class SimulationCommandCodec
         EndGiftSession = 55,
         PlacePlantingSite = 56, // #638 append-only
         PlaceInventoryFurniture = 57, // §176 append-only
+        CraftItemAtStation = 61, // §54.14 append-only
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -235,9 +237,10 @@ public static class SimulationCommandCodec
                 WireIo.WriteString(w, c.RequestId); // §138.6.1, unreleased v10 / handshake v24
                 break;
             case CraftItemCommand c:
-                w.Write((ushort)CommandType.CraftItem);
+                w.Write((ushort)(c.Station.HasValue ? CommandType.CraftItemAtStation : CommandType.CraftItem));
                 WriteEntity(w, c.Npc);
                 w.Write((int)c.RecipeGoal);
+                if (c.Station is { } craftStation) w.Write(craftStation.Value);
                 break;
             case TalkToCommand c:
                 w.Write((ushort)(c.RequestedTopic.HasValue
@@ -526,6 +529,8 @@ public static class SimulationCommandCodec
                 return new CraftByOutputCommand(ReadEntity(r), r.ReadString(), r.ReadString());
             case CommandType.CraftItem:
                 return new CraftItemCommand(ReadEntity(r), (GoalType)r.ReadInt32());
+            case CommandType.CraftItemAtStation:
+                return new CraftItemCommand(ReadEntity(r), (GoalType)r.ReadInt32(), new ObjectId(r.ReadInt32()));
             case CommandType.TalkTo:
                 return new TalkToCommand(ReadEntity(r), ReadEntity(r));
             case CommandType.TalkToWithTopic:

@@ -650,7 +650,8 @@ public sealed class ManualCraftingTests
             world, ContentIds.Campfire, npc.Fragment, npc.Tile, stationJunction);
         var approachNode = world.Junctions.Items.Values.First(node =>
             node.Fragment.Equals(npc.Fragment) && !node.Blocked &&
-            node.Tiles.Count > 0 && SpatialQueries.IsJunctionFree(world, node.Id));
+            node.Tiles.Count > 0 && SpatialQueries.IsJunctionFree(world, node.Id) &&
+            HexSpatialMath.HexDistance(fire.Tile, node.Tiles[0]) <= PlanningSystem.ManualSpitTakeRadiusTiles);
         var approach = approachNode.Id;
         var previousTile = npc.Tile;
         npc.Tile = approachNode.Tiles[0];
@@ -688,6 +689,101 @@ public sealed class ManualCraftingTests
 
         Assert.That(npc.Inventory.Items.Any(item =>
             item.DefinitionId == ContentIds.MeatRaw), Is.False);
+    }
+
+    [Test]
+    public void SelectedMeatUsesOnlyANearbySpitAndKeepsTheOtherRawItem()
+    {
+        var engine = TestWorld.CreateEngine(138007);
+        var world = engine.World;
+        var npc = PrepareManual(world);
+        Strip(world, ContentIds.Campfire, ContentIds.MeatRaw);
+        npc.Inventory.Items.Clear();
+        var from = npc.CurrentJunction.Value;
+        var farAnchor = world.Junctions.Items.Values.First(node =>
+            node.Fragment.Equals(npc.Fragment) && !node.Blocked && node.Tiles.Count > 0 &&
+            HexSpatialMath.HexDistance(npc.Tile, node.Tiles[0]) > PlanningSystem.ManualSpitTakeRadiusTiles);
+        var far = WorldObjectMutations.SpawnObject(world, ContentIds.Campfire,
+            npc.Fragment, farAnchor.Tiles[0], farAnchor.Id);
+        StockFire(far);
+        var other = new ItemInstance(ContentIds.MeatRaw);
+        var chosen = new ItemInstance(HumanMeatCatalog.LegRaw);
+        npc.Inventory.Items.Add(other);
+        npc.Inventory.Items.Add(chosen);
+        var request = new ManageInventoryCommand(npc.Id,
+            new InventoryItemRef(InventoryItemSource.Carried, 1, chosen.DefinitionId), InventoryAction.Cook);
+        Assert.That(engine.ApplyManualCommand(request).Reason, Is.EqualTo("NoStation"));
+        Assert.That(npc.Inventory.Items[1], Is.SameAs(chosen));
+
+        var neighbor = SpatialQueries.GetPassableNeighbors(world, from).First();
+        var local = WorldObjectMutations.SpawnObject(world, ContentIds.Campfire,
+            npc.Fragment, world.Junctions.Items[neighbor].Tiles[0], neighbor);
+        SetCookingApproach(world, npc, local);
+        StockFire(local);
+        var accepted = engine.ApplyManualCommand(request);
+        Assert.That(accepted.Accepted, Is.True, accepted.Reason);
+        Assert.That(npc.Plan.TargetObjectId, Is.EqualTo(local.Id));
+        npc.Inventory.Items.Reverse();
+        StepUntil(engine, () => local.Contents.Any(item => ReferenceEquals(item, chosen)), 200);
+        Assert.That(npc.Inventory.Items.Any(item => ReferenceEquals(item, other)), Is.True);
+        Assert.That(far.Contents.Any(item => HumanMeatCatalog.IsRaw(item.DefinitionId)), Is.False);
+
+        static void StockFire(WorldObjectState fire)
+        {
+            fire.ResourceAmount = 100f;
+            Add(fire.Contents, BuildSiteMath.MaterialSticks, SimBalance.CampfireBillSticks);
+            Add(fire.Contents, BuildSiteMath.MaterialRope, SimBalance.CampfireBillRope);
+        }
+    }
+
+    [Test]
+    public void CookingOnClickedFireDoesNotSubstituteAnotherReadyFire()
+    {
+        var world = TestWorld.CreateWorld(138007);
+        var npc = PrepareManual(world);
+        Strip(world, ContentIds.Campfire, ContentIds.MeatRaw);
+        Add(npc, ContentIds.MeatRaw, 1);
+        var from = npc.CurrentJunction.Value;
+        var near = SpatialQueries.GetPassableNeighbors(world, from).Take(2).ToArray();
+        Assert.That(near.Length, Is.EqualTo(2));
+        var lit = SpawnFire(near[0], 100f);
+        var clicked = SpawnFire(near[1], 0f);
+        SetCookingApproach(world, npc, clicked);
+        lit.CraftJunction = clicked.CraftJunction;
+
+        var request = new CraftItemCommand(npc.Id, GoalType.CookMeat, clicked.Id);
+        Assert.That(ManualCommandExecutor.Apply(world, request).Reason, Is.EqualTo("StationBusy"));
+        Assert.That(npc.Plan.TargetObjectId, Is.Not.EqualTo(lit.Id));
+        clicked.ResourceAmount = 100f;
+        var admission = ManualCommandExecutor.Apply(world, request);
+        Assert.That(admission.Accepted, Is.True, admission.Reason);
+        Assert.That(npc.Plan.TargetObjectId, Is.EqualTo(clicked.Id));
+
+        WorldObjectState SpawnFire(JunctionId anchor, float fuel)
+        {
+            var fire = WorldObjectMutations.SpawnObject(world, ContentIds.Campfire,
+                npc.Fragment, world.Junctions.Items[anchor].Tiles[0], anchor);
+            fire.ResourceAmount = fuel;
+            Add(fire.Contents, BuildSiteMath.MaterialSticks, SimBalance.CampfireBillSticks);
+            Add(fire.Contents, BuildSiteMath.MaterialRope, SimBalance.CampfireBillRope);
+            return fire;
+        }
+    }
+
+    private static void SetCookingApproach(WorldState world, NPCState npc, WorldObjectState fire)
+    {
+        var approach = world.Junctions.Items.Values.First(node =>
+            node.Fragment.Equals(npc.Fragment) && !node.Blocked && node.Tiles.Count > 0 &&
+            SpatialQueries.IsJunctionFree(world, node.Id) &&
+            HexSpatialMath.HexDistance(fire.Tile, node.Tiles[0]) <= PlanningSystem.ManualSpitTakeRadiusTiles);
+        if (npc.CurrentJunction is { } previous) SpatialMutations.FreeJunction(world, previous, npc.Id);
+        var oldTile = npc.Tile;
+        npc.CurrentJunction = approach.Id;
+        npc.Position = approach.WorldPosition;
+        npc.Tile = approach.Tiles[0];
+        SpatialMutations.MoveEntityToTile(world, npc.Id, oldTile, npc.Tile);
+        SpatialMutations.OccupyJunction(world, approach.Id, npc.Id);
+        fire.CraftJunction = approach.Id;
     }
 
     [Test]

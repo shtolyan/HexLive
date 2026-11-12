@@ -57,7 +57,7 @@ function Detail({ item, model, send, onBack, onDrop }) {
         ${(model.readonly ? [] : d.actions || []).map((a) => {
           const locked = model.outfitLocked && (a === 'wear' || a === 'stow');
           return html`<${Button} key=${a} variant=${a === 'drop' ? 'danger' : a === 'wear' || a === 'stow' ? 'primary' : undefined}
-            disabled=${locked} onClick=${() => (a === 'drop' && item.count > 1 ? onDrop(item) : send('action', { uid: item.uid, kind: a, count: 1 }))}>${t(`inv.action.${a}`)}<//>`;
+            disabled=${locked} onClick=${() => (a === 'drop' && item.count > 1 ? onDrop(item) : send('action', { uid: item.uid, kind: a, count: 1 }))}>${t(a === 'cook' ? 'menu.cook_meat' : `inv.action.${a}`)}<//>`;
         })}
       </div>
     </section>`;

@@ -1304,11 +1304,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatCooked) <
                 SimBalance.CampfireSpitCapacity)
             {
-                var raw = HumanMeatCatalog.FirstRaw(npc);
-                if (raw == null) return false;
+                var raw = CookMeatInput(npc);
+                if (raw == null)
+                    return FailHearthScene(world, npc, worldObject, "Selected raw portion is no longer carried");
                 InventoryMath.RemoveReference(npc.Inventory.Items, raw);
                 raw.ResourceAmount = 0f;
                 worldObject.Contents.Add(raw);
+                npc.Execution.TargetInventoryItem = null;
                 Trace.Emit(world, npc.Id, "MeatHungOnSpit",
                     $"{raw.DefinitionId} on the spit at Tile={worldObject.Tile.Q},{worldObject.Tile.R} " +
                     $"hanging raw={BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatRaw)} " +

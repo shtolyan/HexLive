@@ -61,7 +61,7 @@ public sealed class PlantingBlueprintTests
         var accepted = engine.ApplyManualCommand(new InteractCommand(npc.Id, site.Id, InteractionType.Build));
         Assert.That(accepted.Accepted, Is.True, accepted.Reason);
         Assert.That(npc.Plan.Steps[^1].TargetObject, Is.EqualTo(first.Id));
-        FinishAtPlannedPoint(world, npc);
+        FinishAtPlannedPoint(world, npc, ContentIds.HerbSeed);
         Assert.Multiple(() =>
         {
             Assert.That(world.Entities.Objects.ContainsKey(site.Id), Is.False);
@@ -92,7 +92,7 @@ public sealed class PlantingBlueprintTests
         new PlanningSystem().Run(world);
         Assert.That(npc.Plan.TargetObjectId, Is.EqualTo(site.Id));
         Assert.That(npc.Plan.Steps[^1].TargetObject, Is.EqualTo(seed.Id));
-        FinishAtPlannedPoint(world, npc);
+        FinishAtPlannedPoint(world, npc, ContentIds.HerbSeed);
         Assert.That(world.Entities.Objects.ContainsKey(seed.Id), Is.False);
         Assert.That(world.Entities.Objects.Values.Any(o => o.DefinitionId == ContentIds.HerbSprout &&
             o.Junctions.Contains(site.Junctions[0])), Is.True);
@@ -340,7 +340,7 @@ public sealed class PlantingBlueprintTests
             o.Junctions.Contains(site.Junctions[0])), Is.True);
     }
 
-    private static void FinishAtPlannedPoint(WorldState world,NPCState npc)
+    private static void FinishAtPlannedPoint(WorldState world,NPCState npc,string expectedHandItem = null)
     {
         var target=npc.Plan.TargetJunctionId.Value;
         if(npc.CurrentJunction is { } old) SpatialMutations.FreeJunction(world,old,npc.Id);
@@ -350,6 +350,8 @@ public sealed class PlantingBlueprintTests
         npc.Movement.SetStatus(HexLive.Simulation.Navigation.MovementStatus.Arrived);
         var execution=new ExecutionSystem();execution.Run(world);
         Assert.That(npc.Execution.Status, Is.EqualTo(ExecutionStatus.InProgress));
+        if (expectedHandItem is not null)
+            Assert.That(ActionItemResolver.HeldId(world, npc), Is.EqualTo(expectedHandItem));
         world.Tick=npc.Execution.EndTick;execution.Run(world);
     }
 }

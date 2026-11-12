@@ -124,7 +124,7 @@ public sealed partial class ExecutionSystem
                 GoalType.PlayerOrder);
             npc.Execution.Status = ExecutionStatus.InProgress;
             npc.Execution.CurrentInteraction = InteractionType.Plant;
-            npc.Execution.TargetObject = null;
+            npc.Execution.TargetObject = groundSeed?.Id;
             npc.Execution.TargetInventoryItem = seed;
             npc.Execution.StartTick = world.Tick;
             npc.Execution.EndTick = world.Tick + workTicks;

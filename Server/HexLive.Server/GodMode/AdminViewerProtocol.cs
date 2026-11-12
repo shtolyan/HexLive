@@ -16,7 +16,7 @@ public sealed class AdminViewerProtocol
     private readonly DeepgramTokenBroker _stt;
     public AdminViewerProtocol(AdminAccess access, AdminCommandBus bus, AdminAgentHub hub, DeepgramTokenBroker stt)
     { _access = access; _bus = bus; _hub = hub; _stt = stt; }
-    public async Task<string> Handle(string client, string json, CancellationToken cancel)
+    public async Task<string> Handle(string client, string json, CancellationToken cancel, bool accountSession = false)
     {
         try
         {
@@ -24,8 +24,12 @@ public sealed class AdminViewerProtocol
             var root = doc.RootElement;
             string S(string name) => root.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.String ? p.GetString()! : "";
             var token = S("token"); var kind = S("kind");
+            // #729: a server-verified account is its own credential. A device grant
+            // that already works (desktop Keychain/DPAPI) keeps working unchanged.
+            var accountBound = accountSession && !_access.Authorized(client, token);
+            if (accountBound) token = _access.AccountCredential(client);
             object reply;
-            if (kind == "request_access") reply = _access.RequestAccess(client, token);
+            if (kind == "request_access") reply = _access.RequestAccess(client, token, accountBound);
             else if (kind == "access_status")
             {
                 var status = _access.Check(client, token);

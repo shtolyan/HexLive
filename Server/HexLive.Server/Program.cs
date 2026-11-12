@@ -367,7 +367,8 @@ public static class Program
                 options.McpEnabled ? agentSessions : null,
                 viewerSession.WorldGeneration,
                 controlOwner is null ? null : deepgram,
-                Guid.NewGuid().ToString("N"), adminViewer, viewerSession.Assignments, playerMcpAccess, playerSpeech);
+                Guid.NewGuid().ToString("N"), adminViewer, viewerSession.Assignments, playerMcpAccess, playerSpeech,
+                accountSession: accountConnection is not null && controlOwner is not null);
             try
             {
                 await viewer.RunAsync(viewerLifetime.Token);

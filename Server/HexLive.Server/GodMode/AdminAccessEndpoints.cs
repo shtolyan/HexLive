@@ -28,7 +28,7 @@ public static class AdminAccessEndpoints
                 var ids = worlds.Assignments?.AdminAssignedIds(client) ?? Array.Empty<int>();
                 var names = worlds.Host.Read(w => ids.Select(n => w.Entities.Npcs.TryGetValue(new HexLive.Simulation.Common.EntityId(n), out var npc) ? npc.DisplayName : "#" + n).ToArray());
                 var label = state switch { "pending" => "Ожидает решения", "approved" => "Одобрено", "rejected" => "Отклонено", "expired" => "Срок истёк", _ => "Отозвано" };
-                html.Append("<article><strong>").Append(label).Append("</strong><p>Клиент: <code>").Append(E(client)).Append("</code><br>Персонажи: ").Append(E(string.Join(", ", names)))
+                html.Append("<article><strong>").Append(label).Append("</strong><p>").Append(r.GetProperty("account").GetBoolean() ? "Аккаунт" : "Клиент").Append(": <code>").Append(E(client)).Append("</code><br>Персонажи: ").Append(E(string.Join(", ", names)))
                     .Append("<br>Запрос: ").Append(E(r.GetProperty("createdUtc").ToString())).Append("<br>").Append(r.GetProperty("connected").GetBoolean() ? "На связи" : "Не на связи")
                     .Append("<br>Доступ до: ").Append(r.GetProperty("expiresUtc").ValueKind == JsonValueKind.Null ? (state == "approved" ? "Бессрочно" : "—") : E(r.GetProperty("expiresUtc").ToString())).Append("</p>");
                 if (state == "pending") html.Append("<form method='post' action='/admin/voice/decide'><input type='hidden' name='id' value='").Append(E(id))
@@ -53,8 +53,9 @@ public static class AdminAccessEndpoints
                 if (approve && form["unit"] != "forever")
                 {
                     var scale = form["unit"].ToString() switch { "minutes" => 60d, "hours" => 3600d, "days" => 86400d, _ => 0d };
-                    if (scale == 0 || !double.TryParse(form["amount"], NumberStyles.Float, CultureInfo.InvariantCulture, out var n) || !double.IsFinite(n) || n <= 0 || n * scale >= TimeSpan.MaxValue.TotalSeconds) return Results.BadRequest("Invalid duration");
-                    duration = TimeSpan.FromSeconds(n * scale);
+                    if (scale == 0 || !double.TryParse(form["amount"], NumberStyles.Float, CultureInfo.InvariantCulture, out var n) || !double.IsFinite(n) || n <= 0 || n <= 0) return Results.BadRequest("Invalid duration");
+                    // #729: a term past a century means «бессрочно», not «срок некорректен».
+                    duration = n * scale >= 36500d * 86400d ? null : TimeSpan.FromSeconds(n * scale);
                 }
                 access.Decide(form["id"].ToString(), approve, duration); return Results.Redirect("/admin/voice");
             }

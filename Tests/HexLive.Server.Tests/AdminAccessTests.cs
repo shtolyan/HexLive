@@ -26,6 +26,31 @@ public sealed class AdminAccessTests
         Assert.That(File.ReadAllText(_path), Does.Not.Contain(Secret));
         _now += TimeSpan.FromDays(10000); Assert.That(Open().Authorized(_client, Secret), Is.True);
     }
+    // #729: an account's grant is bound to the account, not to a device secret.
+    [Test] public void AccountGrantSurvivesReloadAndCannotBeClaimedWithAClientSuppliedSecret()
+    {
+        var access = Open();
+        var credential = access.AccountCredential(_client);
+        var request = access.RequestAccess(_client, credential, account: true);
+        access.Decide(request.RequestId, true, null);
+        // A page reload invents a new device secret; the server derives the same credential again.
+        access = Open();
+        Assert.That(access.AccountCredential(_client), Is.EqualTo(credential), "The key must persist with the grants.");
+        Assert.That(access.Authorized(_client, access.AccountCredential(_client)), Is.True);
+        // The same id with a secret the client made up (shared-token login) is not the account.
+        Assert.That(access.Authorized(_client, Secret), Is.False);
+        Assert.That(access.Authorized(_client, new string('B', 64)), Is.False);
+        // Another account derives a different credential.
+        Assert.That(access.AccountCredential(Guid.NewGuid().ToString("N")), Is.Not.EqualTo(credential));
+        Assert.That(File.ReadAllText(_path), Does.Not.Contain(credential));
+    }
+    [Test] public void AbsurdlyLongTermIsStoredAsForeverInsteadOfFailingTheApproval()
+    {
+        var a = Open(); var r = a.RequestAccess(_client, Secret);
+        Assert.DoesNotThrow(() => a.Decide(r.RequestId, true, TimeSpan.FromDays(4_000_000)));
+        _now += TimeSpan.FromDays(100000);
+        Assert.That(Open().Authorized(_client, Secret), Is.True);
+    }
     [Test] public void SpoofedClientIdCannotReplacePendingDeviceRequest()
     {
         var a = Open(); var original = a.RequestAccess(_client, Secret); var spoof = a.RequestAccess(_client, new string('B', 64));

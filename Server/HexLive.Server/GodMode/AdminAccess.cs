@@ -12,11 +12,13 @@ namespace HexLive.Server.GodMode;
 public sealed class AdminAccess
 {
     public sealed record Request(string Id, string Client, string SecretHash, DateTimeOffset CreatedUtc,
-        string State = "pending", DateTimeOffset? ExpiresUtc = null);
+        string State = "pending", DateTimeOffset? ExpiresUtc = null, bool Account = false);
     public sealed class State
     {
         public int Version { get; set; } = 2;
         public Dictionary<string, string> LegacyGrants { get; set; } = new();
+        // #729: server-only key that turns a verified account id into its credential.
+        public string AccountKey { get; set; } = "";
         public List<Request> Requests { get; set; } = new();
     }
     public sealed record Status(bool Accepted, string State, string RequestId = "", DateTimeOffset? ExpiresUtc = null);
@@ -57,7 +59,29 @@ public sealed class AdminAccess
             return status;
         }
     }
-    public Status RequestAccess(string client, string token)
+    /// <summary>
+    /// #729: права аккаунта привязаны к самому аккаунту, а не к секрету устройства.
+    /// Веб-клиент не может хранить секрет (§168.8) и на каждой загрузке страницы
+    /// приходил «новым устройством» — бессрочное одобрение осиротевало. Для сессии,
+    /// которую сервер сам проверил по Firebase (§171.9), учётные данные выводятся из
+    /// id аккаунта серверным ключом: клиент их не знает и подделать не может, а
+    /// общий токен игрока с подставленным clientId их не получит.
+    /// </summary>
+    public string AccountCredential(string accountId)
+    {
+        lock (_gate)
+        {
+            if (_state.AccountKey.Length == 0)
+            {
+                var next = Copy();
+                next.AccountKey = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+                Store(next);
+            }
+            using var hmac = new HMACSHA256(Convert.FromHexString(_state.AccountKey));
+            return Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes("account:" + accountId)));
+        }
+    }
+    public Status RequestAccess(string client, string token, bool account = false)
     {
         if (CentralAuthorize != null) return Check(client, token);
         if (!PlayerCharacterAssignments.TryNormalizePlayerId(client, out var canonical) || !ValidSecret(token)) return new(false, "invalid");
@@ -67,11 +91,13 @@ public sealed class AdminAccess
             if (status.State is "pending" or "approved") return Check(canonical, token);
             if (_state.Requests.Count(r => r.State == "pending") >= 128 ||
                 _state.Requests.Count(r => r.Client == canonical && r.State == "pending") >= 3) return new(false, "queue_full");
-            var request = new Request(Guid.NewGuid().ToString("N"), canonical, Hash(token), _now());
+            var request = new Request(Guid.NewGuid().ToString("N"), canonical, Hash(token), _now(), Account: account);
             var next = Copy(); next.Requests.Add(request); Store(next);
             _seen[request.Id] = _now(); return new(false, "pending", request.Id);
         }
     }
+    // A term past a century is "forever": it must not overflow the calendar and fail the approval.
+    private static readonly TimeSpan MaxFiniteGrant = TimeSpan.FromDays(36500);
     public void Decide(string id, bool approve, TimeSpan? duration)
     {
         if (duration.HasValue && duration.Value <= TimeSpan.Zero) throw new ArgumentException("Invalid duration");
@@ -80,14 +106,14 @@ public sealed class AdminAccess
             var index = _state.Requests.FindIndex(r => r.Id == id);
             if (index < 0 || _state.Requests[index].State != "pending") throw new ArgumentException("Request no longer pending");
             var next = Copy(); var request = next.Requests[index];
-            next.Requests[index] = request with { State = approve ? "approved" : "rejected", ExpiresUtc = approve && duration.HasValue ? _now() + duration.Value : null };
+            next.Requests[index] = request with { State = approve ? "approved" : "rejected", ExpiresUtc = approve && duration.HasValue && duration.Value < MaxFiniteGrant ? _now() + duration.Value : null };
             Store(next);
         }
     }
     public object[] Requests()
     {
         lock (_gate) return _state.Requests.OrderByDescending(r => r.CreatedUtc).Select(r => (object)new
-        { id = r.Id, client = r.Client, createdUtc = r.CreatedUtc, state = Effective(r), expiresUtc = r.ExpiresUtc,
+        { id = r.Id, client = r.Client, createdUtc = r.CreatedUtc, state = Effective(r), expiresUtc = r.ExpiresUtc, account = r.Account,
             connected = _seen.TryGetValue(r.Id, out var seen) && _now() - seen < TimeSpan.FromSeconds(20) }).ToArray();
     }
     public bool Authorized(string client, string token) { lock (_gate) return GetStatus(client, token).Accepted; }
@@ -103,7 +129,7 @@ public sealed class AdminAccess
             Store(next);
         }
     }
-    private State Copy() => new() { LegacyGrants = new(_state.LegacyGrants), Requests = new(_state.Requests) };
+    private State Copy() => new() { LegacyGrants = new(_state.LegacyGrants), Requests = new(_state.Requests), AccountKey = _state.AccountKey };
     private void Store(State next) { WritePrivate(_path, JsonSerializer.Serialize(next)); _state = next; }
     internal static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
     internal static void WritePrivate(string path, string text)

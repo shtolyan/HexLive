@@ -54,6 +54,9 @@ public sealed class ViewerConnection
     private const int CompressThresholdBytes = 1024;
 
     private readonly GodMode.AdminViewerProtocol? _admin;
+    // §171.9 / #729: this connection's identity was verified by the account session,
+    // not supplied by the client.
+    private readonly bool _accountSession;
     private readonly PlayerCharacterAssignments? _currentAssignments;
     private readonly WorldHost _host;
     private readonly WebSocket _socket;
@@ -90,8 +93,10 @@ public sealed class ViewerConnection
         IReadOnlyList<int>? assignedNpcIds = null, bool compress = false,
         AgentSessionRegistry? agentSessions = null, int worldGeneration = 0,
         DeepgramTokenBroker? deepgram = null, string? viewerId = null, GodMode.AdminViewerProtocol? admin = null, PlayerCharacterAssignments? currentAssignments = null,
-        Mcp.McpPlayerAccess? playerMcpAccess = null, Voice.PlayerSpeechRelay? playerSpeech = null)
+        Mcp.McpPlayerAccess? playerMcpAccess = null, Voice.PlayerSpeechRelay? playerSpeech = null,
+        bool accountSession = false)
     {
+        _accountSession = accountSession;
         _host = host;
         _playerMcpAccess = playerMcpAccess;
         _admin = admin;
@@ -434,7 +439,7 @@ public sealed class ViewerConnection
                         Buffer.BlockCopy(buffer, 1, payload, 0, payload.Length);
                         try
                         {
-                            var reply = await _admin.Handle(_controlOwner!.Substring(3), AdminWire.Decode(payload), cancel);
+                            var reply = await _admin.Handle(_controlOwner!.Substring(3), AdminWire.Decode(payload), cancel, _accountSession);
                             await SendAsync(AdminWire.Encode(reply, true), cancel).ConfigureAwait(false);
                         }
                         catch (InvalidDataException) { }

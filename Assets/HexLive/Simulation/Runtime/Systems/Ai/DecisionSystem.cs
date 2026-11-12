@@ -43,6 +43,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
 
     public void Run(WorldState world)
     {
+        var outfitOutdoorTemperature = EnvironmentSystem.OutfitOutdoorTemperature(world);
         foreach (var npc in world.Entities.Npcs.Values)
         {
             // Besieged-starve fix (Jul 2026): refresh the starvation/dehydration
@@ -585,6 +586,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // NPC reaching for more clothes is a doom loop.
             // Spec 29C.4A: fresh danger overrides the weather — arm up.
             var effectiveTemp = world.Environment.GlobalTemperature + npc.EquippedWarmth * 10f;
+            var outfitTemperature = outfitOutdoorTemperature + npc.EquippedWarmth * 10f;
             UpdateOverheatedStatus(world, npc, effectiveTemp);
             // Jul 2026: never reach for the wardrobe while a mob is actively
             // hunting her — armor-up is for the lull AFTER the scare, not
@@ -670,17 +672,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 }
             }
             var wantsBackpack = !wearsBackpack && KnowsReachableBackpack(npc, world);
-            // Bug #313 (вердикт игрока): одеваться решает УЛИЧНЫЙ холод, а не
-            // текущий комфорт. Раздетая грелась у костра, дискомфорт стекал в
-            // ноль — и порог DressThermalThreshold не давал ей одеться никогда:
-            // она бегала голой между костром и делами по морозу. effectiveTemp
-            // здесь и так БЕЗ костра (Global + EquippedWarmth×10), так что
-            // «на улице холодно её гардеробу» читается прямо из него; порог по
-            // дискомфорту снят. Защита от кружения у шкафа остаётся тройной:
-            // реальный холод (DressColdTemp), недоодетость (WarmthCeiling) и
-            // достижимый НАСТОЯЩИЙ апгрейд тепла (§52.7).
-            var coldForWardrobe = effectiveTemp < SimBalance.DressColdTemp &&
-                npc.EquippedWarmth < SimBalance.DressWarmthCeiling;
+            // §42 / #701: dress for the next outing. Forecast cooling and
+            // current outdoor air matter even when the body has warmed by a
+            // fire. §52.7 still requires a real, reachable warmth upgrade.
+            var coldForWardrobe = outfitTemperature < SimBalance.DressColdTemp;
             var dressAvail = maintainSelectedOutfit ||
                 (!npc.Mind.OutfitLocked && !pendingRedress &&
                  (wantsBackpack || wantsArmor || wantsCover ||
@@ -883,6 +878,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 sleepAvail,
                 sitAvail,
                 effectiveTemp,
+                outfitTemperature,
                 activelyHunted,
                 dressAvail,
                 dressNeed,
@@ -994,6 +990,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             bool sleepAvail,
             bool sitAvail,
             float effectiveTemp,
+            float outfitTemperature,
             bool activelyHunted,
             bool dressAvail,
             float dressNeed,
@@ -1022,6 +1019,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             SleepAvail = sleepAvail;
             SitAvail = sitAvail;
             EffectiveTemp = effectiveTemp;
+            OutfitTemperature = outfitTemperature;
             ActivelyHunted = activelyHunted;
             DressAvail = dressAvail;
             DressNeed = dressNeed;
@@ -1047,6 +1045,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         public bool SleepAvail { get; }
         public bool SitAvail { get; }
         public float EffectiveTemp { get; }
+        public float OutfitTemperature { get; }
         public bool ActivelyHunted { get; }
         public bool DressAvail { get; }
         public float DressNeed { get; }
@@ -2855,6 +2854,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // поэтому Dress и Undress не могут перещёлкиваться друг за другом.
         var undressAvail = !npc.Mind.OutfitLocked &&
             ctx.EffectiveTemp > 24f && npc.Needs.ThermalDiscomfort >= 0.4f &&
+            (ctx.OutfitTemperature > 24f ||
+             npc.Needs.ThermalDiscomfort >= Spec133.UndressAtHomeMaxDiscomfort) &&
             !ModestyMath.OutsiderKnown(world, npc) &&
             FindRemovableItem(npc, world,
                 StowMath.FindUndressSpot(world, npc, requireStation: true) is not null) is not null;

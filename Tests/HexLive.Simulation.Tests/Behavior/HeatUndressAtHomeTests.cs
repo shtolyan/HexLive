@@ -4,6 +4,7 @@ using HexLive.Simulation.AI;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Spatial;
 using NUnit.Framework;
 
 namespace HexLive.Simulation.Tests.Behavior
@@ -16,6 +17,63 @@ namespace HexLive.Simulation.Tests.Behavior
 public sealed class HeatUndressAtHomeTests
 {
     private const string Jacket = "clothing.jacket_autumn";
+
+    [TestCase(17, 0f, false)]
+    [TestCase(20, 0f, true)]
+    [TestCase(3, 0.55f, true)]
+    public void WardrobeBidsForCoolingOutdoorAirWhileComfortableByTheFire(
+        int clockHour, float equippedWarmth, bool expectedDressBid)
+    {
+        var engine = TestWorld.CreateEngine(12345);
+        for (var i = 0; i < 4; i++) engine.Step();
+        var world = engine.World;
+        var npc = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        npc.WornItems.RemoveAll(item => world.Content.ObjectDefinitions[item.DefinitionId].Layer != WearLayer.Bags);
+        npc.EquippedWarmth = equippedWarmth;
+        npc.Needs.ThermalDiscomfort = 0f;
+        npc.Needs.ThermalComfort = 0f;
+        npc.Mind.Cooldowns.Clear();
+        npc.Memory.Dangers.Clear();
+        npc.Perception.Objects.Clear();
+        npc.Perception.Agents.Clear();
+
+        var fireId = world.Entities.Objects.Values.First(o =>
+            world.Content.ObjectDefinitions[o.DefinitionId].HasTag("Campfire")).DefinitionId;
+        var fireAnchor = SpatialQueries.GetPassableNeighbors(world, npc.CurrentJunction!.Value)
+            .First(junction => SpatialQueries.IsJunctionFree(world, junction));
+        var fire = WorldObjectMutations.SpawnObject(
+            world, fireId, npc.Fragment, world.Junctions.Items[fireAnchor].Tiles[0], fireAnchor);
+        fire.ResourceAmount = 10f;
+        var stand = world.Junctions.Items.Values.First(junction => junction.Fragment == npc.Fragment &&
+            junction.Tiles.Count > 0 && HexSpatialMath.HexDistance(junction.Tiles[0], fire.Tile) == 1 &&
+            SpatialQueries.IsJunctionPassable(world, junction.Id) && SpatialQueries.IsJunctionFree(world, junction.Id));
+        npc.CurrentJunction = stand.Id;
+        npc.Position = stand.WorldPosition;
+        npc.Tile = stand.Tiles[0];
+        npc.Movement.IsMoving = false;
+        Assert.That(TemperatureSystem.NearbyFireWarmth(world, npc.Tile, out _), Is.Positive);
+        var jacket = WorldObjectMutations.SpawnObject(
+            world, Jacket, npc.Fragment, npc.Tile, npc.CurrentJunction!.Value);
+        var seen = new PerceivedObject
+        {
+            Id = jacket.Id, DefinitionId = jacket.DefinitionId, Tile = jacket.Tile,
+            Distance = 0.1f, IsReachable = true
+        };
+        seen.AvailableInteractions.Add(InteractionType.Dress);
+        npc.Perception.Objects.Add(seen);
+        Assert.That(DecisionSystem.KnowsReachableWarmthUpgrade(npc, world), Is.True);
+        world.Tick = ((clockHour + 18) % 24) * EnvironmentSystem.DayLengthTicks / 24;
+        new EnvironmentSystem().Run(world);
+        if (clockHour == 20)
+        {
+            Assert.That(world.Environment.GlobalTemperature, Is.GreaterThan(SimBalance.DressColdTemp),
+                "The current air is still mild; the cooling forecast must trigger dressing.");
+        }
+
+        new DecisionSystem().Run(world);
+        var dress = npc.Mind.LastScores.Single(score => score.Goal == GoalType.Dress);
+        Assert.That(dress.FinalScore > 0f, Is.EqualTo(expectedDressBid));
+    }
 
     private static (SimulationEngine engine, NPCState npc) HotColonist(float discomfort)
     {

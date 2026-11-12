@@ -58,8 +58,7 @@ namespace HexLive.Simulation.Runtime
         public static float SleepInterruptHunger = 0.7f;     // wake a sleeper once hunger crosses this (= food bar below 30%)
         public static float SleepInterruptThirst = 0.7f;     // wake a sleeper once thirst crosses this (= water bar below 30%)
         public static float DressThermalThreshold = 0.45f;   // dress once cold discomfort crosses this (§52: was 0.35 — less fussy)
-        public static float DressColdTemp = 14f;             // ...and only when effective temp is below this
-        public static float DressWarmthCeiling = 0.5f;       // ...and not already bundled past this warmth
+        public static float DressColdTemp = 14f;             // Outdoor temperature with forecast cooling and current clothes.
         public static float DressWarmthGainMin = 0.05f;      // §52.7: ...and only if a reachable garment ACTUALLY raises warmth by ≥ this (clamp-aware) — never re-wear the same/worse shirt (~+0.5°C; +0.1 warmth = +1°C)
 
         // ─────────────────────────────────────────────────────────────

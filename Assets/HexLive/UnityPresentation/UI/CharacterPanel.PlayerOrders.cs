@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using HexLive.Simulation.Common;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.UnityPresentation.Input;
@@ -8,6 +7,7 @@ using HexLive.UnityPresentation.Localization;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
+using EntityId = HexLive.Simulation.Common.EntityId;
 
 namespace HexLive.UnityPresentation.UI
 {

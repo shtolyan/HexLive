@@ -41,6 +41,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
             AgentCommandLedger.Observe(world, npc);
             if (!npc.Mind.ManualControl || npc.Health <= 0f)
             {
+                npc.Mind.PlayerOrders.Clear();
                 continue;
             }
 
@@ -120,6 +121,8 @@ public sealed class ManualOrderSystem : ISimulationSystem
             {
                 ManualCommandExecutor.ContinueBuildAll(world, npc, orderCompleted);
             }
+
+            ManualCommandExecutor.AdvancePlayerOrders(world, npc);
 
             // §121.7: приказ завершён (цель None, сцепки нет) и реальный lease
             // игрока истёк — возврат под ИИ. Авто-цель §121.6 (Eat/Drink)

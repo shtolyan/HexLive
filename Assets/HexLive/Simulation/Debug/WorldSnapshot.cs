@@ -789,6 +789,7 @@ public sealed class NpcSnapshot
     /// а не из своего кэша: тумблер живёт в симуляции, и она же авторитет —
     /// иначе кнопка показывала бы одно, а персонаж делал другое.</summary>
     public bool IsManualControl { get; set; }
+    public List<PlayerOrderView> PlayerOrders { get; } = new();
     public int? TravelLeaderNpcId { get; set; }
 
     /// <summary>§121.11 (bug #294): постоянный темп её ручных приказов —

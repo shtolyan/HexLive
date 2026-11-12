@@ -527,6 +527,7 @@ public sealed class NPCMind
     // Больше не участвует в поведении, но остаётся в модели, чтобы не менять
     // бинарный формат существующих сейвов.
     public int LastManualInputTick { get; set; }
+    internal Runtime.PlayerOrderQueue PlayerOrders { get; } = new();
 
     // §121.7: последнее продление реального lease ручного управления.
     // Монотонное время процесса намеренно не сериализуется; после загрузки

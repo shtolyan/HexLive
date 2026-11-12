@@ -58,6 +58,18 @@ public static class PlayerCommandAuthorization
 
         switch (command)
         {
+            case QueuePlayerOrderCommand queued:
+                if (!QueuePlayerOrderCommand.Supports(queued.Order) || queued.TargetEntity is not { } queuedActor)
+                {
+                    refusal = "UnsupportedCommand";
+                    return false;
+                }
+                if (!leases.TryAcquire(queuedActor.Value, owner, out _, out _))
+                {
+                    refusal = "ControlledByOther";
+                    return false;
+                }
+                return true;
             case SetManualControlCommand setManual:
                 if (setManual.Enabled)
                 {

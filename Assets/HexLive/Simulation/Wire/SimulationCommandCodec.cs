@@ -41,7 +41,7 @@ public static class SimulationCommandCodec
     // 11: §173.2 inventory seed placement (49).
     // 12: §176 manual placement of one carried furniture item (57).
     // 13: §54.14 craft at a selected station, with legacy opcode 10 unchanged.
-    public const int WireVersion = 13;
+    public const int WireVersion = 14;
 
     // Защита от мусора в потоке: злонамеренный клиент не должен уметь
     // заказать аллокацию на гигабайт одним ushort'ом.
@@ -110,12 +110,19 @@ public static class SimulationCommandCodec
         MoveFurniture = 59,
         RemoveFurniture = 60,
         CraftItemAtStation = 61, // §54.14 append-only
+        QueuePlayerOrder = 62, // §121.13
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
     {
         switch (command)
         {
+            case QueuePlayerOrderCommand queued:
+                if (!QueuePlayerOrderCommand.Supports(queued.Order))
+                    throw new InvalidDataException("Unsupported queued player order.");
+                w.Write((ushort)CommandType.QueuePlayerOrder);
+                Write(w, queued.Order);
+                break;
             case BeginGiftSessionCommand c:
                 w.Write((ushort)CommandType.BeginGiftSession); WriteEntity(w, c.Npc); WriteEntity(w, c.Recipient);
                 break;
@@ -470,11 +477,22 @@ public static class SimulationCommandCodec
         }
     }
 
-    public static ISimulationCommand Read(BinaryReader r)
+    public static ISimulationCommand Read(BinaryReader r) => Read(r, allowQueue: true);
+
+    private static ISimulationCommand Read(BinaryReader r, bool allowQueue)
     {
         var type = (CommandType)r.ReadUInt16();
         switch (type)
         {
+            case CommandType.QueuePlayerOrder:
+            {
+                if (!allowQueue)
+                    throw new InvalidDataException("Nested player order queue.");
+                var order = Read(r, allowQueue: false);
+                if (!QueuePlayerOrderCommand.Supports(order))
+                    throw new InvalidDataException("Unsupported queued player order.");
+                return new QueuePlayerOrderCommand(order);
+            }
             case CommandType.RecordAgentSocial:
                 return new RecordAgentSocialCommand(
                     ReadEntity(r), r.ReadString(), (Agents.CompanionReaction)r.ReadByte());

@@ -978,6 +978,7 @@ namespace HexLive.UnityPresentation.UI
             UpdateNeeds(npc);
             UpdateSheet(npc);
             UpdateEffects(npc);
+            RefreshPlayerOrders(npc);
             UpdateRelations(npc);
             _meleeStats = npc.MeleeStats ?? new MeleeStatsSnapshot();
             RefreshInventory(snapshot, npc);
@@ -7988,6 +7989,7 @@ namespace HexLive.UnityPresentation.UI
             _relationsTitle.style.flexGrow = 1f;
             header.Add(_relationsTitle);
 
+            col.Add(BuildPlayerOrdersRow());
             col.Add(header);
 
             _relationsContainer = new VisualElement();

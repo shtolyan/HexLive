@@ -102,6 +102,48 @@ public sealed class ManualControlTests
     // ── 1. Автономия выключена ───────────────────────────────────────────
 
     [Test]
+    public void PlayerActionsWaitForTheActivePlanAndStayInArrivalOrder()
+    {
+        var engine = TestWorld.CreateEngine();
+        var npc = Colonist(engine.World);
+        npc.Needs.Hunger = 0f;
+        npc.Needs.Thirst = 0f;
+        engine.Step();
+        var destination = NearbyFreeJunction(engine.World, npc);
+        var walk = new QueuePlayerOrderCommand(new MoveToCommand(npc.Id, destination.WorldPosition));
+        var sit = new QueuePlayerOrderCommand(new SelfActionCommand(npc.Id, SelfActionKind.GroundSit));
+
+        Assert.That(engine.ApplyManualCommand(walk).Accepted, Is.True);
+        Assert.That(engine.ApplyManualCommand(sit).Accepted, Is.True);
+        new ManualOrderSystem().Run(engine.World);
+
+        var before = Debug.WorldSnapshotExporter.Export(engine.World).Npcs.Single(n => n.Id == npc.Id);
+        Assert.That(before.PlayerOrders.Select(order => (order.Action, order.Active)),
+            Is.EqualTo(new[] { ("MoveTo", true), ("SelfAction", false) }));
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.PlayerOrder));
+
+        for (var i = 0; i < 600 && npc.Mind.CurrentGoal != GoalType.Sit; i++)
+            engine.Step();
+
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.Sit));
+        Assert.That(HexSpatialMath.HexDistance(npc.Tile, destination.Tiles[0]), Is.LessThanOrEqualTo(1));
+        var after = Debug.WorldSnapshotExporter.Export(engine.World).Npcs.Single(n => n.Id == npc.Id);
+        Assert.That(after.PlayerOrders.Select(order => (order.Action, order.Active)),
+            Is.EqualTo(new[] { ("SelfAction", true) }));
+    }
+
+    [Test]
+    public void PlayerQueueRejectsOrdersForAnotherPlayersCharacter()
+    {
+        var engine = TestWorld.CreateEngine();
+        var npc = Colonist(engine.World);
+        var command = new QueuePlayerOrderCommand(new SelfActionCommand(npc.Id, SelfActionKind.GroundSit));
+        var admission = engine.ApplyManualCommand(command, "player:other", System.Array.Empty<int>());
+        Assert.That(admission.Reason, Is.EqualTo("NotAssigned"));
+        Assert.That(npc.Mind.ManualControl, Is.False);
+    }
+
+    [Test]
     public void ManualNpcNeverTakesAGoalFromTheAuction()
     {
         var engine = TestWorld.CreateEngine();

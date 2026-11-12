@@ -991,8 +991,7 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             // симуляции, и у каждой выделенной девушки она своя.
             if (_selectedColonyIds.Count == 1 && ManualNpcId >= 0)
             {
-                _runner.EnqueueCommand(
-                    new MoveToCommand(new EntityId(ManualNpcId), point));
+                EnqueueOrder(ManualNpcId, new MoveToCommand(new EntityId(ManualNpcId), point));
             }
             else
             {
@@ -1052,12 +1051,7 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         if (actors.Count == 1)
         {
             var actor = actors[0];
-            if (!manual.Contains(actor.Value))
-            {
-                runner.EnqueueCommand(new SetManualControlCommand(actor, true));
-            }
-
-            runner.EnqueueCommand(new MoveToCommand(actor, point, run));
+            runner.EnqueueCommand(new QueuePlayerOrderCommand(new MoveToCommand(actor, point, run)));
         }
         else
         {
@@ -1155,6 +1149,12 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
     {
         if (_runner == null)
         {
+            return;
+        }
+
+        if (QueuePlayerOrderCommand.Supports(command))
+        {
+            _runner.EnqueueCommand(new QueuePlayerOrderCommand(command));
             return;
         }
 

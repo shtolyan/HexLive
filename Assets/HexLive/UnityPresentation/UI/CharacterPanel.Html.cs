@@ -372,6 +372,7 @@ namespace HexLive.UnityPresentation.UI
                 ["skills"] = SheetModel(SkillRows, npc.Skills),
                 ["traits"] = new JArray(npc.Traits),
                 ["relations"] = relations,
+                ["orders"] = HtmlPlayerOrders(npc),
             };
         }
 

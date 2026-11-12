@@ -2,6 +2,7 @@ using System.IO;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
+using HexLive.Simulation.Runtime;
 
 namespace HexLive.Simulation.Wire
 {
@@ -96,7 +97,7 @@ public static class WorldSnapshotCodec
     // v42: per-vessel visual provenance and exact held-bottle fill (§55.5).
     // v43: persistent craft project current/last worker (§119, #422).
     // v44: §54.21 / #429 distinguishes harvest scatter from inventory piles.
-    public const int WireVersion = 48; // §67.16: authored NPC speech origin in identity.
+    public const int WireVersion = 49; // §121.13: player order queue in NPC mind.
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -1082,6 +1083,14 @@ public static class WorldSnapshotCodec
         w.Write(n.OutfitLocked); // §133.9
         WireIo.WriteNullableInt(w, n.TravelLeaderNpcId);
         WireIo.WriteNullableInt(w, n.GiftSessionTargetNpcId);
+        w.Write((byte)n.PlayerOrders.Count);
+        foreach (var order in n.PlayerOrders)
+        {
+            w.Write(order.Id);
+            WireIo.WriteString(w, order.Action);
+            WireIo.WriteString(w, order.Detail);
+            w.Write(order.Active);
+        }
     }
 
     private static void WriteNpcInventory(BinaryWriter w, NpcSnapshot n)
@@ -1463,6 +1472,12 @@ public static class WorldSnapshotCodec
         n.OutfitLocked = r.ReadBoolean(); // §133.9
         n.TravelLeaderNpcId = WireIo.ReadNullableInt(r);
         n.GiftSessionTargetNpcId = WireIo.ReadNullableInt(r);
+        n.PlayerOrders.Clear();
+        var orderCount = r.ReadByte();
+        if (orderCount > PlayerOrderQueue.Capacity)
+            throw new InvalidDataException("Invalid player order count.");
+        for (var i = 0; i < orderCount; i++)
+            n.PlayerOrders.Add(new PlayerOrderView(r.ReadInt32(), r.ReadString(), r.ReadString(), r.ReadBoolean()));
     }
 
     private static void ReadNpcInventory(BinaryReader r, NpcSnapshot n)

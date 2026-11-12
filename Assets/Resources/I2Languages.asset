@@ -33178,6 +33178,22 @@ MonoBehaviour:
       Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
+    - Term: 'panel.orders.action'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Action'
+      - 'Действие'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.OrderQueueFull'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The action queue is full'
+      - 'Очередь действий заполнена'
+      Flags: 0101
+      Languages_Touch: []
     mTerm_AppName:
     mLanguages:
     - Name: English

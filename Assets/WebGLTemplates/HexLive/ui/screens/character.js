@@ -252,10 +252,17 @@ const TAG_TONE = { friend: 'good', close: 'good', acquaint: '', neutral: '', ten
 
 function Relations({ npc }) {
   const list = npc.relations || [];
+  const orders = npc.orders || [];
   const [focus, setFocus] = useState(list[0]?.id);
   const r = list.find((x) => x.id === focus) || list[0];
   return html`
     <section class="hx-rel">
+      ${orders.length > 0 && html`<div class="hx-order-row" aria-label=${t('panel.orders.action')}>
+        ${orders.map(order => html`<span key=${order.id} class="hx-order-chip"
+          data-active=${order.active} title=${order.label} aria-label=${order.label}>
+          ${(icons[order.icon] || needIcons[order.icon] || icons.play)()}
+        </span>`)}
+      </div>`}
       <h3 class="hx-section__title">${t('panel.relations')}</h3>
       ${list.length === 0 ? html`<p class="hx-muted">${t('panel.none')}</p>` : html`
         <div class="hx-rel__faces" role="tablist">

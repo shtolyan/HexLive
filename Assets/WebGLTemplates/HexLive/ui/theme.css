@@ -951,6 +951,19 @@
 .hx-traits--grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 0.625rem 1rem; }
 
 .hx-rel { display: flex; flex-direction: column; gap: 0.5rem; }
+.hx-order-row { display: flex; gap: 0.25rem; overflow-x: auto; padding-block: 0.125rem; }
+.hx-order-chip {
+  display: grid;
+  place-items: center;
+  flex: 0 0 2rem;
+  height: 2rem;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.06);
+  color: var(--hx-text-dim);
+}
+.hx-order-chip[data-active="true"] { color: var(--hx-leaf); border-color: currentColor; }
+.hx-order-chip .hx-icon { width: 1.125rem; height: 1.125rem; }
 .hx-rel__faces { display: flex; gap: 0.25rem; overflow-x: auto; padding-bottom: 0.125rem; }
 .hx-rel__faces button {
   flex: none;

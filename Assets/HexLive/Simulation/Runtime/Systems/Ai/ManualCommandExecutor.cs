@@ -66,6 +66,9 @@ internal static partial class ManualCommandExecutor
 
         switch (command)
         {
+            case QueuePlayerOrderCommand queued:
+                ApplyQueuePlayerOrder(world, queued, admission);
+                break;
             case RecordAgentSocialCommand agentSocial:
                 ApplyRecordAgentSocial(world, agentSocial, admission);
                 break;
@@ -802,6 +805,7 @@ internal static partial class ManualCommandExecutor
     internal static void ReleaseToAi(
         WorldState world, NPCState npc, string reason, bool expired)
     {
+        npc.Mind.PlayerOrders.Clear();
         // End the scoped grant before returning to autonomous behaviour.
         npc.Mind.TravelLeaderNpcId = null;
         foreach (var member in world.Entities.Npcs.Values)
@@ -838,6 +842,7 @@ internal static partial class ManualCommandExecutor
             return;
         }
 
+        npc.Mind.PlayerOrders.Clear();
         ClearForNewOrder(world, npc, "Приказ отставить", keepCarriedPerson: true);
         npc.Mind.CurrentGoal = GoalType.None;
         ClearAttackOrder(world, npc);

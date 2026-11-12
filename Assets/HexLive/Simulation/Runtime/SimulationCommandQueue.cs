@@ -132,6 +132,29 @@ public readonly struct ManualCommandAdmission
     public bool Accepted => Status == ManualCommandAdmissionStatus.Accepted;
 }
 
+/// <summary>§121.13: append one character's world action to the player queue.</summary>
+public sealed class QueuePlayerOrderCommand : ISimulationCommand
+{
+    public QueuePlayerOrderCommand(ISimulationCommand order)
+    {
+        Order = order;
+    }
+
+    public ISimulationCommand Order { get; }
+    public EntityId? TargetEntity => Order.TargetEntity;
+
+    public static bool Supports(ISimulationCommand order) => order is
+        MoveToCommand or InteractCommand or PlantInventorySeedCommand or
+        PlaceInventoryFurnitureCommand or GatherAllOnHexCommand or
+        AttackNpcCommand or AttackMobCommand or CarryPersonCommand or
+        PutDownPersonCommand or PutPersonInBedCommand or CraftItemCommand or
+        TalkToCommand or
+        RequestItemCommand or RomancePersonCommand or AidPersonCommand or
+        TreatLimbsCommand or MedicalAidCommand or SelfActionCommand or
+        ButcherPersonCommand or PreyPersonCommand or AbusePersonCommand or
+        KnockDoorCommand or BreakDoorCommand;
+}
+
 public interface IGroupSimulationCommand : ISimulationCommand
 {
     IReadOnlyList<EntityId> Actors { get; }

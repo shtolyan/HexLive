@@ -1262,6 +1262,7 @@ public static class WorldSnapshotExporter
             }
         }
 
+        npc.Mind.PlayerOrders.CopyTo(npcSnapshot.PlayerOrders);
         return npcSnapshot;
     }
 

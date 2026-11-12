@@ -318,10 +318,14 @@ internal static class KenshiMedicalMath
         // (WorldSaveSerializer) переписывает их в bed.basic до первого тика.
         // Сравниваем через Canonicalize — защита на случай, если алиас всё же
         // просочится в живой мир, а не признак второй кровати.
-        if (ContentIds.Canonicalize(bed.DefinitionId) == ContentIds.BedBasic)
+        // #762: современная кровать — тоже кровать, и лечит быстрее на свой
+        // BedRestMultiplier (данные определения, у bed.basic = 1).
+        if (ContentIds.IsBed(bed.DefinitionId))
         {
             heal = Spec118.BasicBedHealMultiplier;
             degeneration = Spec118.BasicBedDegenerationMultiplier;
+            var rest = BedSleep.RestMultiplier(world, bed);
+            if (rest != 1f) heal *= rest;
         }
     }
 

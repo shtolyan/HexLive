@@ -148,8 +148,10 @@ public static class ContentIds
 
     public const string HutBedVariant = "hut.integrated_bed";
 
+    // #762: the apartment bed is a real bed (sleep, rescue, own-bed memory).
+    // It is NOT an alias: Canonicalize keeps it distinct from bed.basic.
     public static bool IsBed(string definitionId) =>
-        definitionId is BedBasic or BedLeaf or HutBed;
+        definitionId is BedBasic or BedLeaf or HutBed or ModernBed;
 
     public static string Canonicalize(string definitionId) =>
         definitionId is BedLeaf or HutBed ? BedBasic : definitionId;

@@ -120,7 +120,9 @@ public sealed class BuildingConstructionTests
             .Select(definition => definition.Id)
             .ToArray();
 
-        Assert.That(beds, Is.EqualTo(new[] { ContentIds.BedBasic }));
+        // #762: the apartment bed is the one other real bed (a portal find,
+        // never built); the legacy save aliases stay non-definitions.
+        Assert.That(beds, Is.EquivalentTo(new[] { ContentIds.BedBasic, ContentIds.ModernBed }));
     }
 
     [TestCase(ContentIds.BedLeaf, "")]

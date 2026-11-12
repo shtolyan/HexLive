@@ -20,6 +20,9 @@ public static class ModernLootCatalog
     /// <summary>Sleep-root height above the floor: the quilt top, where the
     /// presentation's <c>point</c> marker puts a sleeper (bed.basic: 0.294).</summary>
     public const float BedSleepHeight = .430f;
+    /// <summary>#762: sleeping in the apartment bed restores energy and
+    /// health 50% faster than bed.basic (<see cref="ObjectDefinition.BedRestMultiplier"/>).</summary>
+    public const float BedRestMultiplier = 1.5f;
 
     public static bool IsApartmentTool(string id) => id is
         ContentIds.KitchenKnife or ContentIds.BaseballBat or ContentIds.SteelHatchet or
@@ -96,6 +99,23 @@ public static class ModernLootCatalog
             {
                 furniture.SolidRadius = WardrobeFootprintRadius;
                 furniture.Tags.Add(ObjectTags.Wardrobe);
+            }
+            if (id == ContentIds.ModernBed)
+            {
+                // #762: a bed exactly like bed.basic — the same tags, the same
+                // obstacle reach (approach, rescue, ground-sleep clearance) and
+                // the same timed Sleep block — plus its own rest factor.
+                definitions.TryGetValue(ContentIds.BedBasic, out var basic);
+                furniture.Tags.Add(ObjectTags.Bed);
+                furniture.Tags.Add(ObjectTags.Obstacle);
+                furniture.ObstacleRadius = basic?.ObstacleRadius ?? 1.25f;
+                furniture.BedRestMultiplier = BedRestMultiplier;
+                var sleep = basic?.Interactions.Find(i => i.Type == InteractionType.Sleep);
+                furniture.Interactions.Add(new InteractionDefinition
+                {
+                    Id = $"sleep.{id}", Type = InteractionType.Sleep, DurationTicks = sleep?.DurationTicks ?? 100,
+                });
+                continue;
             }
             if (id is not ("furniture.modern_chair" or "furniture.modern_sofa")) continue;
             furniture.Tags.Add("Chair");

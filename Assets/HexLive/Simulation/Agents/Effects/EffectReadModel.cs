@@ -33,7 +33,7 @@ namespace HexLive.Simulation.Agents.Effects
             var restingInBed = npc.Execution.CurrentInteraction == InteractionType.Sleep &&
                 npc.Execution.TargetObject is { } bedId &&
                 world.Entities.Objects.TryGetValue(bedId, out var bed) &&
-                bed.DefinitionId == ContentIds.BedBasic;
+                ContentIds.IsBed(bed.DefinitionId); // #762: the apartment bed too
             EffectEvaluator.Collect(npc, world.Tick, effectiveUv, nearLitFire, restingInBed, ref sink);
 
             var impacts = npc.EffectImpacts.Items;

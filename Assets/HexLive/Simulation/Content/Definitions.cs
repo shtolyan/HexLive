@@ -68,6 +68,13 @@ public sealed class ObjectDefinition
     // для Obstacle-вещей без габарита, по полу Spec49.LieSolidRadiusFloorFactor.
     public float SolidRadius { get; set; }
 
+    // #762: how much faster a "Bed" restores energy and health than bed.basic
+    // (1 = bed.basic). NeedsDecaySystem scales the whole bed energy clock
+    // (base + bed bonus) and KenshiMedicalMath the bed heal multiplier by it;
+    // comfort is unaffected. Catalog data, read from the definition rather
+    // than an id switch in the systems.
+    public float BedRestMultiplier { get; set; } = 1f;
+
     // Spec 31A.5B: wearable metadata (null = not wearable).
     public WearLayer? Layer { get; set; }
 

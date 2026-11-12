@@ -17,6 +17,13 @@ namespace HexLive.Simulation.Runtime
 /// </summary>
 public static class BedSleep
 {
+    /// <summary>#762: the bed's own recovery factor relative to bed.basic
+    /// (<see cref="ObjectDefinition.BedRestMultiplier"/>; 1 when unknown).</summary>
+    internal static float RestMultiplier(WorldState world, WorldObjectState bed) =>
+        bed != null && world.Content.ObjectDefinitions.TryGetValue(bed.DefinitionId, out var definition)
+            ? definition.BedRestMultiplier
+            : 1f;
+
     /// <summary>
     /// Returns the exact support bed owned by an active sleeper. The execution
     /// target and the object's occupancy must agree: a nearby/free bed is not a

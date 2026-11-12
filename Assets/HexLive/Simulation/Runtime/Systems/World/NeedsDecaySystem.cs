@@ -79,12 +79,9 @@ public sealed class NeedsDecaySystem : ISimulationSystem
         if (npc.Execution.TargetObject is { } objId &&
             world.Entities.Objects.TryGetValue(objId, out var obj))
         {
-            perNight = obj.DefinitionId switch
-            {
-                ContentIds.BedBasic => BedComfortPerNight(world),
-                _ => perNight
-            };
-            onBed = obj.DefinitionId == ContentIds.BedBasic;
+            // #762: any bed is a bed surface (the apartment bed too).
+            onBed = ContentIds.IsBed(obj.DefinitionId);
+            if (onBed) perNight = BedComfortPerNight(world);
         }
 
         // A worn jacket/coat padding the bare ground beats sleeping on plain
@@ -443,11 +440,21 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 if (npc.Execution.TargetObject is { } bedId &&
                     world.Entities.Objects.TryGetValue(bedId, out var bedObj))
                 {
-                    var bedBonus = bedObj.DefinitionId switch
+                    // #762: every bed earns bed.basic's bonus; a faster bed
+                    // (BedRestMultiplier m) scales the whole bed clock, so its
+                    // base + bonus is m times bed.basic's. m = 1 adds nothing,
+                    // keeping bed.basic's float sequence bit-identical.
+                    var bedBonus = 0f;
+                    if (ContentIds.IsBed(bedObj.DefinitionId))
                     {
-                        ContentIds.BedBasic => SimBalance.SleepEnergyBasicBedBonus,
-                        _ => 0f
-                    };
+                        bedBonus = SimBalance.SleepEnergyBasicBedBonus;
+                        var rest = BedSleep.RestMultiplier(world, bedObj);
+                        if (rest != 1f)
+                        {
+                            bedBonus += (rest - 1f) *
+                                (SimBalance.SleepEnergyBaseBonus + SimBalance.SleepEnergyBasicBedBonus);
+                        }
+                    }
                     wake += bedBonus;
                     if (bedBonus > 0f)
                     {

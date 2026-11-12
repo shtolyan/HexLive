@@ -4896,6 +4896,17 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     out var doorPosition, out var doorRotation, PortalWorld.DoorVisitSerial(worldObject.Variant)))
                 root.transform.SetPositionAndRotation(doorPosition, doorRotation);
             var model = Instantiate(prefab, root.transform, false);
+            // #762: the apartment bed gets bed.basic's sleep marker — a `point`
+            // child of the identity placement root (same rotation rule as
+            // BedAssembly.EnsureSleepPoint), at the authored quilt height.
+            // Without it FindBedAttachPoint fell back to renderer bounds and
+            // laid the sleeper at the headboard top.
+            if (ContentIds.IsBed(worldObject.DefinitionId))
+            {
+                var sleepPoint = new GameObject("point");
+                sleepPoint.transform.SetParent(root.transform, false);
+                sleepPoint.transform.localPosition = new Vector3(0f, ModernLootCatalog.BedSleepHeight, 0f);
+            }
             if (worldObject.DefinitionId == ContentIds.StorageChest)
                 BlueprintArchitectureFactory.ConfigureAuthoredDoor(model, StorageChest.IsOpen(worldObject.Variant));
             if (door) root.AddComponent<ModernPortalGlow>();

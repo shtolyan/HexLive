@@ -31,4 +31,9 @@ AmbientCapabilities=
 ReadWritePaths=/var/lib/hexlive-admin
 
 [Install]
-WantedBy=multi-user.target
+# #730: PartOf alone stops this unit with the game server and never starts it
+# again — every stop/start deploy left the voice administrator dead («Серверная
+# нейросеть недоступна»). WantedBy=hexlive.service starts it with every start of
+# the game server; re-run `systemctl enable hexlive-admin-agent.service` after
+# installing this file.
+WantedBy=multi-user.target hexlive.service

@@ -84,16 +84,26 @@ internal static class PortalApartmentPopulation
             wardrobe.Fragment != PortalWorld.ApartmentFragment || wardrobe.Contents.Count > 0)
             return 0;
 
-        var eligible = AvailableWear(world).Select(item => item.Id).ToList();
-        var count = Math.Min(eligible.Count, 2 + RollIndex(world.Seed, visitSerial, 0, 17664, 3));
+        // Bug #743: draw distinct MODELS first, then one of that model's
+        // colourways, so a model with eighteen recolours does not crowd out
+        // the rest and two pieces on one rail are never the same garment.
+        var families = AvailableWear(world)
+            .GroupBy(item => string.IsNullOrEmpty(item.PrototypeId) ? item.Id : item.PrototypeId, StringComparer.Ordinal)
+            .Select(family => family.ToArray()).ToList();
+        var count = Math.Min(families.Count, 2 + RollIndex(world.Seed, visitSerial, 0, 17664, 3));
         for (var i = 0; i < count; i++)
         {
-            var index = RollIndex(world.Seed, visitSerial, i, 17665, eligible.Count);
-            wardrobe.Contents.Add(new ItemInstance(eligible[index]));
-            eligible.RemoveAt(index);
+            var index = RollIndex(world.Seed, visitSerial, i, 17665, families.Count);
+            var variants = families[index];
+            wardrobe.Contents.Add(new ItemInstance(variants[RollIndex(world.Seed, visitSerial, i, 17671, variants.Length)].Id));
+            families.RemoveAt(index);
         }
         return count;
     }
+
+    /// <summary>§176.3: a garment the apartment may stock or dress its resident in.</summary>
+    internal static bool IsApartmentWear(WorldState world, string definitionId) =>
+        AvailableWear(world).Any(item => item.Id == definitionId);
 
     private static bool HasResident(int seed, int visitSerial)
     {
@@ -135,9 +145,18 @@ internal static class PortalApartmentPopulation
         return false;
     }
 
+    // Bug #743: the approved Modern set is only as large as what the registry
+    // has published of it (the portal release activated three garments), so
+    // every apartment showed the same shorts, crop top and halter. The live civilian island
+    // catalogue (sneakers, shirts, jackets, dresses and their colourways) joins
+    // it. Only definitions the world actually loaded are eligible, so content
+    // without a live record and model can never be generated.
     private static IEnumerable<GarmentParams> AvailableWear(WorldState world) =>
-        GarmentLibrary.Active.Where(item => item != null && !item.Retired && PortalContentPolicy.IsPortalWear(item.Id) &&
-            world.Content.ObjectDefinitions.TryGetValue(item.Id, out var definition) && definition.Layer == item.Layer)
+        GarmentLibrary.Active.Where(item => item != null && !item.Retired &&
+                (PortalContentPolicy.IsPortalWear(item.Id) ||
+                 PortalContentPolicy.IsCivilianIslandWear(item.Id, item.PrototypeId)) &&
+                world.Content.ObjectDefinitions.TryGetValue(item.Id, out var definition) && definition.Layer == item.Layer)
+            .GroupBy(item => item.Id, StringComparer.Ordinal).Select(group => group.First())
             .OrderBy(item => item.Id, StringComparer.Ordinal);
 
     private static int RollIndex(int seed, int serial, int slot, int salt, int count) =>

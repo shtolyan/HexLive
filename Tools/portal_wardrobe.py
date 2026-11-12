@@ -13,6 +13,9 @@ CONTENT_ID = re.compile(r"[a-z0-9][a-z0-9_.-]*")
 
 # Model families cover all their color variants. Civilian sports and workwear
 # remain available. Uniforms, combat gear and costume armor stay staged.
+# PortalContentPolicy.NonCivilianModels (C#) repeats this list (plus the
+# island-only FCO Gloves Male) for the live island garments that also stock
+# the apartment wardrobe (bug #743). Edit both together.
 NON_CIVILIAN = {
     "FAO Harness Male", "FCO Belt Male", "FCO Boots Male", "FCO Knee Straps Male",
     "FCO Legs Straps Male", "FCO Pants Male", "FCO Waist Strappy Male", "TonnyFlash",

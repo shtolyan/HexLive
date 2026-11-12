@@ -88,8 +88,7 @@ public sealed class PortalApartmentPopulationTests
             Assert.That(ids.Add(resident.Id), Is.True);
             var worn = resident.WornItems.Select(item => world.Content.ObjectDefinitions[item.DefinitionId]).ToArray();
             Assert.That(resident.WornItems.All(item => item.OwnerId == resident.Id.Value &&
-                GarmentLibrary.IsPortalWearAvailable(item.DefinitionId) &&
-                !GarmentLibrary.IsSpawnable(item.DefinitionId)), Is.True);
+                PortalApartmentPopulation.IsApartmentWear(world, item.DefinitionId)), Is.True);
             for (var index = 0; index < worn.Length; index++)
                 Assert.That(worn.Skip(index + 1).Any(other => WearSlotCatalog.Occupies(worn[index], other)), Is.False);
             var underwear = worn.Where(item => item.Layer == WearLayer.Underwear).ToArray();
@@ -125,8 +124,8 @@ public sealed class PortalApartmentPopulationTests
             assortments.Add(string.Join(",", wardrobe.Contents.Select(item => item.DefinitionId).OrderBy(id => id)));
             Assert.That(count, Is.InRange(2, 4));
             Assert.That(wardrobe.Contents.Select(item => item.DefinitionId).Distinct().Count(), Is.EqualTo(count));
-            Assert.That(wardrobe.Contents.All(item => GarmentLibrary.IsPortalWearAvailable(item.DefinitionId) &&
-                !GarmentLibrary.IsSpawnable(item.DefinitionId)), Is.True);
+            Assert.That(wardrobe.Contents.All(item =>
+                PortalApartmentPopulation.IsApartmentWear(world, item.DefinitionId)), Is.True);
             Assert.That(PortalApartmentPopulation.StockWardrobe(world, wardrobe, visit), Is.Zero);
 
             var first = wardrobe.Contents[0];
@@ -145,21 +144,77 @@ public sealed class PortalApartmentPopulationTests
     public void WardrobeAndResidentOnlyUseInstalledCivilianGarments()
     {
         var installed = new[] { "clothing.shorts_classic", "clothing.halter_vamp", "clothing.croptop_fit" };
+        var island = new[] { "clothing.sneakers_canvas", "clothing.shirt_riot" };
+        var excluded = new[] { "clothing.helmet_m1", "clothing.top_primal", "clothing.collar_fur" };
         GarmentLibrary.Override(GarmentLibrary.Active.Where(item =>
-            !PortalContentPolicy.IsPortalWear(item.Id) || installed.Contains(item.Id)));
+            installed.Contains(item.Id) || island.Contains(item.Id) || excluded.Contains(item.Id)));
         var world = CreateWorld();
-        var wardrobe = CreateWardrobe(world);
+        var allowed = installed.Concat(island).ToArray();
 
-        Assert.That(PortalApartmentPopulation.StockWardrobe(world, wardrobe, 1), Is.InRange(2, 3));
-        Assert.That(wardrobe.Contents.Select(item => item.DefinitionId), Is.SubsetOf(installed));
+        for (var visit = 1; visit <= 12; visit++)
+        {
+            var wardrobe = CreateWardrobe(world);
+            Assert.That(PortalApartmentPopulation.StockWardrobe(world, wardrobe, visit), Is.InRange(2, 4));
+            Assert.That(wardrobe.Contents.Select(item => item.DefinitionId), Is.SubsetOf(allowed));
+        }
         var resident = PortalApartmentPopulation.TrySpawnResident(world, 1, ApartmentLandings(world));
-        Assert.That(resident.WornItems.Select(item => item.DefinitionId), Is.SubsetOf(installed));
+        Assert.That(resident.WornItems.Select(item => item.DefinitionId), Is.SubsetOf(allowed));
+        Assert.That(excluded.Any(id => PortalApartmentPopulation.IsApartmentWear(world, id)), Is.False);
     }
 
-    private static WorldState CreateWorld()
+    // Bug #743: with only the three Modern garments published (the 0.1.120
+    // registry), the wardrobe still draws from about a hundred live civilian
+    // pieces and their colourways, every one a loaded definition.
+    [TestCase(false)]
+    [TestCase(true)]
+    public void WardrobeDrawsAboutAHundredDistinctLiveGarments(bool onlyThreeModernPublished)
+    {
+        if (onlyThreeModernPublished)
+        {
+            var published = new[] { "clothing.shorts_classic", "clothing.halter_vamp", "clothing.croptop_fit" };
+            GarmentLibrary.Override(GarmentLibrary.Active.Where(item =>
+                !PortalContentPolicy.IsPortalWear(item.Id) || published.Contains(item.Id)));
+        }
+
+        var items = new HashSet<string>();
+        var models = new HashSet<string>();
+        var stocks = new HashSet<string>();
+        var byId = GarmentLibrary.Active.GroupBy(item => item.Id).ToDictionary(group => group.Key, group => group.First());
+        foreach (var seed in new[] { 692, 629209070, -41 })
+        {
+            var world = CreateWorld(seed);
+            for (var visit = 1; visit <= 150; visit++)
+            {
+                var wardrobe = CreateWardrobe(world);
+                PortalApartmentPopulation.StockWardrobe(world, wardrobe, visit);
+                var ids = wardrobe.Contents.Select(item => item.DefinitionId).ToArray();
+                Assert.That(ids.Select(id => byId[id].PrototypeId).Distinct().Count(), Is.EqualTo(ids.Length));
+                foreach (var id in ids)
+                {
+                    Assert.That(world.Content.ObjectDefinitions.ContainsKey(id), Is.True, id);
+                    Assert.That(byId[id].Retired, Is.False, id);
+                    Assert.That(PortalContentPolicy.IsPortalWear(id) ||
+                        PortalContentPolicy.IsCivilianIslandWear(id, byId[id].PrototypeId), Is.True, id);
+                    items.Add(id);
+                    models.Add(byId[id].PrototypeId);
+                }
+                stocks.Add(string.Join(",", ids.OrderBy(id => id)));
+            }
+        }
+
+        TestContext.Out.WriteLine(
+            $"bug #743: {items.Count} distinct garments, {models.Count} models, {stocks.Count} distinct stocks");
+        Assert.That(items.Count, Is.GreaterThanOrEqualTo(100));
+        Assert.That(models.Count, Is.GreaterThanOrEqualTo(30));
+        Assert.That(items.Any(id => id.StartsWith("clothing.sneakers_", System.StringComparison.Ordinal)), Is.True);
+        Assert.That(items.Any(id => id.StartsWith("clothing.shirt_", System.StringComparison.Ordinal)), Is.True);
+        Assert.That(stocks.Count, Is.GreaterThan(400));
+    }
+
+    private static WorldState CreateWorld(int seed = 692)
     {
         var definition = new WorldBootstrapDefinition();
-        definition.Simulation.Seed = 692;
+        definition.Simulation.Seed = seed;
         definition.Simulation.EnablePortalTopology = true;
         var island = new FragmentBootstrap { Id = 1 };
         island.Tiles.Add(new TileBootstrap { Q = 0, R = 0 });

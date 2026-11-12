@@ -1074,10 +1074,13 @@ public sealed partial class PlanningSystem
             return false;
         }
 
+        var available = SpatialQueries.IsJunctionFree(world, candidate) ||
+            ManualControlMath.IsManual(npc) && npc.CurrentJunction == candidate &&
+            JunctionAvailableFor(world, candidate, npc.Id);
         return !BlockedByActor(
                    occupiedByActor, candidate, candidateJunction,
                    hasStation, stationSpot) &&
-               SpatialQueries.IsJunctionFree(world, candidate) &&
+               available &&
                CanWalkTo(world, npc, candidate, occupiedByActor);
     }
 

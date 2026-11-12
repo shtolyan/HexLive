@@ -1259,3 +1259,55 @@ separate. No evidence archive export and no agent-confirmed fixed status.
 
 Local receipts/logs: `Build/MSIRelease/20261018-bug487-bc97a818f/DEPLOYMENT_REPORT.json`.
 Public receipt: https://play.62-146-235-120.sslip.io/release-receipt.json .
+
+## Windows → Singapore and New York · 0.1.118 · 2026-11-12
+
+Толя поручил собрать на Windows WebGL-клиент со звуком, бандлы и Linux-сервер,
+затем выложить релиз на обе площадки. Общий source SHA
+`0ad67fb75f5063097f4056b433547271ab35e13d`, протокол 33, снапшот 49,
+формат сохранения 95. Unity CLI использовал Editor `6000.4.6f1`.
+
+- WebGL-архив `2e04206048f83d8d65405af8f46ae45251fed7737b3bed0e91997be688656728`.
+  Версия 0.1.118 подтверждена в `PlayerSettings`. Windows FSBank 2.03.15
+  упаковал 4 030 звуков, включая 1 158 реплик хекскуфы. SHA-256 всех 3 954
+  файлов липсинка совпали с исходниками. Chrome подтвердил HTML v2,
+  Brotli WASM, FMOD AudioWorklet 48 кГц 4096×4 и обе Studio-банки.
+- Linux x64 архив `171c9739568f6ab8fd1bc920a54a4e606120d2c2588736274d37a5e868d51af2`.
+  Контент `247e03a5a89008e0cc5a1fb10e6c93e94cba2c8ed82a98b4a1155b7b7bc9a96b`
+  содержит шесть WebGL-бандлов с иконками и `config/simdata`. На копиях прошли
+  загрузку и сохранение два мира Сингапура и шесть миров Нью-Йорка.
+- Сингапур обновлён в 13:49 по Бангкоку, реестр 1186 → 1193. Нью-Йорк обновлён
+  в 13:56, реестр 6715 → 6722. Первый запуск Нью-Йорка откатился из-за
+  `--start-paused` в штатной конфигурации службы. Повторный запуск использовал
+  временный override для исходного состояния мира и снял его после старта.
+- После выкладки обе службы активны, сохранённые миры продолжают идти.
+  Публичные WebSocket-потоки прошли проверку карты, словаря объектов и
+  декодирования снапшота. На каждой площадке сверены 69 публичных файлов,
+  включая семь записей контента, Studio-банки и выборки FSB/липсинка.
+  Проверки браузерных Origin репортёра и журналов новых процессов прошли.
+
+Локальные квитанции и логи в `Build/MSIRelease/20261112-flashback-v118-windows/`.
+Публичные квитанции [Сингапура](https://play.62-146-235-120.sslip.io/release-receipt.json)
+и [Нью-Йорка](https://163-245-204-96.sslip.io/play/release-receipt.json).
+
+## WebGL 0.1.119 · 2026-11-12
+
+Windows release source `410dbb676e4480eab12e80ea5f39aea494b3a6fa`.
+Linux x64 server, protocol 33, snapshot 49, save writer 95.
+Flashback #717–720 and #725. Unity imported all eight prosthetic models and
+icons. Chrome started WebGL and FMOD with the 48 kHz mixer and 4 × 4096 buffer.
+The encoder verified 4,030 FSB files and 3,954 viseme sidecars.
+
+New York activated at 09:35:44 UTC. Six isolated saves and the stopped active
+checkpoint passed. Registry 6722 → 6730 covers eight prosthetic owners.
+The public verification checked 70 files, including the eight bundles and audio
+samples. The anonymous WebSocket decoded the active world at tick 13930036.
+Activation restarted `hexlive.service`.
+
+Singapore remains on 0.1.118 pending the save loader issue. On one fresh
+copy, both 0.1.118 and 0.1.119 rejected the same installed-material invariant.
+The diagnostic copy identified completed `architecture.door.wood` #68216,
+five installed `resource.stick` and zero delivered. The service stayed active
+during all copy checks. Construction changes are managed by Claude.
+
+Receipts: `Build/MSIRelease/20261112-flashback-v119-windows/`.

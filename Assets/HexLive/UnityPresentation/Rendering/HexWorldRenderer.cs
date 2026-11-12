@@ -2050,6 +2050,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // from the snapshot also removes the Build action at completion.
             if (parts.ObjectView != null)
             {
+                parts.ObjectView.HasDoorActions = DoorInteractionMath.CanTargetClosedDoor(worldObject);
                 if (FreeArchitectureRules.IsFreePiece(worldObject) &&
                     (!string.IsNullOrEmpty(worldObject.BuildProduct) ||
                      FreeArchitectureRules.IsDemolitionSite(worldObject)))

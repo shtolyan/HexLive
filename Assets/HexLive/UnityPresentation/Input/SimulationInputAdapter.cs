@@ -744,9 +744,9 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
     // The definition catalog remains the single eligibility source used again
     // by OpenObjectMenu and ManualCommandExecutor; this is only hit selection.
     private bool HasContextActions(WorldObjectView view) =>
-        _runner != null &&
-        _runner.TryGetObjectDefinition(view.ContextDefinitionId, out var definition) &&
-        definition != null && definition.Interactions.Count > 0;
+        view.HasDoorActions || (_runner != null &&
+            _runner.TryGetObjectDefinition(view.ContextDefinitionId, out var definition) &&
+            definition != null && definition.Interactions.Count > 0);
 
     // Точное попадание луча в видимую геометрию тела — с ДИСТАНЦИЕЙ, чтобы
     // UpdateHover мог сравнить человека и объект по глубине (§121.1).
@@ -1209,8 +1209,7 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         _entries.Clear();
         // A door view can proxy its general menu onto the hut. These commands
         // deliberately address the actual architecture leaf, never the owner.
-        if (clicked != null && clicked.DefinitionId == DoorTopology.DoorDefinitionId &&
-            !clicked.IsDoorOpen && clicked.Durability > 0f)
+        if (clicked != null && DoorInteractionMath.CanTargetClosedDoor(clicked))
         {
             var doorId = new ObjectId(clicked.Id.Value);
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.knock_door"),

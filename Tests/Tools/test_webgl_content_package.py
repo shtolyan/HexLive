@@ -23,7 +23,7 @@ class WebGLPackageTests(unittest.TestCase):
         self.package = self.root / "package"
         self.people = self.root / "people.json"
         rows = [{"type": "actor", "id": "Marta"}, {"type": "wear", "id": "primal"}]
-        builder.write_json(self.people, {"records": rows})
+        builder.write_json(self.people, {"peopleCatalog": "primal-v1", "records": rows})
         builder.write_json(self.build / "inventory.json", {"passed": True, "records": rows})
         builder.write_json(self.build / "build-all-summary.json", {"built": 2, "discovered": 2, "failed": 0})
         builder.write_json(self.build / "build-receipt.json", {"editorExitCode": 0, "platform": "WebGL"})

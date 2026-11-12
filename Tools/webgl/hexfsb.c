@@ -1,8 +1,7 @@
 /*
  * hexfsb — one-sound FSB encoder over the FSBank C API (§168.6).
  *
- * The macOS FMOD Engine SDK ships libfsbank but no fsbankcl, and the browser
- * FMOD reads FSB only. This is the smallest CLI that turns loose audio into
+ * The browser FMOD reads FSB only. This CLI turns loose audio into
  * one-subsound Vorbis FSBs; Tools/webgl_audio_fsb.py drives it.
  *
  *   hexfsb --quality 50 --cache <dir>  < jobs
@@ -12,7 +11,7 @@
  * line gets one answer on stdout: "ok\t<output>" or "fail\t<output>\t<why>".
  * Exit status is the number of failures, capped at 125.
  *
- * Build: Tools/webgl/build_hexfsb.sh <fmod-sdk-copy>
+ * Build: Tools/webgl/build_hexfsb.sh on macOS, build_hexfsb.ps1 on Windows.
  */
 #include <stdio.h>
 #include <stdlib.h>

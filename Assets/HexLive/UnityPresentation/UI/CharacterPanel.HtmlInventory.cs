@@ -120,10 +120,11 @@ namespace HexLive.UnityPresentation.UI
         /// Bundled icons are not CPU-readable (isReadable 0), so the sprite is
         /// blitted through the GPU into a small render texture and read back.
         /// </summary>
-        private static string SpriteDataUrl(Sprite sprite)
+        private static string SpriteDataUrl(Sprite sprite) => TextureDataUrl(sprite.texture, sprite.textureRect);
+
+        /// <summary>Same GPU read-back for a plain Resources texture (bug #733 race badges).</summary>
+        private static string TextureDataUrl(Texture texture, Rect rect)
         {
-            var texture = sprite.texture;
-            var rect = sprite.textureRect;
             var width = Mathf.Clamp(Mathf.RoundToInt(rect.width), 1, 128);
             var height = Mathf.Max(1, Mathf.RoundToInt(width * rect.height / Mathf.Max(1f, rect.width)));
             var target = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32);

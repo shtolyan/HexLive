@@ -893,7 +893,8 @@ namespace HexLive.UnityPresentation.UI
             _nameLabel.text = string.IsNullOrEmpty(npc.DisplayName)
                 ? $"NPC #{npc.Id.Value}"
                 : Loc.NpcName(npc.DisplayName);
-            _roleLabel.text = $"{Loc.Get("panel.role")} · #{npc.Id.Value}";
+            RefreshRaceBadge(npc.SpeechOrigin); // bug #733
+            _roleLabel.text =$"{Loc.Get("panel.role")} · #{npc.Id.Value}";
             _thoughtValue.text = isDead ? Loc.Get("state.dead") : Loc.Goal(DisplayedGoal(npc));
             RefreshControlToggle(npc); // §121
             RefreshPaceToggle(npc); // §121.11 — после: читает _controlAvailable
@@ -6800,21 +6801,34 @@ namespace HexLive.UnityPresentation.UI
             _portrait.pickingMode = PickingMode.Ignore;
             col.Add(_portrait);
 
+            // Bug #733: the name and, right after it, the race badge (§67.16).
+            // A row, so the badge follows the name's real width; the name
+            // still ellipsizes first when it is long.
+            var nameRow = new VisualElement();
+            nameRow.style.position = Position.Absolute;
+            nameRow.style.left = 190f;
+            nameRow.style.right = 80f;
+            nameRow.style.top = 17f;
+            nameRow.style.height = 28f;
+            nameRow.style.flexDirection = FlexDirection.Row;
+            nameRow.style.alignItems = Align.Center;
+            nameRow.pickingMode = PickingMode.Ignore;
+
             _nameLabel = new Label("—");
             _nameLabel.style.color = Text;
             _nameLabel.style.fontSize = 22f;
             _nameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-            _nameLabel.style.position = Position.Absolute;
-            _nameLabel.style.left = 190f;
-            _nameLabel.style.right = 80f;
-            _nameLabel.style.top = 17f;
+            _nameLabel.style.flexShrink = 1f;
+            _nameLabel.style.minWidth = 0f;
             _nameLabel.style.height = 28f;
             _nameLabel.style.unityTextAlign = TextAnchor.MiddleLeft;
             _nameLabel.style.overflow = Overflow.Hidden;
             _nameLabel.style.textOverflow = TextOverflow.Ellipsis;
             _nameLabel.style.whiteSpace = WhiteSpace.NoWrap;
             _nameLabel.pickingMode = PickingMode.Ignore;
-            col.Add(_nameLabel);
+            nameRow.Add(_nameLabel);
+            nameRow.Add(BuildRaceBadge());
+            col.Add(nameRow);
 
             _roleLabel = new Label();
             _roleLabel.style.color = TextMute;

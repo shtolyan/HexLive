@@ -6,7 +6,7 @@
 // The live portrait (PortraitStage) is a transparent hole like the creator's
 // preview: Unity renders that camera into portraitRect. Model: {
 //   mode: 'none' | 'single' | 'group', collapsed,
-//   npc: { id, name, control: 'ai'|'manual'|'call', controlLocked (I2 key | null), canCall,
+//   npc: { id, name, race: { id: 'island'|'raider'|'modern', icon: asset key | null }, control: 'ai'|'manual'|'call', controlLocked (I2 key | null), canCall,
 //          call: null | { state: 'ringing'|'listening'|'speaking'|'failed', reason (I2 key, when failed) },
 //          toast: null | I2 key,              // §121: why her last order was refused or cut short (2.5 s)
 //          pace: 'walk'|'run', canStop, health 0–1, healthColor, status, statusTone, uv, shade, badge,
@@ -117,6 +117,16 @@ function NameCopy({ npc }) {
     <b>${npc.name}</b>${copied && html`<span class="hx-id__copied" role="status">${t('panel.id_copied')}</span>`}</button>`;
 }
 
+// Bug #733 (§67.16): her race right after the name — a picture, never an
+// emoji; while the picture has not arrived the badge is simply absent.
+function RaceBadge({ race }) {
+  const url = race && asset(race.icon);
+  if (!url) return null;
+  const name = t(`race.${race.id}.name`);
+  return html`<img class="hx-id__race" src=${url} alt=${name}
+    ...${tip(() => ({ title: t('race.tooltip', { 0: name }), desc: t(`race.${race.id}.desc`) }))} />`;
+}
+
 function Identity({ npc, send }) {
   const hole = useRef(null);
   useEffect(() => {
@@ -150,7 +160,7 @@ function Identity({ npc, send }) {
         </div>`}
         ${npc.speak?.state === 'sending' && html`<span class="hx-call-state" role="status">${t('agent.speak.sending')}</span>`}
         ${call && html`<span class="hx-call-state" data-state=${call.state} role="status">${t(CALL_TEXT[call.state] || call.reason)}</span>`}
-        <${NameCopy} npc=${npc} />
+        <div class="hx-id__nameline"><${NameCopy} npc=${npc} /><${RaceBadge} race=${npc.race} /></div>
         ${npc.toast && html`<p class="hx-order-toast" role="status" key=${npc.toast}>${t(npc.toast)}</p>`}
       </div>
       ${npc.badge && html`<span class="hx-id__badge">${t(`badge.${npc.badge}`)}</span>`}

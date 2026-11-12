@@ -1,0 +1,8 @@
+# Bug #733 / §67.16: race (authored background) shown after the name in the character card.
+race.island.name	Hexfolk	Хексы
+race.island.desc	The island's native tribe, the people the colony began with. In their speech heksa means the island and home at once.	Коренное племя острова, с которого начиналась колония. На их языке «хекса» значит и остров, и дом.
+race.raider.name	Kufa	Куфы
+race.raider.desc	Wild people of the island's backwoods who speak only the old hexkufa tongue. Most of them come as raiders.	Дикари из глубины острова, говорят только на древней хекскуфе. Чаще всего приходят набегом.
+race.modern.name	Cityfolk	Горожане
+race.modern.desc	People of the modern world who came through the portal. They still remember shops, phones and hot water.	Люди современного мира, пришедшие через портал. Они ещё помнят магазины, телефоны и горячую воду.
+race.tooltip	Race: {0}	Раса: {0}

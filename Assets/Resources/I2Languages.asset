@@ -33240,6 +33240,62 @@ MonoBehaviour:
       - 'Отменить: {0}'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'race.island.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hexfolk'
+      - 'Хексы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'race.island.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The island''s native tribe, the people the colony began with. In their speech heksa means the island and home at once.'
+      - 'Коренное племя острова, с которого начиналась колония. На их языке «хекса» значит и остров, и дом.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'race.raider.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Kufa'
+      - 'Куфы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'race.raider.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wild people of the island''s backwoods who speak only the old hexkufa tongue. Most of them come as raiders.'
+      - 'Дикари из глубины острова, говорят только на древней хекскуфе. Чаще всего приходят набегом.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'race.modern.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cityfolk'
+      - 'Горожане'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'race.modern.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'People of the modern world who came through the portal. They still remember shops, phones and hot water.'
+      - 'Люди современного мира, пришедшие через портал. Они ещё помнят магазины, телефоны и горячую воду.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'race.tooltip'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Race: {0}'
+      - 'Раса: {0}'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

@@ -347,6 +347,7 @@ namespace HexLive.UnityPresentation.UI
             {
                 ["id"] = npc.Id.Value,
                 ["name"] = string.IsNullOrEmpty(npc.DisplayName) ? $"NPC #{npc.Id.Value}" : Loc.NpcName(npc.DisplayName),
+                ["race"] = HtmlRace(npc.SpeechOrigin), // bug #733: the badge after the name
                 ["control"] = call ? "call" : _manualControlNow ? "manual" : "ai",
                 ["controlLocked"] = _controlAvailable || call ? null : agentControlled ? "panel.control.agent" : "panel.control.readonly",
                 ["canCall"] = ServerVoiceEligible || call,

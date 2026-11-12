@@ -252,21 +252,24 @@ function Needs({ npc }) {
 
 const TAG_TONE = { friend: 'good', close: 'good', acquaint: '', neutral: '', tense: 'warn', hostile: 'bad' };
 
-function Relations({ npc, send }) {
-  const list = npc.relations || [];
-  const orders = npc.orders || [];
-  const [focus, setFocus] = useState(list[0]?.id);
-  const r = list.find((x) => x.id === focus) || list[0];
-  return html`
-    <section class="hx-rel">
-      ${orders.length > 0 && html`<div class="hx-order-row" aria-label=${t('panel.orders.action')}>
+function PlayerOrders({ orders, send }) {
+  return orders?.length > 0 && html`
+      <div class="hx-order-row" role="group" aria-label=${t('panel.orders.action')}>
         ${orders.map(order => html`<button type="button" key=${order.id} class="hx-order-chip"
           data-active=${order.active} title=${order.label} aria-label=${t('panel.orders.cancel', { 0: order.label })}
           onClick=${() => send('cancelOrder', { id: order.id })}>
           <span class="hx-order-chip__action">${(icons[order.icon] || needIcons[order.icon] || icons.play)()}</span>
           <span class="hx-order-chip__cancel">${icons.close()}</span>
         </button>`)}
-      </div>`}
+      </div>`;
+}
+
+function Relations({ npc }) {
+  const list = npc.relations || [];
+  const [focus, setFocus] = useState(list[0]?.id);
+  const r = list.find((x) => x.id === focus) || list[0];
+  return html`
+    <section class="hx-rel">
       <h3 class="hx-section__title">${t('panel.relations')}</h3>
       ${list.length === 0 ? html`<p class="hx-muted">${t('panel.none')}</p>` : html`
         <div class="hx-rel__faces" role="tablist">
@@ -316,11 +319,14 @@ export function Character({ model, send }) {
   const npc = model.npc;
   return html`
     <div class="hx-bottom">
-      <${Pills} npc=${npc} />
+      <div class="hx-character-overlays">
+        <${Pills} npc=${npc} />
+        <${PlayerOrders} orders=${npc.orders} send=${send} />
+      </div>
       <${CardBox} className="hx-card hx-surface" send=${send}>
         <${Identity} npc=${npc} send=${send} />
         <${Needs} npc=${npc} />
-        <${Relations} key=${npc.id} npc=${npc} send=${send} />
+        <${Relations} key=${npc.id} npc=${npc} />
         <button type="button" class="hx-card__collapse" aria-label=${t('panel.close')} title=${t('panel.close')} onClick=${() => send('collapse')}>▼</button>
       <//>
     </div>`;

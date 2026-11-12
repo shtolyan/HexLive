@@ -697,7 +697,8 @@ namespace HexLive.UnityPresentation.UI
                  PointerOverElement(_groupCard, mousePos, scale) ||
                  PointerOverElement(_thought, mousePos, scale) ||
                  PointerOverElement(_dream, mousePos, scale) ||
-                 PointerOverElement(_effectsRow, mousePos, scale));
+                 PointerOverElement(_effectsRow, mousePos, scale) ||
+                 PointerOverElement(_playerOrdersRow, mousePos, scale));
             var overRoster = PointerOverElement(_roster, mousePos, scale);
 
             // The floating windows (inventory / limb health) sit ABOVE the bar —
@@ -1366,7 +1367,7 @@ namespace HexLive.UnityPresentation.UI
 
         // ── status effects (spec §48) ─────────────────────────────────────
 
-        private void BuildEffectsRow()
+        private void BuildEffectsRow(VisualElement parent)
         {
             _effectsRow = new VisualElement();
             _effectsRow.style.flexDirection = FlexDirection.Row;
@@ -1376,8 +1377,9 @@ namespace HexLive.UnityPresentation.UI
             _effectsRow.style.marginLeft = 20f;
             _effectsRow.style.marginBottom = 7f;
             _effectsRow.style.maxWidth = Length.Percent(70);
+            _effectsRow.style.flexShrink = 1;
             _effectsRow.style.display = DisplayStyle.None;
-            _stage.Add(_effectsRow);
+            parent.Add(_effectsRow);
         }
 
         // One shared tooltip card — it always pops in the SAME spot (top-left,
@@ -6032,7 +6034,12 @@ namespace HexLive.UnityPresentation.UI
 
             BuildThought();
             BuildDream();
-            BuildEffectsRow();
+            var indicators = new VisualElement { pickingMode = PickingMode.Ignore };
+            indicators.style.flexDirection = FlexDirection.Row;
+            indicators.style.alignItems = Align.FlexEnd;
+            _stage.Add(indicators);
+            BuildEffectsRow(indicators);
+            indicators.Add(BuildPlayerOrdersRow());
 
             // Three-zone card; height fits the full needs grid including
             // Compassion, which can wrap onto its own row in RU/EN layouts.
@@ -7881,7 +7888,6 @@ namespace HexLive.UnityPresentation.UI
             _relationsTitle.style.flexGrow = 1f;
             header.Add(_relationsTitle);
 
-            col.Add(BuildPlayerOrdersRow());
             col.Add(header);
 
             _relationsContainer = new VisualElement();

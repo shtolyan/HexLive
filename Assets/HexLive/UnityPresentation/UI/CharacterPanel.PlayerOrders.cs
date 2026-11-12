@@ -13,6 +13,8 @@ namespace HexLive.UnityPresentation.UI
 {
     public sealed partial class CharacterPanel
     {
+        private const int PlayerOrderChipSize = 36;
+        private const int PlayerOrderChipGap = 4;
         private ScrollView _playerOrdersRow;
         private readonly List<PlayerOrderView> _drawnPlayerOrders = new();
         private int _drawnOrderActor = -1;
@@ -24,8 +26,12 @@ namespace HexLive.UnityPresentation.UI
             _playerOrdersRow.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
             _playerOrdersRow.verticalScrollerVisibility = ScrollerVisibility.Hidden;
             _playerOrdersRow.contentContainer.style.flexDirection = FlexDirection.Row;
-            _playerOrdersRow.style.height = 34;
+            _playerOrdersRow.style.height = 38;
+            _playerOrdersRow.style.maxWidth = Length.Percent(50);
+            _playerOrdersRow.style.flexGrow = 0;
             _playerOrdersRow.style.flexShrink = 0;
+            _playerOrdersRow.style.marginLeft = StyleKeyword.Auto;
+            _playerOrdersRow.style.marginRight = 20;
             _playerOrdersRow.style.marginBottom = 6;
             _playerOrdersRow.style.display = DisplayStyle.None;
             return _playerOrdersRow;
@@ -46,20 +52,22 @@ namespace HexLive.UnityPresentation.UI
             _drawnOrderLanguage = Loc.Code;
             _drawnPlayerOrders.Clear();
             _drawnPlayerOrders.AddRange(npc.PlayerOrders);
+            _playerOrdersRow.style.width = npc.PlayerOrders.Count * (PlayerOrderChipSize + PlayerOrderChipGap);
             _playerOrdersRow.Clear();
             foreach (var order in npc.PlayerOrders)
             {
                 var actorId = npc.Id.Value;
                 var item = new Button(() => CancelPlayerOrder(actorId, order.Id))
                     { tooltip = string.Format(Loc.Get("panel.orders.cancel"), PlayerOrderLabel(order)) };
-                item.style.width = 32;
-                item.style.height = 32;
-                item.style.marginRight = 4;
+                item.style.width = PlayerOrderChipSize;
+                item.style.height = PlayerOrderChipSize;
+                item.style.marginLeft = 0;
+                item.style.marginRight = PlayerOrderChipGap;
                 item.style.flexShrink = 0;
                 item.style.alignItems = Align.Center;
                 item.style.justifyContent = Justify.Center;
                 item.style.backgroundColor = order.Active ? new Color(.27f, .38f, .26f) : Panel;
-                SetRadius(item, 16f);
+                SetRadius(item, 18f);
                 var icon = new VectorIcon(NativeOrderIcon(PlayerOrderIcon(order)), order.Active ? Good : TextMute);
                 icon.style.width = 19;
                 icon.style.height = 19;

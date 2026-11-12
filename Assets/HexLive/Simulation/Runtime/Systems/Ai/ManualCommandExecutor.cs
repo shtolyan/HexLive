@@ -2908,37 +2908,13 @@ internal static partial class ManualCommandExecutor
 
         ClearForNewOrder(world, npc, "Ручной приказ посадить семя");
         ClearAttackOrder(world, npc);
-        if (!SpatialMutations.TryReserveJunction(
-                world, command.TargetJunction, npc.Id, world.Tick,
-                Spec121.ManualReserveTicks))
+        if (!TryInstallPlantingPlan(world, npc, command, plantingSite, groundSeed,
+                plantingSite.HasValue ? command.TargetTile : null))
         {
             Reject(world, npc.Id, "PlantSeed", "PlantingSpotOccupied", admission);
             npc.Mind.CurrentGoal = GoalType.None;
             return;
         }
-
-        npc.Plan.Goal = GoalType.PlayerOrder;
-        npc.Plan.TargetJunctionId = command.TargetJunction;
-        npc.Plan.TargetTile = command.TargetTile;
-        npc.Plan.TargetItemDefinitionId = seedId;
-        npc.Plan.TargetObjectId = plantingSite;
-        npc.Plan.Steps.Add(new PlanStep
-        {
-            Type = PlanStepType.MoveToJunction,
-            TargetJunction = command.TargetJunction
-        });
-        npc.Plan.Steps.Add(new PlanStep
-        {
-            Type = PlanStepType.PlantInventorySeed,
-            TargetJunction = command.TargetJunction,
-            TargetObject = groundSeed?.Id,
-            TimeoutEndTick = command.Item.Index,
-            Interaction = InteractionType.Plant
-        });
-        npc.Plan.CurrentStepIndex = 0;
-        npc.Plan.Status = PlanStatus.Active;
-        npc.Mind.CurrentGoal = GoalType.PlayerOrder;
-        npc.Execution.TargetInventoryItem = groundSeed is null ? npc.Inventory.Items[command.Item.Index] : null;
 
         if (SimTrace.Enabled)
         {

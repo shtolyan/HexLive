@@ -161,6 +161,8 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        var batchCenter = plantingSite.HasValue && npc.Plan.Goal == GoalType.PlayerOrder
+            ? npc.Plan.PlantingBatchCenter : null;
         if (groundSeed is not null) WorldObjectMutations.DespawnObject(world, groundSeed.Id);
         if (plantingSite is { } completedSite) WorldObjectMutations.DespawnObject(world, completedSite);
         npc.Plan.TargetObjectId = null;
@@ -180,6 +182,7 @@ public sealed partial class ExecutionSystem
         npc.Plan.Steps.Clear();
         npc.Plan.TargetJunctionId = null;
         npc.Plan.TargetTile = null;
+        npc.Plan.PlantingBatchCenter = null;
         npc.Plan.TargetItemDefinitionId = null;
         npc.Mind.CurrentGoal = GoalType.None;
         ManualControlMath.RenewInactivityLease(world, npc);
@@ -190,11 +193,14 @@ public sealed partial class ExecutionSystem
                 $"Seed={seedDefinitionId} Plant={planted.DefinitionId} " +
                 $"Tile={tile.Q},{tile.R} Junction={target.Value}");
         }
+        if (batchCenter is { } center)
+            ManualCommandExecutor.ContinuePlantingBatch(world, npc, center);
     }
 
     private static void FailInventoryPlanting(
         WorldState world, NPCState npc, string reason)
     {
+        npc.Plan.PlantingBatchCenter = null;
         PlanInterruption.TryAbort(
             world, npc, InterruptionCause.ExecutionFailure, reason);
         npc.Mind.CurrentGoal = GoalType.None;

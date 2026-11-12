@@ -124,6 +124,42 @@ internal static class GardenMath
         (!seed.IsOccupied || seed.CurrentUser == npc.Id) &&
         CampPropertyMath.CanUseUnordered(world, npc, seed);
 
+    internal static Task FindNextManualPlanting(WorldState world, NPCState npc, TileCoord center)
+    {
+        if (npc.CurrentJunction is not { } start) return null;
+        var factions = new[] { npc.Faction };
+        var allowCriticalTraversal = PlanningSystem.CanUseCriticalTraversal(npc);
+        Task best = null;
+        var bestDistance = float.MaxValue;
+        for (var q = -1; q <= 1; q++)
+        for (var r = Math.Max(-1, -q - 1); r <= Math.Min(1, -q + 1); r++)
+        {
+            var tile = new TileCoord(center.Q + q, center.R + r);
+            if (!world.Caches.ObjectsByTile.TryGetValue(tile, out var ids)) continue;
+            foreach (var id in ids)
+            {
+                if (!world.Entities.Objects.TryGetValue(id, out var site) ||
+                    !BuildSiteMath.IsPlantingSite(site) || site.Junctions.Count == 0 ||
+                    !world.Junctions.Items.TryGetValue(site.Junctions[0], out var junction)) continue;
+                var distance = HexSpatialMath.Distance(npc.Position, junction.WorldPosition);
+                if (distance > bestDistance || distance == bestDistance && best is not null && id.Value >= best.Site.Id.Value)
+                    continue;
+
+                var seedIndex = npc.Inventory.Items.FindIndex(item => item.DefinitionId == site.BuildProduct);
+                var seed = FindGroundSeed(world, npc, junction.Id, site.BuildProduct);
+                if ((seedIndex < 0 && seed is null) ||
+                    !ConstructionAccess.CanEditObject(world, factions, site) ||
+                    !PlantGrowthSystem.CanPlantAt(world, junction.Id, site.Tile, npc.Id, site.Id, allowLooseSeeds: true) ||
+                    !Connectivity.Reachable(world, start, junction.Id, allowCriticalTraversal)) continue;
+
+                best = new Task { Site = site, SeedIndex = seedIndex, GroundSeed = seed };
+                bestDistance = distance;
+            }
+        }
+
+        return best;
+    }
+
     private static bool TryCreateTask(WorldState world, NPCState npc,
         PlantGrowthCatalog.Profile crop, TileCoord home, out Task candidate)
     {

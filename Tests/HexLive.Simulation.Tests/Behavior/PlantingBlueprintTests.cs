@@ -5,6 +5,7 @@ using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Persistence;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
@@ -95,6 +96,103 @@ public sealed class PlantingBlueprintTests
         Assert.That(world.Entities.Objects.ContainsKey(seed.Id), Is.False);
         Assert.That(world.Entities.Objects.Values.Any(o => o.DefinitionId == ContentIds.HerbSprout &&
             o.Junctions.Contains(site.Junctions[0])), Is.True);
+    }
+
+    [Test]
+    public void OneBuildPlantsTheLocalBlueprintsUntilMatchingSeedsRunOut()
+    {
+        var (engine, npc, first) = Place(ContentIds.YuccaSeed);
+        var world = engine.World;
+        var additional = world.Tiles.Items[first.Tile].Junctions
+            .Where(j => PlantGrowthSystem.CanPlantAt(world, j, first.Tile))
+            .Take(2).Select(j => PlacePoint(engine, ContentIds.YuccaSeed, first.Tile, j)).ToArray();
+        Assert.That(additional, Has.Length.EqualTo(2));
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.YuccaSeed));
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.YuccaSeed));
+
+        StartAndRunBatch(engine, npc, first);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(world.Entities.Objects.ContainsKey(first.Id), Is.False);
+            Assert.That(additional.Count(site => world.Entities.Objects.ContainsKey(site.Id)), Is.EqualTo(1));
+            Assert.That(npc.Inventory.Items.Count(i => i.DefinitionId == ContentIds.YuccaSeed), Is.Zero);
+            Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Completed));
+            Assert.That(npc.Plan.PlantingBatchCenter, Is.Null);
+        });
+    }
+
+    [Test]
+    public void BuildBatchUsesNeighboringTilesButKeepsTheRadiusAtTheClickedTile()
+    {
+        var (engine, npc, first) = Place(ContentIds.YuccaSeed);
+        var world = engine.World;
+        var centers = world.Tiles.Items.Values.Where(tile =>
+            HexSpatialMath.HexDistance(first.Tile, tile.Coord) <= 2 &&
+            StructurePlacement.CenterJunction(world, tile.Coord) is { } anchor &&
+            PlantGrowthSystem.CanPlantAt(world, anchor, tile.Coord) &&
+            Connectivity.Reachable(world, npc.CurrentJunction.Value, anchor)).ToArray();
+        var innerTile = centers.First(tile => HexSpatialMath.HexDistance(first.Tile, tile.Coord) == 1 &&
+            centers.Any(other => HexSpatialMath.HexDistance(first.Tile, other.Coord) == 2 &&
+                HexSpatialMath.HexDistance(tile.Coord, other.Coord) == 1));
+        var outerTile = centers.First(tile => HexSpatialMath.HexDistance(first.Tile, tile.Coord) == 2 &&
+            HexSpatialMath.HexDistance(innerTile.Coord, tile.Coord) == 1);
+        var inner = PlacePoint(engine, ContentIds.HerbSeed, innerTile.Coord,
+            StructurePlacement.CenterJunction(world, innerTile.Coord).Value);
+        var outer = PlacePoint(engine, ContentIds.YuccaSeed, outerTile.Coord,
+            StructurePlacement.CenterJunction(world, outerTile.Coord).Value);
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.YuccaSeed));
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.YuccaSeed));
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.HerbSeed));
+
+        StartAndRunBatch(engine, npc, first);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(world.Entities.Objects.ContainsKey(first.Id), Is.False);
+            Assert.That(world.Entities.Objects.ContainsKey(inner.Id), Is.False);
+            Assert.That(world.Entities.Objects.ContainsKey(outer.Id), Is.True);
+            Assert.That(npc.Inventory.Items.Count(i => i.DefinitionId == ContentIds.YuccaSeed), Is.EqualTo(1));
+            Assert.That(npc.Inventory.Items.Any(i => i.DefinitionId == ContentIds.HerbSeed), Is.False);
+        });
+    }
+
+    [Test]
+    public void NewManualOrderReplacesThePlantingBatchWithoutSpendingTheNextSeed()
+    {
+        var (engine, npc, first) = Place(ContentIds.YuccaSeed);
+        var world = engine.World;
+        var point = world.Tiles.Items[first.Tile].Junctions.First(j => PlantGrowthSystem.CanPlantAt(world, j, first.Tile));
+        var second = PlacePoint(engine, ContentIds.YuccaSeed, first.Tile, point);
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.YuccaSeed));
+        var remaining = new ItemInstance(ContentIds.YuccaSeed);
+        npc.Inventory.Items.Add(remaining);
+        Assert.That(engine.ApplyManualCommand(new InteractCommand(npc.Id, first.Id, InteractionType.Build)).Accepted, Is.True);
+        FinishAtPlannedPoint(world, npc);
+        Assert.That(npc.Plan.TargetObjectId, Is.EqualTo(second.Id));
+
+        var move = engine.ApplyManualCommand(new MoveToCommand(npc.Id, npc.Position));
+        Assert.That(move.Accepted, Is.True, move.Reason);
+        for (var i = 0; i < 80; i++) engine.Step();
+
+        Assert.That(world.Entities.Objects.ContainsKey(second.Id), Is.True);
+        Assert.That(npc.Inventory.Items.Contains(remaining), Is.True);
+    }
+
+    private static WorldObjectState PlacePoint(SimulationEngine engine, string seedId, TileCoord tile, JunctionId point)
+    {
+        var placed = engine.ApplyManualCommand(new PlacePlantingSiteCommand(seedId, tile, point));
+        Assert.That(placed.Accepted, Is.True, placed.Reason);
+        return engine.World.Entities.Objects.Values.Single(o => o.BuildProduct == seedId && o.Junctions.Contains(point));
+    }
+
+    private static void StartAndRunBatch(SimulationEngine engine, NPCState npc, WorldObjectState first)
+    {
+        var accepted = engine.ApplyManualCommand(new InteractCommand(npc.Id, first.Id, InteractionType.Build));
+        Assert.That(accepted.Accepted, Is.True, accepted.Reason);
+        Assert.That(npc.Plan.TargetObjectId, Is.EqualTo(first.Id));
+        for (var i = 0; i < 1500 && npc.Plan.Status == PlanStatus.Active; i++) engine.Step();
+        Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Completed));
     }
 
     [Test]

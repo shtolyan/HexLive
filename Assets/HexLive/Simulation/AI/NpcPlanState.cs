@@ -25,6 +25,10 @@ public sealed class NPCPlanState
 
     public TileCoord? TargetTile { get; set; }
 
+    // §173.10: original tile of the current manual planting batch. The
+    // active planting leg itself survives save/load through the ordinary plan.
+    public TileCoord? PlantingBatchCenter { get; set; }
+
     // Inventory item consumed by a ConsumeInventoryItem plan (definition id).
     public string? TargetItemDefinitionId { get; set; }
 

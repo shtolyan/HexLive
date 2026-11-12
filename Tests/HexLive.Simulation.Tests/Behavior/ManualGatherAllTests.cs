@@ -180,6 +180,35 @@ public sealed class ManualGatherAllTests
             "Пустой гекс обязан закрыть очередь, иначе она будет тикать вечно.");
     }
 
+    // ── 1b. #746: та же очередь для обработки («разрубить всё») ──────────
+
+    [Test]
+    public void ProcessAllSplitsEveryLogOnTheHexOneOrderAtATime()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = TakeControl(engine);
+        npc.Inventory.Items.Add(new ItemInstance("tool.axe_stone"));
+        var logs = Scatter(world, npc, "resource.log", 3, out _);
+
+        var order = ManualCommandExecutor.Apply(world, new GatherAllOnHexCommand(
+            npc.Id, logs[0].Id, InteractionType.Process, "split.log"));
+        Assert.That(order.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted), order.Reason);
+
+        var alive = new HashSet<ObjectId>(logs.Select(log => log.Id));
+        for (var i = 0; i < 4000 && alive.Count > 0; i++)
+        {
+            engine.Step();
+            alive.RemoveWhere(id => !world.Entities.Objects.TryGetValue(id, out var log) ||
+                                    log.DefinitionId != "resource.log");
+        }
+
+        Assert.That(alive, Is.Empty, "Очередь «разрубить всё» остановилась, не обработав гекс.");
+        StepUntil(engine, () => !ManualGatherTargets.IsActive(npc.Mind), 64);
+        Assert.That(ManualGatherTargets.IsActive(npc.Mind), Is.False);
+        Assert.That(npc.Mind.ManualControl, Is.True);
+    }
+
     // ── 2. Прежнее «Подобрать» не изменилось ─────────────────────────────
 
     [Test]

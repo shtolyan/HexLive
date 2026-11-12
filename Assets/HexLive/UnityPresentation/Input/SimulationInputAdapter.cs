@@ -1316,11 +1316,18 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             // по одному предмету за раз.
             // Bug #331: у вертела «собрать все» лишено смысла — мясо и так
             // берётся по кусочку (сам пункт называется «Взять кусочек»).
-            if (type == InteractionType.PickUp && interactionId != "take.from.spit" &&
-                !PortableFurniture.CanCarry(view.ContextDefinitionId))
+            // #746: тот же «…все» — для обработки и сбора с места: распилить,
+            // разрубить, вскрыть, сорвать всё однотипное на гексе и шести
+            // соседних. Механика одна (очередь обычных приказов §121.10), а
+            // подпись собирается из глагола самого действия.
+            var allPickUp = type == InteractionType.PickUp && interactionId != "take.from.spit" &&
+                !PortableFurniture.CanCarry(view.ContextDefinitionId);
+            var allWork = type is InteractionType.Process or InteractionType.Harvest;
+            if (allPickUp || allWork)
             {
                 _entries.Add(new ContextMenuEntry(
-                    theft ? Loc.Get("menu.steal_all") : Loc.Get("menu.gather_all"),
+                    allWork ? string.Format(Loc.Get("menu.action_all"), verb)
+                        : theft ? Loc.Get("menu.steal_all") : Loc.Get("menu.gather_all"),
                     () => EnqueueOrder(actorId,
                         new GatherAllOnHexCommand(
                             actor, new ObjectId(objectId), type, interactionId)),

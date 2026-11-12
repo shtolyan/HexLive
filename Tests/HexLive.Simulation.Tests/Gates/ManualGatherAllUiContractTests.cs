@@ -15,8 +15,7 @@ public sealed class ManualGatherAllUiContractTests
         RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Input",
         "SimulationInputAdapter.cs")).Replace("\r\n", "\n");
     private const string GatherAllCondition =
-        "if (type == InteractionType.PickUp && interactionId != \"take.from.spit\" &&\n" +
-        "                !PortableFurniture.CanCarry(view.ContextDefinitionId))";
+        "var allPickUp = type == InteractionType.PickUp && interactionId != \"take.from.spit\" &&";
 
     [Test]
     public void PickUpMenuOffersBothGatherAndGatherAllOnHex()
@@ -26,7 +25,7 @@ public sealed class ManualGatherAllUiContractTests
         Assert.Multiple(() =>
         {
             Assert.That(adapter, Does.Contain(
-                "new InteractCommand(\n                        actor, new ObjectId(objectId), type, interactionId)"),
+                "new InteractCommand(actor, new ObjectId(objectId), type, interactionId)"),
                 "Одиночное «Подобрать» обязано остаться прежним InteractCommand.");
             // Bug #331: у вертела мясо и так берётся по кусочку — «собрать
             // все» там не предлагается.
@@ -34,7 +33,9 @@ public sealed class ManualGatherAllUiContractTests
                 "Второй пункт доступен для обычного подбора. Вертел и переносимая мебель исключены.");
             Assert.That(adapter, Does.Contain("Loc.Get(\"menu.gather_all\")"),
                 "§58: подпись пункта — термин I2, а не строка в C#.");
-            Assert.That(adapter, Does.Contain(
+            Assert.That(adapter, Does.Contain("string.Format(Loc.Get(\"menu.action_all\"), verb)"),
+                "#746: «…все» для обработки и сбора — тоже термин I2 с глаголом действия.");
+            Assert.That(adapter.Replace("\r\n", "\n"), Does.Contain(
                 "new GatherAllOnHexCommand(\n                            actor, new ObjectId(objectId), type, interactionId)"),
                 "«Собрать все» обязано ехать своей командой — иначе по сети " +
                 "(и в -hexlive-loopback) пункт молча превратится в обычный подбор.");

@@ -33312,6 +33312,14 @@ MonoBehaviour:
       - 'Раса: {0}'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.action_all'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0}: all nearby'
+      - '{0}: все рядом'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

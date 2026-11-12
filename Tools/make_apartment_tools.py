@@ -16,7 +16,7 @@ import bpy
 from mathutils import Matrix, Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from make_modern_loot import BUILD, OBJECTS, ROOT, box, mesh, palette, prism, rings, shade
+from make_modern_loot import BUILD, OBJECTS, ROOT, box, mesh, palette, prism, rings, seat_grip, shade
 import render_item_icon as icon
 
 
@@ -110,9 +110,12 @@ def claw_hammer():
     face = shade("Prosthetic_Metal", "ClawHammerFace", (1.32, 1.38, 1.39), .39)
     shaft = shade("Sapwood", "ClawHammerHandle", (.57, .45, .31), .73)
     grip = shade("Bark", "ClawHammerGrip", (.31, .37, .42))
+    # #754: 13 % wide read as a club; a claw hammer handle is ~10 x 7.5 %.
+    slim = .8
     rings("Fiberglass handle",
           [(0, -.239, 0), (0, -.220, 0), (0, .103, 0), (0, .129, 0), (0, .660, 0)],
-          [(.049, .037), (.062, .042), (.064, .042), (.053, .037), (.036, .033)],
+          [(w * slim, d * slim) for w, d in
+           ((.049, .037), (.062, .042), (.064, .042), (.053, .037), (.036, .033))],
           [shaft, grip], [1, 1, 1, 0, 0], sides=8)
     profile("Hammer head", [(-.173, .559), (-.088, .566), (-.035, .584), (.072, .560),
                            (.187, .600), (.209, .672), (.166, .713), (-.079, .719),
@@ -124,6 +127,8 @@ def claw_hammer():
                                 (.288, .477), (.258, .542), (.185, .619), (.104, .655)],
                 near, far, head)
     face_along_z()
+    # #754: grip end at the pivot, like tool.hammer; the hand pose holds it there.
+    seat_grip(-.239)
 
 
 def folding_saw():

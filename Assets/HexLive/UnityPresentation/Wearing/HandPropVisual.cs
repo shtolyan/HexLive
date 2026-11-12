@@ -15,6 +15,17 @@ internal static class HandPropVisual
     // prop seated at the origin sits inside the wrist, not in the palm.
     internal static readonly Vector3 PalmGripPoint = new(.054f, -.033f, 0f);
 
+    // §59.5 (#754): a modern tool built in the shipped tools' mesh frame
+    // (grip end at the pivot, handle +Y, head +Z) borrows the tuned grip of the
+    // tool it imitates instead of a second hand-made copy of the same numbers.
+    // The owner's GearConfig is already published, so no new bundle entry is
+    // needed for the grip to exist.
+    internal static string GripOwner(string itemId) => itemId switch
+    {
+        Simulation.Content.ContentIds.ClawHammer => Simulation.Content.GearCatalog.Hammer,
+        _ => itemId,
+    };
+
     public static GameObject Create(string itemId, Transform hand, bool leftHanded)
     {
         var model = CreateModel(itemId, hand, leftHanded);
@@ -29,7 +40,7 @@ internal static class HandPropVisual
     {
         bool modern = Simulation.Content.ModernLootCatalog.IsModernProp(itemId);
         if (modern && itemId is not (Simulation.Content.ContentIds.KitchenKnife or
-            Simulation.Content.ContentIds.BaseballBat))
+            Simulation.Content.ContentIds.BaseballBat or Simulation.Content.ContentIds.ClawHammer))
         {
             // Pocket objects (flashlight, lighters) and the folding saw have no
             // GearConfig. A placement root keeps the art's native import
@@ -65,7 +76,10 @@ internal static class HandPropVisual
         // instantiate a known tool with a fallback grip during the short window
         // in which `main` is ready but `gear-config` is not: _currentPropId
         // would then make that wrong pose permanent for the whole interaction.
-        var gearConfig = Config.GearLibrary.ConfigFor(itemId);
+        var gripOwner = GripOwner(itemId);
+        var gearConfig = gripOwner == itemId
+            ? Config.GearLibrary.ConfigFor(itemId)
+            : Config.GearLibrary.ConfigFor(gripOwner);
         if (Config.GearLibrary.RequiresAuthoredConfig(itemId) && gearConfig == null)
         {
             return null;
@@ -101,7 +115,7 @@ internal static class HandPropVisual
         // child authored into the model → a built-in default table → the
         // automatic palm-fit below. All in the acting hand's local space.
         if (Config.GearLibrary.TryGetHandPose(
-                itemId, leftHanded, out var cfgPos, out var cfgRot, out var cfgScale))
+                gripOwner, leftHanded, out var cfgPos, out var cfgRot, out var cfgScale))
         {
             prop.transform.localPosition = cfgPos;
             prop.transform.localRotation = keepPrefabAxisCorrection

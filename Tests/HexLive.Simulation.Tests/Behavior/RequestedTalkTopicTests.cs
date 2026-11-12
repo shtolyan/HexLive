@@ -17,6 +17,28 @@ namespace HexLive.Simulation.Tests.Behavior;
 public sealed class RequestedTalkTopicTests
 {
     [Test]
+    public void TheManualActorCanUseTheirOwnStandingPointInACrowdedApproach()
+    {
+        var engine = Setup(out var actor, out var target);
+        var world = engine.World;
+        var standing = actor.CurrentJunction!.Value;
+        var crowd = new EntityId(9001);
+        foreach (var point in world.Junctions.Items.Values.Where(point =>
+                     point.Id != standing && point.Id != target.CurrentJunction &&
+                     HexSpatialMath.Distance(point.WorldPosition, target.Position) <= InteractionReach.Aid))
+            SpatialMutations.OccupyJunction(world, point.Id, crowd);
+        SpatialMutations.OccupyJunction(world, standing, actor.Id);
+
+        Accept(world, actor, target, TalkTopic.Food);
+
+        Assert.That(actor.Plan.TargetJunctionId, Is.EqualTo(standing));
+        Assert.That(target.Mind.PendingTalkFrom, Is.EqualTo(actor.Id));
+        StartTalk(engine, actor, target);
+        Assert.That(actor.CurrentJunction, Is.EqualTo(standing));
+        Assert.That(actor.Execution.CurrentTalkTopic, Is.EqualTo(TalkTopic.Food));
+    }
+
+    [Test]
     public void RequestedTopicSurvivesApproachSaveRefreshAndThenClears()
     {
         var engine = Setup(out var actor, out var target);

@@ -175,8 +175,10 @@ SHA256 `.asmdef` `19f0b8d844420f9933893d96181a484fc51c005f4649092fe50fc524c36d7a
    ```bash
    python3 Tools/webgl_compile_check.py
    ```
-   На Windows тот же скрипт использует установленный WebGLSupport Unity
-   и сгенерированные `.csproj` текущего checkout. Другой рабочий проект:
+   На Windows запускайте `python -X utf8 Tools/webgl_compile_check.py`, чтобы
+   кириллица в отчёте сохранялась при перенаправлении вывода. Скрипт использует
+   установленный WebGLSupport Unity и сгенерированные `.csproj` текущего checkout.
+   Другой рабочий проект:
    `--unity-project <project> --checkout <source-checkout>`.
    Результат отдельно считает ошибки компиляции и RS0030, с колонками:
    две ссылки на запрещённый API в одной строке — два сообщения.
@@ -269,9 +271,9 @@ keyframe/delta. `worldObjects` JSON может не перечислять вс�
 ```
 [WebGLBuild] code optimization: RuntimeSpeed (…)
 [WebGLBuild] FMOD WebGL DSP buffer: 4 x 4096, callback WebAudioTuning
+[WebGLBuild] Unity splash screen: off
 [WebGLBuild] web music: N Ogg track(s) for the browser   (только при перекодировании)
 [WebGLBuild] audio manifest: N files
-[WebGLBuild] Unity splash screen: off
 [WebGLBuild] Succeeded: … 0 errors …
 [WebGLBuild] HTML interface: ui/ from template HexLive, N files verbatim
 [WebGLBuild] devicePixelRatio capped at 1

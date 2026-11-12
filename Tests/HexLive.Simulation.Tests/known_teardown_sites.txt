@@ -42,6 +42,7 @@ Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.RomanceInvitation.c
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.SelfTreat.cs	#1
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.Social.cs	#1
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.Social.cs	#2
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.SocialContact.cs	#1
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.cs	#1
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.cs	#2
 Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.cs	#3

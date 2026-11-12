@@ -238,7 +238,7 @@ public sealed class CorpsePresentationContractTests
             Assert.That(cleanup, Does.Contain("_carryWeight = 0f"));
             Assert.That(cleanup, Does.Contain("_animator.SetLayerWeight(carryLayer, 0f)"),
                 "an ArmedCarry overlay must not be frozen over FallenIdle");
-            Assert.That(actor, Does.Contain("if (!_dead && !_ragdollActive && !_romanceVisual)"),
+            Assert.That(actor, Does.Contain("if (!_dead && !_ragdollActive && !_romanceVisual && !_socialContactVisual)"),
                 "procedural bone writers are live-only after corpse freeze");
         });
     }

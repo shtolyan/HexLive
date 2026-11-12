@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using HexLive.Server.Mcp;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
@@ -30,6 +31,35 @@ public sealed class McpPlanningObservationTests
         Assert.That(needs.GetProperty("breath").GetProperty("value").GetSingle(), Is.EqualTo(.5f));
         tools.Call("describe_colonist", JsonSerializer.SerializeToElement(new { npcId = 901 }), "fixture", out var error, _ => false);
         Assert.That(error, Is.True);
+    }
+
+    [Test]
+    public void CriticalConditionComesFromTheActorsActualDyingState()
+    {
+        using var host = Host();
+        var tools = new McpTools(host, new ControlLeases(45));
+        host.Read(world =>
+        {
+            var npc = world.Entities.Npcs[new EntityId(901)];
+            npc.Health = 1f;
+            npc.Needs.Thirst = 1f;
+            return true;
+        });
+        var thirsty = Call(tools, "describe_colonist", new { npcId = 901 }).GetProperty("bodyNeeds");
+        host.Read(world =>
+        {
+            world.Entities.Npcs[new EntityId(901)].Mind.DyingCause = DyingCause.Dehydration;
+            return true;
+        });
+        var dehydrated = Call(tools, "describe_colonist", new { npcId = 901 }).GetProperty("bodyNeeds");
+        Assert.Multiple(() =>
+        {
+            Assert.That(thirsty.GetProperty("health").GetSingle(), Is.EqualTo(1f));
+            Assert.That(thirsty.GetProperty("dying").GetBoolean(), Is.False);
+            Assert.That(dehydrated.GetProperty("health").GetSingle(), Is.EqualTo(1f));
+            Assert.That(dehydrated.GetProperty("dying").GetBoolean(), Is.True);
+            Assert.That(dehydrated.GetProperty("dyingCause").GetString(), Is.EqualTo("Dehydration"));
+        });
     }
 
     [TestCase(0f, 0.049f)]

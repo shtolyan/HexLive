@@ -8,6 +8,7 @@ using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
 using NUnit.Framework;
@@ -55,6 +56,31 @@ public sealed class DoorInteractionTests
         var execution=new ExecutionSystem();
         for(var i=0;i<ticks;i++) { world.Tick++; execution.Run(world); }
     }
+
+    [Test]
+    public void GameplayPointerTargetsAFinishedClosedDoorWithoutCatalogInteractions()
+    {
+        var (engine, _, _, door) = Setup();
+        Assert.That(engine.World.Content.ObjectDefinitions[door.DefinitionId].Interactions, Is.Empty);
+        var leaf = WorldSnapshotExporter.Export(engine.World).Objects.Single(o => o.Id == door.Id);
+        Assert.That(DoorInteractionMath.CanTargetClosedDoor(leaf), Is.True);
+        leaf.ArchitectureOwnerObjectId = leaf.Id.Value;
+        Assert.That(DoorInteractionMath.CanTargetClosedDoor(leaf), Is.True,
+            "Standalone doors use their own id as the architecture owner.");
+
+        leaf.IsDoorOpen = true;
+        Assert.That(DoorInteractionMath.CanTargetClosedDoor(leaf), Is.False);
+        leaf.IsDoorOpen = false;
+        leaf.Durability = 0;
+        Assert.That(DoorInteractionMath.CanTargetClosedDoor(leaf), Is.False);
+        leaf.Durability = 1;
+        leaf.BuildProduct = leaf.DefinitionId;
+        Assert.That(DoorInteractionMath.CanTargetClosedDoor(leaf), Is.False);
+        leaf.BuildProduct = string.Empty;
+        leaf.ArchitectureElements[0].DemolitionPlanned = true;
+        Assert.That(DoorInteractionMath.CanTargetClosedDoor(leaf), Is.False);
+    }
+
     [Test]
     public void StrangerIsRefusedAndTrustedSleeperAnswersWithoutWaking()
     {

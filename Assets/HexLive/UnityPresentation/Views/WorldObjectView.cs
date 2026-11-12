@@ -35,6 +35,8 @@ public sealed class WorldObjectView : MonoBehaviour
 
     public string DefinitionId { get; private set; } = string.Empty;
 
+    internal bool HasDoorActions { get; set; }
+
     /// <summary>
     /// Контекстная цель может отличаться от нарисованного объекта: отдельная
     /// секция недостроенного модульного дома проксирует меню на footprint-owner.

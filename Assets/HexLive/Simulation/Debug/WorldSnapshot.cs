@@ -797,7 +797,7 @@ public sealed class NpcSnapshot
     /// По умолчанию бегом.</summary>
     public bool RunByDefault { get; set; } = true;
 
-    /// <summary>§133.9: player froze this NPC's current outfit.</summary>
+    /// <summary>§133.10: legacy wire field. Live snapshots publish false.</summary>
     public bool OutfitLocked { get; set; }
 
     public int? GiftSessionTargetNpcId { get; set; }

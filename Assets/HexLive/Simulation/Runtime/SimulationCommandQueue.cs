@@ -188,7 +188,7 @@ public sealed class SetRunByDefaultCommand : ISimulationCommand
     public EntityId? TargetEntity => Npc;
 }
 
-/// <summary>§133.9: freeze or release one NPC's current outfit.</summary>
+/// <summary>§133.10: the former outfit-pin command, kept for wire compatibility.</summary>
 public sealed class SetOutfitLockCommand : ISimulationCommand
 {
     public SetOutfitLockCommand(EntityId npc, bool enabled)

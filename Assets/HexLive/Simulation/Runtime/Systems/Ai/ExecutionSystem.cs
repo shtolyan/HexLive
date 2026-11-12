@@ -2036,31 +2036,17 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
     {
-        if (!CampPropertyMath.CanUse(world, npc, worldObject) &&
-            !OutfitMaintenanceMath.CanRestorePinnedPiece(world, npc, worldObject)) return false;
+        if (!CampPropertyMath.CanUse(world, npc, worldObject)) return false;
 
         var theft = TheftMath.IsTheft(world, npc, worldObject,
             PlanningSystem.HasWearGrant(npc, worldObject.Id, world.Tick));
-        var restoringSelectedOutfit =
-            OutfitMaintenanceMath.CanRestorePinnedPiece(world, npc, worldObject);
-        if (npc.Mind.OutfitLocked && !restoringSelectedOutfit)
-        {
-            worldObject.IsOccupied = false;
-            worldObject.CurrentUser = null;
-            if (SimTrace.Enabled)
-            {
-                Trace.Debug(world, npc.Id, "DressBlocked",
-                    $"Obj={worldObject.Id.Value} Reason=OutfitLocked");
-            }
-            return false;
-        }
 
         // §133: чужое надевают только с разрешения, и разрешение ОДНОРАЗОВОЕ —
         // сгорает здесь же. Планировщик до сюда чужое без «да» не пропускает;
         // это последний рубеж на случай, если вещь сменила хозяйку по дороге.
         var explicitPlayerDress = npc.Mind.ManualControl &&
             npc.Plan.Goal == GoalType.PlayerOrder;
-        if (!restoringSelectedOutfit && !explicitPlayerDress &&
+        if (!explicitPlayerDress &&
             ClothingOwnership.FellowOwner(world, npc, worldObject) is { } fellowOwner)
         {
             if (!PlanningSystem.HasWearGrant(npc, worldObject.Id, world.Tick))
@@ -2116,10 +2102,6 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         _dressPourScratch.Clear();
         _dressPourScratch.AddRange(worldObject.Contents);
         worldObject.Contents.Clear();
-        if (restoringSelectedOutfit)
-        {
-            OutfitMaintenanceMath.MarkWorn(world, npc, worldObject.Id);
-        }
         WorldObjectMutations.DespawnObject(world, worldObject.Id);
         EquipmentMath.Recalculate(world, npc);
         npc.Inventory.Items.AddRange(_dressPourScratch);
@@ -2147,14 +2129,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // HER POCKET. The cooldown opens a window for TendFire &
         // GetWater between wardrobe attempts.
         npc.Mind.Cooldowns.RemoveAll(c => c.Goal == GoalType.Dress);
-        if (!restoringSelectedOutfit)
+        npc.Mind.Cooldowns.Add(new GoalCooldown
         {
-            npc.Mind.Cooldowns.Add(new GoalCooldown
-            {
-                Goal = GoalType.Dress,
-                EndTick = world.Tick + AiBalance.DressCooldownTicks
-            });
-        }
+            Goal = GoalType.Dress,
+            EndTick = world.Tick + AiBalance.DressCooldownTicks
+        });
 
         if (theft) TheftMath.OnStolen(world, npc, worldObject);
         return true;

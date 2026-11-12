@@ -154,11 +154,6 @@ namespace HexLive.UnityPresentation.UI
         private Label _inventoryCapacity;
         // §133.9 / #193: authoritative per-NPC outfit lock shown in the
         // inventory header. The switch never caches authority: snapshot wins.
-        private VisualElement _outfitLockButton;
-        private VisualElement _outfitLockTrack;
-        private VisualElement _outfitLockThumb;
-        private Label _outfitLockLabel;
-        private bool _outfitLockedNow;
         // §138: the backpack and manual recipe browser share one floating
         // window. Crafting recipes remain readable for one controlled NPC in AI mode; orders require manual mode.
         private VisualElement _inventoryTabs;
@@ -1827,7 +1822,6 @@ namespace HexLive.UnityPresentation.UI
             _inventoryCapacity.style.marginLeft = 9f;
             header.Add(_inventoryCapacity);
 
-            header.Add(BuildOutfitLockToggle());
 
             var close = RuntimeWindow.CloseButton(CloseInventory, Text, "inventory-close");
             close.style.color = Text;
@@ -2036,87 +2030,6 @@ namespace HexLive.UnityPresentation.UI
                     PositionInventoryDetail();
                 }
             });
-        }
-
-        private VisualElement BuildOutfitLockToggle()
-        {
-            var button = new VisualElement { name = "inventory-outfit-lock" };
-            button.style.height = 28f;
-            button.style.marginRight = 12f;
-            button.style.paddingLeft = 9f;
-            button.style.paddingRight = 7f;
-            button.style.flexDirection = FlexDirection.Row;
-            button.style.alignItems = Align.Center;
-            button.style.backgroundColor = IdentityGlass;
-            SetBorder(button, StrokeStrong, 1f);
-            SetRadius(button, 9f);
-            button.tooltip = Loc.Get("inv.outfit_lock.tooltip");
-
-            _outfitLockLabel = new Label(Loc.Get("inv.outfit_lock"));
-            _outfitLockLabel.style.fontSize = 11f;
-            _outfitLockLabel.style.color = TextDim;
-            _outfitLockLabel.style.marginRight = 8f;
-            _outfitLockLabel.pickingMode = PickingMode.Ignore;
-            button.Add(_outfitLockLabel);
-
-            _outfitLockTrack = new VisualElement();
-            _outfitLockTrack.style.width = 38f;
-            _outfitLockTrack.style.height = 20f;
-            _outfitLockTrack.style.backgroundColor = Track;
-            SetRadius(_outfitLockTrack, 10f);
-            _outfitLockTrack.pickingMode = PickingMode.Ignore;
-
-            _outfitLockThumb = new VisualElement();
-            _outfitLockThumb.style.position = Position.Absolute;
-            _outfitLockThumb.style.left = 3f;
-            _outfitLockThumb.style.top = 3f;
-            _outfitLockThumb.style.width = 14f;
-            _outfitLockThumb.style.height = 14f;
-            _outfitLockThumb.style.backgroundColor = TextDim;
-            SetRadius(_outfitLockThumb, 7f);
-            _outfitLockThumb.pickingMode = PickingMode.Ignore;
-            _outfitLockTrack.Add(_outfitLockThumb);
-            button.Add(_outfitLockTrack);
-
-            button.RegisterCallback<MouseDownEvent>(evt =>
-            {
-                ToggleOutfitLock();
-                evt.StopPropagation();
-            });
-            _outfitLockButton = button;
-            return button;
-        }
-
-        private void ToggleOutfitLock()
-        {
-            if (_runner == null || !_runner.SupportsNpcCommands ||
-                !_inventoryMutable || _inventoryActorId < 0)
-            {
-                return;
-            }
-
-            _runner.EnqueueCommand(new SetOutfitLockCommand(
-                new HexLive.Simulation.Common.EntityId(_inventoryActorId),
-                !_outfitLockedNow));
-        }
-
-        private void RefreshOutfitLockToggle(NpcSnapshot npc)
-        {
-            _outfitLockedNow = npc.OutfitLocked;
-            if (_outfitLockButton == null)
-            {
-                return;
-            }
-
-            _outfitLockButton.style.opacity = _inventoryMutable ? 1f : 0.45f;
-            _outfitLockButton.pickingMode = _inventoryMutable
-                ? PickingMode.Position : PickingMode.Ignore;
-            _outfitLockTrack.style.backgroundColor = npc.OutfitLocked
-                ? new Color(Gold.r, Gold.g, Gold.b, 0.34f) : Track;
-            _outfitLockThumb.style.left = npc.OutfitLocked ? 21f : 3f;
-            _outfitLockThumb.style.backgroundColor = npc.OutfitLocked ? Gold : TextDim;
-            _outfitLockLabel.style.color = npc.OutfitLocked ? Text : TextDim;
-            SetBorderColor(_outfitLockButton, npc.OutfitLocked ? GoldDim : StrokeStrong);
         }
 
         private void BuildInventoryTabs()
@@ -3827,7 +3740,6 @@ namespace HexLive.UnityPresentation.UI
             _inventoryMutable = _runner != null && _runner.SupportsNpcCommands &&
                 NpcSelection.Count == 1 &&
                 _runner.CanControlNpc(npc.Id) && npc.Health > 0f;
-            RefreshOutfitLockToggle(npc);
             if (!_inventoryOpen)
             {
                 return;
@@ -3900,7 +3812,6 @@ namespace HexLive.UnityPresentation.UI
                 + "|" + string.Join(",", npc.InventoryStacks) + "|" + npc.InventoryUsedSlots
                 + "|" + npc.HeldItemId + "|" + npc.FavoriteWeaponId
                 + "|manual=" + (npc.IsManualControl ? "1" : "0")
-                + "|lock=" + (npc.OutfitLocked ? "1" : "0")
                 + "|wornOwners=" + string.Join(",", npc.WornOwnerIds)
                 + "|page=" + (_clothesPage ? "clothes" : "backpack")
                 + "|" + InventoryLayoutSignature(npc)
@@ -4312,7 +4223,6 @@ namespace HexLive.UnityPresentation.UI
                 resourceAmount: worn ? 0f : InventoryResourceAmount(_inventoryNpc, id, sourceIndex));
 
             var wearable = def != null && def.Layer.HasValue;
-            var outfitChangeBlocked = _outfitLockedNow && (worn || wearable);
             var canEat = CanEatInventory(def, worn);
             var canCook = CanCookInventory(id, worn);
             _invPrimaryInventoryAction = canEat ? InventoryAction.Eat
@@ -4320,12 +4230,12 @@ namespace HexLive.UnityPresentation.UI
                 : id == ContentIds.Flashlight ? InventoryAction.ToggleFlashlight
                 : worn ? InventoryAction.Stow : InventoryAction.Wear;
             _invPrimaryAction.style.display = _inventoryMutable &&
-                (canEat || canCook || id == ContentIds.Flashlight || (worn || wearable) && !outfitChangeBlocked)
+                (canEat || canCook || id == ContentIds.Flashlight || worn || wearable)
                 ? DisplayStyle.Flex : DisplayStyle.None;
             _invPlantAction.style.display = _inventoryMutable && !worn &&
                 (InventoryPlacementMath.CanPlace(id) || PortableFurniture.CanCarry(id))
                 ? DisplayStyle.Flex : DisplayStyle.None;
-            _invDropAction.style.display = _inventoryMutable && !(_outfitLockedNow && worn) &&
+            _invDropAction.style.display = _inventoryMutable &&
                 !PortableFurniture.CanCarry(id)
                 ? DisplayStyle.Flex : DisplayStyle.None;
             // §55.4 (bug #317): «Наполнить» — только у неполной бутылки, когда
@@ -4336,13 +4246,12 @@ namespace HexLive.UnityPresentation.UI
             _invFillAction.SetEnabled(_inventoryHasTwoHands);
             _invFillAction.tooltip = _inventoryHasTwoHands ? string.Empty : Loc.Get("menu.needs_two_hands");
             _invFillActionLabel.text = Loc.Get("inv.action.fill");
-            _invReadOnlyLabel.style.display = !_inventoryMutable || outfitChangeBlocked
+            _invReadOnlyLabel.style.display = !_inventoryMutable
                 ? DisplayStyle.Flex : DisplayStyle.None;
             _invPrimaryActionLabel.text = Loc.Get(PrimaryInventoryActionKey(_invPrimaryInventoryAction));
             _invPlantActionLabel.text = Loc.Get(InventoryPlacementVerb(_invSelectedId));
             _invDropActionLabel.text = Loc.Get("inv.action.drop");
-            _invReadOnlyLabel.text = Loc.Get(outfitChangeBlocked
-                ? "inv.outfit_locked" : "inv.readonly");
+            _invReadOnlyLabel.text = Loc.Get("inv.readonly");
 
             _invDetailView.style.display = DisplayStyle.Flex;
             _invDetailView.BringToFront();
@@ -8188,12 +8097,6 @@ namespace HexLive.UnityPresentation.UI
             {
                 _inventoryTitle.text = Loc.Get("panel.inventory");
             }
-            if (_outfitLockLabel != null)
-            {
-                _outfitLockLabel.text = Loc.Get("inv.outfit_lock");
-                _outfitLockButton.tooltip = Loc.Get("inv.outfit_lock.tooltip");
-            }
-
             if (_inventoryBackpackTabLabel != null)
             {
                 _inventoryBackpackTabLabel.text = Loc.Get("craft.tab.backpack");

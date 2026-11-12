@@ -1075,7 +1075,6 @@ public sealed partial class ExecutionSystem
             _dressPourScratch.Clear();
             _dressPourScratch.AddRange(garment.Contents);
             garment.Contents.Clear();
-            OutfitMaintenanceMath.MarkWorn(world, npc, id);
             WorldObjectMutations.DespawnObject(world, id);
             EquipmentMath.Recalculate(world, npc);
             npc.Inventory.Items.AddRange(_dressPourScratch);

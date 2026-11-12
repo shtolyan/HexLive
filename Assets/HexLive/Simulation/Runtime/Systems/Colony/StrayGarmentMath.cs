@@ -26,7 +26,7 @@ public static class StrayGarmentMath
     /// </summary>
     /// <summary>
     /// Bug #314 (вердикт игрока): одежда в КАРМАНАХ — тоже беспорядок. В лагере
-    /// лишняя (не надетая и не входящая в выбранный комплект §133.10) вещь из
+    /// лишняя вещь из
     /// инвентаря сдаётся в гардероб/на сушилку тем же StowClothes-планом,
     /// только без ноги «дойти и поднять».
     /// </summary>
@@ -37,13 +37,6 @@ public static class StrayGarmentMath
             if (!world.Content.ObjectDefinitions.TryGetValue(
                     item.DefinitionId, out var definition) ||
                 definition.Layer is null)
-            {
-                continue;
-            }
-
-            // §133.10: кусок выбранного комплекта не сдаём — его ещё наденут.
-            if (npc.Mind.DesiredOutfit.Exists(piece =>
-                    piece.DefinitionId == item.DefinitionId))
             {
                 continue;
             }

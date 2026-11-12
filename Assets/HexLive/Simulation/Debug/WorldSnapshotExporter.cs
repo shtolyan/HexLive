@@ -799,7 +799,6 @@ public static class WorldSnapshotExporter
             IsManualControl = npc.Mind.PersistedManualControl, // §121: the player's switch, not an external agent
             TravelLeaderNpcId = npc.Mind.TravelLeaderNpcId?.Value,
             RunByDefault = npc.Mind.RunByDefault, // §121.11
-            OutfitLocked = npc.Mind.OutfitLocked, // §133.9
             CurrentDream = npc.Mind.CurrentDream.ToString(),
             DirectiveKind = npc.Mind.Directive?.Kind.ToString() ?? string.Empty, // §167
             DirectiveFromNpcId = npc.Mind.Directive?.FromId?.Value,

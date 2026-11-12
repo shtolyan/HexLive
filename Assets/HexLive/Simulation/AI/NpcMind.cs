@@ -519,27 +519,9 @@ public sealed class NPCMind
     // приказ исполнялся быстро, пока он явно не попросил шаг.
     public bool RunByDefault { get; set; } = true;
 
-    // §133.9 / bug #193: player-owned outfit latch. While enabled, ordinary
-    // Dress/Undress and player wear/stow/drop commands cannot change clothing.
-    // §133.10 upgrades the latch into a persistent selected outfit: enabling it
-    // snapshots the worn definitions below, and a periodic high-priority pull
-    // restores any exact ground object temporarily removed for laundry/drying.
+    // §133.9 / #700: legacy outfit-pin payload for save round-tripping.
     public bool OutfitLocked { get; set; }
-
-    /// <summary>
-    /// §133.10: the selected outfit captured when <see cref="OutfitLocked"/>
-    /// turns on. Entries remain while their garment is worn, drying, carried
-    /// home, temporarily unreachable, or absent; <c>GroundObjectId</c> follows
-    /// the exact loose instance whenever one exists.
-    /// </summary>
     public List<DesiredOutfitPiece> DesiredOutfit { get; } = new();
-
-    // §133.10: derived scheduler state. The desired set and its exact ground
-    // ids are persistent; audit cadence and the currently actionable target
-    // are cheap to rebuild after load and therefore deliberately transient.
-    public int NextOutfitMaintenanceTick { get; set; }
-
-    public HexLive.Simulation.Common.ObjectId? OutfitMaintenanceTargetObjectId { get; set; }
 
     // §121.7 (v46 legacy): сохранённый слот прежнего потикового таймаута.
     // Больше не участвует в поведении, но остаётся в модели, чтобы не менять
@@ -623,9 +605,7 @@ public sealed class NPCMind
 }
 
 /// <summary>
-/// One persistent member of §133.10's selected outfit. DefinitionId preserves
-/// the chosen colourway/set identity; GroundObjectId preserves the physical
-/// loose garment while it is off the body.
+/// §133.10: one old outfit-pin entry, preserved for save round-tripping.
 /// </summary>
 public sealed class DesiredOutfitPiece
 {

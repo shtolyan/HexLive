@@ -92,7 +92,7 @@ const ICONS = ['food.coconut', 'food.coconut_open', 'food.meat_cooked', 'tool.ax
   'tool.pickaxe_stone', 'resource.stone', 'resource.rope', 'resource.stick', 'resource.palm_leaf', 'resource.log',
   'resource.hide', 'resource.cloth', 'clothing.top_primal', 'underwear.briefs_primal', 'clothing.skirt_primal'];
 const inv = {
-  open: false, locked: false, layer: 'wear', dollRect: null, nextUid: 100,
+  open: false, layer: 'wear', dollRect: null, nextUid: 100,
   items: [
     ['food.coconut', 2], ['food.coconut_open', 1], ['tool.axe_stone', 1, { inUse: true, favorite: true }], ['tool.knife', 1],
     ['tool.sharp_stone', 1], ['resource.stone', 5], ['resource.rope', 2], ['resource.stick', 6], ['resource.palm_leaf', 3],
@@ -144,7 +144,7 @@ function hangUp() { clearInterval(CALL.timer); clearTimeout(CALL.timer); game.co
 function inventoryModel() {
   const c = COLONY.find((x) => x.id === game.selected) || COLONY[0];
   return {
-    name: c.name, readonly: false, outfitLocked: inv.locked, capacity: { used: inv.items.filter((i) => !i.worn).length, cap: 20 },
+    name: c.name, readonly: false, capacity: { used: inv.items.filter((i) => !i.worn).length, cap: 20 },
     slots: 20, dollLayer: inv.layer, toast: TOAST.key,
     items: inv.items.map((it) => ({ ...it, icon: `icon:${it.def}`, name: itemName(it.def), detail: itemDetail(it) })),
     craft: {
@@ -1125,10 +1125,9 @@ function handle(message) {
     const a = message.args || {};
     if (message.cmd === 'dollRect') { inv.dollRect = a; drawWorld(); return; }
     if (message.cmd === 'dollRotate') return;
-    note(key, `${args} → ${{ close: 'закрыть окно', action: 'надеть / снять / выбросить вещь', outfitLock: 'закрепить одежду',
+    note(key, `${args} → ${{ close: 'закрыть окно', action: 'надеть / снять / выбросить вещь',
       dollLayer: 'показать слой одежды на кукле', craft: 'ещё одну в очередь крафта', craftCancel: 'очистить очередь (текущую доделает)' }[message.cmd] || '?'}`);
     if (message.cmd === 'close') { inv.open = false; inv.dollRect = null; drawWorld(); }
-    if (message.cmd === 'outfitLock') inv.locked = !!a.value;
     if (message.cmd === 'dollLayer') inv.layer = a.layer;
     if (message.cmd === 'craft') craftQueue[a.recipe] = (craftQueue[a.recipe] || 0) + 1;
     if (message.cmd === 'craftCancel') craftQueue[a.recipe] = Math.min(craftQueue[a.recipe] || 0, 1);

@@ -713,13 +713,7 @@ internal static partial class ManualCommandExecutor
             return;
         }
 
-        OutfitMaintenanceMath.SetLockedOutfit(world, npc, command.Enabled);
-        if (SimTrace.Enabled)
-        {
-            Trace.Debug(world, npc.Id, "OutfitLockChanged",
-                $"Enabled={(command.Enabled ? 1 : 0)} " +
-                $"Selected={npc.Mind.DesiredOutfit.Count}");
-        }
+        // #700: this legacy opcode is accepted for compatible clients.
     }
 
     // §146.14 (bug #291): сделать свой очаг домом лагеря. Состояние, не план:
@@ -2717,7 +2711,7 @@ internal static partial class ManualCommandExecutor
                 !PlayerInventoryTransferMath.CanWearIncoming(world, looter, selectedItem, selected)))
             {
                 Reject(world, looter.Id, "TransferContainer",
-                    looter.Mind.OutfitLocked ? "OutfitLocked" : "StaleOrNoSpace", admission);
+                    "StaleOrNoSpace", admission);
                 return;
             }
             if (groundSources.Count > 0)

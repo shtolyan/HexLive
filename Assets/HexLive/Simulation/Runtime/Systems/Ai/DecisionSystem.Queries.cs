@@ -988,8 +988,27 @@ public sealed partial class DecisionSystem
     {
         foreach (var obj in npc.Perception.Objects)
         {
-            if (IsDressCandidateCommon(npc, world, obj) &&
-                CandidateArmor(world, obj, npc.Sex) > npc.EquippedArmor)
+            if (world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+                OutfitPreference.ArmorGainFromWearing(world, npc, definition) > 0f &&
+                IsDressCandidateCommon(npc, world, obj))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool KnowsReachableFavoriteGarment(
+        NPCState npc, WorldState world, float forecastOutdoorTemperature)
+    {
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (world.Entities.Objects.TryGetValue(obj.Id, out var garment) &&
+                garment.Owner == npc.Id &&
+                OutfitPreference.IsPreferred(world, npc, obj.DefinitionId,
+                    garment.Durability, garment.Wetness, forecastOutdoorTemperature) &&
+                IsDressCandidateCommon(npc, world, obj))
             {
                 return true;
             }
@@ -1092,7 +1111,7 @@ public sealed partial class DecisionSystem
     /// <summary>The decision-side wardrobe probes use the planner's common
     /// gates too. A shunned, busy, non-wearable or permission-locked garment
     /// is not evidence that Dress can currently produce a plan.</summary>
-    private static bool IsDressCandidateCommon(
+    internal static bool IsDressCandidateCommon(
         NPCState npc, WorldState world, PerceivedObject obj)
     {
         if (!obj.IsReachable || !ObjectUsableBy(world, npc, obj) ||

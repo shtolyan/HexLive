@@ -7,7 +7,7 @@
 // shadow, so nothing dims the doll.
 //
 // Model: {
-//   name, readonly, outfitLocked, capacity: { used, cap }, toast: null | I2 key (§121, as on the card),
+//   name, readonly, capacity: { used, cap }, toast: null | I2 key (§121, as on the card),
 //   items: [{ uid, def, icon, name, count, inUse, favorite, worn, overflow, layer?,
 //             detail: { category, desc, stats: [[label, value, color, fill|null]], actions: ['wear'|'stow'|'drop'|'fill'|'plant'], note } }],
 //   slots,                                  // total cells, empty ones included
@@ -17,7 +17,7 @@
 //                                 queued, canQueue } },
 //            stopped: null | { recipe, reason } },        // §138.7: why the queue stopped on its own
 // }
-// Commands: close, action { uid, kind, count }, outfitLock { value }, dollLayer { layer },
+// Commands: close, action { uid, kind, count }, dollLayer { layer },
 // dollRotate { dx }, dollRect { x, y, w, h, vw, vh }, craft { recipe } (one more into the queue),
 // craftCancel { recipe } (drop what is queued; the item in the making is finished).
 import { html, useState, useRef } from '../html.js';
@@ -52,12 +52,11 @@ function Detail({ item, model, send, onBack, onDrop }) {
       </header>
       ${d.desc && html`<p class="hx-text">${d.desc}</p>`}
       <${ItemStats} rows=${d.stats} />
-      ${(model.readonly || model.outfitLocked) && html`<p class="hx-muted">${t(model.readonly ? 'inv.readonly' : 'inv.outfit_locked')}</p>`}
+      ${model.readonly && html`<p class="hx-muted">${t('inv.readonly')}</p>`}
       <div class="hx-actions hx-actions--left">
         ${(model.readonly ? [] : d.actions || []).map((a) => {
-          const locked = model.outfitLocked && (a === 'wear' || a === 'stow');
           return html`<${Button} key=${a} variant=${a === 'drop' ? 'danger' : a === 'wear' || a === 'stow' ? 'primary' : undefined}
-            disabled=${locked} onClick=${() => (a === 'drop' && item.count > 1 ? onDrop(item) : send('action', { uid: item.uid, kind: a, count: 1 }))}>${t(a === 'cook' ? 'menu.cook_meat' : `inv.action.${a}`)}<//>`;
+            onClick=${() => (a === 'drop' && item.count > 1 ? onDrop(item) : send('action', { uid: item.uid, kind: a, count: 1 }))}>${t(a === 'cook' ? 'menu.cook_meat' : `inv.action.${a}`)}<//>`;
         })}
       </div>
     </section>`;
@@ -141,7 +140,7 @@ export function Inventory({ model, send }) {
   const shown = tab === 'clothes' ? worn : carried;
   const cells = tab === 'clothes' ? shown.length : Math.max(model.slots || 0, shown.length);
   const item = items.find((i) => i.uid === selected);
-  const quick = (it) => !model.readonly && !model.outfitLocked && it.detail?.actions?.some((a) => a === 'wear' || a === 'stow') &&
+  const quick = (it) => !model.readonly && it.detail?.actions?.some((a) => a === 'wear' || a === 'stow') &&
     send('action', { uid: it.uid, kind: it.worn ? 'stow' : 'wear', count: 1 });
   return html`
     <div class="hx-inv-layer">
@@ -151,11 +150,6 @@ export function Inventory({ model, send }) {
           <h2 class="hx-title" id="inv-title">${t('panel.inventory')} · ${model.name}</h2>
           <span class="hx-inv__cap">${model.capacity.used}/${model.capacity.cap} ${t('inv.slots')}</span>
           ${model.toast && html`<span class="hx-order-toast hx-order-toast--inline" role="status" key=${model.toast}>${t(model.toast)}</span>`}
-          <label class="hx-switch" title=${t('inv.outfit_lock.tooltip')}>
-            <input type="checkbox" checked=${model.outfitLocked} disabled=${model.readonly}
-              onChange=${(e) => send('outfitLock', { value: e.currentTarget.checked })} />
-            <span>${t('inv.outfit_lock')}</span>
-          </label>
           <button class="hx-close" type="button" aria-label=${t('ui.close')} title=${t('ui.close')} onClick=${() => send('close')}>${icons.close()}</button>
         </header>
         <div class="hx-subtabs" role="tablist">
@@ -165,7 +159,7 @@ export function Inventory({ model, send }) {
         ${tab === 'craft' ? html`<${Craft} model=${model} send=${send} />` : html`
           <div class="hx-inv__body">
             <ul class="hx-slots" onDragOver=${(e) => e.preventDefault()}
-              onDrop=${(e) => { e.preventDefault(); const it = dragged.current; if (it?.worn && !model.outfitLocked) send('action', { uid: it.uid, kind: 'stow', count: 1 }); }}>
+              onDrop=${(e) => { e.preventDefault(); const it = dragged.current; if (it?.worn && !model.readonly) send('action', { uid: it.uid, kind: 'stow', count: 1 }); }}>
               ${Array.from({ length: cells }, (_, i) => html`<${Slot} key=${shown[i]?.uid ?? `e${i}`} item=${shown[i]} selected=${shown[i]?.uid === selected}
                 onSelect=${setSelected} onQuick=${quick} onDragItem=${(it) => { dragged.current = it; }} />`)}
               ${shown.length === 0 && tab === 'clothes' && html`<li class="hx-muted">${t('inv.empty')}</li>`}
@@ -173,7 +167,7 @@ export function Inventory({ model, send }) {
             <div class="hx-inv__right">
               ${item ? html`<${Detail} item=${item} model=${model} send=${send} onBack=${() => setSelected(null)} onDrop=${setDropping} />` : html`
                 <div class="hx-inv__doll" onDragOver=${(e) => e.preventDefault()}
-                  onDrop=${(e) => { e.preventDefault(); const it = dragged.current; if (it && !it.worn && !model.outfitLocked) send('action', { uid: it.uid, kind: 'wear', count: 1 }); }}>
+                  onDrop=${(e) => { e.preventDefault(); const it = dragged.current; if (it && !it.worn && !model.readonly) send('action', { uid: it.uid, kind: 'wear', count: 1 }); }}>
                   <div class="hx-toggle hx-inv__layers" role="group">
                     ${['underwear', 'wear', 'outerwear', 'bags'].map((l) => html`
                       <button type="button" key=${l} aria-pressed=${model.dollLayer === l} onClick=${() => send('dollLayer', { layer: l })}>${t(`layer.${l}`)}</button>`)}

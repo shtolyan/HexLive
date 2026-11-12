@@ -22,6 +22,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
 
     public void Run(WorldState world)
     {
+        var outfitOutdoorTemperature = EnvironmentSystem.OutfitOutdoorTemperature(world);
         foreach (var npc in world.Entities.Npcs.Values)
         {
             // §60/§105/§110: authored stillness owns the body. In particular,
@@ -90,6 +91,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // В полёте (HopTimer > 0) не ретаргетим — подождёт тик (§21.21B:
                 // прыжок не должен пережить свой путь).
                 var huntStale = npc.Mind.CurrentGoal == GoalType.Hunt &&
+                    !OutfitPreference.IsPuttingOnHuntArmor(npc) &&
                     npc.Movement.HopTimer <= 0f &&
                     DecisionSystem.NearestVisibleRabbit(npc, world)?.Junction is { } rj &&
                     !(npc.Plan.TargetJunctionId is { } tj && tj.Equals(rj));
@@ -611,6 +613,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     continue;
                 }
 
+                if (TryPrepareHuntArmor(world, npc))
+                {
+                    continue;
+                }
+
                 npc.Plan.TargetJunctionId = rabbit.Junction;
                 npc.Plan.TargetTile = rabbit.Tile;
                 npc.Plan.Steps.Add(new PlanStep
@@ -875,27 +882,25 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     break;
                 }
             }
-            var selectedOutfitTarget = interactionType == InteractionType.Dress &&
-                npc.Mind.OutfitLocked
-                    ? npc.Mind.OutfitMaintenanceTargetObjectId
-                    : null;
-            var preferBackpack = selectedOutfitTarget is null &&
-                interactionType == InteractionType.Dress &&
+            var preferBackpack = interactionType == InteractionType.Dress &&
                 !wearsBackpack && DecisionSystem.KnowsReachableBackpack(npc, world);
 
             // Spec 29C.4A: a threatened underarmored NPC dressing up prefers
             // the best armor over the nearest garment.
-            var preferArmor = selectedOutfitTarget is null &&
-                interactionType == InteractionType.Dress &&
-                npc.Memory.Dangers.Count > 0 && npc.EquippedArmor < 0.3f;
+            var preferArmor = interactionType == InteractionType.Dress &&
+                npc.Memory.Dangers.Count > 0 && npc.EquippedArmor < 0.3f &&
+                DecisionSystem.KnowsReachableArmor(npc, world);
             // §133: при чужаке первым делом закрывают таз и грудь — и выбирают
             // по этому, а не по теплу и не по броне. Бельё здесь полноценный
             // ответ: оно ничего не греет и не защищает, но закрывает.
-            var preferCover = selectedOutfitTarget is null &&
-                interactionType == InteractionType.Dress &&
+            var preferCover = interactionType == InteractionType.Dress &&
                 ModestyMath.OutsiderKnown(world, npc) &&
                 ModestyMath.MissingCover(world, npc) &&
                 DecisionSystem.KnowsReachablePermittedCover(npc, world);
+            var preferFavorite = interactionType == InteractionType.Dress &&
+                !preferBackpack && !preferCover && !preferArmor &&
+                outfitOutdoorTemperature + npc.EquippedWarmth * 10f >= SimBalance.DressColdTemp &&
+                OutfitPreference.CanChooseForTaste(npc);
             // §55: boiling is retired — GetWater now just fetches the nearest
             // coconut to crack open (no boiled-vs-raw source preference).
             var preferBoiled = false;
@@ -948,14 +953,6 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||
                     npc.Memory.IsShunned(perceived.Id, world.Tick) ||
                     !perceived.AvailableInteractions.Contains(interactionType.Value))
-                {
-                    continue;
-                }
-
-                // §133.10: selected-outfit maintenance never substitutes a
-                // warmer/closer garment for the exact piece it remembers.
-                if (selectedOutfitTarget is { } selectedPiece &&
-                    !perceived.Id.Equals(selectedPiece))
                 {
                     continue;
                 }
@@ -1049,8 +1046,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     continue;
                 }
 
-                if (interactionType == InteractionType.Dress && selectedOutfitTarget is null &&
-                    !preferBackpack && !preferArmor && !preferCover &&
+                if (interactionType == InteractionType.Dress &&
+                    !preferBackpack && !preferArmor && !preferCover && !preferFavorite &&
                     EquipmentMath.WarmthGainFromWearing(world, npc, perceived.DefinitionId) <
                         SimBalance.DressWarmthGainMin)
                 {
@@ -1094,11 +1091,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                         $"Dist={perceived.Distance:F2} Occupied={perceived.IsOccupied}");
                 }
 
-                if (selectedOutfitTarget is not null)
-                {
-                    selected = perceived;
-                }
-                else if (preferBackpack)
+                if (preferBackpack)
                 {
                     var mine = world.Entities.Objects.TryGetValue(perceived.Id, out var backpack) &&
                         backpack.Owner == npc.Id;
@@ -1151,7 +1144,9 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 }
                 else if (preferArmor)
                 {
-                    var armor = DecisionSystem.CandidateArmor(world, perceived, npc.Sex);
+                    var armor = OutfitPreference.ArmorGainFromWearing(
+                        world, npc, world.Content.ObjectDefinitions[perceived.DefinitionId]);
+                    if (armor <= 0f) continue;
                     var affinity = ItemAffinity.For(npc.Id.Value, perceived.DefinitionId);
                     if (selected is null || armor > selectedArmor + 0.01f ||
                         (System.Math.Abs(armor - selectedArmor) <= 0.01f &&
@@ -1161,6 +1156,24 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     {
                         selected = perceived;
                         selectedArmor = armor;
+                        selectedDressAffinity = affinity;
+                    }
+                }
+                else if (preferFavorite)
+                {
+                    var garment = world.Entities.Objects[perceived.Id];
+                    if (garment.Owner != npc.Id ||
+                        !OutfitPreference.IsPreferred(world, npc, perceived.DefinitionId,
+                            garment.Durability, garment.Wetness, outfitOutdoorTemperature))
+                    {
+                        continue;
+                    }
+
+                    var affinity = ItemAffinity.For(npc.Id.Value, perceived.DefinitionId);
+                    if (selected is null || affinity > selectedDressAffinity ||
+                        (affinity == selectedDressAffinity && perceived.Distance < selected.Distance))
+                    {
+                        selected = perceived;
                         selectedDressAffinity = affinity;
                     }
                 }
@@ -1291,6 +1304,64 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 }
             }
         }
+    }
+
+    private static bool TryPrepareHuntArmor(WorldState world, NPCState npc)
+    {
+        if (npc.EquippedArmor >= 0.3f || npc.Mind.IsStarving || npc.Mind.IsDehydrated || npc.IsFighting)
+        {
+            return false;
+        }
+
+        ItemInstance carriedArmor = null;
+        var carriedGain = 0f;
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (item.Durability <= 0f ||
+                !GarmentLibrary.FitsSex(npc.Sex, item.DefinitionId) ||
+                !world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition) ||
+                definition.Layer is null)
+            {
+                continue;
+            }
+
+            var gain = OutfitPreference.ArmorGainFromWearing(world, npc, definition);
+            if (gain > carriedGain && InventoryMath.FitsAfterWear(world, npc, item))
+            {
+                carriedGain = gain;
+                carriedArmor = item;
+            }
+        }
+
+        if (carriedArmor is not null)
+        {
+            ExecutionSystem.WearCarriedItem(world, npc, carriedArmor);
+            return false;
+        }
+
+        PerceivedObject? best = null;
+        var bestGain = 0f;
+        foreach (var seen in npc.Perception.Objects)
+        {
+            if (seen.Distance > HexSpatialMath.HexRadius * 3f ||
+                !world.Entities.Objects.TryGetValue(seen.Id, out var garment) || garment.Durability <= 0f ||
+                !world.Content.ObjectDefinitions.TryGetValue(seen.DefinitionId, out var definition) ||
+                definition.Layer is null)
+            {
+                continue;
+            }
+
+            var gain = OutfitPreference.ArmorGainFromWearing(world, npc, definition);
+            if (gain > 0f && (gain > bestGain || gain == bestGain && seen.Distance < best!.Distance) &&
+                DecisionSystem.IsDressCandidateCommon(npc, world, seen))
+            {
+                best = seen;
+                bestGain = gain;
+            }
+        }
+
+        return best is not null &&
+            TryInstallObjectPlan(world, npc, best, InteractionType.Dress, 1, out _, out _);
     }
 
     /// <summary>

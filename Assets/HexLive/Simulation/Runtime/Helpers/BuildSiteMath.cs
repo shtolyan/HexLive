@@ -169,10 +169,15 @@ internal static class BuildSiteMath
         if (!IsSite(site) || IsDemolitionSite(site)) return false;
         TrackWork(site);
         var next = NextStageMaterial(site);
-        foreach (var material in AllMaterials)
+        // Каркас раньше кровли: материалы перебираются с конца списка (доски,
+        // верёвка, палки) и только потом листья. Листья идут лишь в крышу, а
+        // их сотни: при прежнем порядке дом сначала часами набирал кровлю, и
+        // дверь с завезёнными досками стояла недостроенной до последнего листа.
+        for (var order = AllMaterials.Length - 1; order >= 0; order--)
         {
+            var material = AllMaterials[order];
             if (next != null && next != material) continue;
-            var index = System.Array.IndexOf(AllMaterials, material);
+            var index = order;
             if (Installed(site, material) >= Bill(site, material) ||
                 Installed(site, material) >= Delivered(site, material)) continue;
             if (IsArchitecturalBuilding(site.BuildProduct) &&

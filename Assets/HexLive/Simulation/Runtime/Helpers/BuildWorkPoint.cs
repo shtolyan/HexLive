@@ -156,7 +156,13 @@ internal static class BuildWorkPoint
         WorldState world, NPCState npc, WorldObjectState site, int durationTicks, out JunctionId stand)
     {
         stand = default;
-        if (!TryNearestPiece(world, site, npc.Position, out var piece)) return false;
+        // #749: игрок показал конкретную деталь — ручная идёт к ближайшей
+        // рабочей детали ОТ НЕЁ (то есть к ней самой, пока она не достроена),
+        // а не от своего текущего места.
+        var from = ManualControlMath.IsManual(npc) && npc.Mind.ManualBuildFocus is { } focus
+            ? focus
+            : npc.Position;
+        if (!TryNearestPiece(world, site, from, out var piece)) return false;
         var occupied = PathfindingSystem.OtherActorJunctions(world, npc);
         foreach (var reach in Reaches)
         {

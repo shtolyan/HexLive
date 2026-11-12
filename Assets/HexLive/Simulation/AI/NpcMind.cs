@@ -212,6 +212,10 @@ public sealed class NPCMind
     // re-approached a recipient who settled a step away. Never persisted.
     public int GiftReapproachCount { get; set; }
 
+    // #749: the house module the player pointed at when ordering "Build" —
+    // its world position; the builder works from there outward. Transient.
+    public HexLive.Simulation.Common.Float2? ManualBuildFocus { get; set; }
+
     // §123.5: the last instant inventory operation that succeeded, to swallow
     // its exact repeat (double click / click before the snapshot arrived).
     // Transient, wall-clock stamped, never persisted.

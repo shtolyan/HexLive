@@ -611,6 +611,18 @@ public static class BuildingRules
                 element.WorkDone = 0;
                 element.Buildable = definition.Kind != BuildingElementKind.Roof;
             }
+            else if (definition.Kind != BuildingElementKind.Roof)
+            {
+                // ⭐ Модуль, добавленный ПРАВКОЙ уже строящегося дома (новая
+                // комната, перенесённая дверь), обязан стать строимым. У такого
+                // дома InstalledBuildMaterials уже заведён, ветка выше не
+                // срабатывала, и новые опоры и двери навсегда оставались
+                // Buildable=false: материалы завезены, ставить некуда, крыша
+                // не открывается (ей нужна половина опор), а вид прячет
+                // нестроимые детали. Замер на живом сейве: дом 205348 — 7 опор
+                // и 2 двери мёртвые, 0 установок за 3000 тиков.
+                element.Buildable = true;
+            }
             piece.RotationDegrees = owner.RotationDegrees;
         }
 
@@ -830,6 +842,29 @@ public static class BuildingRules
         foreach (var element in elements)
             if (element.DefinitionId == "architecture.roof.palm" && element.Complete) count++;
         return count;
+    }
+
+    /// <summary>Лечение сейва: незавершённый модуль дома, кроме крыши, всегда
+    /// строим (крышу открывает <see cref="RefreshRoofBuildability(IEnumerable{ArchitectureElementState})"/>).
+    /// Дома, правленные до исправления выше, несут мёртвые опоры и двери —
+    /// загрузка возвращает их в работу. Идемпотентно.</summary>
+    internal static void RepairModuleBuildability(WorldState world, WorldObjectState owner)
+    {
+        var elements = Elements(world, owner).ToArray();
+        var repaired = 0;
+        foreach (var element in elements)
+        {
+            if (element.Complete || element.Buildable || element.DemolitionPlanned ||
+                element.DefinitionId == "architecture.roof.palm") continue;
+            element.Buildable = true;
+            repaired++;
+        }
+
+        if (repaired == 0) return;
+        RefreshRoofBuildability(elements);
+        if (SimTrace.Enabled)
+            Trace.DebugSystem(world, "BuildModulesRepaired",
+                $"Owner={owner.Id.Value} Modules={repaired}");
     }
 
     private static void RefreshRoofBuildability(IEnumerable<ArchitectureElementState> elements)

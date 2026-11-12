@@ -1392,6 +1392,7 @@ public static class WorldSaveSerializer
                 BuildingRules.ReconcileCompletedHutElements(world, plan);
             else
                 BuildingRules.RefreshHutElementGeometry(world, plan);
+            BuildingRules.RepairModuleBuildability(world, plan);
             HexLive.Simulation.Bootstrap.BuildingBootstrap.RepairPlanTopology(world, plan);
             if (plan.DefinitionId == ContentIds.HutPlan)
                 HexLive.Simulation.Bootstrap.BuildingBootstrap.StakePlanFurnitureSites(world, plan);

@@ -27,7 +27,10 @@ public sealed class BuildSiteSelectionUiContractTests
         Assert.That(renderer, Does.Contain("SetContextProxy(ownerId, ContentIds.BuildSite)"));
         Assert.That(renderer, Does.Contain("ClearContextProxy()"));
         Assert.That(input, Does.Contain("view.ContextDefinitionId"));
-        Assert.That(input, Does.Contain("var objectId = view.ContextObjectId"));
+        // #749: «Строить» addresses the clicked module itself; the simulation
+        // redirects it to the footprint owner and walks the builder to that piece.
+        Assert.That(input, Does.Contain(
+            "var objectId = interaction.Type == InteractionType.Build ? view.ObjectId : view.ContextObjectId"));
         Assert.That(view, Does.Contain("public void SetContextProxy"));
     }
 

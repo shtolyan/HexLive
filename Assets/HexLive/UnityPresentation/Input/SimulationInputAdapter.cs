@@ -1279,7 +1279,10 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
                 : (BodyPartFunctionSnapshotMath.LimbFunction(actingNpc.BodyPartConditions, BodyPart.ArmR) >= BodyState.UsableHandFunctionThreshold ? 1 : 0)
                 + (BodyPartFunctionSnapshotMath.LimbFunction(actingNpc.BodyPartConditions, BodyPart.ArmL) >= BodyState.UsableHandFunctionThreshold ? 1 : 0);
             var ok = ActionRequirements.HasTool(carried, interaction.RequiredCapabilities, usableHands);
-            var objectId = view.ContextObjectId;
+            // #749: «Строить» адресует ту деталь дома, на которую нажали —
+            // симуляция сама переведёт приказ на владельца следа и поведёт
+            // строителя именно к ней. Остальные действия идут контекстной цели.
+            var objectId = interaction.Type == InteractionType.Build ? view.ObjectId : view.ContextObjectId;
             var type = interaction.Type;
             var interactionId = interaction.Id;
             var emptyDrink = type == InteractionType.Drink && clicked != null &&

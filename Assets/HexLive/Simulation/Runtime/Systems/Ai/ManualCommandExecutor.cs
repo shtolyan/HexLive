@@ -2977,11 +2977,38 @@ internal static partial class ManualCommandExecutor
         }
 
         if (command.Interaction == InteractionType.Build &&
-            world.Entities.Objects.TryGetValue(command.Target, out var buildSite) &&
-            ManualBuildSession.Eligible(buildSite))
+            world.Entities.Objects.TryGetValue(command.Target, out var buildSite))
         {
-            StartBuildSession(world, npc, buildSite, command.InteractionId, admission);
-            return;
+            // #749: «Строить» по конкретной детали дома. Деталь — не площадка
+            // (счёт материалов ведёт владелец следа), поэтому приказ уходит
+            // владельцу, а деталь запоминается как место, от которого ручная
+            // выбирает работу: она идёт именно к этой стене/опоре/двери.
+            npc.Mind.ManualBuildFocus = null;
+            // Деталь под разборкой (§120.14) — сама себе площадка: её приказ
+            // остаётся на ней, как и раньше.
+            if (buildSite.ArchitectureOwnerId is { } houseId && buildSite.ArchitectureElements.Count > 0 &&
+                !buildSite.ArchitectureElements[0].DemolitionPlanned &&
+                !BuildSiteMath.IsSite(buildSite) && !houseId.Equals(buildSite.Id) &&
+                world.Entities.Objects.TryGetValue(houseId, out var house))
+            {
+                npc.Mind.ManualBuildFocus = BuildWorkPoint.ModulePosition(
+                    world, house, buildSite.ArchitectureElements[0]);
+                buildSite = house;
+            }
+
+            if (ManualBuildSession.Eligible(buildSite))
+            {
+                StartBuildSession(world, npc, buildSite, command.InteractionId, admission);
+                return;
+            }
+
+            if (!buildSite.Id.Equals(command.Target))
+            {
+                TryStartInteractOrder(
+                    world, npc, buildSite.Id, command.Interaction, command.InteractionId,
+                    "Interact", admission);
+                return;
+            }
         }
 
         TryStartInteractOrder(
@@ -3366,7 +3393,16 @@ internal static partial class ManualCommandExecutor
             world, anchor, interactionType);
 
         JunctionId target;
-        if (multiSeat)
+        // #748: ручная стройка дома идёт к ДЕТАЛИ тем же BuildWorkPoint, что и
+        // автономная (§120.15). Раньше приказ всегда вёл к якорю здания: она
+        // стояла в центре дома и «строила» оттуда, пока остальные работали у
+        // своих стен. Только если у детали встать негде — прежний якорь.
+        if (interactionType == InteractionType.Build &&
+            BuildWorkPoint.TryReserve(world, npc, worldObject, Spec121.ManualReserveTicks, out var pieceStand))
+        {
+            target = pieceStand;
+        }
+        else if (multiSeat)
         {
             if (!FurnitureSeats.TryReserveSeat(world, npc, worldObject, Spec121.ManualReserveTicks, out target))
             {

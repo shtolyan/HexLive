@@ -38,12 +38,12 @@ public static class CharacterView
         string G(string female, string masculine) => male ? masculine : female;
         var list = new[]
         {
-            Bad(Need(needs, "hunger"), G("немного голодна", "немного голоден"), G("голодна", "голоден"), "умирает от голода"),
-            Bad(Need(needs, "thirst"), "хочет пить", "сильная жажда", "умирает от жажды"),
+            Bad(Need(needs, "hunger"), G("немного голодна", "немного голоден"), G("голодна", "голоден"), "мучительный голод"),
+            Bad(Need(needs, "thirst"), "хочет пить", "сильная жажда", "мучительная жажда"),
             Low(Need(needs, "energy"), G("немного устала", "немного устал"), G("очень устала, хочет спать", "очень устал, хочет спать"), "валится с ног"),
             Low(Need(needs, "stamina"), G("чуть запыхалась", "чуть запыхался"), G("выдохлась", "выдохся"), "совсем нет сил"),
             Low(Need(needs, "health"), "побаливает", G("ранена", "ранен"), G("тяжело ранена", "тяжело ранен")),
-            Low(Need(needs, "blood"), "слабость от потери крови", "сильная кровопотеря", "на грани от кровопотери"),
+            Low(Need(needs, "blood"), "слабость от потери крови", "сильная кровопотеря", "крайне сильная кровопотеря"),
             Low(Need(needs, "hygiene"), G("немного грязная", "немного грязный"), G("грязная", "грязный"), G("очень грязная", "очень грязный")),
         }.Where(x => x != null).Select(x => x!).ToList();
         return list.Count > 0 ? list : ["чувствует себя хорошо"];
@@ -58,6 +58,14 @@ public static class CharacterView
         sb.Append("Пол: ").Append(male
             ? "мужчина — о себе говоришь в мужском роде (я пошёл, я устал, я рад)"
             : "женщина — о себе говоришь в женском роде (я пошла, я устала, я рада)").Append('\n');
+        var origin = Text(d, "speechOrigin") switch
+        {
+            "Island" => "твоя жизнь связана с островом. Под домом имеешь в виду остров и свой лагерь.",
+            "Modern" => "ты из современного мира, где были квартиры и бытовые вещи. Можешь скучать по прежнему дому.",
+            "Raider" => "ты островной чужак. Твой родной язык — хекскуфа. Под домом имеешь в виду остров.",
+            _ => null
+        };
+        if (origin != null) sb.Append("Происхождение: ").Append(origin).Append('\n');
         if (d.TryGetProperty("tick", out var tick) && tick.TryGetInt64(out var t))
             sb.Append("Свежий снимок сервера, tick=").Append(t).Append('\n');
         if(d.TryGetProperty("perceptionTick",out var pt) && pt.TryGetInt32(out var observed))
@@ -66,9 +74,12 @@ public static class CharacterView
             sb.Append("Окружение сейчас: ").Append(environment.GetRawText()).Append('\n');
         AppendWardrobe(sb, d);
         if (d.TryGetProperty("stateSummary", out var state)) sb.Append("Тело и занятие: ").Append(state.GetString()).Append('\n');
-        if (d.TryGetProperty("bodyNeeds", out var needs))
+        if (d.TryGetProperty("bodyNeeds", out var needs) && needs.ValueKind == JsonValueKind.Object)
+        {
             // Words, not numbers: the model read hunger 0.71 ("1 = starving") as "barely hungry".
+            AppendHealth(sb, needs);
             sb.Append("Самочувствие: ").Append(string.Join(", ", Feelings(needs, male))).Append('\n');
+        }
         if (d.TryGetProperty("inOwnCamp", out var camp) && camp.ValueKind is JsonValueKind.True or JsonValueKind.False)
             sb.Append("В своём лагере: ").Append(camp.GetBoolean() ? "да" : "нет").Append('\n');
         if (d.TryGetProperty("campStock", out var stock)) sb.Append("Запасы лагеря: ").Append(stock.GetRawText()).Append('\n');
@@ -151,6 +162,34 @@ public static class CharacterView
                 .Append(JsonSerializer.Serialize(mobs.EnumerateArray().Take(8))).Append('\n');
         sb.Append("Память и архив не являются текущим зрением. Нет предмета в коротком списке — уточни inspect_surroundings.\n");
         return sb.ToString();
+    }
+
+    private static void AppendHealth(StringBuilder sb, JsonElement needs)
+    {
+        if (Flag(needs, "dying"))
+        {
+            var cause = Text(needs, "dyingCause") switch
+            {
+                "BloodLoss" => "кровопотеря",
+                "VitalCrushed" => "тяжёлая травма",
+                "Starvation" => "голод",
+                "Dehydration" => "обезвоживание",
+                _ => "причина неизвестна"
+            };
+            sb.Append("Здоровье сейчас: угроза жизни подтверждена (").Append(cause).Append(").\n");
+            return;
+        }
+
+        var health = Need(needs, "health") switch
+        {
+            >= .95 => "в норме",
+            > .6 => "снижено",
+            > .35 => "умеренно снижено",
+            > .15 => "сильно снижено",
+            >= 0 => "критически низкое",
+            _ => "нет свежих данных"
+        };
+        sb.Append("Здоровье сейчас: ").Append(health).Append(".\n");
     }
 
     // §171.25: common knowledge about the island's camps. Never residents.

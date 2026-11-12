@@ -3,6 +3,7 @@ using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Runtime;
 using NUnit.Framework;
 
@@ -104,6 +105,45 @@ public sealed class InteractionOrphanTests
         Assert.That(npc.IsLyingDown(world.Tick), Is.False);
         Assert.That(bed.IsOccupied, Is.False);
         Assert.That(bed.CurrentUser, Is.Null);
+    }
+
+    [TestCase(1f, .2f, false)]
+    [TestCase(.1f, .95f, false)]
+    [TestCase(1f, .2f, true)]
+    public void APlanlessSleeperWakesWhenRestedOrThirstyUnlessUnconscious(
+        float energy, float thirst, bool bloodLoss)
+    {
+        var world = TestWorld.CreateWorld();
+        var npc = world.Entities.Npcs.Values.First();
+        var bed = world.Entities.Objects.Values.First(o =>
+            o.DefinitionId == ContentIds.BedBasic && o.Junctions.Count > 0);
+        npc.Health = .49f;
+        npc.Needs.Energy = energy;
+        npc.Needs.Hunger = .2f;
+        npc.Needs.Thirst = thirst;
+        npc.Mind.ComaCause = bloodLoss ? ComaCause.BloodLoss : ComaCause.None;
+        npc.Movement.SetStatus(MovementStatus.Moving);
+        npc.Plan.Status = PlanStatus.None;
+        Assert.That(BedSleep.TryEnter(world, npc, bed, int.MaxValue, npc.CurrentJunction), Is.True);
+        Assert.That(npc.Movement.Status, Is.EqualTo(MovementStatus.Arrived));
+
+        new SleepPlanConsistencySystem().Run(world);
+
+        if (bloodLoss)
+        {
+            Assert.That(npc.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Sleep));
+            Assert.That(bed.CurrentUser, Is.EqualTo(npc.Id));
+            return;
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Execution.CurrentInteraction, Is.Null);
+            Assert.That(npc.Mind.WakeGraceUntilTick, Is.GreaterThan(world.Tick));
+            Assert.That(npc.CurrentJunction, Is.Not.EqualTo(bed.Junctions[0]));
+            Assert.That(bed.IsOccupied, Is.False);
+            Assert.That(bed.CurrentUser, Is.Null);
+        });
     }
 
     /// <summary>

@@ -713,6 +713,7 @@ public static class WorldSnapshotExporter
             TargetObjectId = (npc.Execution.TargetObject ?? npc.Plan.TargetObjectId)?.Value,
             Id = npc.Id,
             ProfileId = npc.ProfileId,
+            SpeechOrigin = npc.SpeechOrigin,
             UseAuthoredAppearance = npc.UseAuthoredAppearance,
             DisplayName = npc.DisplayName,
             ActorMesh = npc.ActorMesh,
@@ -756,6 +757,7 @@ public static class WorldSnapshotExporter
             HitFrom = npc.HitFrom,
             Hunger = npc.Needs.Hunger,
             Thirst = npc.Needs.Thirst,
+            ManualSleepRefusal = ExecutionSystem.GetSleepInterruptReason(world, npc, manualOrder: true) ?? string.Empty,
             Energy = npc.Needs.Energy,
             Comfort = npc.Needs.Comfort,
             Social = npc.Needs.Social,
@@ -797,7 +799,6 @@ public static class WorldSnapshotExporter
             IsManualControl = npc.Mind.PersistedManualControl, // §121: the player's switch, not an external agent
             TravelLeaderNpcId = npc.Mind.TravelLeaderNpcId?.Value,
             RunByDefault = npc.Mind.RunByDefault, // §121.11
-            OutfitLocked = npc.Mind.OutfitLocked, // §133.9
             CurrentDream = npc.Mind.CurrentDream.ToString(),
             DirectiveKind = npc.Mind.Directive?.Kind.ToString() ?? string.Empty, // §167
             DirectiveFromNpcId = npc.Mind.Directive?.FromId?.Value,
@@ -1261,6 +1262,7 @@ public static class WorldSnapshotExporter
             }
         }
 
+        npc.Mind.PlayerOrders.CopyTo(npcSnapshot.PlayerOrders);
         return npcSnapshot;
     }
 

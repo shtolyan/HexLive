@@ -49,16 +49,29 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        var patientOnBed = BedSleep.TryGetOccupiedBed(world, patient, out var supportBed);
+        if (patientOnBed)
+        {
+            if (!InteractionReach.CheckBedOccupantStart(
+                    world, helper, patient, supportBed, "limb care"))
+            {
+                AbortLimbCare(world, helper, patient, "patient out of bedside reach");
+                return;
+            }
+
+            FaceHelperToward(helper, patient);
+        }
+
         if (helper.Execution.Status == ExecutionStatus.None)
         {
-            if (!InteractionReach.CheckStart(
+            if (!patientOnBed && !InteractionReach.CheckStart(
                     world, helper, patient.Position, InteractionReach.Aid, "limb care"))
             {
                 AbortLimbCare(world, helper, patient, "patient out of reach");
                 return;
             }
 
-            if (patient.IsLyingDown(world.Tick))
+            if (!patientOnBed && patient.IsLyingDown(world.Tick))
             {
                 // §111.13: лечение конечности ходит своим подходом (§118), мимо
                 // общей брони станций, — значит берёт её здесь.
@@ -95,7 +108,7 @@ public sealed partial class ExecutionSystem
         if (world.Tick < helper.Execution.EndTick)
         {
             HoldSceneJunction(world, helper);
-            if (patient.IsLyingDown(world.Tick))
+            if (!patientOnBed && patient.IsLyingDown(world.Tick))
             {
                 // §111.13: поза удерживается, но не догоняет уехавшее тело.
                 var slot = LyingStations.SlotFor(world, helper, patient);

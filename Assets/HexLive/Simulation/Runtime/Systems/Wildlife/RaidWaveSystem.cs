@@ -190,6 +190,33 @@ public sealed class RaidWaveSystem : ISimulationSystem
             ? new EntityId(IslandRaiderIdBase + (int)island * IslandRaiderIdStride + wave)
             : new EntityId(ExtendedIslandRaiderIdBase + wave * ExtendedIslandRaiderIdStride + (int)island);
 
+    internal static bool WasLegacyRaider(WorldState world, EntityId npcId)
+    {
+        var id = npcId.Value;
+        var globalWave = id - RuntimeRaiderIdBase;
+        // The old global sequence overlaps the arrival ID band from 2000.
+        // Only the exclusive part can identify a former raider by itself.
+        if (globalWave is > 0 and < 1000 && globalWave <= world.RaidWavesSpawned)
+            return true;
+
+        foreach (var pair in world.IslandOutsiderWavesByFaction)
+        {
+            if (!FactionRelations.IsGirlCamp(pair.Key)) continue;
+            var first = IslandRaiderId(pair.Key, 0).Value;
+            var wave = id - first;
+            if (wave is > 0 and < IslandRaiderIdStride && wave <= pair.Value)
+                return true;
+
+            var offset = id - ExtendedIslandRaiderIdBase - (int)pair.Key;
+            if (offset < IslandRaiderIdStride * ExtendedIslandRaiderIdStride ||
+                offset % ExtendedIslandRaiderIdStride != 0) continue;
+            wave = offset / ExtendedIslandRaiderIdStride;
+            if (id < Bootstrap.PlayerCharacterCreation.FirstNpcId && wave <= pair.Value)
+                return true;
+        }
+        return false;
+    }
+
     // «Мёртв» = его нет среди живых. Труп с тем же id границу не держит.
     internal static bool HasLivingIslandOutsider(WorldState world, Faction island)
         => LivingIslandOutsiders(world, island) > 0;
@@ -289,6 +316,7 @@ public sealed class RaidWaveSystem : ISimulationSystem
             EyeColor = female ? look.EyeColor : string.Empty,
             Hairstyle = female ? look.Hairstyle : string.Empty,
             VoiceBank = female ? look.VoiceBank : "kshishtof",
+            SpeechOrigin = NpcSpeechOrigin.Raider,
             Faction = Faction.Outsiders,
             Fragment = landing.Fragment,
             Tile = landing.Tile,

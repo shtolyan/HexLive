@@ -1053,6 +1053,13 @@ public sealed partial class PlanningSystem
             : null;
     }
 
+    internal static JunctionId? TryReserveBedsideApproach(
+        WorldState world, NPCState npc, NPCState patient, WorldObjectState bed)
+    {
+        return FindBedsideApproach(world, npc, patient, bed,
+            PathfindingSystem.OtherActorJunctions(world, npc), reserve: true);
+    }
+
     private static bool IsArmsLengthCandidate(
         WorldState world, NPCState npc, NPCState partner, JunctionId partnerJunction,
         JunctionId candidate,
@@ -1074,10 +1081,13 @@ public sealed partial class PlanningSystem
             return false;
         }
 
+        var available = SpatialQueries.IsJunctionFree(world, candidate) ||
+            ManualControlMath.IsManual(npc) && npc.CurrentJunction == candidate &&
+            JunctionAvailableFor(world, candidate, npc.Id);
         return !BlockedByActor(
                    occupiedByActor, candidate, candidateJunction,
                    hasStation, stationSpot) &&
-               SpatialQueries.IsJunctionFree(world, candidate) &&
+               available &&
                CanWalkTo(world, npc, candidate, occupiedByActor);
     }
 

@@ -171,7 +171,11 @@ public sealed class Handshake
     // 26: §173.2 — exact inventory-seed planting command and target junction.
     // 27: #487 — exact encoder vocabulary, independent of either side's code defaults.
     // 28: #644 — snapshot v45 has ushort object flags and real property/consent.
-    public const int ProtocolVersion = 29; // matched client/server required
+    // 29: §176 — portal destination and surface items.
+    // 30: §176 — the reserved apartment grid and visit-specific topology.
+    // 31: §121.9 — snapshot v47 carries the reason a manual sleep order is blocked.
+    //     §54.14 — command v13 can name the exact station for cooking.
+    public const int ProtocolVersion = 33; // matched client/server required
 
     public string WorldId { get; set; } = string.Empty;
     public string CreationConfig { get; set; } = string.Empty;

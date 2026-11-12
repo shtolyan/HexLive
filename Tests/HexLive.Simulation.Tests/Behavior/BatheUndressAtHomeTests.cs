@@ -612,7 +612,9 @@ public sealed class BatheUndressAtHomeTests
             // v91 (§176): durable portal settings, aperture and active visit.
             // v92 (§176): loose item surface parent and slot.
             // v93 (§128.5/#692): contents of a carried backpack.
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(93));
+            // v94 (§176): visit serial and reserved topology for regenerated apartments.
+            // v95 (§67.16/#695): immutable NPC speech origin.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(95));
         });
     }
 

@@ -40,6 +40,7 @@ public static class PortableFurniture
         "furniture.modern_fridge" => .49f,
         "furniture.modern_chair" => .34f,
         PortalWorld.ApartmentShelfDefinitionId => .39f,
+        ContentIds.ModernWardrobe => ModernLootCatalog.WardrobeFootprintRadius,
         _ => 0f,
     };
 

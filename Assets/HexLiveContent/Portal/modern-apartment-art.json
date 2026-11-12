@@ -592,6 +592,40 @@
     },
     {
       "type": "object",
+      "id": "furniture.modern_wardrobe",
+      "main": "Assets/HexLiveContent/RuntimeSource/Objects/furniture.modern_wardrobe.fbx",
+      "metadata": {
+        "contentOrigin": "modern",
+        "hasIcon": true,
+        "legacyResourcePath": "HexLive/Objects/furniture.modern_wardrobe",
+        "legacyResourceFolder": "HexLive/Objects"
+      },
+      "shape": "standing",
+      "materials": [
+        "ApartmentCharcoal",
+        "ApartmentWalnutLight",
+        "ApartmentWalnut",
+        "ApartmentSage",
+        "ApartmentSteel"
+      ],
+      "triangles": 400,
+      "blenderBounds": {
+        "min": [
+          -0.20999999344348907,
+          -0.4130000174045563,
+          0.0
+        ],
+        "max": [
+          0.20999999344348907,
+          0.4130000174045563,
+          1.3600000143051147
+        ]
+      },
+      "icon": "Assets/HexLiveContent/Icons/furniture.modern_wardrobe.png",
+      "targetWorldSize": 1.3600000143051147
+    },
+    {
+      "type": "object",
       "id": "architecture.modern_window_jamb",
       "main": "Assets/HexLiveContent/RuntimeSource/Objects/architecture.modern_window_jamb.fbx",
       "metadata": {

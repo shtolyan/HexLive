@@ -146,6 +146,7 @@ public sealed class NpcBootstrap
     public string Hairstyle { get; set; } = string.Empty;
 
     public string VoiceBank { get; set; } = string.Empty;
+    public Agents.NpcSpeechOrigin SpeechOrigin { get; set; }
 
     // §72: Colony (the girls) unless the world explicitly seeds an outsider.
     public Agents.Faction Faction { get; set; } = Agents.Faction.Colony;

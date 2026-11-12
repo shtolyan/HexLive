@@ -39,6 +39,14 @@ namespace HexLive.UnityPresentation.Environment
             if (definitionId == ContentIds.BedBasic) return HutFurnitureFactory.BuildBed();
             if (definitionId == "furniture.hearth") return HutFurnitureFactory.BuildHearth();
             if (definitionId == ContentIds.Wardrobe) return WardrobeAssembly.BuildFinished();
+            if (definitionId == ContentIds.HeadPike)
+            {
+                var model = WorldPropResources.Build(definitionId);
+                if (model == null) return null;
+                var root = new GameObject($"Object {definitionId}");
+                model.transform.SetParent(root.transform, false);
+                return root;
+            }
             if (PortalWorld.IsFurniture(definitionId))
             {
                 var prefab = ModernApartmentView.LoadPrefab(definitionId);

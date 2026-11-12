@@ -842,6 +842,29 @@ public sealed class KenshiCoreTests
     }
 
     [Test]
+    public void WoundSpeechIgnoresAFittedProstheticAndKeepsRealInjuries()
+    {
+        var target = TestWorld.CreateWorld().Entities.Npcs.Values.First();
+        target.Body.Sever(BodyPart.ArmR);
+        target.Body.Condition(BodyPart.ArmR).Prosthetic = new ProstheticState
+        {
+            DefinitionId = ContentIds.WoodenArm,
+            Part = BodyPart.ArmR,
+            Condition = 0.1f,
+            MaxCondition = 0.6f
+        };
+        target.Wounds.Add(new WoundState { Zone = BodyPart.ArmR, Severity = 0.2f });
+        Assert.That(WoundMath.HasPainfulWound(target), Is.False);
+
+        var organicWound = new WoundState { Zone = BodyPart.Torso, Severity = 0.2f };
+        target.Wounds.Add(organicWound);
+        Assert.That(WoundMath.HasPainfulWound(target), Is.True);
+
+        organicWound.Heal01 = 1f;
+        Assert.That(WoundMath.HasPainfulWound(target), Is.False);
+    }
+
+    [Test]
     public void Prosthetic_TakesConditionDamageWithoutBloodAndBreaksToStump()
     {
         var world = TestWorld.CreateWorld();

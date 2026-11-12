@@ -731,7 +731,7 @@ public static class BuildingRules
         var target = candidates[StableIndex(owner.Id.Value, delivered, materialId, candidates.Count)];
         if (near is { } builder)
         {
-            // §120.14: она строит ту деталь, у которой стоит — ближайшую к себе.
+            // §120.15: она строит ту деталь, у которой стоит — ближайшую к себе.
             var best = float.MaxValue;
             foreach (var candidate in candidates)
             {

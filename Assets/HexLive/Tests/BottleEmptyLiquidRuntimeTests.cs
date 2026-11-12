@@ -46,6 +46,17 @@ public sealed class BottleEmptyLiquidRuntimeTests
             Assert.That(liquid.enabled,Is.True,"A real fractional remainder must remain distinguishable from zero.");
             BottleLiquidVisual.Sync(bottle,0f,WaterKind.Raw);
             Assert.That(liquid.enabled,Is.False,"Even an obsolete appearance cannot paint water into an empty vessel.");
+
+            BottleLiquidVisual.Sync(bottle,.41f,WaterKind.Coconut);
+            yield return new WaitForSecondsRealtime(.4f);
+            var level41 = liquid.transform.localScale.y;
+            var coconut = liquid.sharedMaterial.GetColor("_BaseColor");
+            BottleLiquidVisual.Sync(bottle,.42f,WaterKind.Rain);
+            yield return new WaitForSecondsRealtime(.15f);
+            Assert.That(level41,Is.GreaterThan(0f));
+            Assert.That(liquid.transform.localScale.y/level41,Is.EqualTo(.42f/.41f).Within(.001f));
+            Assert.That(liquid.sharedMaterial.GetColor("_BaseColor").b,Is.GreaterThan(coconut.b));
+            Assert.That(liquid.sharedMaterial.GetColor("_BaseColor").r,Is.LessThan(coconut.r));
         }
         finally
         {

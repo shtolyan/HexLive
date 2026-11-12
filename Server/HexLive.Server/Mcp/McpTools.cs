@@ -944,6 +944,7 @@ public sealed class McpTools
                 // its local workspace; no generic turn writes these fields.
                 ["legacyAgentState"] = LegacyAgentState(npc),
                 ["stateSummary"] = context.StateSummary,
+                ["speechOrigin"] = npc.SpeechOrigin.ToString(),
                 ["bodyNeeds"] = McpPlanningObservations.Needs(npc),
                 ["restReadiness"] = McpPlanningObservations.RestReadiness(world, npc),
                 ["inOwnCamp"] = ColonyQueries.InCamp(world, npc.Tile, npc.Faction),
@@ -1339,7 +1340,8 @@ public sealed class McpTools
             isError = true;
             return "utteranceId/turnId/text обязательны, sha256 содержит 64 hex-символа.";
         }
-        if ((delivery == AgentSpeechDelivery.PlayerReply && priority != AgentSpeechPriority.Talk) ||
+        if (delivery == AgentSpeechDelivery.PlayerBroadcast ||
+            (delivery == AgentSpeechDelivery.PlayerReply && priority != AgentSpeechPriority.Talk) ||
             (delivery == AgentSpeechDelivery.World && priority != AgentSpeechPriority.Ambient))
         {
             isError = true;

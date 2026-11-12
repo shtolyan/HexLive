@@ -36,6 +36,25 @@ public sealed class DeepgramTokenBroker : IDisposable
 
     public bool Available => _apiKey.Length > 0;
 
+    internal async Task<string> TranscribePlayerSpeechAsync(byte[] wav, string language, CancellationToken token)
+    {
+        var uri = "https://api.deepgram.com/v1/listen?model=nova-3&smart_format=true&punctuate=true&language=" +
+            (language == "ru" ? "ru" : "en");
+        using var request = new HttpRequestMessage(HttpMethod.Post, uri);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Token", _apiKey);
+        request.Content = new ByteArrayContent(wav);
+        request.Content.Headers.ContentType = new MediaTypeHeaderValue("audio/wav");
+        using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
+        response.EnsureSuccessStatusCode();
+        await using var stream = await response.Content.ReadAsStreamAsync(token);
+        using var json = await JsonDocument.ParseAsync(stream, cancellationToken: token);
+        var channels = json.RootElement.GetProperty("results").GetProperty("channels");
+        if (channels.GetArrayLength() == 0) return string.Empty;
+        var alternatives = channels[0].GetProperty("alternatives");
+        return alternatives.GetArrayLength() == 0 ? string.Empty :
+            alternatives[0].GetProperty("transcript").GetString()?.Trim() ?? string.Empty;
+    }
+
     public async Task<DeepgramGrantResult> GrantAsync(string controlOwner,
         CancellationToken cancellationToken)
     {

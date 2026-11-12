@@ -148,7 +148,7 @@ internal static class AidSupply
         var id = item.DefinitionId;
         var needsBlade = id == ContentIds.Coconut || id == ContentIds.CoconutPierced;
         if (needsBlade && !DecisionSystem.HasCoconutBlade(npc)) return false;
-        InventoryMath.RemoveReference(npc.Inventory.Items, item);
+        FoodMath.SpendInventoryBite(npc, item);
         spend = new Spend(id, needsBlade ? Spec53.FeedRelief : NutritionOf(world, id), false);
         return true;
     }

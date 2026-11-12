@@ -66,6 +66,34 @@ public sealed class CharacterViewTests
     }
 
     [Test]
+    public void FullHealthAndSevereThirstDoNotImplyLifeIsInDanger()
+    {
+        using var state = JsonDocument.Parse("""{"bodyNeeds":{"health":1,"thirst":1,"dying":false}}""");
+        Assert.That(CharacterView.Build(state.RootElement),
+            Does.Contain("Здоровье сейчас: в норме").And.Contain("Самочувствие: мучительная жажда")
+                .And.Not.Contain("умирает").And.Not.Contain("угроза жизни"));
+    }
+
+    [Test]
+    public void ExplicitDyingStateIsReportedEvenWithFullHealth()
+    {
+        using var state = JsonDocument.Parse("""
+            {"bodyNeeds":{"health":1,"thirst":1,"dying":true,"dyingCause":"Dehydration"}}
+            """);
+        Assert.That(CharacterView.Build(state.RootElement),
+            Does.Contain("угроза жизни подтверждена (обезвоживание)").And.Not.Contain("Здоровье сейчас: в норме"));
+    }
+
+    [TestCase("Island", "свой лагерь")]
+    [TestCase("Modern", "прежнему дому")]
+    [TestCase("Raider", "родной язык — хекскуфа")]
+    public void PersonalHistoryUsesOriginEvenAfterJoiningACamp(string speechOrigin, string description)
+    {
+        var state = JsonSerializer.SerializeToElement(new { speechOrigin, faction = "Colony" });
+        Assert.That(CharacterView.Build(state), Does.Contain("Происхождение:").And.Contain(description));
+    }
+
+    [Test]
     public void AManSpeaksOfHimselfInTheMasculine()
     {
         // §58.9: a Kshishtof body on the phone said «я устала» and «голодна».

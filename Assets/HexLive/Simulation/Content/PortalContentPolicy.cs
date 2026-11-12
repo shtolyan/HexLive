@@ -15,7 +15,7 @@ public static class PortalContentPolicy
     {
         "portal.modern_door",
         "furniture.modern_bed", ContentIds.ModernFridge, "furniture.modern_table", "furniture.modern_chair",
-        "furniture.modern_sofa", "furniture.modern_tv", "furniture.modern_shelf",
+        "furniture.modern_sofa", "furniture.modern_tv", "furniture.modern_shelf", ContentIds.ModernWardrobe,
         ContentIds.KitchenKnife, ContentIds.BaseballBat, ContentIds.SteelHatchet, ContentIds.Flashlight,
         ContentIds.DisposableLighter, ContentIds.WindproofLighter, ContentIds.ClawHammer, ContentIds.FoldingSaw,
         ContentIds.Apple, ContentIds.Banana, ContentIds.DollarBills, ContentIds.KitchenLadle,
@@ -33,23 +33,13 @@ public static class PortalContentPolicy
         "architecture.modern_window_jamb",
     });
 
-    public static IReadOnlyList<string> Wear { get; } = Array.AsReadOnly(new[]
-    {
-        "clothing.shorts_classic", "clothing.halter_vamp", "clothing.croptop_fit",
-    });
+    public static IReadOnlyList<string> Wear => PortalWardrobeCatalog.Wear;
+    public static IReadOnlyList<string> PaintMaps => PortalWardrobeCatalog.PaintMaps;
 
-    // These six owners match the approved fit artifacts for the three base garments.
-    public static IReadOnlyList<string> PaintMaps { get; } = Array.AsReadOnly(new[]
-    {
-        "paintmaps.garment_7d6cad5d36b3b05cbb5a7eeb44441552_6b8e58100bebef1d3ebf4e8a_marta_4246",
-        "paintmaps.garment_7d6cad5d36b3b05cbb5a7eeb44441552_6b8e58100bebef1d3ebf4e8a_kshishtof_4246",
-        "paintmaps.garment_09ed605d5ca9ce194bb16e5b7659ed70_46302d2607153dc1a50379b2_marta_5237",
-        "paintmaps.garment_09ed605d5ca9ce194bb16e5b7659ed70_46302d2607153dc1a50379b2_kshishtof_5237",
-        "paintmaps.garment_ef9e673e27cf381b9e7c49c154ff158b_77a59b76230ea0db48c55dcf_marta_1607",
-        "paintmaps.garment_ef9e673e27cf381b9e7c49c154ff158b_77a59b76230ea0db48c55dcf_kshishtof_1607",
-    });
+    private static readonly HashSet<string> WearIds = new(Wear, StringComparer.Ordinal);
+    private static readonly HashSet<string> PaintMapIds = new(PaintMaps, StringComparer.Ordinal);
 
-    public static bool IsPortalWear(string id) => Wear.Contains(id, StringComparer.Ordinal);
+    public static bool IsPortalWear(string id) => WearIds.Contains(id);
 
     // Classification can identify future modern art. Approval remains an exact allowlist.
     public static bool IsModernWorldOwner(string type, string id) =>
@@ -61,7 +51,7 @@ public static class PortalContentPolicy
         "object" => Objects.Contains(id, StringComparer.Ordinal),
         "building" => Buildings.Contains(id, StringComparer.Ordinal),
         "wear" => IsPortalWear(id),
-        "config" => PaintMaps.Contains(id, StringComparer.Ordinal),
+        "config" => PaintMapIds.Contains(id),
         _ => false,
     };
 }

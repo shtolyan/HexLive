@@ -66,6 +66,12 @@ internal static partial class ManualCommandExecutor
 
         switch (command)
         {
+            case QueuePlayerOrderCommand queued:
+                ApplyQueuePlayerOrder(world, queued, admission);
+                break;
+            case CancelPlayerOrderCommand cancelled:
+                ApplyCancelPlayerOrder(world, cancelled, admission);
+                break;
             case RecordAgentSocialCommand agentSocial:
                 ApplyRecordAgentSocial(world, agentSocial, admission);
                 break;
@@ -128,7 +134,7 @@ internal static partial class ManualCommandExecutor
                 ApplyCraft(world, craft.Npc, GoalType.None, craft.OutputDefinitionId, admission);
                 break;
             case CraftItemCommand craft:
-                ApplyCraft(world, craft.Npc, craft.RecipeGoal, null, admission);
+                ApplyCraft(world, craft.Npc, craft.RecipeGoal, null, admission, craft.Station);
                 break;
             case TalkToCommand talkTo:
                 ApplyTalkTo(world, talkTo, admission);
@@ -738,13 +744,7 @@ internal static partial class ManualCommandExecutor
             return;
         }
 
-        OutfitMaintenanceMath.SetLockedOutfit(world, npc, command.Enabled);
-        if (SimTrace.Enabled)
-        {
-            Trace.Debug(world, npc.Id, "OutfitLockChanged",
-                $"Enabled={(command.Enabled ? 1 : 0)} " +
-                $"Selected={npc.Mind.DesiredOutfit.Count}");
-        }
+        // #700: this legacy opcode is accepted for compatible clients.
     }
 
     // §146.14 (bug #291): сделать свой очаг домом лагеря. Состояние, не план:
@@ -812,6 +812,7 @@ internal static partial class ManualCommandExecutor
     internal static void ReleaseToAi(
         WorldState world, NPCState npc, string reason, bool expired)
     {
+        npc.Mind.PlayerOrders.Clear();
         // End the scoped grant before returning to autonomous behaviour.
         npc.Mind.TravelLeaderNpcId = null;
         foreach (var member in world.Entities.Npcs.Values)
@@ -848,6 +849,7 @@ internal static partial class ManualCommandExecutor
             return;
         }
 
+        npc.Mind.PlayerOrders.Clear();
         ClearForNewOrder(world, npc, "Приказ отставить", keepCarriedPerson: true);
         npc.Mind.CurrentGoal = GoalType.None;
         ClearAttackOrder(world, npc);
@@ -1650,7 +1652,8 @@ internal static partial class ManualCommandExecutor
             npc.Mind.CurrentGoal = GoalType.None;
             // Провал внутри — либо нет подхода, либо станции лежачей заняты.
             var stationBusy = false;
-            if (patient.IsLyingDown(world.Tick))
+            if (patient.IsLyingDown(world.Tick) &&
+                !BedSleep.TryGetOccupiedBed(world, patient, out _))
             {
                 stationBusy = true;
                 for (var slot = 0; slot < LyingStations.Count; slot++)
@@ -2248,6 +2251,7 @@ internal static partial class ManualCommandExecutor
             out var manual, out var ignored, out var ai);
         foreach (var npc in actors)
         {
+            npc.Mind.PlayerOrders.Clear();
             ClearForNewOrder(world, npc, "Групповой приказ отставить",
                 keepCarriedPerson: true);
             npc.Mind.CurrentGoal = GoalType.None;
@@ -2367,6 +2371,12 @@ internal static partial class ManualCommandExecutor
             return;
         }
 
+        if (command.Action is InventoryAction.Eat or InventoryAction.Cook)
+        {
+            ApplyInventoryUse(world, npc, command, admission);
+            return;
+        }
+
         if (!PlayerInventoryCommandExecutor.TryApply(
                 world, npc, command.Item, command.Action, out var reason, command.Count))
         {
@@ -2382,6 +2392,60 @@ internal static partial class ManualCommandExecutor
                 $"Count={command.Count} " +
                 $"GoalPreserved={npc.Mind.CurrentGoal}");
         }
+    }
+
+    private static void ApplyInventoryUse(
+        WorldState world, NPCState npc, ManageInventoryCommand command, AdmissionTracker admission)
+    {
+        if (!TryTakeOrder(world, npc.Id, "Inventory", requireManual: true, admission, out _)) return;
+        if (Incapacitated(world, npc))
+        {
+            Reject(world, npc.Id, "Inventory", "Incapacitated", admission);
+            return;
+        }
+        if (command.Count != 1)
+        {
+            Reject(world, npc.Id, "Inventory", "InvalidCount", admission);
+            return;
+        }
+
+        var reference = command.Item;
+        if (reference.Source != InventoryItemSource.Carried ||
+            reference.Index < 0 || reference.Index >= npc.Inventory.Items.Count ||
+            npc.Inventory.Items[reference.Index].DefinitionId != reference.ExpectedDefinitionId)
+        {
+            Reject(world, npc.Id, "Inventory", "StaleItem", admission);
+            return;
+        }
+
+        var selected = npc.Inventory.Items[reference.Index];
+        if (command.Action == InventoryAction.Cook)
+        {
+            if (!HumanMeatCatalog.IsRaw(selected.DefinitionId))
+            {
+                Reject(world, npc.Id, "Inventory", "InvalidAction", admission);
+                return;
+            }
+            var option = CraftingOptions.Resolve(world, npc, GoalType.CookMeat);
+            ApplyCraftOption(world, npc, option, admission, selectedIngredient: selected);
+            return;
+        }
+        if (!world.Content.ObjectDefinitions.TryGetValue(selected.DefinitionId, out var definition) ||
+            !FoodMath.CanEat(definition))
+        {
+            Reject(world, npc.Id, "Inventory", "NothingToEat", admission);
+            return;
+        }
+
+        ClearForNewOrder(world, npc, "Съесть выбранную еду", keepCarriedPerson: true);
+        ClearAttackOrder(world, npc);
+        npc.Plan.Goal = GoalType.PlayerOrder;
+        npc.Plan.TargetItemDefinitionId = selected.DefinitionId;
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.ConsumeInventoryItem, Interaction = InteractionType.Eat });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Execution.TargetInventoryItem = selected;
+        npc.Mind.CurrentGoal = GoalType.PlayerOrder;
     }
 
     // §55.4 (bug #317): «Наполнить» — перелить воду вскрытых кокосов в личную
@@ -2681,7 +2745,7 @@ internal static partial class ManualCommandExecutor
                 !PlayerInventoryTransferMath.CanWearIncoming(world, looter, selectedItem, selected)))
             {
                 Reject(world, looter.Id, "TransferContainer",
-                    looter.Mind.OutfitLocked ? "OutfitLocked" : "StaleOrNoSpace", admission);
+                    "StaleOrNoSpace", admission);
                 return;
             }
             if (groundSources.Count > 0)
@@ -2849,7 +2913,7 @@ internal static partial class ManualCommandExecutor
     private static void ApplyPlantInventorySeed(
         WorldState world,
         PlantInventorySeedCommand command,
-        AdmissionTracker admission, ObjectId? plantingSite = null)
+        AdmissionTracker admission, ObjectId? plantingSite = null, WorldObjectState groundSeed = null)
     {
         if (!TryTakeOrder(
                 world, command.Npc, "PlantSeed", requireManual: true,
@@ -2876,25 +2940,26 @@ internal static partial class ManualCommandExecutor
             return;
         }
 
-        if (command.Item.Source != InventoryItemSource.Carried ||
-            command.Item.Index < 0 || command.Item.Index >= npc.Inventory.Items.Count ||
-            npc.Inventory.Items[command.Item.Index].DefinitionId !=
-                command.Item.ExpectedDefinitionId)
+        var seedId = command.Item.ExpectedDefinitionId;
+        if (groundSeed is not null
+            ? !GardenMath.IsUsableGroundSeed(world, npc, groundSeed, command.TargetJunction, seedId)
+            : command.Item.Source != InventoryItemSource.Carried ||
+              command.Item.Index < 0 || command.Item.Index >= npc.Inventory.Items.Count ||
+              npc.Inventory.Items[command.Item.Index].DefinitionId != seedId)
         {
             Reject(world, npc.Id, "PlantSeed", "StaleItem", admission);
             return;
         }
 
-        var seed = npc.Inventory.Items[command.Item.Index];
-        if (!InventoryPlacementMath.CanPlace(seed.DefinitionId) ||
-            InventoryPlacementMath.InteractionFor(world, seed.DefinitionId) == null)
+        if (!InventoryPlacementMath.CanPlace(seedId) ||
+            InventoryPlacementMath.InteractionFor(world, seedId) == null)
         {
             Reject(world, npc.Id, "PlantSeed", "NotASeed", admission);
             return;
         }
 
-        if (!PlantGrowthSystem.CanPlantAt(
-                world, command.TargetJunction, command.TargetTile, npc.Id, plantingSite))
+        if (!PlantGrowthSystem.CanPlantAt(world, command.TargetJunction, command.TargetTile, npc.Id, plantingSite,
+                allowLooseSeeds: PlantGrowthCatalog.TryGetBySeed(seedId, out _)))
         {
             Reject(world, npc.Id, "PlantSeed", "PlantingSpotOccupied", admission);
             return;
@@ -2911,41 +2976,18 @@ internal static partial class ManualCommandExecutor
 
         ClearForNewOrder(world, npc, "Ручной приказ посадить семя");
         ClearAttackOrder(world, npc);
-        if (!SpatialMutations.TryReserveJunction(
-                world, command.TargetJunction, npc.Id, world.Tick,
-                Spec121.ManualReserveTicks))
+        if (!TryInstallPlantingPlan(world, npc, command, plantingSite, groundSeed,
+                plantingSite.HasValue ? command.TargetTile : null))
         {
             Reject(world, npc.Id, "PlantSeed", "PlantingSpotOccupied", admission);
             npc.Mind.CurrentGoal = GoalType.None;
             return;
         }
 
-        npc.Plan.Goal = GoalType.PlayerOrder;
-        npc.Plan.TargetJunctionId = command.TargetJunction;
-        npc.Plan.TargetTile = command.TargetTile;
-        npc.Plan.TargetItemDefinitionId = seed.DefinitionId;
-        npc.Plan.TargetObjectId = plantingSite;
-        npc.Plan.Steps.Add(new PlanStep
-        {
-            Type = PlanStepType.MoveToJunction,
-            TargetJunction = command.TargetJunction
-        });
-        npc.Plan.Steps.Add(new PlanStep
-        {
-            Type = PlanStepType.PlantInventorySeed,
-            TargetJunction = command.TargetJunction,
-            TimeoutEndTick = command.Item.Index,
-            Interaction = InteractionType.Plant
-        });
-        npc.Plan.CurrentStepIndex = 0;
-        npc.Plan.Status = PlanStatus.Active;
-        npc.Mind.CurrentGoal = GoalType.PlayerOrder;
-        npc.Execution.TargetInventoryItem = seed;
-
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "ManualOrderAccepted",
-                $"Order=PlantSeed Def={seed.DefinitionId} " +
+                $"Order=PlantSeed Def={seedId} " +
                 $"Junction={command.TargetJunction.Value} " +
                 $"Tile={command.TargetTile.Q},{command.TargetTile.R}");
         }
@@ -3013,14 +3055,17 @@ internal static partial class ManualCommandExecutor
         if (interactionType == InteractionType.Build && BuildSiteMath.IsPlantingSite(worldObject))
         {
             var index = npc.Inventory.Items.FindIndex(i => i.DefinitionId == worldObject.BuildProduct);
-            if (index < 0 || worldObject.Junctions.Count == 0)
+            var groundSeed = worldObject.Junctions.Count > 0
+                ? GardenMath.FindGroundSeed(world, npc, worldObject.Junctions[0], worldObject.BuildProduct)
+                : null;
+            if (index < 0 && groundSeed is null || worldObject.Junctions.Count == 0)
             {
                 Reject(world, npc.Id, verb, "NoMaterials", admission);
                 return false;
             }
             ApplyPlantInventorySeed(world, new PlantInventorySeedCommand(npc.Id,
                 new InventoryItemRef(InventoryItemSource.Carried, index, worldObject.BuildProduct),
-                worldObject.Junctions[0], worldObject.Tile), admission, worldObject.Id);
+                worldObject.Junctions[0], worldObject.Tile), admission, worldObject.Id, groundSeed);
             return npc.Plan.Status == PlanStatus.Active && npc.Plan.TargetObjectId == worldObject.Id;
         }
 
@@ -3168,7 +3213,8 @@ internal static partial class ManualCommandExecutor
         }
 
         if (interactionType == InteractionType.Drink &&
-            ItemCatalog.IsDrainedWaterShell(worldObject.DefinitionId, worldObject.ResourceAmount))
+            (ItemCatalog.IsDrainedWaterShell(worldObject.DefinitionId, worldObject.ResourceAmount) ||
+             worldObject.DefinitionId == ContentIds.DrinkingGlass && BottleInventoryMath.Charges(worldObject) == 0))
         {
             Reject(world, npc.Id, verb, "EmptyVessel", admission);
             return false;
@@ -3588,7 +3634,7 @@ internal static partial class ManualCommandExecutor
             // Подбор, после которого предмет всё ещё лежит в мире.
             var idleFetch = !previous.Equals(sessionSiteId) &&
                 world.Entities.Objects.TryGetValue(previous, out var unconsumed) &&
-                System.Array.IndexOf(BuildSiteMath.AllMaterials, unconsumed.DefinitionId) >= 0;
+                BuildSiteMath.Bill(site, unconsumed.DefinitionId) > 0;
             if (idleBuild || idleFetch)
             {
                 FinishBuildAll(world, npc, "NoProgress", visible: true);
@@ -3657,7 +3703,8 @@ internal static partial class ManualCommandExecutor
     }
 
     private static void ApplyCraft(
-        WorldState world, EntityId npcId, GoalType goal, string outputId, AdmissionTracker admission)
+        WorldState world, EntityId npcId, GoalType goal, string outputId, AdmissionTracker admission,
+        ObjectId? exactStation = null)
     {
         if (!TryTakeOrder(world, npcId, "Craft", requireManual: true,
                 admission, out var npc))
@@ -3671,13 +3718,14 @@ internal static partial class ManualCommandExecutor
             return;
         }
 
-        var option = outputId == null ? CraftingOptions.Resolve(world, npc, goal)
+        var option = outputId == null ? CraftingOptions.Resolve(world, npc, goal, exactStation)
             : CraftingOptions.Resolve(world, npc, outputId);
         ApplyCraftOption(world, npc, option, admission);
     }
 
     private static void ApplyCraftOption(WorldState world, NPCState npc,
-        CraftRecipeOption option, AdmissionTracker admission, ObjectId? exactProject = null)
+        CraftRecipeOption option, AdmissionTracker admission, ObjectId? exactProject = null,
+        ItemInstance selectedIngredient = null)
     {
         if (!option.CanCraft)
         {
@@ -3693,7 +3741,7 @@ internal static partial class ManualCommandExecutor
         npc.Plan.TargetTile = option.WorkTile;
         npc.Plan.TargetJunctionId = option.WorkJunction;
         npc.Plan.TargetObjectId = null;
-        npc.Plan.TargetItemDefinitionId = option.OutputDefinitionId;
+        npc.Plan.TargetItemDefinitionId = selectedIngredient?.DefinitionId ?? option.OutputDefinitionId;
 
         if (string.IsNullOrEmpty(option.StationTag))
         {
@@ -3781,6 +3829,7 @@ internal static partial class ManualCommandExecutor
 
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
+        npc.Execution.TargetInventoryItem = selectedIngredient;
         npc.Mind.CurrentGoal = option.Goal;
         if (SimTrace.Enabled)
         {
@@ -4003,7 +4052,7 @@ internal static partial class ManualCommandExecutor
 
         if (PlantGrowthCatalog.TryGetBySeed(product, out _))
         {
-            if (!PlantGrowthSystem.CanPlantAt(world, anchor, command.Tile))
+            if (!PlantGrowthSystem.CanPlantAt(world, anchor, command.Tile, allowLooseSeeds: true))
             {
                 RejectWorld("PlacementBlocked");
                 return;

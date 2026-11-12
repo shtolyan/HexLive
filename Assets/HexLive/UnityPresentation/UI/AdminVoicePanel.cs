@@ -30,7 +30,7 @@ public sealed partial class AdminVoicePanel : MonoBehaviour
     private Label _status;
     private TextField _input, _raw;
     private Button _request, _send, _sendRaw;
-    private FmodMicrophoneCapture _capture;
+    private BugReportMicrophoneCapture _capture;
     private PlayerVoiceCaptureOverlay _captureOverlay;
     private DeepgramSpeechTranscriber _transcriber;
     private CancellationTokenSource _lifetime;
@@ -44,7 +44,8 @@ public sealed partial class AdminVoicePanel : MonoBehaviour
     private void Start()
     {
         _source = GetComponent<SimulationRunnerBehaviour>();
-        _capture = new FmodMicrophoneCapture(); _transcriber = new DeepgramSpeechTranscriber(2000, true); _lifetime = new CancellationTokenSource();
+        _capture = new BugReportMicrophoneCapture(nativeMaxSeconds: 30f, nativeFinishOnSilence: true);
+        _transcriber = new DeepgramSpeechTranscriber(2000, true); _lifetime = new CancellationTokenSource();
         _ui = new GameObject("AdminVoiceUI"); _ui.transform.SetParent(transform, false);
         var doc = _ui.AddComponent<UIDocument>(); var baseSettings = Resources.Load<PanelSettings>("HexLive/DebugPanelSettings");
         if (baseSettings == null) { enabled = false; return; }
@@ -114,7 +115,7 @@ public sealed partial class AdminVoicePanel : MonoBehaviour
         { _nextStatus = Time.unscaledTime + 5; Send("access_status"); }
         if (_capture.IsRecording && (!_source.IsReady || _source.Link.State != LinkState.Live || !_approved)) CancelCapture();
         if (_capture.IsRecording && _capture.Tick(Time.unscaledDeltaTime)) FinishCapture();
-        _captureOverlay.Refresh(_capture);
+        _captureOverlay.RefreshRecording(_capture.IsRecording, _capture.IsReady, _capture.Level);
         while (_source.TryTakeAdminResult(out var json))
         { try { Handle(JObject.Parse(json)); } catch (Exception) { _busy = false; Notify(L("error"), false); } }
         if (_message.Length > 0 && Time.unscaledTime >= _nextPoll)
@@ -153,20 +154,27 @@ public sealed partial class AdminVoicePanel : MonoBehaviour
     }
     private void Microphone()
     {
-        if (_capture.IsRecording) { FinishCapture(); return; }
+        if (_capture.IsRecording)
+        {
+            if (_capture.IsReady) FinishCapture();
+            return;
+        }
         if (!_approved) { _debug.AddToClassList("admin-hidden"); SetOpen(true); _status.text = L("access." + _accessState); return; }
         if (_busy || _message.Length > 0) { Notify(L("thinking"), false); return; }
         if (!_source.IsReady || _source.Link.State != LinkState.Live) { Notify(L("reason.Disconnected"), false); return; }
         if (!_sttAvailable || !_agentAvailable) { Notify(L(!_sttAvailable ? "reason.SttUnavailable" : "reason.AgentOffline"), false); return; }
         SetOpen(false); _context = CaptureContext();
         if (!_capture.Start(out _)) Notify(L("microphone_error"), false);
-        _captureOverlay.Refresh(_capture);
+        _captureOverlay.RefreshRecording(_capture.IsRecording, _capture.IsReady, _capture.Level);
     }
     private void CancelCapture() { _capture?.Cancel(); _captureOverlay?.Hide(); }
     private void FinishCapture()
     {
-        _wav = _capture.Stop(out _); _captureOverlay.Hide();
-        if (_wav == null) { Notify(L("microphone_error"), false); return; }
+        if (!_capture.IsRecording) return;
+        var wav = _capture.Stop(out _);
+        _captureOverlay.Hide();
+        try { _wav = BugReportWav.Prepare(wav); }
+        catch (ArgumentException) { _wav = null; Notify(L("microphone_error"), false); return; }
         _busy = true; _deadline = Time.unscaledTime + 50;
         if (_sttExpiry > DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + 10000) Transcribe(_sttToken);
         else Send("stt");

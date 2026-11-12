@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.IO;
 using Newtonsoft.Json.Linq;
+using HexLive.Simulation.Content;
 using HexLive.UnityPresentation.Wearing.Garments;
 using HexLive.UnityPresentation.Wearing;
 using NUnit.Framework;
@@ -362,6 +363,39 @@ public sealed class PeoplePaintRuntimeTests
                 Assert.That(Vector3.Distance(anchor.TransformPoint(Vector3.right * .1f), anchor.position),
                     Is.EqualTo(.07764706f).Within(.0001f));
             }
+        }
+    }
+
+    [TestCase("Kshishtof", false)]
+    [TestCase("Marta", true)]
+    public void FoldingSawUsesHandleInBothHands(string actor, bool leftHanded)
+    {
+        var go = Actor(actor);
+        go.transform.SetPositionAndRotation(new Vector3(2f, 1f, -4f), Quaternion.Euler(0f, 61f, 0f));
+        go.transform.localScale = Vector3.one * HexLive.UnityPresentation.Rendering.HexWorldRenderer.ActorScale;
+        var view = go.AddComponent<NpcActorView>();
+        view.enabled = false;
+        SetPrivate(view, "_bodyBones", go.GetComponent<BodyBones>());
+        SetPrivate(view, "_leftHanded", leftHanded);
+
+        typeof(NpcActorView).GetMethod("SetHandProp", BindingFlags.NonPublic | BindingFlags.Instance)
+            .Invoke(view, new object[] { ContentIds.FoldingSaw });
+        view.SetOffhandItem(ContentIds.FoldingSaw);
+
+        foreach (var field in new[] { "_handProp", "_offhandProp" })
+        {
+            var prop = (GameObject)GetPrivate(view, field);
+            Assert.That(prop, Is.Not.Null, field);
+            var hand = prop.transform.parent;
+            var mesh = prop.GetComponentInChildren<MeshFilter>().transform;
+            var handle = hand.InverseTransformPoint(mesh.TransformPoint(new Vector3(0f, -.002055f, .00018f)));
+            var tip = hand.InverseTransformPoint(mesh.TransformPoint(new Vector3(0f, .00649f, .00060f)));
+            var teeth = hand.InverseTransformPoint(mesh.TransformPoint(new Vector3(0f, .00250f, .00138f)));
+            Assert.That(handle.magnitude, Is.LessThan(.0001f), field);
+            Assert.That(tip.z, Is.GreaterThan(.25f), field);
+            Assert.That(teeth.y, Is.LessThan(-.02f), field);
+            Assert.That(ObjectFit.TryMeasuredSize(prop, ContentIds.FoldingSaw, out var size), Is.True);
+            Assert.That(size, Is.EqualTo(.46f).Within(.001f), field);
         }
     }
 

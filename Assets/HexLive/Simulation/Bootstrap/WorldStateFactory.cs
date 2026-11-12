@@ -1512,6 +1512,7 @@ public sealed class WorldStateFactory
             EyeColor = bootstrap.EyeColor,
             Hairstyle = bootstrap.Hairstyle,
             VoiceBank = bootstrap.VoiceBank,
+            SpeechOrigin = bootstrap.SpeechOrigin,
             Faction = bootstrap.Faction,
             Fragment = new FragmentId(bootstrap.FragmentId),
             Tile = coord,

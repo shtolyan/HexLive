@@ -132,6 +132,43 @@ public readonly struct ManualCommandAdmission
     public bool Accepted => Status == ManualCommandAdmissionStatus.Accepted;
 }
 
+/// <summary>§121.13: append one character's world action to the player queue.</summary>
+public sealed class QueuePlayerOrderCommand : ISimulationCommand
+{
+    public QueuePlayerOrderCommand(ISimulationCommand order)
+    {
+        Order = order;
+    }
+
+    public ISimulationCommand Order { get; }
+    public EntityId? TargetEntity => Order.TargetEntity;
+
+    public static bool Supports(ISimulationCommand order) => order is
+        MoveToCommand or InteractCommand or PlantInventorySeedCommand or
+        PlaceInventoryFurnitureCommand or GatherAllOnHexCommand or
+        AttackNpcCommand or AttackMobCommand or CarryPersonCommand or
+        PutDownPersonCommand or PutPersonInBedCommand or CraftItemCommand or
+        CraftByOutputCommand { RequestId: "" } or TalkToCommand or
+        RequestItemCommand or RomancePersonCommand or AidPersonCommand or
+        TreatLimbsCommand or MedicalAidCommand or SelfActionCommand or
+        ButcherPersonCommand or PreyPersonCommand or AbusePersonCommand or
+        KnockDoorCommand or BreakDoorCommand or FillVesselCommand or
+        ManageInventoryCommand { Action: InventoryAction.Eat or InventoryAction.Cook };
+}
+
+public sealed class CancelPlayerOrderCommand : ISimulationCommand
+{
+    public CancelPlayerOrderCommand(EntityId npc, int orderId)
+    {
+        Npc = npc;
+        OrderId = orderId;
+    }
+
+    public EntityId Npc { get; }
+    public int OrderId { get; }
+    public EntityId? TargetEntity => Npc;
+}
+
 public interface IGroupSimulationCommand : ISimulationCommand
 {
     IReadOnlyList<EntityId> Actors { get; }
@@ -188,7 +225,7 @@ public sealed class SetRunByDefaultCommand : ISimulationCommand
     public EntityId? TargetEntity => Npc;
 }
 
-/// <summary>§133.9: freeze or release one NPC's current outfit.</summary>
+/// <summary>§133.10: the former outfit-pin command, kept for wire compatibility.</summary>
 public sealed class SetOutfitLockCommand : ISimulationCommand
 {
     public SetOutfitLockCommand(EntityId npc, bool enabled)
@@ -403,15 +440,17 @@ public sealed class CraftByOutputCommand : ISimulationCommand
 /// <summary>§138: legacy goal-based command, still revalidated at admission.</summary>
 public sealed class CraftItemCommand : ISimulationCommand
 {
-    public CraftItemCommand(EntityId npc, GoalType recipeGoal)
+    public CraftItemCommand(EntityId npc, GoalType recipeGoal, ObjectId? station = null)
     {
         Npc = npc;
         RecipeGoal = recipeGoal;
+        Station = station;
     }
 
     public EntityId Npc { get; }
 
     public GoalType RecipeGoal { get; }
+    public ObjectId? Station { get; }
 
     public EntityId? TargetEntity => Npc;
 }
@@ -1103,7 +1142,9 @@ public enum InventoryAction
     Wear,
     Stow,
     Drop,
-    ToggleFlashlight
+    ToggleFlashlight,
+    Eat,
+    Cook
 }
 
 public sealed class ManageInventoryCommand : ISimulationCommand

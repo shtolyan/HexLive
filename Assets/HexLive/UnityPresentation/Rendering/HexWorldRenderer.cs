@@ -2050,6 +2050,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // from the snapshot also removes the Build action at completion.
             if (parts.ObjectView != null)
             {
+                parts.ObjectView.HasDoorActions = DoorInteractionMath.CanTargetClosedDoor(worldObject);
                 if (FreeArchitectureRules.IsFreePiece(worldObject) &&
                     (!string.IsNullOrEmpty(worldObject.BuildProduct) ||
                      FreeArchitectureRules.IsDemolitionSite(worldObject)))
@@ -2637,6 +2638,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (!_waterCoords.Contains(npc.Tile))
                 EnsureBloodStains().OnButchery(
                     SimulationUnityMapper.ToUnityPosition(npc.Position, ActorGroundY(npc.Tile)), tick);
+        }, (part, tick) =>
+        {
+            if (!_waterCoords.Contains(part.Tile) && (!_fogActive || _fogKnownObjects.Contains(part.Id.Value)))
+                EnsureBloodStains().OnButchery(GetObjectAnchorPosition(snapshot, part), tick, part: true);
         });
         _bloodStains?.Advance(snapshot.Tick);
         _waterBlood?.Advance(snapshot.Tick);
@@ -3237,7 +3242,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     female.Id.Value, partnerId,
                     snapshot.Tick, female.ExecutionStartTick,
                     female.ExecutionEndTick, snapshot.TickDeltaTime,
-                    anchor, rotation,
+                    anchor, rotation, ActorScale,
                     _runner != null && !_runner.IsPaused
                         ? _runner.SpeedMultiplier : 1f,
                     female.RomanceForced);
@@ -3309,6 +3314,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return;
         }
 
+        actorView.SpeechOrigin = npc.SpeechOrigin;
+        actorView.SetSpeechRomance(npc.CurrentInteraction == "Romance");
         // Fast-forward: animations play at the sim's speed multiplier, so 2× /
         // 4× / 50× worlds move bodies 2× / 4× / 50× faster too (1× on pause).
         actorView.SetSimSpeed(_runner != null && !_runner.IsPaused ? _runner.SpeedMultiplier : 1f);
@@ -3380,6 +3387,24 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var earlyUncoveredForDecals = UI.DebugControlsPanel.HideClothing ? AllBodyZones : npc.UncoveredParts;
         var earlyRainWet = snapshot.IsRaining && !_indoorCoords.Contains(npc.Tile) ? 1f : 0f;
         var earlyWaterWet = _waterCoords.Contains(npc.Tile) ? 1f : 0f;
+        // Body condition can raise a wound alarm, so publish the new speech
+        // state before applying wound effects or starting conversation.
+        actorView.SetSpeechState(new UI.SpeechCatalog.BodyState
+        {
+            Hunger = npc.Hunger,
+            Thirst = npc.Thirst,
+            Energy = npc.Energy,
+            ThermalComfort = npc.ThermalComfort,
+            Hygiene = npc.Hygiene,
+            Social = npc.Social,
+            Wetness = Mathf.Max(earlyRainWet, earlyWaterWet),
+            Wounded = HasPainfulWound(npc),
+            Sick = HasEffect(npc, "Sick"),
+            Asleep = npc.CurrentInteraction == "Sleep",
+            // §105, §105.14: incapacitated actors and actors playing dead stay silent.
+            Fainted = npc.IsFainted || npc.IsUnconscious || npc.IsDying || npc.IsPlayingDead,
+            Crying = npc.IsCrying
+        });
         // Спрятанная туманом не красится: бейки кожи невидимой — расход
         // тикового кадра впустую. Painter диффит по уже нанесённому, поэтому
         // на тике появления (paintHidden=false в том же цикле, что и
@@ -3452,25 +3477,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         actorView.SetTalkTopic(npc.TalkTopic, topicFace);
-        actorView.SetSpeechState(new UI.SpeechCatalog.BodyState
-        {
-            Hunger = npc.Hunger,
-            Thirst = npc.Thirst,
-            Energy = npc.Energy,
-            ThermalComfort = npc.ThermalComfort,
-            Hygiene = npc.Hygiene,
-            Social = npc.Social,
-            Wetness = Mathf.Max(earlyRainWet, earlyWaterWet),
-            Wounded = npc.Wounds.Count > 0,
-            Sick = HasEffect(npc, "Sick"),
-            Asleep = npc.CurrentInteraction == "Sleep",
-            // §105: умирающая для речи и мимики — такое же выключенное тело,
-            // как потерявшая сознание: реплик не подаёт, пузырей не рисует.
-            // §105.14: притворяющаяся молчит по своей воле — труп не болтает.
-            Fainted = npc.IsFainted || npc.IsUnconscious || npc.IsDying || npc.IsPlayingDead,
-            // §110: рыдающая, наоборот, ГОВОРИТ — всхлипы и есть смысл сцены.
-            Crying = npc.IsCrying
-        });
         actorView.SetSpeechInteraction(npc.CurrentInteraction);
         if (npc.SocialCueTick > 0 && !string.IsNullOrEmpty(npc.SocialCueKind))
         {
@@ -4031,6 +4037,20 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private static bool IsToolOrWeapon(string itemId) =>
         !string.IsNullOrEmpty(itemId) &&
         itemId.StartsWith("tool.", System.StringComparison.Ordinal);
+
+    private static bool HasPainfulWound(NpcSnapshot npc)
+    {
+        foreach (var wound in npc.OpenWounds)
+        {
+            if (wound.Severity > 0f && wound.Heal01 < 1f &&
+                !npc.BodyPartConditions.Exists(part => part.Part == wound.Part && part.Prosthetic != null))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     // §67.10: the snapshot ships effects as "<Kind>\t<intensity>" rows.
     private static bool HasEffect(NpcSnapshot npc, string kind)
@@ -4679,7 +4699,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             root.transform.position = GetObjectAnchorPosition(snapshot, worldObject);
             bool door = worldObject.DefinitionId == PortalWorld.DoorDefinitionId;
             if (door && ModernApartmentView.TryGetReturnDoorPose(worldObject.Tile, snapshot.Seed, GroundY(worldObject.Tile),
-                    out var doorPosition, out var doorRotation))
+                    out var doorPosition, out var doorRotation, PortalWorld.DoorVisitSerial(worldObject.Variant)))
                 root.transform.SetPositionAndRotation(doorPosition, doorRotation);
             var model = Instantiate(prefab, root.transform, false);
             if (worldObject.DefinitionId == ContentIds.StorageChest)
@@ -5069,6 +5089,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
             if (wardrobe != null) Destroy(wardrobe);
             return null;
+        }
+
+        if (worldObject.DefinitionId == ContentIds.HeadPike)
+        {
+            var pikeRoot = HexLive.UnityPresentation.Environment.BuildCatalogFurnitureFactory.Build(ContentIds.HeadPike);
+            if (pikeRoot == null) return null;
+            pikeRoot.transform.SetParent(_objectsRoot, false);
+            var anchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
+            pikeRoot.transform.position = SimulationUnityMapper.ToUnityPosition(anchor, ObjectGroundY(worldObject));
+            return pikeRoot;
         }
 
         // One logical owner, one request. Garment discovery itself is async;
@@ -6653,9 +6683,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
                 var actorBody = Instantiate(actorPrefab, actorRoot.transform);
                 actorBody.name = npc.ActorMesh;
-                var targetHeight = HexRadius * NpcHeightFactor * 2.4f;
-                var scale = targetHeight / ActorSourceHeightMeters;
-                actorBody.transform.localScale = Vector3.one * scale;
+                actorBody.transform.localScale = Vector3.one * ActorScale;
                 actorBody.transform.localPosition = Vector3.zero;
 
                 var view = actorRoot.AddComponent<NpcActorView>();
@@ -6708,12 +6736,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
     {
         if (worldObject.DefinitionId == PortalWorld.DoorDefinitionId &&
             ModernApartmentView.TryGetReturnDoorPose(worldObject.Tile, snapshot.Seed, GroundY(worldObject.Tile),
-                out var doorPosition, out _))
+                out var doorPosition, out _, PortalWorld.DoorVisitSerial(worldObject.Variant)))
             return doorPosition;
 
-        if (worldObject.Variant == PortalWorld.ApartmentFurnitureVariant &&
+        if (PortalWorld.TryGetApartmentFurnitureVisit(worldObject.Variant, out var visitSerial) &&
             PortalWorld.TryGetApartmentFurniturePlacement(worldObject.DefinitionId, worldObject.Tile, snapshot.Seed,
-                out var furniturePosition, out _))
+                out var furniturePosition, out _, visitSerial))
             return SimulationUnityMapper.ToUnityPosition(furniturePosition, ObjectGroundY(worldObject));
 
         if (worldObject.Junctions.Count > 0)

@@ -136,12 +136,12 @@ public sealed class GroundBloodStains : MonoBehaviour
         EmitDrip(TrackerFor(sourceId, blood), footWorld, tick);
     }
 
-    public void OnButchery(Vector3 at, int tick)
+    public void OnButchery(Vector3 at, int tick, bool part = false)
     {
         var stain = Spawn(at, tick);
         if (stain == null) return;
-        stain.FullScale = ButcheryPoolDiameter;
-        stain.SpreadFromScale = ButcheryPoolDiameter * .8f;
+        stain.FullScale = part ? .72f : ButcheryPoolDiameter;
+        stain.SpreadFromScale = stain.FullScale * .8f;
         stain.CurrentScale = stain.SpreadFromScale;
         stain.Projector.size = new Vector3(stain.CurrentScale, stain.CurrentScale, ProjectorDepth);
     }

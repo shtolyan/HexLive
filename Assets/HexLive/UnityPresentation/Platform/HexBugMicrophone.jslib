@@ -37,7 +37,7 @@ mergeInto(LibraryManager.library, {
       });
       HexBugMic.wav=bytes; HexBugMic.chunks=[]; HexBugMic.state=3;
     },
-    start: function() {
+    start: function(maxSeconds) {
       if (HexBugMic.state===1 || HexBugMic.state===2) return 0;
       HexBugMic.reset();
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.AudioContext) return 0;
@@ -66,7 +66,7 @@ mergeInto(LibraryManager.library, {
           HexBugMic.source=source; HexBugMic.node=node; HexBugMic.rate=context.sampleRate;
           node.port.onmessage=function(event) {
             if(serial!==HexBugMic.serial || HexBugMic.state!==2) return;
-            var pcm=event.data, remaining=90*HexBugMic.rate-HexBugMic.samples;
+            var pcm=event.data, remaining=maxSeconds*HexBugMic.rate-HexBugMic.samples;
             if(!(pcm instanceof Float32Array)) return;
             if(pcm.length>remaining) pcm=pcm.slice(0,remaining);
             if(pcm.length) {
@@ -74,13 +74,13 @@ mergeInto(LibraryManager.library, {
               var energy=0; for(var i=0;i<pcm.length;i++) energy+=pcm[i]*pcm[i];
               HexBugMic.level=Math.min(1,Math.sqrt(energy/pcm.length)*8);
             }
-            if(HexBugMic.samples>=90*HexBugMic.rate) HexBugMic.finish();
+            if(HexBugMic.samples>=maxSeconds*HexBugMic.rate) HexBugMic.finish();
           };
           source.connect(node); node.connect(context.destination);
           await context.resume();
           if(serial!==HexBugMic.serial) return;
           clearTimeout(HexBugMic.timer); HexBugMic.state=2;
-          HexBugMic.timer=setTimeout(function(){if(serial===HexBugMic.serial)HexBugMic.finish();},90000);
+          HexBugMic.timer=setTimeout(function(){if(serial===HexBugMic.serial)HexBugMic.finish();},maxSeconds*1000);
         } catch (_) {
           if (serial===HexBugMic.serial) { ++HexBugMic.serial; HexBugMic.release(); HexBugMic.state=-1; }
         } finally { if(url)URL.revokeObjectURL(url); }
@@ -89,7 +89,7 @@ mergeInto(LibraryManager.library, {
     }
   },
   HexLiveBugMicStart__deps: ['$HexBugMic'],
-  HexLiveBugMicStart: function() { return HexBugMic.start(); },
+  HexLiveBugMicStart: function(maxSeconds) { return HexBugMic.start(maxSeconds); },
   HexLiveBugMicState__deps: ['$HexBugMic'],
   HexLiveBugMicState: function() { return HexBugMic.state; },
   HexLiveBugMicLevel__deps: ['$HexBugMic'],

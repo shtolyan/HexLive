@@ -846,7 +846,11 @@ public sealed class CommittedAgentUtterance
 
 internal static class WavePcm16Mono44100
 {
-    public static bool TryValidate(byte[] wav, out int durationMilliseconds, out string reason)
+    public static bool TryValidate(byte[] wav, out int durationMilliseconds, out string reason) =>
+        TryValidateAtRate(wav, 44100, AgentWire.MaxSpeechDurationMs, out durationMilliseconds, out reason);
+
+    internal static bool TryValidateAtRate(byte[] wav, int expectedRate, int maxDurationMs,
+        out int durationMilliseconds, out string reason)
     {
         durationMilliseconds = 0;
         reason = string.Empty;
@@ -890,14 +894,14 @@ internal static class WavePcm16Mono44100
             offset += 8 + size + (size & 1);
         }
 
-        if (format != 1 || channels != 1 || sampleRate != 44100 || byteRate != 88200 ||
+        if (format != 1 || channels != 1 || sampleRate != expectedRate || byteRate != expectedRate * 2 ||
             blockAlign != 2 || bits != 16 || dataBytes < 2 || (dataBytes & 1) != 0)
         {
             reason = "UnsupportedWaveFormat";
             return false;
         }
-        durationMilliseconds = (int)Math.Round(dataBytes * 1000d / (44100d * 2d));
-        if (durationMilliseconds < 0 || durationMilliseconds > AgentWire.MaxSpeechDurationMs)
+        durationMilliseconds = (int)Math.Round(dataBytes * 1000d / (expectedRate * 2d));
+        if (durationMilliseconds < 0 || durationMilliseconds > maxDurationMs)
         {
             reason = "WaveTooLong";
             return false;

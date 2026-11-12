@@ -1289,3 +1289,25 @@ Public receipt: https://play.62-146-235-120.sslip.io/release-receipt.json .
 Локальные квитанции и логи в `Build/MSIRelease/20261112-flashback-v118-windows/`.
 Публичные квитанции [Сингапура](https://play.62-146-235-120.sslip.io/release-receipt.json)
 и [Нью-Йорка](https://163-245-204-96.sslip.io/play/release-receipt.json).
+
+## WebGL 0.1.119 · 2026-11-12
+
+Windows release source `410dbb676e4480eab12e80ea5f39aea494b3a6fa`.
+Linux x64 server, protocol 33, snapshot 49, save writer 95.
+Flashback #717–720 and #725. Unity imported all eight prosthetic models and
+icons. Chrome started WebGL and FMOD with the 48 kHz mixer and 4 × 4096 buffer.
+The encoder verified 4,030 FSB files and 3,954 viseme sidecars.
+
+New York activated at 09:35:44 UTC. Six isolated saves and the stopped active
+checkpoint passed. Registry 6722 → 6730 covers eight prosthetic owners.
+The public verification checked 70 files, including the eight bundles and audio
+samples. The anonymous WebSocket decoded the active world at tick 13930036.
+Activation restarted `hexlive.service`.
+
+Singapore remains on 0.1.118 pending the save loader issue. On one fresh
+copy, both 0.1.118 and 0.1.119 rejected the same installed-material invariant.
+The diagnostic copy identified completed `architecture.door.wood` #68216,
+five installed `resource.stick` and zero delivered. The service stayed active
+during all copy checks. Construction changes are managed by Claude.
+
+Receipts: `Build/MSIRelease/20261112-flashback-v119-windows/`.

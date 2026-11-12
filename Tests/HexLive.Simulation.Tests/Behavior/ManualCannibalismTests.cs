@@ -44,8 +44,16 @@ public sealed class ManualCannibalismTests
         var admission = ManualCommandExecutor.Apply(world, new ButcherPersonCommand(actor.Id, victim.Id));
         Assert.That(admission.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted), admission.Reason);
         Until(engine, () => world.Events.Items.Any(e => e.Type == "Butchered"));
-        var parts = world.Entities.Objects.Values.Select(o => o.DefinitionId)
+        var droppedParts = world.Entities.Objects.Values.Where(o => HumanMeatCatalog.IsHumanPart(o.DefinitionId)).ToArray();
+        var parts = droppedParts.Select(o => o.DefinitionId)
             .Concat(actor.Inventory.Items.Select(i => i.DefinitionId)).Where(HumanMeatCatalog.IsHumanPart).ToArray();
+        var butchered = world.Events.Items.Single(e => e.Type == "Butchered").Message;
+        var marker = HumanMeatCatalog.ButcheryDropIdsMarker;
+        Assert.That(butchered, Does.Contain(marker));
+        var dropIds = butchered[(butchered.IndexOf(marker, StringComparison.Ordinal) + marker.Length)..]
+            .Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse);
+        Assert.That(droppedParts, Is.Not.Empty);
+        Assert.That(dropIds, Is.EquivalentTo(droppedParts.Select(o => o.Id.Value)));
         Assert.That(parts.Count(id => id == HumanMeatCatalog.ArmRaw), Is.EqualTo(1));
         Assert.That(parts.Count(id => id == HumanMeatCatalog.LegRaw), Is.EqualTo(2));
         Assert.That(parts.Count(id => id == HumanMeatCatalog.TorsoRaw), Is.EqualTo(1));
@@ -127,7 +135,7 @@ public sealed class ManualCannibalismTests
         actor.Inventory.Items.Clear(); actor.Inventory.Items.Add(selected);
         ISimulationCommand hang = viaContainer
             ? new TransferContainerCommand(actor.Id, fire.Id, 0, raw, 1, InventoryTransferDirection.Give)
-            : new CraftItemCommand(actor.Id, GoalType.CookMeat);
+            : new CraftItemCommand(actor.Id, GoalType.CookMeat, fire.Id);
         var cook = ManualCommandExecutor.Apply(world, hang);
         Assert.That(cook.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted), cook.Reason);
         Until(engine, ()=>fire.Contents.Any(i=>i.DefinitionId==raw));
@@ -151,7 +159,11 @@ public sealed class ManualCannibalismTests
         actor.Needs.Hunger=.8f;
         var eat=ManualCommandExecutor.Apply(world,new SelfActionCommand(actor.Id,SelfActionKind.EatFromPack));
         Assert.That(eat.Status,Is.EqualTo(ManualCommandAdmissionStatus.Accepted),eat.Reason);
-        Until(engine,()=>!actor.Inventory.Items.Any(i=>i.DefinitionId==cooked));
+        var serving = actor.Inventory.Items.Single(item => item.DefinitionId == cooked);
+        var fullWeight = FoodMath.GramsRemaining(cooked, serving.ResourceAmount);
+        Until(engine, () => serving.ResourceAmount > 0f);
+        Assert.That(serving.ResourceAmount, Is.EqualTo(fullWeight - FoodMath.BiteGrams));
+        Assert.That(actor.Inventory.Items.Any(item => ReferenceEquals(item, serving)), Is.True);
         Assert.That(actor.Needs.Hunger,Is.LessThan(.7f));
     }
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using RootMotion.FinalIK;
 using UnityEngine;
 using UnityEngine.Playables;
+using HexLive.Simulation.Agents;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
@@ -4607,6 +4608,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _speech?.SetState(state);
     }
 
+    public void SetSpeechRomance(bool active)
+    {
+        EnsureSpeechBubble();
+        _speech?.SetRomanceScene(active);
+    }
+
     // §67.10: the verb she is doing right now — a work beat on the rising edge.
     public void SetSpeechInteraction(string interaction)
     {
@@ -4760,13 +4767,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     /// <summary>§160: external reply routed through the existing mouth director.</summary>
     public bool SayExternalVoice(
         string wavPath, string visemePath, string emotion, bool playerReply,
-        float playbackGain = 1f)
+        float playbackGain = 1f, bool playerBroadcast = false)
     {
         EnsureSpeechBubble();
         return _speech != null && _speech.SayExternal(
             wavPath, visemePath, emotion,
-            playerReply ? UI.SpeechCatalog.Rank.Talk : UI.SpeechCatalog.Rank.Ambient,
-            playbackGain);
+            playerReply || playerBroadcast ? UI.SpeechCatalog.Rank.Talk : UI.SpeechCatalog.Rank.Ambient,
+            playbackGain, positional: playerBroadcast);
     }
 
     // §armed-stance: while ANY tool/weapon (tool.*) is in the hand, the base Idle
@@ -5436,6 +5443,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     }
 
     private string _voiceChar = string.Empty;
+    internal NpcSpeechOrigin SpeechOrigin { get; set; }
     private Audio.FmodSfx.Loop _voiceChannel;
     private Audio.NpcVoiceLipSync _voiceLipSync;
 
@@ -5448,7 +5456,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // равно покажет картинку — визуальная половина работает до озвучки.
     private float PlayVoiceLine(string speechId, Vector3? at = null, string fallbackId = null)
     {
-        if (_voiceChar.Length == 0)
+        if (_voiceChar.Length == 0 || (SpeechOrigin != NpcSpeechOrigin.Modern &&
+            UI.SpeechCatalog.IsAboutLeavingIsland(speechId)))
         {
             return 0f;
         }
@@ -5461,15 +5470,16 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         var pos = at ?? (TryGetBodyCenter(out var center) ? center : transform.position);
         var emotion = UI.SpeechCatalog.EmotionOf(speechId);
+        var speaksHexkufa = SpeechOrigin == NpcSpeechOrigin.Raider;
         var id = "voice_" + _voiceChar + "_" + speechId;
-        if (!Audio.FmodSfx.HasSound(id))
+        if (!HasVoice(id))
         {
             id = "voice_" + _voiceChar + "_" + emotion;
         }
 
-        if (Audio.FmodSfx.HasSound(id))
+        if (HasVoice(id))
         {
-            _voiceChannel = Audio.FmodSfx.PlayTracked(id, pos);
+            _voiceChannel = speaksHexkufa ? Audio.FmodSfx.PlayHexkufaVoice(id, pos) : Audio.FmodSfx.PlayTracked(id, pos);
             // §67.7: рот проговаривает реплику (.vis-таймлайн по часам канала).
             if (_voiceLipSync != null)
             {
@@ -5493,6 +5503,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         return 0f;
+
+        bool HasVoice(string voiceId) => speaksHexkufa
+            ? Audio.FmodSfx.HasHexkufaVoice(voiceId)
+            : Audio.FmodSfx.HasSound(voiceId);
     }
 
     // Iter 28: the renderer flags a ledge sit (sim IsLedgeSit) so LateUpdate

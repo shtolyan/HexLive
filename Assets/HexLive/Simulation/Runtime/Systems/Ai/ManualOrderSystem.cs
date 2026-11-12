@@ -41,6 +41,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
             AgentCommandLedger.Observe(world, npc);
             if (!npc.Mind.ManualControl || npc.Health <= 0f)
             {
+                npc.Mind.PlayerOrders.Clear();
                 continue;
             }
 
@@ -121,15 +122,22 @@ public sealed class ManualOrderSystem : ISimulationSystem
                 ManualCommandExecutor.ContinueBuildAll(world, npc, orderCompleted);
             }
 
-            // §121.7: приказ завершён (цель None, сцепки нет) и реальный lease
-            // игрока истёк — возврат под ИИ. Авто-цель §121.6 (Eat/Drink)
-            // держит CurrentGoal != None и потому отсрочивает релиз до своего
-            // завершения; sweep выше в этом же проходе уже мог снять цель.
-            if (npc.Mind.CurrentGoal == GoalType.None &&
-                npc.Mind.ManualAttackNpcId is null &&
-                npc.Mind.ManualAttackMobId is null &&
-                !ManualControlMath.HasActiveOrder(npc) &&
-                ManualControlMath.InactivityLeaseExpired(world, npc))
+            ManualCommandExecutor.AdvancePlayerOrders(world, npc);
+
+            // §121.7: some actions clear their own goal before this system runs.
+            // Forget the previous idle window while work is still in progress.
+            if (npc.Mind.CurrentGoal != GoalType.None ||
+                npc.Mind.ManualAttackNpcId.HasValue ||
+                npc.Mind.ManualAttackMobId.HasValue ||
+                npc.Mind.PlayerOrders.Active != null ||
+                npc.Mind.PlayerOrders.Pending.Count != 0 ||
+                ManualControlMath.HasActiveOrder(npc))
+            {
+                ManualControlMath.ClearInactivityLease(npc);
+                continue;
+            }
+
+            if (ManualControlMath.InactivityLeaseExpired(world, npc))
             {
                 ManualCommandExecutor.ReleaseToAi(
                     world, npc, "Таймаут ручного управления", expired: true);

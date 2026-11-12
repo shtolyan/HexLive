@@ -299,7 +299,8 @@ public static class FurniturePlacement
 
         if (PlantGrowthCatalog.TryGetBySeed(product, out _))
         {
-            if (!PlantGrowthSystem.CanPlantAt(world, anchor.Id, tile)) return "PlantingSpotOccupied";
+            if (!PlantGrowthSystem.CanPlantAt(world, anchor.Id, tile, allowLooseSeeds: true))
+                return "PlantingSpotOccupied";
             placed = WorldObjectMutations.SpawnObject(world, ContentIds.BuildSite, anchor.Fragment, tile, anchor.Id);
             placed.BuildProduct = product;
             placed.OwnerFaction = builder;

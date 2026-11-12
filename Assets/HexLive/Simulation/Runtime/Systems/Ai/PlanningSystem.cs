@@ -22,6 +22,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
 
     public void Run(WorldState world)
     {
+        var outfitOutdoorTemperature = EnvironmentSystem.OutfitOutdoorTemperature(world);
         foreach (var npc in world.Entities.Npcs.Values)
         {
             // §60/§105/§110: authored stillness owns the body. In particular,
@@ -90,6 +91,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // В полёте (HopTimer > 0) не ретаргетим — подождёт тик (§21.21B:
                 // прыжок не должен пережить свой путь).
                 var huntStale = npc.Mind.CurrentGoal == GoalType.Hunt &&
+                    !OutfitPreference.IsPuttingOnHuntArmor(npc) &&
                     npc.Movement.HopTimer <= 0f &&
                     DecisionSystem.NearestVisibleRabbit(npc, world)?.Junction is { } rj &&
                     !(npc.Plan.TargetJunctionId is { } tj && tj.Equals(rj));
@@ -488,6 +490,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
+            if (npc.Mind.CurrentGoal == GoalType.StowBottle &&
+                TryBuildCollectorBottlePickupPlan(world, npc))
+            {
+                continue;
+            }
+
             if (npc.Mind.CurrentGoal == GoalType.Socialize)
             {
                 BuildTalkPlan(world, npc);
@@ -602,6 +610,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                         Trace.Debug(world, npc.Id, "PlanFailed", "Goal=Hunt NoVisibleRabbit");
 
                     }
+                    continue;
+                }
+
+                if (TryPrepareHuntArmor(world, npc))
+                {
                     continue;
                 }
 
@@ -869,27 +882,25 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     break;
                 }
             }
-            var selectedOutfitTarget = interactionType == InteractionType.Dress &&
-                npc.Mind.OutfitLocked
-                    ? npc.Mind.OutfitMaintenanceTargetObjectId
-                    : null;
-            var preferBackpack = selectedOutfitTarget is null &&
-                interactionType == InteractionType.Dress &&
+            var preferBackpack = interactionType == InteractionType.Dress &&
                 !wearsBackpack && DecisionSystem.KnowsReachableBackpack(npc, world);
 
             // Spec 29C.4A: a threatened underarmored NPC dressing up prefers
             // the best armor over the nearest garment.
-            var preferArmor = selectedOutfitTarget is null &&
-                interactionType == InteractionType.Dress &&
-                npc.Memory.Dangers.Count > 0 && npc.EquippedArmor < 0.3f;
+            var preferArmor = interactionType == InteractionType.Dress &&
+                npc.Memory.Dangers.Count > 0 && npc.EquippedArmor < 0.3f &&
+                DecisionSystem.KnowsReachableArmor(npc, world);
             // §133: при чужаке первым делом закрывают таз и грудь — и выбирают
             // по этому, а не по теплу и не по броне. Бельё здесь полноценный
             // ответ: оно ничего не греет и не защищает, но закрывает.
-            var preferCover = selectedOutfitTarget is null &&
-                interactionType == InteractionType.Dress &&
+            var preferCover = interactionType == InteractionType.Dress &&
                 ModestyMath.OutsiderKnown(world, npc) &&
                 ModestyMath.MissingCover(world, npc) &&
                 DecisionSystem.KnowsReachablePermittedCover(npc, world);
+            var preferFavorite = interactionType == InteractionType.Dress &&
+                !preferBackpack && !preferCover && !preferArmor &&
+                outfitOutdoorTemperature + npc.EquippedWarmth * 10f >= SimBalance.DressColdTemp &&
+                OutfitPreference.CanChooseForTaste(npc);
             // §55: boiling is retired — GetWater now just fetches the nearest
             // coconut to crack open (no boiled-vs-raw source preference).
             var preferBoiled = false;
@@ -942,14 +953,6 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||
                     npc.Memory.IsShunned(perceived.Id, world.Tick) ||
                     !perceived.AvailableInteractions.Contains(interactionType.Value))
-                {
-                    continue;
-                }
-
-                // §133.10: selected-outfit maintenance never substitutes a
-                // warmer/closer garment for the exact piece it remembers.
-                if (selectedOutfitTarget is { } selectedPiece &&
-                    !perceived.Id.Equals(selectedPiece))
                 {
                     continue;
                 }
@@ -1043,8 +1046,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     continue;
                 }
 
-                if (interactionType == InteractionType.Dress && selectedOutfitTarget is null &&
-                    !preferBackpack && !preferArmor && !preferCover &&
+                if (interactionType == InteractionType.Dress &&
+                    !preferBackpack && !preferArmor && !preferCover && !preferFavorite &&
                     EquipmentMath.WarmthGainFromWearing(world, npc, perceived.DefinitionId) <
                         SimBalance.DressWarmthGainMin)
                 {
@@ -1088,11 +1091,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                         $"Dist={perceived.Distance:F2} Occupied={perceived.IsOccupied}");
                 }
 
-                if (selectedOutfitTarget is not null)
-                {
-                    selected = perceived;
-                }
-                else if (preferBackpack)
+                if (preferBackpack)
                 {
                     var mine = world.Entities.Objects.TryGetValue(perceived.Id, out var backpack) &&
                         backpack.Owner == npc.Id;
@@ -1145,7 +1144,9 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 }
                 else if (preferArmor)
                 {
-                    var armor = DecisionSystem.CandidateArmor(world, perceived, npc.Sex);
+                    var armor = OutfitPreference.ArmorGainFromWearing(
+                        world, npc, world.Content.ObjectDefinitions[perceived.DefinitionId]);
+                    if (armor <= 0f) continue;
                     var affinity = ItemAffinity.For(npc.Id.Value, perceived.DefinitionId);
                     if (selected is null || armor > selectedArmor + 0.01f ||
                         (System.Math.Abs(armor - selectedArmor) <= 0.01f &&
@@ -1155,6 +1156,24 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     {
                         selected = perceived;
                         selectedArmor = armor;
+                        selectedDressAffinity = affinity;
+                    }
+                }
+                else if (preferFavorite)
+                {
+                    var garment = world.Entities.Objects[perceived.Id];
+                    if (garment.Owner != npc.Id ||
+                        !OutfitPreference.IsPreferred(world, npc, perceived.DefinitionId,
+                            garment.Durability, garment.Wetness, outfitOutdoorTemperature))
+                    {
+                        continue;
+                    }
+
+                    var affinity = ItemAffinity.For(npc.Id.Value, perceived.DefinitionId);
+                    if (selected is null || affinity > selectedDressAffinity ||
+                        (affinity == selectedDressAffinity && perceived.Distance < selected.Distance))
+                    {
+                        selected = perceived;
                         selectedDressAffinity = affinity;
                     }
                 }
@@ -1287,6 +1306,64 @@ public sealed partial class PlanningSystem : ISimulationSystem
         }
     }
 
+    private static bool TryPrepareHuntArmor(WorldState world, NPCState npc)
+    {
+        if (npc.EquippedArmor >= 0.3f || npc.Mind.IsStarving || npc.Mind.IsDehydrated || npc.IsFighting)
+        {
+            return false;
+        }
+
+        ItemInstance carriedArmor = null;
+        var carriedGain = 0f;
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (item.Durability <= 0f ||
+                !GarmentLibrary.FitsSex(npc.Sex, item.DefinitionId) ||
+                !world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition) ||
+                definition.Layer is null)
+            {
+                continue;
+            }
+
+            var gain = OutfitPreference.ArmorGainFromWearing(world, npc, definition);
+            if (gain > carriedGain && InventoryMath.FitsAfterWear(world, npc, item))
+            {
+                carriedGain = gain;
+                carriedArmor = item;
+            }
+        }
+
+        if (carriedArmor is not null)
+        {
+            ExecutionSystem.WearCarriedItem(world, npc, carriedArmor);
+            return false;
+        }
+
+        PerceivedObject? best = null;
+        var bestGain = 0f;
+        foreach (var seen in npc.Perception.Objects)
+        {
+            if (seen.Distance > HexSpatialMath.HexRadius * 3f ||
+                !world.Entities.Objects.TryGetValue(seen.Id, out var garment) || garment.Durability <= 0f ||
+                !world.Content.ObjectDefinitions.TryGetValue(seen.DefinitionId, out var definition) ||
+                definition.Layer is null)
+            {
+                continue;
+            }
+
+            var gain = OutfitPreference.ArmorGainFromWearing(world, npc, definition);
+            if (gain > 0f && (gain > bestGain || gain == bestGain && seen.Distance < best!.Distance) &&
+                DecisionSystem.IsDressCandidateCommon(npc, world, seen))
+            {
+                best = seen;
+                bestGain = gain;
+            }
+        }
+
+        return best is not null &&
+            TryInstallObjectPlan(world, npc, best, InteractionType.Dress, 1, out _, out _);
+    }
+
     /// <summary>
     /// The shared tail of the object planner: resolve the target junction
     /// (live object, or memory for a remembered-but-unseen one), take the
@@ -1346,7 +1423,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
         // Keeping this predicate shared is important: otherwise a manual
         // sleep could still use a different junction than an autonomous
         // sleep and the turn-back pose would start from the wrong side.
-        // §120.14: у дома нет одной точки стройки — она идёт к своей детали
+        // §120.15: у дома нет одной точки стройки — она идёт к своей детали
         // (кусок стены, сектор пола), с любой доступной стороны. Только если у
         // детали встать негде вовсе, остаётся прежний подход к якорю здания.
         var atPiece = false;
@@ -1699,7 +1776,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 CanUseRoutineTraversal(npc));
         }
 
-        // §120.14: то же правило, что у настоящего планировщика.
+        // §120.15: то же правило, что у настоящего планировщика.
         if (interaction == InteractionType.Build && BuildWorkPoint.HasStand(world, npc, target))
         {
             return true;
@@ -2569,6 +2646,23 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 "Steps=[MoveToJunction,Interact(TakeVessel)]");
         }
         return true;
+    }
+
+    private static bool TryBuildCollectorBottlePickupPlan(WorldState world, NPCState npc)
+    {
+        var collector = DecisionSystem.FindStowableCollector(npc, world);
+        if (collector is null) return false;
+
+        var empty = BottleInventoryMath.FirstEmpty(npc);
+        if (empty != null)
+        {
+            foreach (var item in npc.Inventory.Items)
+                if (!ReferenceEquals(item, empty) && BottleInventoryMath.IsBottle(item)) return false;
+        }
+
+        var bottle = DecisionSystem.FindLooseCollectorBottle(npc, world, collector);
+        return bottle != null &&
+            TryInstallObjectPlan(world, npc, bottle, InteractionType.PickUp, 1, out _, out _);
     }
 }
 

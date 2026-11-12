@@ -7,6 +7,7 @@ using HexLive.Simulation.Core;
 using HexLive.Simulation.Spatial;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Navigation;
+using HexLive.Simulation.Debug;
 namespace HexLive.Simulation.Runtime
 {
 /// <summary>§129.5: a voice can answer through the leaf; hands cannot.</summary>
@@ -18,6 +19,13 @@ public static class DoorInteractionMath
     public const float TrustToOpen = .4f;
     public const float FamiliarityToOpen = .35f;
     public const int StressPulseTicks = 16;
+
+    public static bool CanTargetClosedDoor(ObjectSnapshot door) => Spec129.Enabled && door != null &&
+        door.DefinitionId == DoorTopology.DoorDefinitionId && !door.IsDoorOpen && door.Durability > 0f &&
+        door.ArchitectureOwnerObjectId.HasValue && door.ArchitectureElements.Count == 1 &&
+        door.Junctions.Count == 1 && string.IsNullOrEmpty(door.BuildProduct) &&
+        !door.ArchitectureElements[0].DemolitionPlanned;
+
     internal static ItemInstance Tool(NPCState npc) =>
         GearCatalog.BestToolFor(npc.Inventory.Items,GearCapability.ChopWood,npc.Body.IntactHands);
     internal static bool TryReserveApproach(WorldState world,NPCState npc,WorldObjectState door,out JunctionId stand)

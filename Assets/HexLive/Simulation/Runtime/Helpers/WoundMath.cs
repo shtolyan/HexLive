@@ -18,6 +18,21 @@ namespace HexLive.Simulation.Runtime
 // drain HP without ever creating a wound (no phantom decals while starving).
 internal static class WoundMath
 {
+    public static bool HasPainfulWound(NPCState npc)
+    {
+        foreach (var wound in npc.Wounds)
+        {
+            if (wound.Severity > 0f && wound.Heal01 < 1f &&
+                (!npc.Body.Conditions.TryGetValue(wound.Zone, out var condition) ||
+                 condition.Prosthetic == null))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // Presentation-only age for a fully clotted but still unhealed cut. It
     // stays visible as a dry mark while losing the wet/fresh reaction cues;
     // authoritative Heal01 remains unchanged until real recovery advances it.

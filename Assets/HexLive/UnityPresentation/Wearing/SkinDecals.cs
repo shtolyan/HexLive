@@ -339,7 +339,8 @@ namespace HexLive.UnityPresentation.Wearing
 
             // The projector floats just outside the limb, looking inward: the
             // decal is projected onto the skin and hugs the mesh curvature.
-            var worldPos = anchor + radial * (radius * 1.6f);
+            var isDirt = type == DecalType.Dirt;
+            var worldPos = anchor + radial * (radius * (isDirt ? 1.5f : 1.6f));
             var worldRot = Quaternion.LookRotation(-radial, axisDir) * Quaternion.Euler(0f, 0f, roll);
 
             var size = type switch
@@ -369,16 +370,18 @@ namespace HexLive.UnityPresentation.Wearing
 
             var projector = go.AddComponent<DecalProjector>();
             projector.material = material;
-            // Depth reaches through the limb's front half so curved skin catches
-            // the full image; it does NOT reach the far side (radius margin).
-            projector.size = new Vector3(size, size, radius * 2.2f);
-            projector.pivot = new Vector3(0f, 0f, radius * 1.1f);
-            // Dirt must disappear before a grazing projection becomes a long
-            // stripe around the shoulder/thigh. Other effects keep their art.
-            if (type == DecalType.Dirt)
+            // Keep dirt in a shallow band at the intended skin surface. The
+            // deeper wound/wrap volume can hit the torso behind an arm or the
+            // opposite thigh, painting a stripe along that other surface.
+            var depth = radius * (isDirt ? .9f : 2.2f);
+            projector.size = new Vector3(size, size, depth);
+            projector.pivot = new Vector3(0f, 0f, depth * .5f);
+            // Fade the edge before the projected texture becomes a long line
+            // at grazing angles, even on the same limb.
+            if (isDirt)
             {
-                projector.startAngleFade = 45f;
-                projector.endAngleFade = 75f;
+                projector.startAngleFade = 28f;
+                projector.endAngleFade = 52f;
             }
             // Skin-only by default; rain droplets also hit the cloth layer.
             // Never the terrain (default layer bit 0 is excluded either way).

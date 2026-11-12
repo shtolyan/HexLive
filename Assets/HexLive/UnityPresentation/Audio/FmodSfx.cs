@@ -136,7 +136,8 @@ namespace HexLive.UnityPresentation.Audio
         // base gain in one place prevents its peak ceiling from drifting away
         // from the gain FMOD actually applies.
         public const float VoicePlaybackBaseGain = 0.75f;
-        private static readonly Def VoiceDef = new(VoicePlaybackBaseGain, 1.2f, 22f, 0.03f);
+        public const float VoiceMaxDistance = 22f;
+        private static readonly Def VoiceDef = new(VoicePlaybackBaseGain, 1.2f, VoiceMaxDistance, 0.03f);
 
         // ---- §67.16: язык озвучки = локаль игрока --------------------------
         // Банки лежат параллельными деревьями с ОДИНАКОВЫМИ именами файлов, так
@@ -144,16 +145,14 @@ namespace HexLive.UnityPresentation.Audio
         // липсинк о нём не знают.
         public enum VoiceBank { Hexkufa, Russian, English }
 
-        // Хекскуфа заморожена (решение игрока, 2026-09-21): банк и весь её
-        // пайплайн остаются в репозитории, но игра на ней не говорит, и
-        // включателя в интерфейсе нет. Разморозка — это поле (readonly, а не const: иначе CS0429).
-        private static readonly bool HexkufaFrozen = true;
+        public static VoiceBank CurrentVoiceBank => Localization.Loc.Current == Localization.Language.Russian
+            ? VoiceBank.Russian
+            : VoiceBank.English;
 
-        public static VoiceBank CurrentVoiceBank => !HexkufaFrozen
-            ? VoiceBank.Hexkufa
-            : Localization.Loc.Current == Localization.Language.Russian
-                ? VoiceBank.Russian
-                : VoiceBank.English;
+        // Two people can use the same actor and line id in different languages.
+        private const string HexkufaCachePrefix = "voice_hexkufa/";
+        private static string VoiceCacheKey(string id, VoiceBank bank) =>
+            bank == VoiceBank.Hexkufa ? HexkufaCachePrefix + id : id;
 
         /// <summary>
         /// Корень аудио-дерева Player. На десктопе — папка StreamingAssets;
@@ -210,9 +209,10 @@ namespace HexLive.UnityPresentation.Audio
             }
 
             _loadedVoiceBank = CurrentVoiceBank;
-            MissingVoiceGroups.Clear();
+            MissingVoiceGroups.RemoveWhere(id => !id.StartsWith(HexkufaCachePrefix, System.StringComparison.Ordinal));
             foreach (var id in Sounds.Keys
-                         .Where(id => id.StartsWith("voice_", System.StringComparison.Ordinal))
+                         .Where(id => id.StartsWith("voice_", System.StringComparison.Ordinal) &&
+                             !id.StartsWith(HexkufaCachePrefix, System.StringComparison.Ordinal))
                          .ToArray())
             {
                 foreach (var sound in Sounds[id])
@@ -792,13 +792,15 @@ namespace HexLive.UnityPresentation.Audio
         private static readonly HashSet<string> FetchingVoiceGroups = new(System.StringComparer.Ordinal);
 #endif
 
-        private static bool EnsureVoiceGroup(string id)
+        private static bool EnsureVoiceGroup(string id, VoiceBank? requestedBank = null)
         {
             // #667: I2 updates CurrentLanguage immediately but raises its
             // localization event on the next frame in PlayMode. Never serve
             // a cached group from the previous bank during that interval.
             OnLanguageChanged();
-            if (Sounds.ContainsKey(id))
+            var bank = requestedBank ?? _loadedVoiceBank;
+            var key = VoiceCacheKey(id, bank);
+            if (Sounds.ContainsKey(key))
             {
                 return true;
             }
@@ -807,12 +809,12 @@ namespace HexLive.UnityPresentation.Audio
                 return false;
             }
 
-            if (MissingVoiceGroups.Contains(id))
+            if (MissingVoiceGroups.Contains(key))
             {
                 return false;
             }
 
-            var relativeRoot = VoiceRoot(_loadedVoiceBank).Substring(AudioRoot.Length + 1)
+            var relativeRoot = VoiceRoot(bank).Substring(AudioRoot.Length + 1)
                 .Replace(Path.DirectorySeparatorChar, '/');
 #if UNITY_WEBGL && !UNITY_EDITOR
             if (!WebAudioFiles.Ready)
@@ -827,7 +829,7 @@ namespace HexLive.UnityPresentation.Audio
                 .ToArray();
             if (files.Length == 0)
             {
-                MissingVoiceGroups.Add(id);
+                MissingVoiceGroups.Add(key);
                 return false;
             }
 
@@ -836,7 +838,7 @@ namespace HexLive.UnityPresentation.Audio
             // эта реплика молчит, следующая уже играет.
             if (files.Any(file => !WebAudioFiles.IsLocal(file)))
             {
-                if (FetchingVoiceGroups.Add(id))
+                if (FetchingVoiceGroups.Add(key))
                 {
                     var known = new HashSet<string>(AudioFiles(relativeRoot, true), System.StringComparer.Ordinal);
                     var wanted = files.ToList();
@@ -848,14 +850,14 @@ namespace HexLive.UnityPresentation.Audio
                             wanted.Add(viseme);
                         }
                     }
-                    WebAudioFiles.EnsureLocal(wanted, _ => FetchingVoiceGroups.Remove(id));
+                    WebAudioFiles.EnsureLocal(wanted, _ => FetchingVoiceGroups.Remove(key));
                 }
                 return false;
             }
 #endif
 
-            LoadedDefs[id] = VoiceDef;
-            return OpenGroup(FMODUnity.RuntimeManager.CoreSystem, id, VoiceDef, files);
+            LoadedDefs[key] = VoiceDef;
+            return OpenGroup(FMODUnity.RuntimeManager.CoreSystem, key, VoiceDef, files);
         }
 
         /// <summary>The camera is the ears: position + orientation each frame.</summary>
@@ -901,6 +903,8 @@ namespace HexLive.UnityPresentation.Audio
         public static bool HasSound(string id) => _ready &&
             (id.StartsWith("voice_", System.StringComparison.Ordinal)
                 ? EnsureVoiceGroup(id) : Sounds.ContainsKey(id));
+
+        public static bool HasHexkufaVoice(string id) => _ready && EnsureVoiceGroup(id, VoiceBank.Hexkufa);
 
         // ---- §67.12: маршрут через события FMOD Studio --------------------
         // Если Studio-событие доступно, громкость/эффекты/дистанции берутся из
@@ -955,9 +959,19 @@ namespace HexLive.UnityPresentation.Audio
         /// пока звучит предыдущая (IsPlaying).</summary>
         public static Loop PlayTracked(string id, Vector3 position, float volumeGain = 1f, bool listenerRelative = false)
         {
-            if (!_ready ||
-                (id.StartsWith("voice_", System.StringComparison.Ordinal) && !EnsureVoiceGroup(id)) ||
-                !Sounds.TryGetValue(id, out var variants))
+            if (!_ready || (id.StartsWith("voice_", System.StringComparison.Ordinal) && !EnsureVoiceGroup(id)))
+                return default;
+
+            return PlayLoadedGroup(id, position, volumeGain, listenerRelative);
+        }
+
+        public static Loop PlayHexkufaVoice(string id, Vector3 position) => HasHexkufaVoice(id)
+            ? PlayLoadedGroup(VoiceCacheKey(id, VoiceBank.Hexkufa), position, 1f, false)
+            : default;
+
+        private static Loop PlayLoadedGroup(string id, Vector3 position, float volumeGain, bool listenerRelative)
+        {
+            if (!Sounds.TryGetValue(id, out var variants))
             {
                 return default;
             }
@@ -1013,7 +1027,11 @@ namespace HexLive.UnityPresentation.Audio
                        (listenerRelative
                            ? FMOD.MODE._2D
                            : FMOD.MODE._3D | FMOD.MODE._3D_LINEARSQUAREROLLOFF);
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (!TryOpenDynamicPcm(core, wavPath, mode, out var sound))
+#else
             if (CreateSound(core, wavPath, mode, default, out var sound) != FMOD.RESULT.OK)
+#endif
             {
                 return default;
             }
@@ -1043,6 +1061,41 @@ namespace HexLive.UnityPresentation.Audio
                 VisemeFile = visemePath
             };
         }
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        private static bool TryOpenDynamicPcm(FMOD.System core, string path, FMOD.MODE mode, out FMOD.Sound sound)
+        {
+            sound = default;
+            byte[] wav;
+            try { wav = File.ReadAllBytes(path); }
+            catch (IOException) { return false; }
+            if (!VoiceVisemeBaker.TryReadPcm(wav, out var pcm, out _)) return false;
+            var info = new FMOD.CREATESOUNDEXINFO
+            {
+                cbsize = System.Runtime.InteropServices.Marshal.SizeOf<FMOD.CREATESOUNDEXINFO>(),
+                length = (uint)(pcm.Length * sizeof(short)),
+                numchannels = 1,
+                defaultfrequency = VoiceVisemeBaker.SampleRate,
+                format = FMOD.SOUND_FORMAT.PCM16,
+            };
+            // Web FMOD has no WAV decoder. Fill its user PCM buffer directly.
+            if (core.createSound(string.Empty, mode | FMOD.MODE.OPENUSER, ref info, out sound) != FMOD.RESULT.OK)
+                return false;
+            if (sound.@lock(0, info.length, out var p1, out var p2, out var l1, out var l2) != FMOD.RESULT.OK)
+            {
+                sound.release();
+                sound = default;
+                return false;
+            }
+            try
+            {
+                if (l1 > 0) System.Runtime.InteropServices.Marshal.Copy(pcm, 0, p1, (int)l1 / sizeof(short));
+                if (l2 > 0) System.Runtime.InteropServices.Marshal.Copy(pcm, (int)l1 / sizeof(short), p2, (int)l2 / sizeof(short));
+            }
+            finally { sound.unlock(p1, p2, l1, l2); }
+            return true;
+        }
+#endif
 
         /// <summary>Позиция воспроизведения хэндла в мс (-1 = не играет) —
         /// §67.7: часы липсинка (по ним сэмплируется .vis-таймлайн).</summary>

@@ -110,7 +110,7 @@ export function VoiceCapture({ model, send }) {
         <div class="hx-capture__meter" aria-hidden="true">
           ${Array.from({ length: BARS }, (_, i) => html`<i key=${i} class=${i < lit ? 'is-lit' : ''}></i>`)}
         </div>
-        <button type="button" class="hx-capture__done" onClick=${() => send('done')}>✓ ${t('agent.voice.capture_done')}</button>
+        <button type="button" class="hx-capture__done" disabled=${model.ready === false} onClick=${() => send('done')}>✓ ${t('agent.voice.capture_done')}</button>
         <button type="button" class="hx-capture__cancel" onClick=${() => send('cancel')}>${t('loot.quantity_cancel')}</button>
       </section>
     </div>`;

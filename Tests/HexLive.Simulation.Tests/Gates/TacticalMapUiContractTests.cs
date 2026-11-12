@@ -151,8 +151,7 @@ public sealed class TacticalMapUiContractTests
             Assert.That(roster, Does.Contain("_worldRenderer.IsNpcPickable"));
             Assert.That(bootstrap, Does.Contain("new GameObject(\"HexLive Tactical Map\")"));
             Assert.That(bootstrap, Does.Contain("tacticalMap.SetPortraitCache(portraitCache)"));
-            Assert.That(input, Does.Contain("new SetManualControlCommand(actor, true)"));
-            Assert.That(input, Does.Contain("new MoveToCommand(actor, point, run)"));
+            Assert.That(input, Does.Contain("new QueuePlayerOrderCommand(new MoveToCommand(actor, point, run))"));
         });
 
         var leftClickStart = camera.IndexOf(

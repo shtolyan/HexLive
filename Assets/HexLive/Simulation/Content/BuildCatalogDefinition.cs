@@ -160,6 +160,9 @@ namespace HexLive.Simulation.Content
             new(ContentIds.Torch, BuildCatalogMode.Furniture,
                 BuildCatalogCategories.Outdoor, BuildCatalogPlacementKind.Furniture,
                 "item.tool_torch.name", "item.tool_torch.desc", "♨", 230),
+            new(ContentIds.HeadPike, BuildCatalogMode.Furniture,
+                BuildCatalogCategories.Outdoor, BuildCatalogPlacementKind.Furniture,
+                "item.furniture_head_pike.name", "item.furniture_head_pike.desc", "⚑", 235),
             new(ContentIds.Coconut, BuildCatalogMode.Furniture,
                 BuildCatalogCategories.Outdoor, BuildCatalogPlacementKind.Furniture,
                 "blueprint.catalog.plant_palm.name", "blueprint.catalog.plant_palm.description", "♧", 240),
@@ -180,6 +183,7 @@ namespace HexLive.Simulation.Content
             ModernFurniture("furniture.modern_sofa", "▰", 350),
             ModernFurniture("furniture.modern_tv", "▣", 360),
             ModernFurniture("furniture.modern_shelf", "▤", 370),
+            ModernFurniture(ContentIds.ModernWardrobe, "▥", 380),
         };
 
         private static BuildCatalogEntryDefinition ModernFurniture(string id, string glyph, int order)

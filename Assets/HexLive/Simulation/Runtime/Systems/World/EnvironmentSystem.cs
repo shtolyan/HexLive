@@ -35,6 +35,17 @@ public sealed class EnvironmentSystem : ISimulationSystem
     // and the campfire earn their keep at night).
     private static float BaseTemperature => SimBalance.BaseTemperature;
     private static float TemperatureAmplitude => SimBalance.TemperatureAmplitude;
+    private const float OutfitForecastDayFraction = 2f / 24f;
+
+    internal static float OutfitOutdoorTemperature(WorldState world)
+    {
+        var progress = world.Environment.TimeOfDayNormalized;
+        var cooling = DailyTemperature(progress + OutfitForecastDayFraction) - DailyTemperature(progress);
+        return world.Environment.GlobalTemperature + System.MathF.Min(0f, cooling);
+    }
+
+    private static float DailyTemperature(float progress) => BaseTemperature +
+        TemperatureAmplitude * System.MathF.Sin((progress - 0.125f) * 2f * System.MathF.PI);
 
     public void Run(WorldState world)
     {
@@ -51,8 +62,7 @@ public sealed class EnvironmentSystem : ISimulationSystem
         };
 
         // Warmest at 15:00 (progress 0.375), coldest at 03:00 (progress 0.875).
-        world.Environment.GlobalTemperature = BaseTemperature +
-            TemperatureAmplitude * System.MathF.Sin((progress - 0.125f) * 2f * System.MathF.PI);
+        world.Environment.GlobalTemperature = DailyTemperature(progress);
 
         // Spec 35.4/35.5: UV over the daylight half, peaking 0.9 at midday;
         // rain halves it and cools the air 3 degrees.

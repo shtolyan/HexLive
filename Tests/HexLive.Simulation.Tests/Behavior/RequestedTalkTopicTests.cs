@@ -17,6 +17,28 @@ namespace HexLive.Simulation.Tests.Behavior;
 public sealed class RequestedTalkTopicTests
 {
     [Test]
+    public void TheManualActorCanUseTheirOwnStandingPointInACrowdedApproach()
+    {
+        var engine = Setup(out var actor, out var target);
+        var world = engine.World;
+        var standing = actor.CurrentJunction!.Value;
+        var crowd = new EntityId(9001);
+        foreach (var point in world.Junctions.Items.Values.Where(point =>
+                     point.Id != standing && point.Id != target.CurrentJunction &&
+                     HexSpatialMath.Distance(point.WorldPosition, target.Position) <= InteractionReach.Aid))
+            SpatialMutations.OccupyJunction(world, point.Id, crowd);
+        SpatialMutations.OccupyJunction(world, standing, actor.Id);
+
+        Accept(world, actor, target, TalkTopic.Food);
+
+        Assert.That(actor.Plan.TargetJunctionId, Is.EqualTo(standing));
+        Assert.That(target.Mind.PendingTalkFrom, Is.EqualTo(actor.Id));
+        StartTalk(engine, actor, target);
+        Assert.That(actor.CurrentJunction, Is.EqualTo(standing));
+        Assert.That(actor.Execution.CurrentTalkTopic, Is.EqualTo(TalkTopic.Food));
+    }
+
+    [Test]
     public void RequestedTopicSurvivesApproachSaveRefreshAndThenClears()
     {
         var engine = Setup(out var actor, out var target);
@@ -95,6 +117,38 @@ public sealed class RequestedTalkTopicTests
         Assert.That(actor.Execution.CurrentTalkTopic, Is.EqualTo(TalkTopic.Thirst));
         Assert.That(target.Execution.CurrentTalkTopic, Is.EqualTo(TalkTopic.Food));
         Assert.That(actor.Plan.RequestedTalkTopic, Is.EqualTo(TalkTopic.Food));
+    }
+
+    [TestCase(TalkTopic.Home)]
+    [TestCase(TalkTopic.Escape)]
+    public void OnlyTheModernSpeakerTalksAboutLeavingTheIsland(TalkTopic topic)
+    {
+        var engine = Setup(out var islander, out var modern);
+        modern.SpeechOrigin = NpcSpeechOrigin.Modern;
+        Assert.That(modern.Faction, Is.EqualTo(islander.Faction));
+        Accept(engine.World, islander, modern, topic);
+        StartTalk(engine, islander, modern);
+
+        Assert.That(islander.Execution.CurrentTalkTopic, Is.EqualTo(TalkTopic.SmallTalk));
+        Assert.That(modern.Execution.CurrentTalkTopic, Is.EqualTo(topic));
+    }
+
+    [Test]
+    public void AutonomousConversationBetweenIslandersNeverPicksAnOffIslandTopic()
+    {
+        var engine = Setup(out var actor, out var target);
+        Accept(engine.World, actor, target, null);
+        StartTalk(engine, actor, target);
+        var execution = new ExecutionSystem();
+        for (var turn = 1; turn <= 100; turn++)
+        {
+            var tick = actor.Execution.StartTick + turn * 30;
+            engine.World.Tick = tick;
+            actor.Execution.EndTick = tick + 60;
+            execution.Run(engine.World);
+            Assert.That(actor.Execution.CurrentTalkTopic, Is.Not.EqualTo(TalkTopic.Home).And.Not.EqualTo(TalkTopic.Escape));
+            Assert.That(target.Execution.CurrentTalkTopic, Is.Not.EqualTo(TalkTopic.Home).And.Not.EqualTo(TalkTopic.Escape));
+        }
     }
 
     [Test]

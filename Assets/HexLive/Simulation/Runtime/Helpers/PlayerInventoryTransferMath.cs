@@ -141,7 +141,7 @@ internal static class PlayerInventoryTransferMath
 
     internal static bool CanWearIncoming(WorldState world, NPCState npc, ItemInstance item,
         IReadOnlyList<ItemInstance> contents = null) =>
-        !npc.Mind.OutfitLocked && InventoryMath.FitsAfterWear(world, npc, item, contents);
+        InventoryMath.FitsAfterWear(world, npc, item, contents);
 
     internal static void MoveResolved(
         WorldState world,

@@ -5469,6 +5469,22 @@ MonoBehaviour:
       - "\u043A\u0440\u0438\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0439 \u0438\u0437\u043D\u043E\u0441"
       Flags: 0101
       Languages_Touch: []
+    - Term: inv.food_mass
+      TermType: 0
+      Description:
+      Languages:
+      - Portion weight
+      - Масса порции
+      Flags: 0101
+      Languages_Touch: []
+    - Term: inv.grams_format
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} g'
+      - '{0} г'
+      Flags: 0101
+      Languages_Touch: []
     - Term: inv.restores
       TermType: 0
       Description: 
@@ -24690,6 +24706,30 @@ MonoBehaviour:
       - "\u041B\u0435\u0447\u044C \u0441\u043F\u0430\u0442\u044C"
       Flags: 0101
       Languages_Touch: []
+    - Term: menu.sleep_refusal.SleepDanger
+      TermType: 0
+      Description:
+      Languages:
+      - danger nearby
+      - "\u0440\u044F\u0434\u043E\u043C \u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.sleep_refusal.SleepHungry
+      TermType: 0
+      Description:
+      Languages:
+      - too hungry
+      - "\u0441\u0438\u043B\u044C\u043D\u044B\u0439 \u0433\u043E\u043B\u043E\u0434"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.sleep_refusal.SleepThirsty
+      TermType: 0
+      Description:
+      Languages:
+      - too thirsty
+      - "\u0441\u0438\u043B\u044C\u043D\u0430\u044F \u0436\u0430\u0436\u0434\u0430"
+      Flags: 0101
+      Languages_Touch: []
     - Term: menu.self.bathe
       TermType: 0
       Description: 
@@ -27990,6 +28030,22 @@ MonoBehaviour:
       Languages:
       - 'Call your character and talk by voice'
       - 'Позвонить персонажу и поговорить голосом'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.speak.button'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Speak as your character'
+      - 'Сказать голосом персонажа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.speak.sending'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Preparing speech…'
+      - 'Готовим реплику…'
       Flags: 0101
       Languages_Touch: []
     - Term: 'agent.call.hangup'
@@ -31784,6 +31840,22 @@ MonoBehaviour:
       - "\u041a\u0440\u0435\u043c\u0435\u043d\u044c \u0438 \u043a\u0430\u043c\u0435\u043d\u044c \u0432\u044b\u0441\u0435\u043a\u0430\u044e\u0442 \u0438\u0441\u043a\u0440\u044b. \u0418\u0437\u043d\u0430\u0448\u0438\u0432\u0430\u0435\u0442\u0441\u044f \u043f\u0440\u0438 \u0443\u0441\u043f\u0435\u0448\u043d\u043e\u043c \u0440\u043e\u0437\u0436\u0438\u0433\u0435."
       Flags: 0101
       Languages_Touch: []
+    - Term: item.furniture_head_pike.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Head on a pike"
+      - "\u0413\u043e\u043b\u043e\u0432\u0430 \u043d\u0430 \u043a\u043e\u043f\u044c\u0435"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.furniture_head_pike.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "Build by hand with one spear and one human head. The sight can make visitors turn back."
+      - "\u0421\u043e\u0431\u0438\u0440\u0430\u0435\u0442\u0441\u044f \u0432\u0440\u0443\u0447\u043d\u0443\u044e \u0438\u0437 \u043e\u0434\u043d\u043e\u0433\u043e \u043a\u043e\u043f\u044c\u044f \u0438 \u043e\u0434\u043d\u043e\u0439 \u0447\u0435\u043b\u043e\u0432\u0435\u0447\u0435\u0441\u043a\u043e\u0439 \u0433\u043e\u043b\u043e\u0432\u044b. \u041c\u043e\u0436\u0435\u0442 \u043e\u0442\u043f\u0443\u0433\u043d\u0443\u0442\u044c \u0447\u0443\u0436\u0430\u043a\u043e\u0432."
+      Flags: 0101
+      Languages_Touch: []
     - Term: item.tool_torch.name
       TermType: 0
       Description:
@@ -31806,6 +31878,30 @@ MonoBehaviour:
       Languages:
       - "Tending the garden"
       - "\u0423\u0445\u0430\u0436\u0438\u0432\u0430\u0435\u0442 \u0437\u0430 \u0433\u0440\u044f\u0434\u043a\u043e\u0439"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: goal.GardenCollectSeeds
+      TermType: 0
+      Description:
+      Languages:
+      - "Picking up seeds"
+      - "Подбирает семена"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: goal.GardenHarvestSeeds
+      TermType: 0
+      Description:
+      Languages:
+      - "Harvesting seeds"
+      - "Добывает семена"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: goal.GardenSowSeeds
+      TermType: 0
+      Description:
+      Languages:
+      - "Sowing seeds"
+      - "Сажает семена"
       Flags: 0101
       Languages_Touch: []
     - Term: goal.CraftHammer
@@ -31980,8 +32076,32 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - 'Their trust in the leader must be greater than 60'
-      - 'Доверие персонажа к лидеру должно быть выше 60'
+      - 'Their trust in your leader is {0}%. It must be above 60%.'
+      - 'Персонаж доверяет вашему лидеру на {0}%. Нужно больше 60%.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.travel.target_manual'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This character is under manual control'
+      - 'Персонаж под ручным управлением'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.TravelTrustTooLow'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The companion must trust your leader by more than 60%'
+      - 'Спутник должен доверять вашему лидеру больше чем на 60%'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.TravelTargetTooFar'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Move closer to invite this companion'
+      - 'Подойдите ближе, чтобы позвать спутника'
       Flags: 0101
       Languages_Touch: []
     - Term: 'history.TravelPartyJoined'
@@ -32624,6 +32744,14 @@ MonoBehaviour:
       - Мягкий плюшевый мишка с маленьким красным сердцем.
       Flags: 0101
       Languages_Touch: []
+    - Term: inv.action.eat
+      TermType: 0
+      Description:
+      Languages:
+      - Eat
+      - Съесть
+      Flags: 0101
+      Languages_Touch: []
     - Term: inv.action.switch_light
       TermType: 0
       Description:
@@ -32840,6 +32968,22 @@ MonoBehaviour:
       - "Деревянный стеллаж с четырьмя полками для домашних мелочей."
       Flags: 0101
       Languages_Touch: []
+    - Term: item.furniture_modern_wardrobe.name
+      TermType: 0
+      Description:
+      Languages:
+      - Apartment wardrobe
+      - Современный гардероб
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.furniture_modern_wardrobe.desc
+      TermType: 0
+      Description:
+      Languages:
+      - An open walnut wardrobe with a clothes rail, shelves and two drawers.
+      - Открытый шкаф из орехового дерева с перекладиной, полками и двумя ящиками.
+      Flags: 0101
+      Languages_Touch: []
     - Term: item.furniture_modern_table.name
       TermType: 0
       Description:
@@ -33042,7 +33186,7 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: 'toast.order_rejected.PlacementOccupied'
       TermType: 0
-      Description: 
+      Description:
       Languages:
       - 'This spot is taken by another item'
       - 'Место занято другим предметом'
@@ -33050,7 +33194,7 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: 'toast.order_rejected.FurnitureBuilt'
       TermType: 0
-      Description: 
+      Description:
       Languages:
       - 'Finished furniture can be moved but not removed in build mode'
       - 'Готовую мебель в режиме стройки можно передвинуть, но не убрать'
@@ -33058,7 +33202,7 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: 'toast.order_rejected.NoSuchFurniture'
       TermType: 0
-      Description: 
+      Description:
       Languages:
       - 'That item is no longer there'
       - 'Этого предмета там уже нет'
@@ -33070,6 +33214,30 @@ MonoBehaviour:
       Languages:
       - 'Done — start building'
       - 'Готово — строить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.orders.action'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Action'
+      - 'Действие'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.OrderQueueFull'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The action queue is full'
+      - 'Очередь действий заполнена'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.orders.cancel'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cancel {0}'
+      - 'Отменить: {0}'
       Flags: 0101
       Languages_Touch: []
     CaseInsensitiveTerms: 0

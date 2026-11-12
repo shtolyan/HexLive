@@ -58,20 +58,36 @@ public sealed class CharacterDollAndInventoryUiContractTests
             StringComparison.Ordinal);
         Assert.That(refreshStart, Is.GreaterThanOrEqualTo(0));
         Assert.That(refreshEnd, Is.GreaterThan(refreshStart));
-        var inventoryGate = panel[refreshStart..refreshEnd];
+        var inventoryGate = Regex.Match(panel[refreshStart..refreshEnd], @"_inventoryMutable\s*=\s*[^;]+;").Value;
 
         Assert.Multiple(() =>
         {
             Assert.That(inventoryGate, Does.Contain("_runner.SupportsNpcCommands"));
             Assert.That(inventoryGate, Does.Contain("_runner.CanControlNpc(npc.Id)"));
             Assert.That(inventoryGate, Does.Not.Contain("npc.IsManualControl"));
-            Assert.That(panel, Does.Contain("new SetOutfitLockCommand("));
             Assert.That(panel, Does.Contain("!_inventoryMutable"));
             Assert.That(loot, Does.Contain("_runner.CanControlNpc(looter.Id)"));
             Assert.That(loot, Does.Not.Contain("looter.IsManualControl"));
             Assert.That(Regex.Matches(input, @"EnsureManual\(").Count, Is.EqualTo(2),
                 "Only the helper and ordinary world-order path may take manual control; " +
                 "opening inventory transfer panels must not.");
+        });
+    }
+
+    [Test]
+    public void InventoryHostsOfferWearWithoutAnOutfitPin()
+    {
+        var panel = RepoPaths.ReadText(Presentation("UI", "CharacterPanel.cs"));
+        var bridge = RepoPaths.ReadText(Presentation("UI", "CharacterPanel.HtmlInventory.cs"));
+        var web = RepoPaths.ReadText(Path.Combine(RepoPaths.Root,
+            "Assets", "WebGLTemplates", "HexLive", "ui", "screens", "inventory.js"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(panel, Does.Not.Contain("BuildOutfitLockToggle"));
+            Assert.That(panel, Does.Contain("worn ? InventoryAction.Stow : InventoryAction.Wear"));
+            Assert.That(bridge, Does.Not.Contain("outfitLock"));
+            Assert.That(bridge, Does.Contain("actions.Add(worn ? \"stow\" : \"wear\")"));
+            Assert.That(web, Does.Not.Contain("outfitLock"));
         });
     }
 

@@ -66,10 +66,12 @@ public sealed class ViewerConnection
     private readonly AgentSessionRegistry? _agentSessions;
     private readonly int _worldGeneration;
     private readonly DeepgramTokenBroker? _deepgram;
+    private readonly Voice.PlayerSpeechRelay? _playerSpeech;
     private readonly Mcp.McpPlayerAccess? _playerMcpAccess;
     private readonly string _viewerId;
     private readonly Dictionary<int, long> _agentStateRevisions = new();
     private long _lastSpeechSequence;
+    private long _lastPlayerSpeechSequence;
     private byte[]? _lastCraftingOptionsFrame;
 
     private double _rateTokens = CommandBurst;
@@ -88,7 +90,7 @@ public sealed class ViewerConnection
         IReadOnlyList<int>? assignedNpcIds = null, bool compress = false,
         AgentSessionRegistry? agentSessions = null, int worldGeneration = 0,
         DeepgramTokenBroker? deepgram = null, string? viewerId = null, GodMode.AdminViewerProtocol? admin = null, PlayerCharacterAssignments? currentAssignments = null,
-        Mcp.McpPlayerAccess? playerMcpAccess = null)
+        Mcp.McpPlayerAccess? playerMcpAccess = null, Voice.PlayerSpeechRelay? playerSpeech = null)
     {
         _host = host;
         _playerMcpAccess = playerMcpAccess;
@@ -106,6 +108,7 @@ public sealed class ViewerConnection
         _agentSessions = agentSessions;
         _worldGeneration = worldGeneration;
         _deepgram = deepgram;
+        _playerSpeech = playerSpeech;
         _viewerId = string.IsNullOrWhiteSpace(viewerId)
             ? Guid.NewGuid().ToString("N")
             : viewerId!;
@@ -119,6 +122,7 @@ public sealed class ViewerConnection
     public async Task RunAsync(CancellationToken cancel)
     {
         _eventSeq = _host.HighestEventSeq;
+        _lastPlayerSpeechSequence = _playerSpeech?.LatestSequence ?? 0;
         if (ControlEnabled && _agentSessions != null)
         {
             _lastSpeechSequence = _agentSessions.LatestSpeechSequence;
@@ -255,7 +259,16 @@ public sealed class ViewerConnection
 
     private async Task SendAgentUpdatesIfChangedAsync(CancellationToken cancel)
     {
-        if (!ControlEnabled || _agentSessions == null) return;
+        if (!ControlEnabled) return;
+        if (_playerSpeech != null)
+        {
+            foreach (var utterance in _playerSpeech.After(_lastPlayerSpeechSequence, _worldGeneration))
+            {
+                await SendSpeechAsync(utterance, cancel).ConfigureAwait(false);
+                _lastPlayerSpeechSequence = utterance.Sequence;
+            }
+        }
+        if (_agentSessions == null) return;
 
         var states = _agentSessions.StatesFor(_assignedNpcIds!, _controlOwner?.Substring(3));
         for (var i = 0; i < states.Length; i++)
@@ -271,36 +284,41 @@ public sealed class ViewerConnection
         for (var i = 0; i < speech.Length; i++)
         {
             var item = speech[i];
-            var metadata = item.Metadata;
-            await SendAsync(AgentWire.AgentSpeechBegin(new AgentSpeechBeginFrame
-            {
-                Sequence = item.Sequence,
-                NpcId = item.NpcId,
-                UtteranceId = metadata.UtteranceId,
-                TurnId = metadata.TurnId,
-                Language = metadata.Language,
-                Text = metadata.Text,
-                Emotion = metadata.Emotion,
-                Delivery = metadata.Delivery,
-                Priority = metadata.Priority,
-                TotalBytes = metadata.TotalBytes,
-                DurationMilliseconds = metadata.DurationMilliseconds,
-                Sha256 = metadata.Sha256,
-            }), cancel).ConfigureAwait(false);
-
-            var chunkIndex = 0;
-            for (var offset = 0; offset < item.Bytes.Length; offset += AgentWire.MaxChunkBytes)
-            {
-                var count = Math.Min(AgentWire.MaxChunkBytes, item.Bytes.Length - offset);
-                var chunk = new byte[count];
-                Buffer.BlockCopy(item.Bytes, offset, chunk, 0, count);
-                await SendAsync(AgentWire.AgentSpeechChunk(
-                    metadata.UtteranceId, chunkIndex++, chunk), cancel).ConfigureAwait(false);
-            }
-            await SendAsync(AgentWire.AgentSpeechEnd(metadata.UtteranceId, metadata.Sha256), cancel)
-                .ConfigureAwait(false);
+            await SendSpeechAsync(item, cancel).ConfigureAwait(false);
             _lastSpeechSequence = item.Sequence;
         }
+    }
+
+    private async Task SendSpeechAsync(CommittedAgentUtterance item, CancellationToken cancel)
+    {
+        var metadata = item.Metadata;
+        await SendAsync(AgentWire.AgentSpeechBegin(new AgentSpeechBeginFrame
+        {
+            Sequence = item.Sequence,
+            NpcId = item.NpcId,
+            UtteranceId = metadata.UtteranceId,
+            TurnId = metadata.TurnId,
+            Language = metadata.Language,
+            Text = metadata.Text,
+            Emotion = metadata.Emotion,
+            Delivery = metadata.Delivery,
+            Priority = metadata.Priority,
+            TotalBytes = metadata.TotalBytes,
+            DurationMilliseconds = metadata.DurationMilliseconds,
+            Sha256 = metadata.Sha256,
+        }), cancel).ConfigureAwait(false);
+
+        var chunkIndex = 0;
+        for (var offset = 0; offset < item.Bytes.Length; offset += AgentWire.MaxChunkBytes)
+        {
+            var count = Math.Min(AgentWire.MaxChunkBytes, item.Bytes.Length - offset);
+            var chunk = new byte[count];
+            Buffer.BlockCopy(item.Bytes, offset, chunk, 0, count);
+            await SendAsync(AgentWire.AgentSpeechChunk(
+                metadata.UtteranceId, chunkIndex++, chunk), cancel).ConfigureAwait(false);
+        }
+        await SendAsync(AgentWire.AgentSpeechEnd(metadata.UtteranceId, metadata.Sha256), cancel)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -463,6 +481,7 @@ public sealed class ViewerConnection
                 // stays "Open" while nothing can actually cross it.
                 if (buffer[0] == (byte)FrameKind.Ping)
                 {
+                    RenewViewerControlLeases();
                     var token = new byte[result.Count - 1];
                     Buffer.BlockCopy(buffer, 1, token, 0, token.Length);
                     await SendAsync(Frame.Wrap(FrameKind.Pong, token), cancel).ConfigureAwait(false);
@@ -658,6 +677,31 @@ public sealed class ViewerConnection
         }
         await SendAsync(Frame.CommandResult(correlationId, admission), cancel)
             .ConfigureAwait(false);
+    }
+
+    private void RenewViewerControlLeases()
+    {
+        if (!ControlEnabled)
+            return;
+
+        var owner = _controlOwner!;
+        var current = new HashSet<int>(_assignedNpcIds!);
+        if (_currentAssignments != null)
+            current.RemoveWhere(id => !_currentAssignments.StillAssigned(owner.Substring(3), id));
+        var manual = _host.Read(world =>
+        {
+            var assigned = TravelPartyMath.EffectiveAssignments(world, current);
+            var result = new List<int>();
+            foreach (var id in assigned)
+            {
+                if (world.Entities.Npcs.TryGetValue(new HexLive.Simulation.Common.EntityId(id), out var npc) &&
+                    npc.Health > 0f && npc.Mind.ManualControl && npc.Mind.ExternalControl?.IsActive != true)
+                    result.Add(id);
+            }
+            return result;
+        });
+        foreach (var id in manual)
+            _leases!.TryRenew(id, owner, out _);
     }
 
     private bool TryMapLease(ISimulationCommand command, out string refusal)

@@ -988,8 +988,27 @@ public sealed partial class DecisionSystem
     {
         foreach (var obj in npc.Perception.Objects)
         {
-            if (IsDressCandidateCommon(npc, world, obj) &&
-                CandidateArmor(world, obj, npc.Sex) > npc.EquippedArmor)
+            if (world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+                OutfitPreference.ArmorGainFromWearing(world, npc, definition) > 0f &&
+                IsDressCandidateCommon(npc, world, obj))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool KnowsReachableFavoriteGarment(
+        NPCState npc, WorldState world, float forecastOutdoorTemperature)
+    {
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (world.Entities.Objects.TryGetValue(obj.Id, out var garment) &&
+                garment.Owner == npc.Id &&
+                OutfitPreference.IsPreferred(world, npc, obj.DefinitionId,
+                    garment.Durability, garment.Wetness, forecastOutdoorTemperature) &&
+                IsDressCandidateCommon(npc, world, obj))
             {
                 return true;
             }
@@ -1092,7 +1111,7 @@ public sealed partial class DecisionSystem
     /// <summary>The decision-side wardrobe probes use the planner's common
     /// gates too. A shunned, busy, non-wearable or permission-locked garment
     /// is not evidence that Dress can currently produce a plan.</summary>
-    private static bool IsDressCandidateCommon(
+    internal static bool IsDressCandidateCommon(
         NPCState npc, WorldState world, PerceivedObject obj)
     {
         if (!obj.IsReachable || !ObjectUsableBy(world, npc, obj) ||
@@ -1182,22 +1201,20 @@ public sealed partial class DecisionSystem
     // StowBottle chore's target (park the bottle, let the rain do the rest).
     internal static PerceivedObject? FindStowableCollector(NPCState npc, WorldState world)
     {
-        if (BottleInventoryMath.FirstEmpty(npc) is null)
-        {
-            return null;
-        }
-
+        var hasEmpty = BottleInventoryMath.FirstEmpty(npc) is not null;
         PerceivedObject? best = null;
         foreach (var seen in npc.Perception.Objects)
         {
             if (seen.DefinitionId != WaterCollectorMath.CollectorId ||
-                !seen.IsReachable || !ObjectUsableBy(world, npc, seen))
+                !seen.IsReachable || !ObjectUsableBy(world, npc, seen) ||
+                npc.Memory.IsShunned(seen.Id, world.Tick))
             {
                 continue;
             }
 
             if (!world.Entities.Objects.TryGetValue(seen.Id, out var collector) ||
-                WaterCollectorMath.FindVessel(world, collector) is not null)
+                WaterCollectorMath.FindVessel(world, collector) is not null ||
+                !hasEmpty && FindLooseCollectorBottle(npc, world, seen) is null)
             {
                 continue;
             }
@@ -1208,6 +1225,27 @@ public sealed partial class DecisionSystem
             }
         }
 
+        return best;
+    }
+
+    internal static PerceivedObject? FindLooseCollectorBottle(
+        NPCState npc, WorldState world, PerceivedObject collector)
+    {
+        PerceivedObject? best = null;
+        foreach (var seen in npc.Perception.Objects)
+        {
+            if (seen.DefinitionId is not (ContentIds.Bottle or ContentIds.LeatherFlask) ||
+                !seen.IsReachable || !ObjectUsableBy(world, npc, seen) ||
+                HexSpatialMath.HexDistance(collector.Tile, seen.Tile) > 2 ||
+                npc.Memory.IsShunned(seen.Id, world.Tick) ||
+                !world.Entities.Objects.TryGetValue(seen.Id, out var bottle) ||
+                bottle.IsOccupied || bottle.WaterKind != WaterKind.None && bottle.ResourceAmount > 0f ||
+                bottle.SurfaceObjectId.HasValue || WaterCollectorMath.IsParked(world, bottle) ||
+                !InventoryMath.CanMakeRoomFor(world, npc, seen.DefinitionId)) continue;
+
+            if (best is null || seen.Distance < best.Distance ||
+                seen.Distance == best.Distance && seen.Id.Value < best.Id.Value) best = seen;
+        }
         return best;
     }
 }

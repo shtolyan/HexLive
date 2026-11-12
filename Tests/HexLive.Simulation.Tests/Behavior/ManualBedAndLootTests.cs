@@ -130,6 +130,32 @@ public sealed class ManualBedAndLootTests
     }
 
     [Test]
+    public void PatientWhoRecoversInTransitWakesAfterManualDelivery()
+    {
+        var (engine, carrier, patient) = CarryScene();
+        var world = engine.World;
+        var bed = SpawnReachableBed(world, carrier);
+        patient.Mind.FaintedUntilTick = 0;
+        patient.Needs.Hunger = .1f;
+        patient.Needs.Thirst = .1f;
+        patient.Needs.Energy = .5f;
+        Assert.That(patient.IsUnconscious(world.Tick), Is.False);
+
+        engine.Commands.Enqueue(new PutPersonInBedCommand(carrier.Id, bed.Id));
+        for (var i = 0; i < 600 && carrier.IsCarryingPerson; i++) engine.Step();
+        Assert.That(carrier.IsCarryingPerson, Is.False);
+        Assert.That(patient.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Sleep));
+        Assert.That(bed.CurrentUser, Is.EqualTo(patient.Id));
+
+        patient.Needs.Energy = 1f;
+        engine.Step();
+
+        Assert.That(patient.Execution.CurrentInteraction, Is.Not.EqualTo(InteractionType.Sleep));
+        Assert.That(bed.CurrentUser, Is.Null);
+        Assert.That(bed.IsOccupied, Is.False);
+    }
+
+    [Test]
     public void PutPersonInBedChoosesTheRoomSideOfTheWall_Bug212()
     {
         var world = TestWorld.CreateWorld(-33186804);

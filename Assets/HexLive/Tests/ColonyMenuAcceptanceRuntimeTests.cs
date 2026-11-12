@@ -10,6 +10,7 @@ using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Social;
 using HexLive.Simulation.Spatial;
@@ -56,6 +57,22 @@ public sealed class ColonyMenuAcceptanceRuntimeTests
         finally{Loc.Current=previous;}
     }
 
+    [TestCase("PickUp", "GardenCollectSeeds")]
+    [TestCase("Harvest", "GardenHarvestSeeds")]
+    [TestCase("Plant", "GardenSowSeeds")]
+    public void GardenThoughtReportsTheActualWorkStage(string interaction, string expected)
+    {
+        var npc = new NpcSnapshot
+        {
+            CurrentGoal = "TendGarden", CurrentInteraction = interaction, ExecutionStatus = "InProgress",
+        };
+        var displayed = typeof(CharacterPanel).GetMethod("DisplayedGoal", Static);
+        Assert.That(displayed.Invoke(null, new object[] { npc }), Is.EqualTo(expected));
+        Assert.That(Loc.Has("goal." + expected), Is.True);
+        npc.ExecutionStatus = "None";
+        Assert.That(displayed.Invoke(null, new object[] { npc }), Is.EqualTo("TendGarden"));
+    }
+
     [TestCase(false)] [TestCase(true)]
     public void HygieneRequestsUseTypedTalkAndOwnDirectiveChildren(bool html)
     {
@@ -81,10 +98,19 @@ public sealed class ColonyMenuAcceptanceRuntimeTests
     public void TravelInviteUsesStrictTrustAndReleaseTargetsTheActualLeader(bool html)
     {
         using var f=new Fixture();
+        f.Helper.Social.GetOrCreate(f.Target.Id).Trust=1f;
         f.Target.Social.GetOrCreate(f.Helper.Id).Trust=.60f;
         f.OpenPerson(); Assert.That(f.Entry("menu.travel.invite").Enabled,Is.False);
+        Assert.That(f.Entry("menu.travel.invite").DisabledHint,Does.Contain("60%"));
         f.Click("menu.travel.invite",html); Assert.That(f.Drain(),Is.Empty);
         f.Target.Social.GetOrCreate(f.Helper.Id).Trust=.6001f;
+        var nearby = f.Target.Position;
+        f.Target.Position = f.Helper.Position + new Float2(4.5f, 0f);
+        f.OpenPerson();
+        Assert.That(f.Entry("menu.travel.invite").DisabledHint,
+            Is.EqualTo(Loc.Get("toast.order_rejected.TravelTargetTooFar")));
+        f.Click("menu.travel.invite",html); Assert.That(f.Drain(),Is.Empty);
+        f.Target.Position = nearby;
         f.OpenPerson(); Assert.That(f.Entry("menu.travel.invite").Enabled,Is.True);
         f.Click("menu.travel.invite",html);
         var invite=f.One<RequestTravelPartyCommand>();

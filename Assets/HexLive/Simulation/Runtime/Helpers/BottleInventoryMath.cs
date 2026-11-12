@@ -17,6 +17,9 @@ public static class BottleInventoryMath
     public static int Charges(ItemInstance item) =>
         IsBottle(item) ? Charges(item.ResourceAmount, item.WaterKind, item.DefinitionId) : 0;
 
+    public static int Charges(WorldObjectState vessel) =>
+        Charges(vessel.ResourceAmount, vessel.WaterKind, vessel.DefinitionId);
+
     /// <summary>Shared physical-vessel rule for simulation and snapshot-based menus.</summary>
     public static int Charges(float amount, WaterKind kind, string definitionId = ContentIds.Bottle)
     {

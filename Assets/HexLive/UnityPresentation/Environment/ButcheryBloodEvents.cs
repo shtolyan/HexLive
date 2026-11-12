@@ -1,4 +1,6 @@
 using System;
+using System.Globalization;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 
 namespace HexLive.UnityPresentation.Environment
@@ -10,7 +12,8 @@ internal sealed class ButcheryBloodEvents
     private int _seed, _tick;
     private long _seq;
 
-    internal void Consume(WorldSnapshot snapshot, Action<NpcSnapshot, int> spawn)
+    internal void Consume(WorldSnapshot snapshot, Action<NpcSnapshot, int> spawn,
+        Action<ObjectSnapshot, int> spawnAtPart)
     {
         long newest = 0;
         foreach (var e in snapshot.TraceEvents) newest = Math.Max(newest, e.Seq);
@@ -29,6 +32,18 @@ internal sealed class ButcheryBloodEvents
             if (e.Tick > snapshot.Tick || snapshot.Tick - e.Tick > 8) continue;
             foreach (var npc in snapshot.Npcs)
                 if (npc.Id.Value == e.EntityId.Value) { spawn(npc, e.Tick); break; }
+
+            var marker = e.Message.IndexOf(HumanMeatCatalog.ButcheryDropIdsMarker, StringComparison.Ordinal);
+            if (marker < 0) continue;
+            var dropIds = e.Message.Substring(marker + HumanMeatCatalog.ButcheryDropIdsMarker.Length).Split(',');
+            foreach (var id in dropIds)
+            {
+                if (!int.TryParse(id, NumberStyles.None, CultureInfo.InvariantCulture, out var value)) continue;
+                foreach (var item in snapshot.Objects)
+                    if (item.Id.Value == value && HumanMeatCatalog.IsHumanPart(item.DefinitionId) &&
+                        !HumanMeatCatalog.IsCooked(item.DefinitionId))
+                    { spawnAtPart(item, e.Tick); break; }
+            }
         }
         _seq = Math.Max(_seq, newest);
         _tick = snapshot.Tick;

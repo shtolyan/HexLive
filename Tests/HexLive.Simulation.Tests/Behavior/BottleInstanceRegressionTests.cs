@@ -328,6 +328,24 @@ public sealed class BottleInstanceRegressionTests
     }
 
     [Test]
+    public void MixedSourceTransfersItsVisibleLiquidAndItsSafetyIndependently_Bug417()
+    {
+        var destination = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(destination, WaterKind.Coconut, 1.25f);
+        var source = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(source, WaterKind.Raw, .42f);
+        source.LastAddedWaterKind = WaterKind.Rain;
+
+        Assert.That(VesselTransferMath.ConsolidateBottleFromSources(destination, new[] { source }),
+            Is.EqualTo(.42f).Within(1e-5f));
+        Assert.That(BottleVisualMath.Fill(destination),
+            Is.EqualTo(1.67f / WaterVesselCatalog.Capacity(ContentIds.Bottle)).Within(1e-5f));
+        Assert.That(BottleVisualMath.Appearance(destination), Is.EqualTo(WaterKind.Rain));
+        Assert.That(destination.WaterKind, Is.EqualTo(WaterKind.Raw));
+        Assert.That(source.LastAddedWaterKind, Is.EqualTo(WaterKind.None));
+    }
+
+    [Test]
     public void FractionalBottleRoomCannotOverdrawOrLaunderWater()
     {
         var world = TestWorld.CreateWorld(63402);
@@ -386,6 +404,54 @@ public sealed class BottleInstanceRegressionTests
         Assert.That(result.LastAddedWaterKind,Is.EqualTo(WaterKind.Coconut));
         if(pourIntoOwnBottle) Assert.That(WaterCollectorMath.AmountIn(vessel),Is.EqualTo(initialAmount-expected).Within(1e-5));
         else Assert.That(world.Entities.Objects.ContainsKey(vessel.Id),Is.False);
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void CollectorChoreRecoversLooseEmptyBottleAndKeepsPersonalVessel(bool startsWithPersonalVessel)
+    {
+        var world = TestWorld.CreateWorld(63403);
+        var npc = Girl(world);
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Capacity = 8;
+        var personal = new ItemInstance(ContentIds.LeatherFlask);
+        if (startsWithPersonalVessel) npc.Inventory.Items.Add(personal);
+        PlaceAtOpenJunction(world, npc);
+        var anchor = npc.CurrentJunction.Value;
+        var neighbor = SpatialQueries.GetPassableNeighbors(world, anchor).First();
+        var collector = WorldObjectMutations.SpawnObject(world, ContentIds.WaterCollector,
+            npc.Fragment, world.Junctions.Items[neighbor].Tiles[0], neighbor);
+        var loose = WorldObjectMutations.SpawnObject(world, ContentIds.Bottle, npc.Fragment, npc.Tile, anchor);
+        var planning = new PlanningSystem();
+        var engine = new SimulationEngine(world, new SimulationSettings(), new SimulationClock());
+        engine.Register(new PathfindingSystem());
+        engine.Register(new MovementSystem());
+        engine.Register(new ExecutionSystem());
+        npc.Perception.Objects.Clear();
+        foreach (var obj in new[] { collector, loose })
+        {
+            var perceived = new PerceivedObject
+            {
+                Id = obj.Id, DefinitionId = obj.DefinitionId, Tile = obj.Tile, IsReachable = true
+            };
+            perceived.AvailableInteractions.AddRange(world.Content.ObjectDefinitions[obj.DefinitionId]
+                .Interactions.Select(interaction => interaction.Type));
+            npc.Perception.Objects.Add(perceived);
+        }
+
+        Assert.That(DecisionSystem.FindStowableCollector(npc, world)?.Id, Is.EqualTo(collector.Id));
+        npc.Mind.CurrentGoal = GoalType.StowBottle;
+        planning.Run(world);
+        Assert.That(npc.Plan.TargetObjectId, Is.EqualTo(loose.Id));
+        for (var i = 0; i < 250 && world.Entities.Objects.ContainsKey(loose.Id); i++) engine.Step();
+        Assert.That(world.Entities.Objects.ContainsKey(loose.Id), Is.False);
+
+        npc.Mind.CurrentGoal = GoalType.StowBottle;
+        planning.Run(world);
+        Assert.That(npc.Plan.TargetObjectId, Is.EqualTo(collector.Id));
+        for (var i = 0; i < 250 && WaterCollectorMath.FindVessel(world, collector) == null; i++) engine.Step();
+        Assert.That(WaterCollectorMath.FindVessel(world, collector)?.DefinitionId, Is.EqualTo(ContentIds.Bottle));
+        Assert.That(npc.Inventory.Items.Any(item => ReferenceEquals(item, personal)), Is.EqualTo(startsWithPersonalVessel));
     }
 
     [Test]

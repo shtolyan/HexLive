@@ -13,6 +13,7 @@ TOOLS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TOOLS))
 import webgl_compile_check as compile_check
 import webgl_verify_audio_reuse as audio
+import webgl_audio_fsb as fsb
 
 
 class AudioReuseProofTests(unittest.TestCase):
@@ -36,7 +37,7 @@ class AudioReuseProofTests(unittest.TestCase):
 
     def git(self, args, **kwargs):
         if "rev-parse" in args: return self.commit.encode() + b"\n"
-        if "ls-tree" in args: return b"100644 blob fixture\t" + (audio.AUDIO_ROOT + "/Sfx/test.wav").encode() + b"\0"
+        if "ls-tree" in args: return b"100644 blob fixture\t" + self.source.relative_to(self.repo).as_posix().encode() + b"\0"
         raise AssertionError("Unexpected git command")
 
     def blobs(self, *args, **kwargs):
@@ -83,6 +84,41 @@ class AudioReuseProofTests(unittest.TestCase):
             audio.manifest_entries(b'{"files":["Sfx/a.fsb","Sfx/a.fsb"]}')
         with self.assertRaisesRegex(ValueError, "MissingOrAmbiguousSource"):
             audio.source_for("Sfx/a.fsb", {audio.AUDIO_ROOT + "/Sfx/a.wav", audio.AUDIO_ROOT + "/Sfx/a.ogg"})
+
+    def test_old_manifests_cannot_reuse_audio_without_hexkufa(self):
+        old_source = self.source
+        self.source = self.repo / audio.AUDIO_ROOT / "Sfx/Voices/marta/test.wav"
+        self.source.parent.mkdir(parents=True)
+        old_source.rename(self.source)
+        with self.assertRaisesRegex(ValueError, "PublishedManifestMissingHexkufa"):
+            audio.verify(self.repo, self.commit, self.manifest)
+        manifest = b'{"files":["Sfx/Voices/marta/test.fsb"]}'
+        self.assertTrue(audio.verify(self.repo, self.commit, manifest)["passed"])
+
+    def test_full_fsb_packaging_keeps_hexkufa_by_default(self):
+        root = self.repo / "StreamingAssets/HexLive"
+        voice = root / "Sfx/Voices/marta/test.wav"
+        voice.parent.mkdir(parents=True)
+        voice.write_bytes(b"fixture voice")
+        visemes = voice.with_suffix(".vis")
+        visemes.write_bytes(b"fixture visemes")
+        (root / "web-audio-manifest.json").write_text(
+            '{"files":["Sfx/Voices/marta/test.wav","Sfx/Voices/marta/test.vis"]}')
+
+        def encode(_, jobs):
+            for _, cached in jobs:
+                cached.write_bytes(b"FSB5 fixture")
+            return []
+
+        arguments = ["fsb", str(self.repo), "--hexfsb", str(self.source), "--cache", str(self.repo / "cache")]
+        with (patch.object(sys, "argv", arguments), patch.object(fsb, "encode_batch", side_effect=encode),
+              contextlib.redirect_stdout(io.StringIO())):
+            self.assertEqual(fsb.main(), 0)
+        self.assertFalse(voice.exists())
+        self.assertEqual(voice.with_suffix(".fsb").read_bytes(), b"FSB5 fixture")
+        self.assertEqual(visemes.read_bytes(), b"fixture visemes")
+        manifest = json.loads((root / "web-audio-manifest.json").read_text())
+        self.assertEqual(manifest["files"], ["Sfx/Voices/marta/test.fsb", "Sfx/Voices/marta/test.vis"])
 
 
 class WebGlCompileCheckTests(unittest.TestCase):

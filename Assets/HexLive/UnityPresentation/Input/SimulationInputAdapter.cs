@@ -55,7 +55,6 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
     // actor proves the viewer is still actively presenting that control, so a
     // cheap idempotent heartbeat every two seconds keeps ownership alive while
     // still letting a disconnected viewer or a cleared selection expire.
-    private const float RemoteLeaseHeartbeatSeconds = 2f;
 
     private Camera? _camera;
     private HexWorldRenderer? _worldRenderer;
@@ -64,7 +63,6 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
     private int _hoveredMobId = -1;
     private bool _hasHoveredMob;
     private Renderer[]? _hoveredMobRenderers;
-    private float _nextRemoteLeaseHeartbeatAt;
 
     private readonly List<ContextMenuEntry> _entries = new();
     private readonly List<int> _selectedColonyIds = new();
@@ -198,7 +196,6 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         }
 
         RefreshControlSelection();
-        RenewRemoteLeaseForSelection();
         if (_plantingActorId >= 0)
         {
             if (!UpdatePlantingPlacement())
@@ -285,8 +282,11 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         }
 
         _plantingObjectJunctions.Clear();
+        var placingSeed = PlantGrowthCatalog.TryGetBySeed(_plantingSeedDefinitionId, out _);
         foreach (var worldObject in snapshot.Objects)
         {
+            if (placingSeed && worldObject.SurfaceObjectId is null &&
+                PlantGrowthCatalog.TryGetBySeed(worldObject.DefinitionId, out _)) continue;
             foreach (var objectJunction in worldObject.Junctions)
             {
                 _plantingObjectJunctions.Add(objectJunction);
@@ -466,35 +466,6 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         // Bug #279: окно отчёта об ошибке блокирует мир своим флагом — общий
         // NpcSelection.PointerOverUi затирается CharacterPanel каждый кадр.
         BugReportPanel.IsOpen;
-
-    private void RenewRemoteLeaseForSelection()
-    {
-        var now = Time.unscaledTime;
-        if (_runner == null || !_runner.Link.IsRemote ||
-            !_runner.SupportsNpcCommands || _manualSelectedIds.Count == 0)
-        {
-            // The next genuine manual selection renews immediately instead of
-            // waiting a full interval with a possibly near-expired server lease.
-            _nextRemoteLeaseHeartbeatAt = now;
-            return;
-        }
-
-        if (now < _nextRemoteLeaseHeartbeatAt)
-        {
-            return;
-        }
-
-        _nextRemoteLeaseHeartbeatAt = now + RemoteLeaseHeartbeatSeconds;
-        if (_manualSelectedIds.Count == 1)
-        {
-            _runner.EnqueueCommand(new SetManualControlCommand(
-                new EntityId(_manualSelectedIds[0]), true));
-            return;
-        }
-
-        _runner.EnqueueCommand(new SetGroupManualControlCommand(
-            SelectedActors(), true));
-    }
 
     // ── Наведение ────────────────────────────────────────────────────────
 
@@ -744,9 +715,9 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
     // The definition catalog remains the single eligibility source used again
     // by OpenObjectMenu and ManualCommandExecutor; this is only hit selection.
     private bool HasContextActions(WorldObjectView view) =>
-        _runner != null &&
-        _runner.TryGetObjectDefinition(view.ContextDefinitionId, out var definition) &&
-        definition != null && definition.Interactions.Count > 0;
+        view.HasDoorActions || (_runner != null &&
+            _runner.TryGetObjectDefinition(view.ContextDefinitionId, out var definition) &&
+            definition != null && definition.Interactions.Count > 0);
 
     // Точное попадание луча в видимую геометрию тела — с ДИСТАНЦИЕЙ, чтобы
     // UpdateHover мог сравнить человека и объект по глубине (§121.1).
@@ -948,17 +919,20 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             return true;
         }
 
-        if (!CommandMode)
+        if (_selectedColonyIds.Count == 0)
         {
             return false;
         }
 
         var clickSnapshot = _runner.IsReady ? _runner.CreateSnapshot() : null;
-        if (TryOpenTargetChooser(clickSnapshot, mousePos)) return true;
+        if (CommandMode && TryOpenTargetChooser(clickSnapshot, mousePos)) return true;
         PickTarget(clickSnapshot, mousePos, out var clickedNpc, out var clickedMob, out var clickedObject);
 
         if (clickedNpc >= 0)
         {
+            if (!CommandMode)
+                return false;
+
             // §121.9: клик по себе — меню самодействий, не приказ и не выбор.
             if (clickedNpc == OrderNpcId)
             {
@@ -989,14 +963,14 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             // §121.11 (bug #294): ОДИН клик — всегда идти. Темпа жест больше не
             // несёт (run: null): им владеет постоянная настройка персонажа в
             // симуляции, и у каждой выделенной девушки она своя.
-            if (_selectedColonyIds.Count == 1 && ManualNpcId >= 0)
+            if (OrderNpcId >= 0)
             {
-                _runner.EnqueueCommand(
-                    new MoveToCommand(new EntityId(ManualNpcId), point));
+                EnqueueOrder(OrderNpcId, new MoveToCommand(new EntityId(OrderNpcId), point));
             }
             else
             {
-                _runner.EnqueueCommand(new GroupMoveCommand(SelectedActors(), point));
+                EnsureGroupManual();
+                _runner.EnqueueCommand(new GroupMoveCommand(OrderActors(), point));
             }
             DestinationMarker.Show(SimulationUnityMapper.ToUnityPosition(point, GroundMarkerY(point)));
             return true;
@@ -1052,12 +1026,7 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         if (actors.Count == 1)
         {
             var actor = actors[0];
-            if (!manual.Contains(actor.Value))
-            {
-                runner.EnqueueCommand(new SetManualControlCommand(actor, true));
-            }
-
-            runner.EnqueueCommand(new MoveToCommand(actor, point, run));
+            runner.EnqueueCommand(new QueuePlayerOrderCommand(new MoveToCommand(actor, point, run)));
         }
         else
         {
@@ -1158,6 +1127,12 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             return;
         }
 
+        if (QueuePlayerOrderCommand.Supports(command))
+        {
+            _runner.EnqueueCommand(new QueuePlayerOrderCommand(command));
+            return;
+        }
+
         EnsureManual(actorId);
         _runner.EnqueueCommand(command);
     }
@@ -1209,8 +1184,7 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         _entries.Clear();
         // A door view can proxy its general menu onto the hut. These commands
         // deliberately address the actual architecture leaf, never the owner.
-        if (clicked != null && clicked.DefinitionId == DoorTopology.DoorDefinitionId &&
-            !clicked.IsDoorOpen && clicked.Durability > 0f)
+        if (clicked != null && DoorInteractionMath.CanTargetClosedDoor(clicked))
         {
             var doorId = new ObjectId(clicked.Id.Value);
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.knock_door"),
@@ -1278,15 +1252,13 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
                 : type == InteractionType.SwitchChestLid
                     ? Loc.Get(interactionId == StorageChest.OpenInteractionId ? "menu.storage_chest_open" : "menu.storage_chest_close")
                 : InteractionVerb(interaction);
-            _entries.Add(new ContextMenuEntry(
-                emptyDrink ? Loc.Get("menu.drink_empty") : theft && type == InteractionType.PickUp ? Loc.Get("menu.steal") : verb,
-                () => EnqueueOrder(actorId,
-                    new InteractCommand(
-                        actor, new ObjectId(objectId), type, interactionId)),
-                ok,
-                emptyDrink ? Loc.Get("menu.drink_empty") : emptyBattery ? Loc.Get("toast.order_rejected.BatteryEmpty") :
-                ok ? null : Loc.Get(usableHands == 0 ? "menu.needs_hand" : "menu.missing_tool"))
-            { Danger = theft });
+            var label = emptyDrink ? Loc.Get("menu.drink_empty") : theft && type == InteractionType.PickUp ? Loc.Get("menu.steal") : verb;
+            void Activate() => EnqueueOrder(actorId, new InteractCommand(actor, new ObjectId(objectId), type, interactionId));
+            var hint = emptyDrink ? Loc.Get("menu.drink_empty") : emptyBattery ? Loc.Get("toast.order_rejected.BatteryEmpty") :
+                ok ? null : Loc.Get(usableHands == 0 ? "menu.needs_hand" : "menu.missing_tool");
+            _entries.Add(type == InteractionType.Sleep
+                ? SleepMenuEntry(label, Activate, actingNpc, ok, hint)
+                : new ContextMenuEntry(label, Activate, ok, hint) { Danger = theft });
 
             // §121.10 (баг #270): рядом с «Подобрать» — «Собрать все». Собрать
             // все — однотипное на исходном гексе и шести соседних (#467).
@@ -1380,10 +1352,11 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         if (definition.HasTag(ObjectTags.Campfire))
         {
             var hasRawMeat = carried.Any(HumanMeatCatalog.IsRaw);
+            var fireId = new ObjectId(view.ContextObjectId);
             _entries.Add(new ContextMenuEntry(
                 Loc.Get("menu.cook_meat"),
                 () => EnqueueOrder(actorId,
-                    new CraftItemCommand(actor, GoalType.CookMeat)),
+                    new CraftItemCommand(actor, GoalType.CookMeat, fireId)),
                 hasRawMeat,
                 hasRawMeat ? null : Loc.Get("menu.cook_meat.no_meat")));
         }
@@ -1557,10 +1530,11 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             }
             else
             {
-                var trusted = carrier != null && TrustTo(target,carrier.Id.Value) > TravelPartyMath.RequiredTrust;
+                var blocked = !canOrderSocial || carrier is null
+                    ? socialBlocked : TravelInviteBlockedHint(carrier, target);
                 _entries.Add(new ContextMenuEntry(Loc.Get("menu.travel.invite"),
                     () => EnqueueOrder(carrier!.Id.Value,new RequestTravelPartyCommand(carrier.Id,target.Id)),
-                    canOrderSocial && trusted, trusted ? socialBlocked : Loc.Get("menu.travel.need_trust")));
+                    blocked is null, blocked));
             }
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.romance"),
                 () => EnqueueOrder(carrier!.Id.Value, new RomancePersonCommand(
@@ -1774,6 +1748,18 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         ContextMenuPanel.Open(mousePos, NpcTitle(npcId), _entries);
     }
 
+    private static string? TravelInviteBlockedHint(NpcSnapshot leader, NpcSnapshot target)
+    {
+        if (leader.IsFighting || target.IsFighting || leader.TravelLeaderNpcId.HasValue)
+            return Loc.Get("toast.order_rejected.TargetUnavailable");
+        if (target.IsManualControl) return Loc.Get("menu.travel.target_manual");
+        var trust = TrustTo(target, leader.Id.Value);
+        if (trust <= TravelPartyMath.RequiredTrust)
+            return string.Format(Loc.Get("menu.travel.need_trust"), Mathf.FloorToInt(Mathf.Clamp01(trust) * 100f));
+        return TravelPartyMath.IsWithinInviteRange(leader.Position, target.Position)
+            ? null : Loc.Get("toast.order_rejected.TravelTargetTooFar");
+    }
+
     private static float TrustTo(NpcSnapshot source, int otherId)
     {
         foreach (var relation in source.RelationshipDetails)
@@ -1810,15 +1796,16 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         void Add(string key, SelfActionKind kind) => _entries.Add(new ContextMenuEntry(
             Loc.Get(key),
             () => EnqueueOrder(npcId, new SelfActionCommand(actor, kind))));
+        var selfSnapshot = runner.IsReady ? runner.CreateSnapshot() : null;
+        var self = selfSnapshot?.Npcs.Find(candidate => candidate.Id.Value == npcId);
         Add("menu.self.call_help", SelfActionKind.CallForHelp);
         Add("menu.self.treat", SelfActionKind.TreatSelf);
         Add("menu.self.sit", SelfActionKind.GroundSit);
-        Add("menu.self.sleep", SelfActionKind.GroundSleep);
+        _entries.Add(SleepMenuEntry(Loc.Get("menu.self.sleep"),
+            () => EnqueueOrder(npcId, new SelfActionCommand(actor, SelfActionKind.GroundSleep)), self));
         Add("menu.self.bathe", SelfActionKind.Bathe);
         Add("menu.self.wash", SelfActionKind.WashClothes);
         Add("menu.self.eat", SelfActionKind.EatFromPack);
-        var selfSnapshot = runner.IsReady ? runner.CreateSnapshot() : null;
-        var self = selfSnapshot?.Npcs.Find(candidate => candidate.Id.Value == npcId);
         var canDrink = ManualMenuTargets.CanDrinkFromPack(self, id =>
             runner.TryGetObjectDefinition(id, out var definition) && definition != null &&
             definition.Interactions.Any(interaction => interaction.Type == InteractionType.Drink));
@@ -1834,6 +1821,15 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         _entries.Add(new ContextMenuEntry(Loc.Get("menu.stop"),
             () => EnqueueOrder(npcId, new StopCommand(actor))));
         ContextMenuPanel.Open(mousePos, NpcTitle(npcId), _entries);
+    }
+
+    private static ContextMenuEntry SleepMenuEntry(string label, System.Action activate, NpcSnapshot? actor,
+        bool enabled = true, string? hint = null)
+    {
+        var reason = actor?.ManualSleepRefusal;
+        if (!string.IsNullOrEmpty(reason))
+            return new ContextMenuEntry($"{label} ({Loc.Get("menu.sleep_refusal." + reason)})", activate, false);
+        return new ContextMenuEntry(label, activate, enabled, hint);
     }
 
     // §167.3: три вида указания v1 (дрова заложены в enum, но пункта пока нет).

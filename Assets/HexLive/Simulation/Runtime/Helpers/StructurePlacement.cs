@@ -148,7 +148,8 @@ internal static class StructurePlacement
         }
 
         if (PortableFurniture.CanCarry(obj.DefinitionId) && (!PortalWorld.IsFurniture(obj.DefinitionId) ||
-            obj.Variant is PortalWorld.PlacedFurnitureVariant or PortalWorld.ApartmentFurnitureVariant)) return true;
+            obj.Variant == PortalWorld.PlacedFurnitureVariant ||
+            PortalWorld.TryGetApartmentFurnitureVisit(obj.Variant, out _))) return true;
 
         if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def))
         {

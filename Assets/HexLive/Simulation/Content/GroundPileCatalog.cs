@@ -3331,6 +3331,11 @@ public static class GroundPileCatalog
         GarmentPrototypes["underwear.top_vapor_11"] = "underwear.top_vapor";
         GarmentPrototypes["underwear.top_vapor_12"] = "underwear.top_vapor";
         PreparedPeopleGroundGeometry.Register(Garments, GarmentPrototypes, Profiles);
+        var wardrobeHalfDepth = ModernLootCatalog.WardrobeDepth / 2f;
+        var wardrobeHalfWidth = ModernLootCatalog.WardrobeWidth / 2f;
+        Profiles[ContentIds.ModernWardrobe] = new(ContentIds.ModernWardrobe,
+            new(-wardrobeHalfDepth, 0f, -wardrobeHalfWidth, wardrobeHalfDepth, ModernLootCatalog.WardrobeHeight, wardrobeHalfWidth),
+            ModernLootCatalog.WardrobeHeight, centerVisualXZ: true);
         foreach(var profile in Profiles.Values) MaximumRadiusXZ=Math.Max(MaximumRadiusXZ,profile.FullBounds.RadiusXZ);
         foreach(var profile in Garments.Values) MaximumRadiusXZ=Math.Max(MaximumRadiusXZ,profile.FullBounds.RadiusXZ);
     }
@@ -3397,6 +3402,7 @@ public static class GroundPileCatalog
                 "furniture.modern_sofa" => 1.83f,
                 "furniture.modern_tv" => 1.11f,
                 "furniture.modern_shelf" => 1.50f,
+                ContentIds.ModernWardrobe => ModernLootCatalog.WardrobeHeight,
                 "portal.modern_door" => 1.5f,
                 _ => 0f,
             };

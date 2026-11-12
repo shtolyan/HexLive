@@ -45,13 +45,10 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _card;
         private VisualElement _groupCard;
         private Label _groupTitle;
-        private Label _groupManualSummary;
         private Label _groupAlerts;
-        private Label _groupControlLabel;
         private Label _groupOrderResult;
         private Label _groupStopLabel;
         private VisualElement _groupPortraits;
-        private bool _groupAllManual;
 
         // §123/§150: the right roster is visible even with no selection, but
         // non-owned people enter it only while personally perceived.
@@ -126,12 +123,6 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _stopButton;
         private int _manualEdgeNpcId = -1;
         private bool _manualEdgeWas;
-        private VisualElement _controlAiSegment;
-        private VisualElement _controlPlayerSegment;
-        private Label _controlAiGlyph;
-        private Label _controlPlayerGlyph;
-        private VisualElement _controlAiIcon;
-        private VisualElement _controlPlayerIcon;
         // §121.11 (bug #294): тумблер «Шагом / Бегом» — постоянный темп ручных
         // приказов этой девушки, снятый из снапшота, а не запомненный кнопкой.
         private VisualElement _paceButton;
@@ -154,11 +145,6 @@ namespace HexLive.UnityPresentation.UI
         private Label _inventoryCapacity;
         // §133.9 / #193: authoritative per-NPC outfit lock shown in the
         // inventory header. The switch never caches authority: snapshot wins.
-        private VisualElement _outfitLockButton;
-        private VisualElement _outfitLockTrack;
-        private VisualElement _outfitLockThumb;
-        private Label _outfitLockLabel;
-        private bool _outfitLockedNow;
         // §138: the backpack and manual recipe browser share one floating
         // window. Crafting recipes remain readable for one controlled NPC in AI mode; orders require manual mode.
         private VisualElement _inventoryTabs;
@@ -212,12 +198,14 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _invDropAction;
         private VisualElement _invFillAction; // §55.4 (bug #317)
         private Label _invPrimaryActionLabel;
+        private InventoryAction _invPrimaryInventoryAction;
         private Label _invPlantActionLabel;
         private Label _invDropActionLabel;
         private Label _invFillActionLabel;
         private Label _invReadOnlyLabel;
         private int _inventoryActorId = -1;
         private bool _inventoryMutable;
+        private NpcSnapshot _inventoryNpc;
         private bool _inventoryHasTwoHands;
         private string _invDraggedId;
         private bool _invDraggedWorn;
@@ -645,7 +633,6 @@ namespace HexLive.UnityPresentation.UI
                 Refresh();
             }
 
-            TickCraftQueue(); // §138.7: runs whether or not the window is open
             RefreshRoster();
             AnimateRoster();
 
@@ -710,7 +697,8 @@ namespace HexLive.UnityPresentation.UI
                  PointerOverElement(_groupCard, mousePos, scale) ||
                  PointerOverElement(_thought, mousePos, scale) ||
                  PointerOverElement(_dream, mousePos, scale) ||
-                 PointerOverElement(_effectsRow, mousePos, scale));
+                 PointerOverElement(_effectsRow, mousePos, scale) ||
+                 PointerOverElement(_playerOrdersRow, mousePos, scale));
             var overRoster = PointerOverElement(_roster, mousePos, scale);
 
             // The floating windows (inventory / limb health) sit ABOVE the bar —
@@ -851,6 +839,19 @@ namespace HexLive.UnityPresentation.UI
 
         // ── refresh ───────────────────────────────────────────────────────
 
+        private static string DisplayedGoal(NpcSnapshot npc)
+        {
+            if (npc.ExecutionStatus != "InProgress") return npc.CurrentGoal;
+            return npc.CurrentInteraction switch
+            {
+                "WashClothes" => "WashClothes",
+                "PickUp" when npc.CurrentGoal == "TendGarden" => "GardenCollectSeeds",
+                "Harvest" when npc.CurrentGoal == "TendGarden" => "GardenHarvestSeeds",
+                "Plant" when npc.CurrentGoal == "TendGarden" => "GardenSowSeeds",
+                _ => npc.CurrentGoal,
+            };
+        }
+
         private void Refresh()
         {
             var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
@@ -893,15 +894,7 @@ namespace HexLive.UnityPresentation.UI
                 ? $"NPC #{npc.Id.Value}"
                 : Loc.NpcName(npc.DisplayName);
             _roleLabel.text = $"{Loc.Get("panel.role")} · #{npc.Id.Value}";
-            // §40.6 r14 (#175): весь черёд поштучной стирки идёт под целью
-            // Bathe, и панель писала «купается», пока она тёрла вещь на песке.
-            // Такт стирки виден по интеракции — показываем «стирает» (термин
-            // цели WashClothes, новых строк нет).
-            _thoughtValue.text = isDead ? Loc.Get("state.dead")
-                : npc.CurrentInteraction == "WashClothes" &&
-                  npc.ExecutionStatus == "InProgress"
-                    ? Loc.Goal("WashClothes")
-                    : Loc.Goal(npc.CurrentGoal);
+            _thoughtValue.text = isDead ? Loc.Get("state.dead") : Loc.Goal(DisplayedGoal(npc));
             RefreshControlToggle(npc); // §121
             RefreshPaceToggle(npc); // §121.11 — после: читает _controlAvailable
 
@@ -975,6 +968,7 @@ namespace HexLive.UnityPresentation.UI
             UpdateNeeds(npc);
             UpdateSheet(npc);
             UpdateEffects(npc);
+            RefreshPlayerOrders(npc);
             UpdateRelations(npc);
             _meleeStats = npc.MeleeStats ?? new MeleeStatsSnapshot();
             RefreshInventory(snapshot, npc);
@@ -1373,7 +1367,7 @@ namespace HexLive.UnityPresentation.UI
 
         // ── status effects (spec §48) ─────────────────────────────────────
 
-        private void BuildEffectsRow()
+        private void BuildEffectsRow(VisualElement parent)
         {
             _effectsRow = new VisualElement();
             _effectsRow.style.flexDirection = FlexDirection.Row;
@@ -1383,8 +1377,9 @@ namespace HexLive.UnityPresentation.UI
             _effectsRow.style.marginLeft = 20f;
             _effectsRow.style.marginBottom = 7f;
             _effectsRow.style.maxWidth = Length.Percent(70);
+            _effectsRow.style.flexShrink = 1;
             _effectsRow.style.display = DisplayStyle.None;
-            _stage.Add(_effectsRow);
+            parent.Add(_effectsRow);
         }
 
         // One shared tooltip card — it always pops in the SAME spot (top-left,
@@ -1819,7 +1814,6 @@ namespace HexLive.UnityPresentation.UI
             _inventoryCapacity.style.marginLeft = 9f;
             header.Add(_inventoryCapacity);
 
-            header.Add(BuildOutfitLockToggle());
 
             var close = RuntimeWindow.CloseButton(CloseInventory, Text, "inventory-close");
             close.style.color = Text;
@@ -2028,87 +2022,6 @@ namespace HexLive.UnityPresentation.UI
                     PositionInventoryDetail();
                 }
             });
-        }
-
-        private VisualElement BuildOutfitLockToggle()
-        {
-            var button = new VisualElement { name = "inventory-outfit-lock" };
-            button.style.height = 28f;
-            button.style.marginRight = 12f;
-            button.style.paddingLeft = 9f;
-            button.style.paddingRight = 7f;
-            button.style.flexDirection = FlexDirection.Row;
-            button.style.alignItems = Align.Center;
-            button.style.backgroundColor = IdentityGlass;
-            SetBorder(button, StrokeStrong, 1f);
-            SetRadius(button, 9f);
-            button.tooltip = Loc.Get("inv.outfit_lock.tooltip");
-
-            _outfitLockLabel = new Label(Loc.Get("inv.outfit_lock"));
-            _outfitLockLabel.style.fontSize = 11f;
-            _outfitLockLabel.style.color = TextDim;
-            _outfitLockLabel.style.marginRight = 8f;
-            _outfitLockLabel.pickingMode = PickingMode.Ignore;
-            button.Add(_outfitLockLabel);
-
-            _outfitLockTrack = new VisualElement();
-            _outfitLockTrack.style.width = 38f;
-            _outfitLockTrack.style.height = 20f;
-            _outfitLockTrack.style.backgroundColor = Track;
-            SetRadius(_outfitLockTrack, 10f);
-            _outfitLockTrack.pickingMode = PickingMode.Ignore;
-
-            _outfitLockThumb = new VisualElement();
-            _outfitLockThumb.style.position = Position.Absolute;
-            _outfitLockThumb.style.left = 3f;
-            _outfitLockThumb.style.top = 3f;
-            _outfitLockThumb.style.width = 14f;
-            _outfitLockThumb.style.height = 14f;
-            _outfitLockThumb.style.backgroundColor = TextDim;
-            SetRadius(_outfitLockThumb, 7f);
-            _outfitLockThumb.pickingMode = PickingMode.Ignore;
-            _outfitLockTrack.Add(_outfitLockThumb);
-            button.Add(_outfitLockTrack);
-
-            button.RegisterCallback<MouseDownEvent>(evt =>
-            {
-                ToggleOutfitLock();
-                evt.StopPropagation();
-            });
-            _outfitLockButton = button;
-            return button;
-        }
-
-        private void ToggleOutfitLock()
-        {
-            if (_runner == null || !_runner.SupportsNpcCommands ||
-                !_inventoryMutable || _inventoryActorId < 0)
-            {
-                return;
-            }
-
-            _runner.EnqueueCommand(new SetOutfitLockCommand(
-                new HexLive.Simulation.Common.EntityId(_inventoryActorId),
-                !_outfitLockedNow));
-        }
-
-        private void RefreshOutfitLockToggle(NpcSnapshot npc)
-        {
-            _outfitLockedNow = npc.OutfitLocked;
-            if (_outfitLockButton == null)
-            {
-                return;
-            }
-
-            _outfitLockButton.style.opacity = _inventoryMutable ? 1f : 0.45f;
-            _outfitLockButton.pickingMode = _inventoryMutable
-                ? PickingMode.Position : PickingMode.Ignore;
-            _outfitLockTrack.style.backgroundColor = npc.OutfitLocked
-                ? new Color(Gold.r, Gold.g, Gold.b, 0.34f) : Track;
-            _outfitLockThumb.style.left = npc.OutfitLocked ? 21f : 3f;
-            _outfitLockThumb.style.backgroundColor = npc.OutfitLocked ? Gold : TextDim;
-            _outfitLockLabel.style.color = npc.OutfitLocked ? Text : TextDim;
-            SetBorderColor(_outfitLockButton, npc.OutfitLocked ? GoldDim : StrokeStrong);
         }
 
         private void BuildInventoryTabs()
@@ -2376,7 +2289,8 @@ namespace HexLive.UnityPresentation.UI
             var eligible = _runner != null && _runner.SupportsNpcCommands &&
                 NpcSelection.Count == 1 && npc.Health > 0f &&
                 _runner.CanControlNpc(npc.Id);
-            _craftCanOrder = eligible && npc.IsManualControl;
+            _craftCanOrder = eligible;
+            _craftOrders = npc.PlayerOrders;
             _craftOptions.Clear();
             _craftAvailable = eligible && _runner.TryGetCraftingOptions(
                 new HexLive.Simulation.Common.EntityId(npc.Id.Value), _craftOptions);
@@ -2401,7 +2315,7 @@ namespace HexLive.UnityPresentation.UI
                 _selectedCraftOutputByNpc[npc.Id.Value] = _selectedCraftOutput;
             }
 
-            var sig = CraftingSignature() + "|manual" + _craftCanOrder + "|q" + _craftQueue.Remaining(npc.Id.Value, _selectedCraftOutput);
+            var sig = CraftingSignature() + "|q" + QueuedCraftCount(_selectedCraftOutput);
             if (sig == _craftSig)
             {
                 return;
@@ -2591,7 +2505,7 @@ namespace HexLive.UnityPresentation.UI
 
             // §138.7: every press queues one more; while she works the button
             // stays live («make another») and shows how many are left.
-            var queued = _craftQueue.Remaining(_inventoryActorId, option.OutputDefinitionId);
+            var queued = QueuedCraftCount(option.OutputDefinitionId);
             var canQueue = _craftCanOrder && (option.CanCraft || option.IsActive);
             var label = option.IsActive
                 ? Loc.Get("craft.create_more")
@@ -2667,8 +2581,15 @@ namespace HexLive.UnityPresentation.UI
             return row;
         }
 
-        // §138.7: one press, one more item; the queue issues the orders one by one.
-        private readonly CraftQueue _craftQueue = new();
+        private IReadOnlyList<PlayerOrderView> _craftOrders = System.Array.Empty<PlayerOrderView>();
+
+        private int QueuedCraftCount(string output)
+        {
+            var count = 0;
+            foreach (var order in _craftOrders)
+                if (order.Action == "Craft" && order.Detail == output) count++;
+            return count;
+        }
 
         private void EnqueueSelectedCraft()
         {
@@ -2679,26 +2600,10 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            _craftQueue.Add(_inventoryActorId, option.OutputDefinitionId, option);
+            _runner.EnqueueCommand(new QueuePlayerOrderCommand(new CraftByOutputCommand(
+                new HexLive.Simulation.Common.EntityId(_inventoryActorId), option.OutputDefinitionId)));
             _craftSig = null;
             _refreshedTick = -1;
-        }
-
-        private readonly List<CraftRecipeOption> _craftQueueScratch = new();
-
-        private void TickCraftQueue()
-        {
-            var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
-            if (snapshot == null) return;
-            _craftQueue.Tick(snapshot.Tick,
-                npc =>
-                {
-                    var state = FindNpc(snapshot, npc);
-                    return state != null && state.Health > 0f && state.IsManualControl &&
-                        _runner.SupportsNpcCommands && _runner.CanControlNpc(new HexLive.Simulation.Common.EntityId(npc));
-                },
-                (npc, into) => _runner.TryGetCraftingOptions(new HexLive.Simulation.Common.EntityId(npc), into),
-                command => { _runner.EnqueueCommand(command); _craftSig = null; });
         }
 
         private void BuildInventoryWearLayerButtons()
@@ -2901,9 +2806,7 @@ namespace HexLive.UnityPresentation.UI
             actions.style.flexDirection = FlexDirection.Row;
             actions.style.marginTop = 12f;
             _invPrimaryAction = InventoryActionButton(
-                () => EnqueueInventoryAction(_invSelectedId == ContentIds.Flashlight
-                    ? InventoryAction.ToggleFlashlight
-                    : _invSelectedWorn ? InventoryAction.Stow : InventoryAction.Wear));
+                () => EnqueueInventoryAction(_invPrimaryInventoryAction));
             _invPrimaryActionLabel = new Label();
             _invPrimaryActionLabel.style.color = Text;
             _invPrimaryActionLabel.style.fontSize = 13f;
@@ -3815,11 +3718,11 @@ namespace HexLive.UnityPresentation.UI
                 _craftSig = null;
             }
             _inventoryActorId = npc.Id.Value;
+            _inventoryNpc = npc;
             _inventoryHasTwoHands = BodyPartFunctionSnapshotMath.HasTwoUsableHands(npc.BodyPartConditions);
             _inventoryMutable = _runner != null && _runner.SupportsNpcCommands &&
                 NpcSelection.Count == 1 &&
                 _runner.CanControlNpc(npc.Id) && npc.Health > 0f;
-            RefreshOutfitLockToggle(npc);
             if (!_inventoryOpen)
             {
                 return;
@@ -3891,7 +3794,6 @@ namespace HexLive.UnityPresentation.UI
                 + "|" + string.Join(",", npc.InventoryOwnerIds)
                 + "|" + string.Join(",", npc.InventoryStacks) + "|" + npc.InventoryUsedSlots
                 + "|" + npc.HeldItemId + "|" + npc.FavoriteWeaponId
-                + "|lock=" + (npc.OutfitLocked ? "1" : "0")
                 + "|wornOwners=" + string.Join(",", npc.WornOwnerIds)
                 + "|page=" + (_clothesPage ? "clothes" : "backpack")
                 + "|" + InventoryLayoutSignature(npc)
@@ -4299,17 +4201,23 @@ namespace HexLive.UnityPresentation.UI
 
             BuildItemStats(
                 def, info, worn, durability, water, stacks, wetness, dirtiness,
-                sourceIndex, ResolveInventoryOwnerId(id, worn, sourceIndex));
+                sourceIndex, ResolveInventoryOwnerId(id, worn, sourceIndex),
+                resourceAmount: worn ? 0f : InventoryResourceAmount(_inventoryNpc, id, sourceIndex));
 
             var wearable = def != null && def.Layer.HasValue;
-            var outfitChangeBlocked = _outfitLockedNow && (worn || wearable);
+            var canEat = CanEatInventory(def, worn);
+            var canCook = CanCookInventory(id, worn);
+            _invPrimaryInventoryAction = canEat ? InventoryAction.Eat
+                : canCook ? InventoryAction.Cook
+                : id == ContentIds.Flashlight ? InventoryAction.ToggleFlashlight
+                : worn ? InventoryAction.Stow : InventoryAction.Wear;
             _invPrimaryAction.style.display = _inventoryMutable &&
-                (id == ContentIds.Flashlight || (worn || wearable) && !outfitChangeBlocked)
+                (canEat || canCook || id == ContentIds.Flashlight || worn || wearable)
                 ? DisplayStyle.Flex : DisplayStyle.None;
             _invPlantAction.style.display = _inventoryMutable && !worn &&
                 (InventoryPlacementMath.CanPlace(id) || PortableFurniture.CanCarry(id))
                 ? DisplayStyle.Flex : DisplayStyle.None;
-            _invDropAction.style.display = _inventoryMutable && !(_outfitLockedNow && worn) &&
+            _invDropAction.style.display = _inventoryMutable &&
                 !PortableFurniture.CanCarry(id)
                 ? DisplayStyle.Flex : DisplayStyle.None;
             // §55.4 (bug #317): «Наполнить» — только у неполной бутылки, когда
@@ -4320,18 +4228,40 @@ namespace HexLive.UnityPresentation.UI
             _invFillAction.SetEnabled(_inventoryHasTwoHands);
             _invFillAction.tooltip = _inventoryHasTwoHands ? string.Empty : Loc.Get("menu.needs_two_hands");
             _invFillActionLabel.text = Loc.Get("inv.action.fill");
-            _invReadOnlyLabel.style.display = !_inventoryMutable || outfitChangeBlocked
+            _invReadOnlyLabel.style.display = !_inventoryMutable
                 ? DisplayStyle.Flex : DisplayStyle.None;
-            _invPrimaryActionLabel.text = Loc.Get(id == ContentIds.Flashlight
-                ? "inv.action.switch_light" : worn ? "inv.action.stow" : "inv.action.wear");
+            _invPrimaryActionLabel.text = Loc.Get(PrimaryInventoryActionKey(_invPrimaryInventoryAction));
             _invPlantActionLabel.text = Loc.Get(InventoryPlacementVerb(_invSelectedId));
             _invDropActionLabel.text = Loc.Get("inv.action.drop");
-            _invReadOnlyLabel.text = Loc.Get(outfitChangeBlocked
-                ? "inv.outfit_locked" : "inv.readonly");
+            _invReadOnlyLabel.text = Loc.Get("inv.readonly");
 
             _invDetailView.style.display = DisplayStyle.Flex;
             _invDetailView.BringToFront();
             _invDetailView.schedule.Execute(PositionInventoryDetail);
+        }
+
+        private bool CanEatInventory(ObjectDefinition def, bool worn) =>
+            _inventoryMutable && !worn && FoodMath.CanEat(def);
+
+        private bool CanCookInventory(string id, bool worn) =>
+            _inventoryMutable && !worn && HumanMeatCatalog.IsRaw(id);
+
+        private static string PrimaryInventoryActionKey(InventoryAction action) => action switch
+        {
+            InventoryAction.Eat => "inv.action.eat",
+            InventoryAction.Cook => "menu.cook_meat",
+            InventoryAction.ToggleFlashlight => "inv.action.switch_light",
+            InventoryAction.Stow => "inv.action.stow",
+            _ => "inv.action.wear"
+        };
+
+        private static float InventoryResourceAmount(NpcSnapshot npc, string id, int sourceIndex)
+        {
+            if (npc == null || sourceIndex < 0) return 0f;
+            foreach (var container in npc.InventoryContainers)
+                foreach (var slot in container.Slots)
+                    if (slot.SourceIndex == sourceIndex && slot.ItemDefinitionId == id) return slot.ResourceAmount;
+            return 0f;
         }
 
         // §55.4 (bug #317): «Наполнить» доступна у неполной бутылки при
@@ -4369,9 +4299,9 @@ namespace HexLive.UnityPresentation.UI
                 ? _invSelectedSourceIndex
                 : FindCarriedSourceIndex(npc, _invSelectedId);
             if (index < 0) return;
-            _runner.EnqueueCommand(new FillVesselCommand(
+            _runner.EnqueueCommand(new QueuePlayerOrderCommand(new FillVesselCommand(
                 new HexLive.Simulation.Common.EntityId(_inventoryActorId),
-                new InventoryItemRef(InventoryItemSource.Carried, index, _invSelectedId)));
+                new InventoryItemRef(InventoryItemSource.Carried, index, _invSelectedId))));
             HideItemDetail();
             _invSig = null;
         }
@@ -4453,8 +4383,10 @@ namespace HexLive.UnityPresentation.UI
             var itemRef = new InventoryItemRef(
                 _invSelectedWorn ? InventoryItemSource.Worn : InventoryItemSource.Carried,
                 index, _invSelectedId);
-            _runner.EnqueueCommand(new ManageInventoryCommand(
-                new HexLive.Simulation.Common.EntityId(_inventoryActorId), itemRef, action, count));
+            var command = new ManageInventoryCommand(
+                new HexLive.Simulation.Common.EntityId(_inventoryActorId), itemRef, action, count);
+            _runner.EnqueueCommand(QueuePlayerOrderCommand.Supports(command)
+                ? new QueuePlayerOrderCommand(command) : command);
             HideItemDetail();
             _invSig = null;
         }
@@ -4632,7 +4564,8 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, float> dirtiness,
             int sourceIndex,
             int ownerId,
-            VisualElement destination = null)
+            VisualElement destination = null,
+            float resourceAmount = 0f)
         {
             var rows = destination ?? _invDetailStats;
             rows.Clear();
@@ -4740,6 +4673,13 @@ namespace HexLive.UnityPresentation.UI
             {
                 rows.Add(MakeStatRow(
                     Loc.Get("inv.restores"), $"+{Mathf.RoundToInt(-hunger * 100f)}%", CategoryColor(ItemCategory.Food)));
+            }
+
+            if (FoodMath.CanEat(def) || HumanMeatCatalog.IsRaw(def.Id))
+            {
+                var grams = FoodMath.GramsRemaining(def.Id, resourceAmount);
+                rows.Add(MakeStatRow(Loc.Get("inv.food_mass"),
+                    string.Format(Loc.Get("inv.grams_format"), grams), CategoryColor(ItemCategory.Food)));
             }
 
             var gear = GearCatalog.For(info.DefinitionId);
@@ -6094,7 +6034,12 @@ namespace HexLive.UnityPresentation.UI
 
             BuildThought();
             BuildDream();
-            BuildEffectsRow();
+            var indicators = new VisualElement { pickingMode = PickingMode.Ignore };
+            indicators.style.flexDirection = FlexDirection.Row;
+            indicators.style.alignItems = Align.FlexEnd;
+            _stage.Add(indicators);
+            BuildEffectsRow(indicators);
+            indicators.Add(BuildPlayerOrdersRow());
 
             // Three-zone card; height fits the full needs grid including
             // Compassion, which can wrap onto its own row in RU/EN layouts.
@@ -6150,11 +6095,6 @@ namespace HexLive.UnityPresentation.UI
             _groupTitle.style.color = Text;
             _groupTitle.style.unityFontStyleAndWeight = FontStyle.Bold;
             summary.Add(_groupTitle);
-            _groupManualSummary = new Label();
-            _groupManualSummary.style.fontSize = 14f;
-            _groupManualSummary.style.color = TextDim;
-            _groupManualSummary.style.marginTop = 7f;
-            summary.Add(_groupManualSummary);
             _groupAlerts = new Label();
             _groupAlerts.style.fontSize = 13f;
             _groupAlerts.style.color = Warn;
@@ -6172,15 +6112,6 @@ namespace HexLive.UnityPresentation.UI
             var commands = new VisualElement();
             commands.style.width = 280f;
             commands.style.marginLeft = 18f;
-            var mode = CommandButton(() => ToggleGroupManual());
-            _groupControlLabel = new Label();
-            _groupControlLabel.style.color = Text;
-            _groupControlLabel.style.fontSize = 14f;
-            _groupControlLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-            _groupControlLabel.pickingMode = PickingMode.Ignore;
-            mode.Add(_groupControlLabel);
-            commands.Add(mode);
-
             var stop = CommandButton(StopGroup);
             _groupStopLabel = new Label(Loc.Get("group.stop"));
             _groupStopLabel.style.color = Crit;
@@ -6258,23 +6189,13 @@ namespace HexLive.UnityPresentation.UI
             _refreshedActorId = -1;
             _groupTitle.text = string.Format(Loc.Get("group.selected"), selected.Count);
 
-            var manual = 0;
             var incapacitated = 0;
             var fighting = 0;
             foreach (var npc in selected)
             {
-                if (npc.IsManualControl) manual++;
                 if (npc.IsDying || npc.IsUnconscious || npc.IsFainted) incapacitated++;
                 if (npc.IsFighting) fighting++;
             }
-            _groupAllManual = manual == selected.Count;
-            _groupManualSummary.text = string.Format(
-                Loc.Get("group.manual_summary"), manual, selected.Count);
-            _groupControlLabel.text = Loc.Get(manual == 0
-                ? "panel.control.ai"
-                : manual == selected.Count ? "panel.control.manual" : "panel.control.mixed");
-            _groupControlLabel.style.color = manual == 0 ? Text : Gold;
-
             if (incapacitated > 0 || fighting > 0)
             {
                 _groupAlerts.text = string.Format(
@@ -6323,29 +6244,17 @@ namespace HexLive.UnityPresentation.UI
 
         }
 
-        private List<HexLive.Simulation.Common.EntityId> SelectedEntityIds()
-        {
-            var result = new List<HexLive.Simulation.Common.EntityId>(NpcSelection.Count);
-            foreach (var id in NpcSelection.SelectedIds)
-            {
-                var entityId = new HexLive.Simulation.Common.EntityId(id);
-                if (_runner != null && _runner.CanControlNpc(entityId))
-                    result.Add(entityId);
-            }
-            return result;
-        }
-
-        private void ToggleGroupManual()
-        {
-            if (_runner == null || !_runner.SupportsNpcCommands) return;
-            _runner.EnqueueCommand(new SetGroupManualControlCommand(
-                SelectedEntityIds(), !_groupAllManual));
-        }
-
         private void StopGroup()
         {
             if (_runner == null || !_runner.SupportsNpcCommands) return;
-            _runner.EnqueueCommand(new GroupStopCommand(SelectedEntityIds()));
+            var snapshot = _runner.CreateSnapshot();
+            if (snapshot == null) return;
+            var actors = new List<HexLive.Simulation.Common.EntityId>();
+            foreach (var npc in snapshot.Npcs)
+                if (npc.IsManualControl && NpcSelection.Contains(npc.Id.Value) && _runner.CanControlNpc(npc.Id))
+                    actors.Add(npc.Id);
+            if (actors.Count > 0)
+                _runner.EnqueueCommand(new GroupStopCommand(actors));
         }
 
         private void BuildRoster()
@@ -7160,7 +7069,7 @@ namespace HexLive.UnityPresentation.UI
             button.style.position = Position.Absolute;
             button.style.left = 12f;
             button.style.top = 12f;
-            button.style.width = 132f;
+            button.style.width = 84f;
             button.style.height = 34f;
             button.style.flexDirection = FlexDirection.Row;
             button.style.alignItems = Align.Center;
@@ -7168,43 +7077,14 @@ namespace HexLive.UnityPresentation.UI
             SetBorder(button, StrokeStrong, 1f);
             SetRadius(button, 10f);
             button.style.overflow = Overflow.Hidden;
-            button.tooltip = Loc.Get("panel.control.tooltip");
-
-            _controlAiSegment = BuildToggleSegment(
-                "HexLive/UI/IdentityAiIcon", "🧠", Loc.Get("panel.control.ai"),
-                out _controlAiGlyph, out _controlAiIcon);
-            _controlPlayerSegment = BuildToggleSegment(
-                "HexLive/UI/IdentityManualIcon", "🎮", Loc.Get("panel.control.manual"),
-                out _controlPlayerGlyph, out _controlPlayerIcon);
             button.name = "character-control-modes";
-            _controlAiSegment.name = "control-ai";
-            _controlPlayerSegment.name = "control-manual";
-            _controlAiSegment.style.width = Length.Percent(33.333f);
-            _controlPlayerSegment.style.width = Length.Percent(33.333f);
-            SetRadius(_controlAiSegment, 9f);
-            SetRadius(_controlPlayerSegment, 9f);
-            button.Add(_controlAiSegment);
-            button.Add(_controlPlayerSegment);
             button.Add(BuildPhoneControlSegment());
-            button.Add(BuildToggleDivider());
-            var secondDivider = BuildToggleDivider(); secondDivider.style.left = 87f; button.Add(secondDivider);
+            button.Add(BuildPlayerSpeechButton());
 
             button.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(button, GoldDim));
             button.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(
                 button,
                 !_controlAvailable ? Stroke : _manualControlNow ? GoldDim : NeonCyanDim));
-            _controlAiSegment.RegisterCallback<PointerDownEvent>(evt =>
-            {
-                if (evt.button != 0) return;
-                SelectCharacterControlMode(CharacterControlMode.Ai);
-                evt.StopPropagation();
-            });
-            _controlPlayerSegment.RegisterCallback<PointerDownEvent>(evt =>
-            {
-                if (evt.button != 0) return;
-                SelectCharacterControlMode(CharacterControlMode.Manual);
-                evt.StopPropagation();
-            });
 
             _controlButton = button;
             return button;
@@ -7377,11 +7257,6 @@ namespace HexLive.UnityPresentation.UI
             SetBorderColor(_paceButton, _runByDefaultNow ? GoldDim : NeonCyanDim);
         }
 
-        private void ToggleManualControl()
-        {
-            SelectCharacterControlMode(_manualControlNow ? CharacterControlMode.Ai : CharacterControlMode.Manual);
-        }
-
         // §121: одиночное «Отставить» — снять текущий приказ, НЕ выключая
         // ручной режим. У группы эта кнопка есть в групповой карточке
         // (GroupStopCommand); у одиночки до сих пор не было способа отменить
@@ -7439,12 +7314,10 @@ namespace HexLive.UnityPresentation.UI
             var available = _runner != null && _runner.SupportsNpcCommands &&
                 _runner.CanControlNpc(npc.Id) && npc.Health > 0f && !agentControlled;
             var call = ServerVoiceActive || _callPreparing || PhoneControls(npc.Id.Value);
-            if (!call && !_controlModePending && _controlInputNpc == npc.Id.Value && npc.IsManualControl == _controlTargetManual)
+            if (!call && !_controlModePending && _controlInputNpc == npc.Id.Value && !npc.IsManualControl)
                 _controlInputNpc = -1;
             if ((call || _lastCallControlNpc == npc.Id.Value) && _runner != null && _runner.IsAssignedNpc(npc.Id) && npc.Health > 0f) available = true;
             _controlAvailable = available;
-            _controlAiSegment.SetEnabled(available);
-            _controlPlayerSegment.SetEnabled(available);
             _controlCallSegment.SetEnabled(ServerVoiceEligible || call);
             _controlCallSegment.style.backgroundColor = call ? new Color(Good.r,Good.g,Good.b,.22f) : Color.clear;
             RenderServerVoiceButton();
@@ -7458,13 +7331,6 @@ namespace HexLive.UnityPresentation.UI
             {
                 _controlButton.tooltip = Loc.Get(agentControlled
                     ? "panel.control.agent" : "panel.control.readonly");
-                _controlAiSegment.style.backgroundColor = agentControlled
-                    ? new Color(NeonCyan.r, NeonCyan.g, NeonCyan.b, 0.22f) : Color.clear;
-                _controlPlayerSegment.style.backgroundColor = Color.clear;
-                _controlAiGlyph.style.color = agentControlled ? NeonCyan : TextMute;
-                _controlPlayerGlyph.style.color = TextMute;
-                _controlAiIcon.style.opacity = agentControlled ? 1f : 0.35f;
-                _controlPlayerIcon.style.opacity = 0.35f;
                 SetBorderColor(_controlButton, Stroke);
                 if (_stopButton != null)
                 {
@@ -7492,17 +7358,7 @@ namespace HexLive.UnityPresentation.UI
                     ? DisplayStyle.Flex
                     : DisplayStyle.None;
             }
-            _controlButton.tooltip = Loc.Get("panel.control.tooltip");
-            _controlAiSegment.style.backgroundColor = _manualControlNow || call
-                ? Color.clear
-                : new Color(NeonCyan.r, NeonCyan.g, NeonCyan.b, 0.22f);
-            _controlPlayerSegment.style.backgroundColor = _manualControlNow && !call
-                ? new Color(Gold.r, Gold.g, Gold.b, 0.24f)
-                : Color.clear;
-            _controlAiGlyph.style.color = _manualControlNow || call ? TextMute : NeonCyan;
-            _controlPlayerGlyph.style.color = _manualControlNow && !call ? Gold : TextMute;
-            _controlAiIcon.style.opacity = _manualControlNow || call ? 0.42f : 1f;
-            _controlPlayerIcon.style.opacity = _manualControlNow && !call ? 1f : 0.42f;
+            _controlButton.tooltip = null;
             SetBorderColor(_controlButton, _manualControlNow ? GoldDim : NeonCyanDim);
 
             if (_orderToast != null)
@@ -8069,8 +7925,7 @@ namespace HexLive.UnityPresentation.UI
             if (_invPlantActionLabel != null) _invPlantActionLabel.text = Loc.Get(InventoryPlacementVerb(_invSelectedId));
             if (_invReadOnlyLabel != null) _invReadOnlyLabel.text = Loc.Get("inv.readonly");
             if (_invPrimaryActionLabel != null && _invSelectedId != null)
-                _invPrimaryActionLabel.text = Loc.Get(_invSelectedWorn
-                    ? "inv.action.stow" : "inv.action.wear");
+                _invPrimaryActionLabel.text = Loc.Get(PrimaryInventoryActionKey(_invPrimaryInventoryAction));
 
             // §76: row names, and force the perk badges to re-localize (they
             // are rebuilt only when the perk SET changes, which a language
@@ -8111,9 +7966,7 @@ namespace HexLive.UnityPresentation.UI
 
             if (_controlButton != null)
             {
-                _controlButton.tooltip = Loc.Get("panel.control.tooltip");
-                _controlAiSegment.tooltip = Loc.Get("panel.control.ai");
-                _controlPlayerSegment.tooltip = Loc.Get("panel.control.manual");
+                _controlCallSegment.tooltip = Loc.Get("agent.call.button");
             }
 
             if (_paceButton != null)
@@ -8142,12 +7995,6 @@ namespace HexLive.UnityPresentation.UI
             {
                 _inventoryTitle.text = Loc.Get("panel.inventory");
             }
-            if (_outfitLockLabel != null)
-            {
-                _outfitLockLabel.text = Loc.Get("inv.outfit_lock");
-                _outfitLockButton.tooltip = Loc.Get("inv.outfit_lock.tooltip");
-            }
-
             if (_inventoryBackpackTabLabel != null)
             {
                 _inventoryBackpackTabLabel.text = Loc.Get("craft.tab.backpack");

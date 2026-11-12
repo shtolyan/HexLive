@@ -12,8 +12,35 @@ namespace HexLive.Simulation.Runtime
 // a coconut half was invisible to both and the colony lived on coconuts no
 // matter how much meat it had. These are the only readers of an item's hunger
 // payoff; keep them the only ones.
-internal static class FoodMath
+public static class FoodMath
 {
+    public const int BiteGrams = 100;
+
+    public static bool CanEat(ObjectDefinition? definition) =>
+        definition is not null && definition.Interactions.Exists(interaction => interaction.Type == InteractionType.Eat);
+
+    public static int GramsRemaining(string definitionId, float resourceAmount)
+    {
+        var full = HumanMeatCatalog.IsLeg(definitionId) ? 10000
+            : HumanMeatCatalog.IsArm(definitionId) ? 5000
+            : HumanMeatCatalog.IsTorso(definitionId) ? 20000
+            : BiteGrams;
+        // Legacy carried and ground items use 0 or 1 for a whole portion.
+        // Raw meat uses this field for spit progress until it is cooked.
+        return full > BiteGrams && HumanMeatCatalog.IsCooked(definitionId) &&
+            resourceAmount >= BiteGrams && resourceAmount <= full ? (int)resourceAmount : full;
+    }
+
+    internal static int RemainingAfterBite(string definitionId, float resourceAmount) =>
+        GramsRemaining(definitionId, resourceAmount) - BiteGrams;
+
+    internal static void SpendInventoryBite(NPCState npc, ItemInstance item)
+    {
+        var remaining = RemainingAfterBite(item.DefinitionId, item.ResourceAmount);
+        if (remaining > 0) item.ResourceAmount = remaining;
+        else InventoryMath.RemoveReference(npc.Inventory.Items, item);
+    }
+
     // The Hunger the food's own Eat interaction removes; the §53 flat value
     // when the definition declares none.
     public static float NutritionOf(WorldState world, string definitionId)

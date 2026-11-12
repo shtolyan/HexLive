@@ -52,6 +52,8 @@ public sealed class CommandCodecCoverageGateTests
         new RecordAgentSocialCommand(
             new EntityId(902), "agent-turn-160", CompanionReaction.Tense),
         new SetManualControlCommand(new EntityId(11), true),
+        new QueuePlayerOrderCommand(new MoveToCommand(new EntityId(701), new Float2(4.25f, -1.5f), run: true)),
+        new CancelPlayerOrderCommand(new EntityId(702), 51),
         new PlacePlantingSiteCommand(ContentIds.YuccaSeed, new TileCoord(4, -7), new JunctionId(638)),
         new KnockDoorCommand(new EntityId(643), new ObjectId(1643)),
         new BreakDoorCommand(new EntityId(644), new ObjectId(2643)),
@@ -77,6 +79,7 @@ public sealed class CommandCodecCoverageGateTests
         new StopCommand(new EntityId(19)),
         new CraftByOutputCommand(new EntityId(201), "test.craft_output", "craft-123"),
         new CraftItemCommand(new EntityId(20), GoalType.CraftBandage),
+        new CraftItemCommand(new EntityId(200), GoalType.CookMeat, new ObjectId(510)),
         new TalkToCommand(new EntityId(21), new EntityId(112)),
         new RequestItemCommand(new EntityId(21), new EntityId(112), GearCatalog.Lighter),
         new TalkToCommand(new EntityId(2121), new EntityId(3112), Social.TalkTopic.Joke),

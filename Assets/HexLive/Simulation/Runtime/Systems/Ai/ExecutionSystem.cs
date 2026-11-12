@@ -451,7 +451,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // was being reached ACROSS the gap, so fail + retarget instead of
                 // interacting from afar. Belt-and-braces over the planner cap:
                 // covers remembered targets and every interaction kind.
-                // §120.14: дом строят у его детали, а не у якоря здания.
+                // §120.15: дом строят у его детали, а не у якоря здания.
                 var atOwnPiece = GetPlannedInteractionType(npc.Plan) == InteractionType.Build &&
                     BuildWorkPoint.StandsAtPiece(world, npc, worldObject);
                 if (!atOwnPiece &&
@@ -696,12 +696,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 }
 
                 if (interaction.Type == InteractionType.Drink &&
-                    definition.HasTag("CoconutWater") &&
-                    worldObject.ResourceAmount <= 0f)
+                    (definition.HasTag("CoconutWater") && worldObject.ResourceAmount <= 0f ||
+                     definition.Id == ContentIds.DrinkingGlass && BottleInventoryMath.Charges(worldObject) == 0))
                 {
                     PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
                     PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
-                        $"Cannot drink {worldObject.DefinitionId} (already drained)");
+                            $"Cannot drink {worldObject.DefinitionId} (already drained)");
                     npc.Mind.CurrentGoal = GoalType.None;
                     continue;
                 }
@@ -1308,11 +1308,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatCooked) <
                 SimBalance.CampfireSpitCapacity)
             {
-                var raw = HumanMeatCatalog.FirstRaw(npc);
-                if (raw == null) return false;
+                var raw = CookMeatInput(npc);
+                if (raw == null)
+                    return FailHearthScene(world, npc, worldObject, "Selected raw portion is no longer carried");
                 InventoryMath.RemoveReference(npc.Inventory.Items, raw);
                 raw.ResourceAmount = 0f;
                 worldObject.Contents.Add(raw);
+                npc.Execution.TargetInventoryItem = null;
                 Trace.Emit(world, npc.Id, "MeatHungOnSpit",
                     $"{raw.DefinitionId} on the spit at Tile={worldObject.Tile.Q},{worldObject.Tile.R} " +
                     $"hanging raw={BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatRaw)} " +
@@ -1451,6 +1453,27 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             }
         }
         else if (completedInteraction.Type == InteractionType.Drink &&
+                 definition.Id == ContentIds.DrinkingGlass)
+        {
+            if (BottleInventoryMath.Charges(worldObject) == 0)
+            {
+                npc.Plan.Status = PlanStatus.Failed;
+                return false;
+            }
+            var kind = worldObject.WaterKind;
+            ApplyVesselSipEffects(world, npc, kind, 1f);
+            ApplyVesselSickness(world, npc, kind);
+            worldObject.ResourceAmount -= 1f;
+            if (worldObject.ResourceAmount <= 0f)
+            {
+                worldObject.ResourceAmount = 0f;
+                worldObject.WaterKind = WaterKind.None;
+                worldObject.LastAddedWaterKind = WaterKind.None;
+            }
+            Trace.Emit(world, npc.Id, "DrankBottle",
+                $"{kind} water Thirst={npc.Needs.Thirst:F2} Left={BottleInventoryMath.Charges(worldObject)}");
+        }
+        else if (completedInteraction.Type == InteractionType.Drink &&
                  definition.HasTag("CoconutWater"))
         {
             worldObject.ResourceAmount = System.MathF.Max(0f, worldObject.ResourceAmount - 1f);
@@ -1462,11 +1485,21 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 return false;
             }
         }
-        else if (completedInteraction.Type == InteractionType.Eat &&
-                 worldObject.DefinitionId == ContentIds.CoconutOpen)
+        else if (completedInteraction.Type == InteractionType.Eat && definition.HasTag(ObjectTags.Food))
         {
-            WorldObjectMutations.DespawnObject(world, worldObject.Id);
-            Trace.Emit(world, npc.Id, "CoconutEaten", $"{worldObject.DefinitionId} consumed");
+            var remaining = FoodMath.RemainingAfterBite(worldObject.DefinitionId, worldObject.ResourceAmount);
+            if (remaining > 0)
+            {
+                worldObject.ResourceAmount = remaining;
+                worldObject.IsOccupied = false;
+                worldObject.CurrentUser = null;
+            }
+            else
+            {
+                WorldObjectMutations.DespawnObject(world, worldObject.Id);
+                if (worldObject.DefinitionId == ContentIds.CoconutOpen)
+                    Trace.Emit(world, npc.Id, "CoconutEaten", $"{worldObject.DefinitionId} consumed");
+            }
         }
         else if (completedInteraction.Type == InteractionType.Butcher)
         {
@@ -1749,7 +1782,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
     {
-        var bottleItem = BottleInventoryMath.FirstEmpty(npc) ?? BottleInventoryMath.FirstBottle(npc);
+        var bottleItem = npc.Plan.Goal == GoalType.StowBottle
+            ? npc.Inventory.Items.FindLast(item =>
+                BottleInventoryMath.IsBottle(item) && BottleInventoryMath.Amount(item) <= 0f)
+            : BottleInventoryMath.FirstEmpty(npc) ?? BottleInventoryMath.FirstBottle(npc);
         if (bottleItem is null ||
             worldObject.Junctions.Count == 0 ||
             WaterCollectorMath.FindVessel(world, worldObject) is not null)
@@ -2004,31 +2040,17 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
     {
-        if (!CampPropertyMath.CanUse(world, npc, worldObject) &&
-            !OutfitMaintenanceMath.CanRestorePinnedPiece(world, npc, worldObject)) return false;
+        if (!CampPropertyMath.CanUse(world, npc, worldObject)) return false;
 
         var theft = TheftMath.IsTheft(world, npc, worldObject,
             PlanningSystem.HasWearGrant(npc, worldObject.Id, world.Tick));
-        var restoringSelectedOutfit =
-            OutfitMaintenanceMath.CanRestorePinnedPiece(world, npc, worldObject);
-        if (npc.Mind.OutfitLocked && !restoringSelectedOutfit)
-        {
-            worldObject.IsOccupied = false;
-            worldObject.CurrentUser = null;
-            if (SimTrace.Enabled)
-            {
-                Trace.Debug(world, npc.Id, "DressBlocked",
-                    $"Obj={worldObject.Id.Value} Reason=OutfitLocked");
-            }
-            return false;
-        }
 
         // §133: чужое надевают только с разрешения, и разрешение ОДНОРАЗОВОЕ —
         // сгорает здесь же. Планировщик до сюда чужое без «да» не пропускает;
         // это последний рубеж на случай, если вещь сменила хозяйку по дороге.
         var explicitPlayerDress = npc.Mind.ManualControl &&
             npc.Plan.Goal == GoalType.PlayerOrder;
-        if (!restoringSelectedOutfit && !explicitPlayerDress &&
+        if (!explicitPlayerDress &&
             ClothingOwnership.FellowOwner(world, npc, worldObject) is { } fellowOwner)
         {
             if (!PlanningSystem.HasWearGrant(npc, worldObject.Id, world.Tick))
@@ -2084,10 +2106,6 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         _dressPourScratch.Clear();
         _dressPourScratch.AddRange(worldObject.Contents);
         worldObject.Contents.Clear();
-        if (restoringSelectedOutfit)
-        {
-            OutfitMaintenanceMath.MarkWorn(world, npc, worldObject.Id);
-        }
         WorldObjectMutations.DespawnObject(world, worldObject.Id);
         EquipmentMath.Recalculate(world, npc);
         npc.Inventory.Items.AddRange(_dressPourScratch);
@@ -2115,14 +2133,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // HER POCKET. The cooldown opens a window for TendFire &
         // GetWater between wardrobe attempts.
         npc.Mind.Cooldowns.RemoveAll(c => c.Goal == GoalType.Dress);
-        if (!restoringSelectedOutfit)
+        npc.Mind.Cooldowns.Add(new GoalCooldown
         {
-            npc.Mind.Cooldowns.Add(new GoalCooldown
-            {
-                Goal = GoalType.Dress,
-                EndTick = world.Tick + AiBalance.DressCooldownTicks
-            });
-        }
+            Goal = GoalType.Dress,
+            EndTick = world.Tick + AiBalance.DressCooldownTicks
+        });
 
         if (theft) TheftMath.OnStolen(world, npc, worldObject);
         return true;
@@ -2198,10 +2213,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
         else
         {
-        // Spec §54: a Process consumes the object and scatters its
-        // yields — a log → sticks, a palm crown → leaves.
-        // Consumption is unconditional here. Release this source only before
-        // placement; its captured spatial fields remain valid for scatter.
+        // Spec §54: processing consumes its source. Log products go into
+        // piles; other harvests retain their declared distribution.
         // Failed admission retains outputs, so completion never retries yields.
         WorldObjectMutations.DespawnObject(world, worldObject.Id);
         ApplyHarvestYields(world, npc, worldObject, completedInteraction.Yields);
@@ -2581,12 +2594,14 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
     // Spec §54 (R1): materialize a data-driven Yields list. Scatter drops land
     // as distinct ground objects at free junctions around the harvested/split
-    // spot (logs & leaves around the stump, sticks around the split log); a
+    // spot (logs & leaves around the stump). Log-processing output instead
+    // uses regular compatible piles at that worksite; a
     // non-Scatter drop falls back to the legacy inventory-first GiveOrDrop.
     internal static void ApplyHarvestYields(
         WorldState world, NPCState npc, WorldObjectState source,
         System.Collections.Generic.IReadOnlyList<HarvestDrop> yields)
     {
+        var stackGroundYields = source.DefinitionId == ContentIds.Log;
         foreach (var drop in yields)
         {
             for (var i = 0; i < drop.Count; i++)
@@ -2602,7 +2617,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 }
 
                 var item = CreateYieldItem(world, drop.DefinitionId, source);
-                if (!TryDropYieldNear(world,npc,source,item,out _, scatter:true)) GiveOrDrop(world,npc,item);
+                if (!TryDropYieldNear(world, npc, source, item, out _,
+                        scatter: !stackGroundYields, preferExistingPile: stackGroundYields))
+                {
+                    GiveOrDrop(world, npc, item);
+                }
             }
         }
     }
@@ -2656,11 +2675,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     }
 
     private static bool TryDropYieldNear(WorldState world,NPCState npc,WorldObjectState source,
-        ItemInstance item,out WorldObjectState spawned,bool scatter=false)
+        ItemInstance item,out WorldObjectState spawned,bool scatter=false,bool preferExistingPile=false)
     {
         var position = source.Junctions.Count > 0 && world.Junctions.Items.TryGetValue(source.Junctions[0],out var anchor)
             ? anchor.WorldPosition : npc.Position;
-        if (GroundItemPlacement.TryFindNear(world,npc,item,source.Tile,position,out var tile,out var junction,out _,scatter))
+        if (GroundItemPlacement.TryFindNear(world, npc, item, source.Tile, position,
+                out var tile, out var junction, out _, scatter, preferExistingPile: preferExistingPile))
         {
             spawned = SpawnDroppedItem(world,npc,item,tile,junction);
             spawned.IsHarvestScatter = scatter;

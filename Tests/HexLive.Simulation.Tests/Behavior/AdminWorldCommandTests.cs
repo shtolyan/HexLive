@@ -175,6 +175,32 @@ public sealed class AdminWorldCommandTests
         Assert.That(npc.Inventory.Items.Any(i => ReferenceEquals(i, worn)), Is.True);
     }
     [Test]
+    public void EquippingAnExplicitModernSetPreservesExistingInventory()
+    {
+        var world = TestWorld.CreateWorld();
+        var npc = world.Entities.Npcs.Values.First(n => n.Sex == GarmentSex.Female);
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Capacity = 100;
+        var rope = new ItemInstance(ContentIds.Rope);
+        npc.Inventory.Items.Add(rope);
+        var previous = new ItemInstance("underwear.briefs_primal");
+        npc.WornItems.Clear();
+        npc.WornItems.Add(previous);
+        var items = new[] { "underwear.bra_riot", "underwear.briefs_plain" };
+        foreach (var item in items)
+        {
+            Assert.That(GarmentLibrary.IsSpawnable(item), Is.False);
+            var result = AdminWorldCommands.Execute(world, new AdminCommand
+            {
+                NpcId = npc.Id.Value, Kind = "equip_garment", DefinitionId = item,
+            });
+            Assert.That(result.Accepted, Is.True, result.Reason);
+        }
+        Assert.That(items, Is.SubsetOf(npc.WornItems.Select(item => item.DefinitionId)));
+        Assert.That(npc.Inventory.Items, Is.EquivalentTo(new[] { rope, previous }));
+    }
+
+    [Test]
     public void GarmentRefusalDoesNotChangeWardrobeOrInventory()
     {
         var world = TestWorld.CreateWorld(); var npc = world.Entities.Npcs.Values.First();

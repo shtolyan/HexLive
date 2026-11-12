@@ -5,6 +5,7 @@ using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Persistence;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
@@ -739,6 +740,60 @@ public sealed class ManualSocialOrderTests
             Assert.That(medic.Execution.LastSocialCueKind,
                 Is.EqualTo("MedicalAidRejected"),
                 "Нехватка должна отвечать жёлтым предупреждением над врачом.");
+        });
+    }
+
+    [Test]
+    public void TreatLimbsFitsMechanicalArmFromReachableBedside()
+    {
+        var engine = TestWorld.CreateEngine(12345);
+        var world = engine.World;
+        var pair = TwoColonists(world);
+        var medic = pair[0];
+        var patient = pair[1];
+        TakeControl(engine, medic);
+        medic.Inventory.Items.Add(ContentIds.MechanicalArm);
+        patient.Body.Sever(BodyPart.ArmR);
+        patient.Wounds.Clear();
+        patient.Plan.Status = PlanStatus.Completed;
+        var bed = world.Entities.Objects.Values.First(o =>
+            o.DefinitionId == ContentIds.BedBasic && o.Tile.Equals(TestWorld.StartHut(world).Tile));
+        Assert.That(BedSleep.TryEnter(world, patient, bed, int.MaxValue, null), Is.True);
+        Assert.That(Enumerable.Range(0, LyingStations.Count)
+            .Any(slot => LyingStations.IsUsable(world, patient, slot)), Is.False,
+            "The solid support bed covers every ground-treatment point.");
+
+        var admission = ManualCommandExecutor.Apply(
+            world, new TreatLimbsCommand(medic.Id, patient.Id));
+        Assert.That(admission.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted),
+            admission.Reason);
+        var approach = medic.Plan.TargetJunctionId!.Value;
+        Assert.That(InteractionReach.CanTouchBedOccupantAcross(world, approach, bed), Is.True);
+        var bedside = world.Junctions.Items[approach];
+        medic.CurrentJunction = approach;
+        medic.Position = bedside.WorldPosition;
+        medic.Tile = bedside.Tiles[0];
+        medic.Movement.Status = MovementStatus.Arrived;
+        medic.Movement.IsMoving = false;
+        medic.Movement.JunctionPath.Clear();
+
+        var execution = new ExecutionSystem();
+        execution.Run(world);
+        Assert.Multiple(() =>
+        {
+            Assert.That(medic.Execution.CurrentInteraction, Is.EqualTo(InteractionType.FitProsthetic));
+            Assert.That(medic.Execution.LyingStationTargetId, Is.Null);
+            Assert.That(medic.Position, Is.EqualTo(bedside.WorldPosition));
+        });
+
+        world.Tick = medic.Execution.EndTick;
+        execution.Run(world);
+        Assert.Multiple(() =>
+        {
+            Assert.That(patient.Body.Condition(BodyPart.ArmR).Prosthetic?.DefinitionId,
+                Is.EqualTo(ContentIds.MechanicalArm));
+            Assert.That(medic.Inventory.Items.Contains(ContentIds.MechanicalArm), Is.False);
+            Assert.That(world.Reservations.Junctions.ContainsKey(approach), Is.False);
         });
     }
 

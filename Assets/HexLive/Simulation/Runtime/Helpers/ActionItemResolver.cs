@@ -152,7 +152,7 @@ public static class ActionItemResolver
                             npc.Body.IntactHands)?.DefinitionId ?? string.Empty;
                     }
 
-                    foreach (var material in Runtime.BuildSiteMath.AllMaterials)
+                    foreach (var material in Runtime.BuildSiteMath.MaterialsFor(site))
                     {
                         if (Runtime.BuildSiteMath.Needs(site, material) &&
                             InventoryContains(npc, material))

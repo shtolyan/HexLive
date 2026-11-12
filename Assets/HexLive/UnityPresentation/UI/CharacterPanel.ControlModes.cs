@@ -16,7 +16,7 @@ namespace HexLive.UnityPresentation.UI
 {
     public sealed partial class CharacterPanel
     {
-        private enum CharacterControlMode { Ai, Manual, Call }
+        private enum CharacterControlMode { Ai, Call }
         private VisualElement _controlCallSegment;
         private VectorIcon _controlCallGlyph;
         private Label _controlCallState;
@@ -27,7 +27,6 @@ namespace HexLive.UnityPresentation.UI
         private int _lastCallControlNpc = -1;
         private static int _phoneControlNpc = -1;
         private static int _controlInputNpc = -1;
-        private static bool _controlTargetManual;
         public static bool PhoneControls(int npcId) => npcId >= 0 && _phoneControlNpc == npcId;
         public static bool BlocksManualInput(int npcId) => PhoneControls(npcId) || (npcId >= 0 && _controlInputNpc == npcId);
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -36,7 +35,7 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement BuildPhoneControlSegment()
         {
             _controlCallSegment = new VisualElement { name = "control-call", tooltip = Loc.Get("agent.call.button") };
-            _controlCallSegment.style.width = Length.Percent(33.333f);
+            _controlCallSegment.style.width = 44f;
             _controlCallSegment.style.height = Length.Percent(100f);
             _controlCallSegment.style.alignItems = Align.Center;
             _controlCallSegment.style.justifyContent = Justify.Center;
@@ -73,7 +72,6 @@ namespace HexLive.UnityPresentation.UI
             // Keep stale snapshots from renewing manual control while the chosen
             // mode is being applied. The matching authoritative snapshot clears it.
             _controlInputNpc = npc;
-            _controlTargetManual = mode == CharacterControlMode.Manual;
             ClearServerVoiceFailure();
             var server = WebVoiceAgent.PageServerHttpBase();
             if (WebVoiceAgent.Supported && server != null && (mode == CharacterControlMode.Call || wasCall))
@@ -85,7 +83,7 @@ namespace HexLive.UnityPresentation.UI
             else
             {
                 _controlModePending = false;
-                _runner.EnqueueCommand(new SetManualControlCommand(new EntityId(npc), mode == CharacterControlMode.Manual));
+                _runner.EnqueueCommand(new SetManualControlCommand(new EntityId(npc), false));
                 _lastCallControlNpc = -1;
             }
             RenderServerVoiceButton();
@@ -94,7 +92,7 @@ namespace HexLive.UnityPresentation.UI
         [Serializable] private sealed class ControlModeResponse { public long controlEpoch; public string mode; }
         private IEnumerator SelectServerControlMode(int npc, CharacterControlMode mode, string server, string bearer, long intent)
         {
-            var modeText = mode == CharacterControlMode.Call ? "call" : mode == CharacterControlMode.Manual ? "manual" : "ai";
+            var modeText = mode == CharacterControlMode.Call ? "call" : "ai";
             using var request = new UnityWebRequest(server.TrimEnd('/') + "/api/voice/v1/control", "POST");
             request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes("{\"npcId\":"+npc+",\"mode\":\""+modeText+
                 "\",\"clientInstance\":\""+_controlClientInstance+"\",\"clientSequence\":"+intent+"}"));

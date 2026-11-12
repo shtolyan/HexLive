@@ -313,7 +313,8 @@ internal static class EquipmentMath
     // The candidate (lying on the ground) is priced DRY — the best case a girl
     // walking toward it can expect; the wet-insulation penalty (Recalculate)
     // bites only once it is actually on her.
-    public static float WarmthGainFromWearing(WorldState world, NPCState npc, string candidateId)
+    public static float WarmthGainFromWearing(
+        WorldState world, NPCState npc, string candidateId, float candidateWetness = 0f)
     {
         if (!world.Content.ObjectDefinitions.TryGetValue(candidateId, out var candidateDef) ||
             candidateDef.Layer is null)
@@ -345,7 +346,8 @@ internal static class EquipmentMath
             }
         }
 
-        var afterRaw = currentRaw - displacedRaw + candidateWarmth;
+        var afterRaw = currentRaw - displacedRaw +
+            candidateWarmth * (1f - 0.9f * MathUtil.Clamp01(candidateWetness));
         return MathUtil.Clamp01(afterRaw) - MathUtil.Clamp01(currentRaw);
     }
 

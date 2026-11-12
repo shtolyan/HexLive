@@ -1004,8 +1004,7 @@ public static class PrototypeContentCatalog
                         Type = InteractionType.PickUp,
                         DurationTicks = 4
                     },
-                    // Spec §54: chop a log into sticks in the field. Sticks scatter
-                    // on the ground around the chopping spot.
+                    // Spec §54: chop a log into sticks stacked at the worksite.
                     new InteractionDefinition
                     {
                         Id = "split.log",
@@ -1354,6 +1353,12 @@ public static class PrototypeContentCatalog
         AddPickupItem(ContentIds.CrudeSaw, "Crude saw", "Tool", "Saw");
         AddPickupItem(ContentIds.Firestarter, "Firestarter", "Tool");
         AddPickupItem(ContentIds.Torch, "Torch", "Tool", ObjectTags.HandBuilt);
+        defs[ContentIds.HeadPike] = new ObjectDefinition
+        {
+            Id = ContentIds.HeadPike,
+            DisplayName = "Head on a pike",
+            Tags = { ObjectTags.Obstacle, ObjectTags.HandBuilt }
+        };
         AddPickupItem(ContentIds.Splint, "Splint", "Medicine", "Splint");
         AddPickupItem(ContentIds.WoodenArm, "Wooden arm", "Medicine", "Prosthetic");
         AddPickupItem(ContentIds.WoodenLeg, "Wooden leg", "Medicine", "Prosthetic");

@@ -519,6 +519,7 @@ public sealed class NpcSnapshot
     public string Hairstyle { get; set; } = string.Empty;
 
     public string VoiceBank { get; set; } = string.Empty;
+    public Agents.NpcSpeechOrigin SpeechOrigin { get; set; }
 
     public int HexkufaExposure { get; set; }
     public float PlayerVoiceFamiliarity { get; set; }
@@ -628,6 +629,9 @@ public sealed class NpcSnapshot
     public float Hunger { get; set; }
 
     public float Thirst { get; set; }
+
+    /// <summary>§121.9: authoritative preflight reason for a manual sleep order.</summary>
+    public string ManualSleepRefusal { get; set; } = string.Empty;
 
     public float Energy { get; set; }
 
@@ -785,6 +789,7 @@ public sealed class NpcSnapshot
     /// а не из своего кэша: тумблер живёт в симуляции, и она же авторитет —
     /// иначе кнопка показывала бы одно, а персонаж делал другое.</summary>
     public bool IsManualControl { get; set; }
+    public List<PlayerOrderView> PlayerOrders { get; } = new();
     public int? TravelLeaderNpcId { get; set; }
 
     /// <summary>§121.11 (bug #294): постоянный темп её ручных приказов —
@@ -793,7 +798,7 @@ public sealed class NpcSnapshot
     /// По умолчанию бегом.</summary>
     public bool RunByDefault { get; set; } = true;
 
-    /// <summary>§133.9: player froze this NPC's current outfit.</summary>
+    /// <summary>§133.10: legacy wire field. Live snapshots publish false.</summary>
     public bool OutfitLocked { get; set; }
 
     public int? GiftSessionTargetNpcId { get; set; }

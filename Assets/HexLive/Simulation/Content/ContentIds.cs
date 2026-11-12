@@ -54,6 +54,7 @@ public static class ContentIds
     public const string Orange = "food.orange";
     public const string CannedPeaches = "food.canned_peaches";
     public const string ModernFridge = "furniture.modern_fridge";
+    public const string ModernWardrobe = "furniture.modern_wardrobe";
     public const string StorageChest = "furniture.storage_chest";
 
     // ── Ресурсы ──────────────────────────────────────────────────────────
@@ -139,6 +140,7 @@ public static class ContentIds
     public const string HutPlan = "building.hut_plan";
     /// <summary>§133: домашняя сушилка-гардероб — вещи висят в доме, а не по карте.</summary>
     public const string Wardrobe = "furniture.wardrobe";
+    public const string HeadPike = "furniture.head_pike";
     public const string FurnitureHearth = "furniture.hearth";
     public const string HutBed = "building.hut_bed";
 

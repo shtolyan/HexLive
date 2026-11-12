@@ -85,6 +85,7 @@ internal static class GroundItemPlacement
         public readonly List<Candidate> Candidates = new();
         public readonly List<WorldObjectState> Objects = new();
         public readonly HashSet<JunctionId> SeenJunctions = new(), Sockets = new();
+        public readonly HashSet<JunctionId> CompatiblePiles = new();
         public readonly HashSet<ObjectId> SeenObjects = new();
         public readonly List<Reservation> Reserved = new();
         public int ObjectsInspected, CandidatesChecked;
@@ -119,6 +120,7 @@ internal static class GroundItemPlacement
     {
         scratch.Candidates.Clear();scratch.Objects.Clear();scratch.SeenJunctions.Clear();
         scratch.SeenObjects.Clear();scratch.Sockets.Clear();scratch.Reserved.Clear();
+        scratch.CompatiblePiles.Clear();
         Work.GetOrCreateValue(world).Add(scratch);
     }
     internal static bool TryFind(WorldState world,NPCState npc,ItemInstance item,
@@ -157,15 +159,15 @@ internal static class GroundItemPlacement
     }
     internal static bool TryFindNear(WorldState world,NPCState npc,ItemInstance item,TileCoord origin,Float2 position,
         out TileCoord tile,out JunctionId junction,out string reason,bool scatter=false,
-        JunctionId? routeStart=null)
+        JunctionId? routeStart=null,bool preferExistingPile=false)
     {
         var scratch=Rent(world);
-        try { return Find(world,npc,item,origin,position,scratch,out tile,out junction,out _,out reason,scatter,routeStart); }
+        try { return Find(world,npc,item,origin,position,scratch,out tile,out junction,out _,out reason,scatter,routeStart,preferExistingPile); }
         finally { Return(world,scratch); }
     }
     private static bool Find(WorldState world,NPCState npc,ItemInstance item,TileCoord origin,Float2 position,
         Scratch scratch,out TileCoord tile,out JunctionId junction,out GroundPileBounds resultBounds,out string reason,
-        bool scatter=false,JunctionId? routeStart=null)
+        bool scatter=false,JunctionId? routeStart=null,bool preferExistingPile=false)
     {
         tile=origin;junction=default;resultBounds=default;reason="";
         scratch.ObjectsInspected=0;scratch.CandidatesChecked=0;
@@ -239,6 +241,25 @@ internal static class GroundItemPlacement
                 scratch.Candidates[i]=new(candidate.Id,candidate.Tile,candidate.Position,candidate.Distance,count,separation);
             }
             scratch.Candidates.Sort(CompareLeafCandidates);
+        }
+        else if (preferExistingPile && capacity > 1)
+        {
+            // Favor a nearby compatible stack before opening a new one.
+            // Capacity, footprint and reachability are still checked below.
+            foreach (var obj in scratch.Objects)
+            {
+                if (!obj.IsHarvestScatter && Compatible(item, obj))
+                {
+                    scratch.CompatiblePiles.Add(obj.Junctions[0]);
+                }
+            }
+
+            scratch.Candidates.Sort((a, b) =>
+            {
+                var byPile = scratch.CompatiblePiles.Contains(b.Id)
+                    .CompareTo(scratch.CompatiblePiles.Contains(a.Id));
+                return byPile != 0 ? byPile : CompareCandidates(a, b);
+            });
         }
         foreach(var candidate in scratch.Candidates)
         {

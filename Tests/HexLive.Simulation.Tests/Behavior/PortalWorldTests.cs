@@ -77,10 +77,12 @@ public sealed class PortalWorldTests
         PortalWorld.Update(world);
         var outside = world.Entities.Objects[world.Portal.ExteriorDoor.Value];
         var inside = world.Entities.Objects[world.Portal.InteriorDoor.Value];
+        var serial = world.Portal.VisitSerial;
         Assert.That(outside.Tile, Is.EqualTo(world.FactionHomes[Faction.Colony2]));
-        Assert.That(PortalWorld.TryGetReturnDoorEdge(inside.Tile, world.Seed, out var exteriorNeighbor), Is.True);
-        Assert.That(PortalWorld.RoomAt(exteriorNeighbor, world.Seed), Is.EqualTo(PortalApartmentRoom.None));
-        Assert.That(PortalWorld.HasWall(inside.Tile, exteriorNeighbor, world.Seed), Is.True);
+        Assert.That(serial, Is.EqualTo(1));
+        Assert.That(PortalWorld.TryGetReturnDoorEdge(inside.Tile, world.Seed, out var exteriorNeighbor, serial), Is.True);
+        Assert.That(PortalWorld.RoomAt(exteriorNeighbor, world.Seed, serial), Is.EqualTo(PortalApartmentRoom.None));
+        Assert.That(PortalWorld.HasWall(inside.Tile, exteriorNeighbor, world.Seed, serial), Is.True);
         var npc = AddVisitor(world, outside.Junctions[0], outside.Tile);
         Assert.That(PortalWorld.Travel(world, npc, outside), Is.Null);
         Assert.That(world.Portal.Visitor, Is.EqualTo(npc.Id));
@@ -97,6 +99,82 @@ public sealed class PortalWorldTests
         world.Tick += WorldBalance.DayLengthTicks;
         PortalWorld.Update(world);
         Assert.That(world.Portal.ExteriorDoor, Is.Not.Null);
+        Assert.That(world.Portal.VisitSerial, Is.EqualTo(2));
+    }
+
+    [TestCase(0)]
+    [TestCase(629209070)]
+    public void OpeningAgainOnTheSameDayRegeneratesAndDiscardsOnlyWhatWasLeftInside(int seed)
+    {
+        var world = CreateWorld(seed);
+        world.Tick = 2000;
+        Assert.That(PortalWorld.OpenImmediately(world, Faction.Colony), Is.Null);
+        var outside = world.Entities.Objects[world.Portal.ExteriorDoor.Value];
+        var exit = world.Entities.Objects[world.Portal.InteriorDoor.Value];
+        var firstLayout = PortalWorld.ApartmentTiles(seed, world.Portal.VisitSerial).ToArray();
+        var visitor = AddVisitor(world, outside.Junctions[0], outside.Tile);
+        var carried = new ItemInstance(ContentIds.Rope) { OwnerId = visitor.Id.Value, Durability = .72f };
+        visitor.Inventory.Items.Add(carried);
+        var outsideItem = WorldObjectMutations.SpawnObject(world, ContentIds.Stick, outside.Fragment,
+            outside.Tile, outside.Junctions[0]);
+        Assert.That(PortalWorld.Travel(world, visitor, outside), Is.Null);
+
+        var leftOnFloor = WorldObjectMutations.SpawnObject(world, ContentIds.Bottle, visitor.Fragment,
+            visitor.Tile, visitor.CurrentJunction.Value);
+        leftOnFloor.Owner = visitor.Id;
+        Assert.That(world.Portal.GeneratedObjects, Does.Not.Contain(leftOnFloor.Id));
+        MoveToDoor(world, visitor, exit);
+        Assert.That(PortalWorld.Travel(world, visitor, exit), Is.Null);
+        Assert.That(world.Entities.Objects.Values.Any(obj => obj.Fragment == PortalWorld.ApartmentFragment), Is.False);
+        Assert.That(world.Entities.Objects[outsideItem.Id], Is.SameAs(outsideItem));
+        Assert.That(visitor.Inventory.Items.Any(item => ReferenceEquals(item, carried)), Is.True);
+
+        world = RoundTrip(world, WorldSaveSerializer.BlobVersion);
+        Assert.That(world.Portal.VisitSerial, Is.EqualTo(1));
+        Assert.That(PortalWorld.OpenImmediately(world, Faction.Colony), Is.Null);
+        Assert.That(world.Tick, Is.EqualTo(2000));
+        Assert.That(world.Portal.VisitSerial, Is.EqualTo(2));
+        Assert.That(PortalWorld.ApartmentTiles(seed, 2), Is.Not.EquivalentTo(firstLayout));
+        Assert.That(world.Entities.Objects.ContainsKey(leftOnFloor.Id), Is.False);
+        Assert.That(PortalWorld.DoorVisitSerial(world.Entities.Objects[world.Portal.InteriorDoor.Value].Variant), Is.EqualTo(2));
+    }
+
+    [TestCase(6)]
+    [TestCase(629209070)]
+    public void EachGeneratedApartmentKeepsAllRoomsReachableAndClosesTheUnusedGrid(int seed)
+    {
+        var world = CreateWorld(seed);
+        for (var serial = 1; serial <= 8; serial++)
+        {
+            Assert.That(PortalWorld.OpenImmediately(world, Faction.Colony), Is.Null);
+            var exit = world.Entities.Objects[world.Portal.InteriorDoor.Value];
+            var layout = PortalWorld.GeneratedApartment(seed, serial);
+            var active = layout.Tiles.ToHashSet();
+            var reachable = layout.Tiles.Where(tile => !layout.IsFurnitureTile(tile) && tile != exit.Tile)
+                .Where(tile => Connectivity.Reachable(world, StructurePlacement.CenterJunction(world, tile).Value,
+                    exit.Junctions[0], canJump: false)).Select(layout.RoomAt).Distinct();
+            Assert.That(reachable, Is.EquivalentTo(new[] { PortalApartmentRoom.Living, PortalApartmentRoom.Kitchen,
+                PortalApartmentRoom.Bedroom }), $"seed {seed}, visit {serial}");
+            foreach (var tile in world.Fragments.Items[PortalWorld.ApartmentFragment].Tiles.Values)
+                Assert.That(tile.Flags.HasFlag(TileFlags.Walkable), Is.EqualTo(active.Contains(tile.Coord)));
+        }
+    }
+
+    [Test]
+    public void LoadingAnOldClosedApartmentPurgesPreviouslyAbandonedDrops()
+    {
+        var original = CreateWorld();
+        var island = StructurePlacement.CenterJunction(original, TileCoord.Zero).Value;
+        var inside = StructurePlacement.CenterJunction(original, PortalWorld.ApartmentCenter).Value;
+        var islandItem = WorldObjectMutations.SpawnObject(original, ContentIds.Stick,
+            original.Junctions.Items[island].Fragment, TileCoord.Zero, island);
+        var abandoned = WorldObjectMutations.SpawnObject(original, ContentIds.Bottle,
+            PortalWorld.ApartmentFragment, PortalWorld.ApartmentCenter, inside);
+
+        var restored = RoundTrip(original, 92);
+        Assert.That(restored.Entities.Objects.ContainsKey(abandoned.Id), Is.False);
+        Assert.That(restored.Entities.Objects.ContainsKey(islandItem.Id), Is.True);
+        Assert.That(restored.Portal.VisitSerial, Is.Zero);
     }
 
     [TestCase(0)]
@@ -105,16 +183,17 @@ public sealed class PortalWorldTests
     {
         var world = CreateWorld(seed);
         Assert.That(PortalWorld.OpenImmediately(world, Faction.Colony), Is.Null);
-        var furniture = world.Entities.Objects.Values.Where(obj => obj.Variant == PortalWorld.ApartmentFurnitureVariant)
+        var serial = world.Portal.VisitSerial;
+        var furniture = world.Entities.Objects.Values.Where(obj => PortalWorld.TryGetApartmentFurnitureVisit(obj.Variant, out _))
             .ToDictionary(obj => obj.DefinitionId);
-        Assert.That(furniture.Count, Is.EqualTo(7));
-        Assert.That(furniture.Values.Select(obj => obj.Tile).Distinct().Count(), Is.EqualTo(6));
+        Assert.That(furniture.Count, Is.EqualTo(8));
+        Assert.That(furniture.Values.Select(obj => obj.Tile).Distinct().Count(), Is.EqualTo(7));
 
         (WorldObjectState Object, Float2 Position, float Yaw) Find(string definitionId)
         {
             var obj = furniture[definitionId];
             Assert.That(PortalWorld.TryGetApartmentFurniturePlacement(definitionId, obj.Tile, seed,
-                out var position, out var yaw), Is.True);
+                out var position, out var yaw, serial), Is.True);
             Assert.That(obj.RotationDegrees, Is.EqualTo(yaw));
             return (obj, position, yaw);
         }
@@ -126,15 +205,17 @@ public sealed class PortalWorldTests
         var chair = Find("furniture.modern_chair");
         var table = Find("furniture.modern_table");
         var shelf = Find(PortalWorld.ApartmentShelfDefinitionId);
+        var wardrobe = Find(ContentIds.ModernWardrobe);
         Assert.That(PortalWorld.TryGetModernSeatFacing(sofa.Object.DefinitionId, sofa.Yaw, out var sofaFacing), Is.True);
         Assert.That(PortalWorld.TryGetModernSeatFacing(chair.Object.DefinitionId, chair.Yaw, out var chairFacing), Is.True);
         Assert.Multiple(() =>
         {
-            Assert.That(PortalWorld.RoomAt(bed.Object.Tile, seed), Is.EqualTo(PortalApartmentRoom.Bedroom));
-            Assert.That(PortalWorld.RoomAt(fridge.Object.Tile, seed), Is.EqualTo(PortalApartmentRoom.Kitchen));
-            Assert.That(PortalWorld.RoomAt(chair.Object.Tile, seed), Is.EqualTo(PortalApartmentRoom.Kitchen));
-            Assert.That(PortalWorld.RoomAt(table.Object.Tile, seed), Is.EqualTo(PortalApartmentRoom.Kitchen));
-            Assert.That(PortalWorld.RoomAt(shelf.Object.Tile, seed), Is.EqualTo(PortalApartmentRoom.Living));
+            Assert.That(PortalWorld.RoomAt(bed.Object.Tile, seed, serial), Is.EqualTo(PortalApartmentRoom.Bedroom));
+            Assert.That(PortalWorld.RoomAt(wardrobe.Object.Tile, seed, serial), Is.EqualTo(PortalApartmentRoom.Bedroom));
+            Assert.That(PortalWorld.RoomAt(fridge.Object.Tile, seed, serial), Is.EqualTo(PortalApartmentRoom.Kitchen));
+            Assert.That(PortalWorld.RoomAt(chair.Object.Tile, seed, serial), Is.EqualTo(PortalApartmentRoom.Kitchen));
+            Assert.That(PortalWorld.RoomAt(table.Object.Tile, seed, serial), Is.EqualTo(PortalApartmentRoom.Kitchen));
+            Assert.That(PortalWorld.RoomAt(shelf.Object.Tile, seed, serial), Is.EqualTo(PortalApartmentRoom.Living));
             Assert.That(chair.Object.Tile, Is.EqualTo(table.Object.Tile));
             Assert.That(HexSpatialMath.Distance(chair.Position, table.Position), Is.InRange(.9f, 1.1f));
             Assert.That(chair.Object.Junctions[0], Is.Not.EqualTo(table.Object.Junctions[0]));
@@ -144,13 +225,13 @@ public sealed class PortalWorldTests
                 Is.EqualTo(0f).Within(.01f));
         });
 
-        foreach (var item in new[] { bed, fridge, sofa, shelf, table })
+        foreach (var item in new[] { bed, fridge, sofa, shelf, table, wardrobe })
         {
             var center = HexSpatialMath.TileToWorld(item.Object.Tile);
             var wallDirection = HexSpatialMath.Normalize(item.Position - center);
             var outside = HexSpatialMath.WorldToTile(center + wallDirection * (2f * HexSpatialMath.HexApothem));
-            Assert.That(PortalWorld.RoomAt(outside, seed), Is.EqualTo(PortalApartmentRoom.None));
-            Assert.That(PortalWorld.HasWall(item.Object.Tile, outside, seed), Is.True);
+            Assert.That(PortalWorld.RoomAt(outside, seed, serial), Is.EqualTo(PortalApartmentRoom.None));
+            Assert.That(PortalWorld.HasWall(item.Object.Tile, outside, seed, serial), Is.True);
         }
         var tableBack = HexSpatialMath.AngleDegrees(table.Position - HexSpatialMath.TileToWorld(table.Object.Tile));
         Assert.That(System.MathF.Abs(MathUtil.DeltaAngle(tableBack, table.Yaw + 90f)), Is.EqualTo(90f).Within(.01f));
@@ -164,6 +245,11 @@ public sealed class PortalWorldTests
         var table = world.Entities.Objects.Values.Single(obj => obj.DefinitionId == "furniture.modern_table");
         var shelf = world.Entities.Objects.Values.Single(obj => obj.DefinitionId == PortalWorld.ApartmentShelfDefinitionId);
         var restored = RoundTrip(world, WorldSaveSerializer.BlobVersion);
+        var glass = restored.Entities.Objects.Values.Single(obj => obj.DefinitionId == ContentIds.DrinkingGlass);
+        Assert.That(glass.SurfaceObjectId, Is.EqualTo(table.Id));
+        Assert.That(glass.WaterKind, Is.EqualTo(WaterKind.Boiled));
+        Assert.That(glass.LastAddedWaterKind, Is.EqualTo(WaterKind.Boiled));
+        Assert.That(BottleInventoryMath.Charges(glass.ResourceAmount, glass.WaterKind, glass.DefinitionId), Is.EqualTo(4));
         foreach (var support in new[] { table, shelf })
         {
             var objects = restored.Entities.Objects.Values.Where(obj => obj.SurfaceObjectId == support.Id).ToArray();
@@ -172,6 +258,36 @@ public sealed class PortalWorldTests
             Assert.That(objects.All(obj => obj.Tile == support.Tile && obj.DefinitionId != ContentIds.BaseballBat &&
                 SurfacePlacementMath.TryGetSlot(support.DefinitionId, obj.SurfaceSlot, out _, out _)), Is.True);
         }
+    }
+
+    [Test]
+    public void ApartmentGlassCanBeDrunkFromOnTheTableUntilItIsEmpty()
+    {
+        var world = CreateWorld(7);
+        Assert.That(PortalWorld.OpenImmediately(world, Faction.Colony), Is.Null);
+        var glass = world.Entities.Objects.Values.Single(obj => obj.DefinitionId == ContentIds.DrinkingGlass);
+        var visitor = AddVisitor(world, glass.Junctions[0], glass.Tile);
+        visitor.Mind.ManualControl = true;
+        var engine = new SimulationEngine(world, new SimulationSettings(), new SimulationClock());
+        engine.Register(new PathfindingSystem());
+        engine.Register(new MovementSystem());
+        engine.Register(new ExecutionSystem());
+        var drink = new InteractCommand(visitor.Id, glass.Id, InteractionType.Drink, "drink.glass");
+
+        for (var remaining = 3; remaining >= 0; remaining--)
+        {
+            visitor.Needs.Thirst = .9f;
+            var receipt = engine.ApplyManualCommand(drink);
+            Assert.That(receipt.Accepted, Is.True, receipt.Reason);
+            for (var tick = 0; tick < 50 && BottleInventoryMath.Charges(glass) > remaining; tick++)
+                engine.Step();
+            Assert.That(BottleInventoryMath.Charges(glass), Is.EqualTo(remaining));
+            Assert.That(visitor.Needs.Thirst, Is.EqualTo(.9f - SimBalance.DrinkThirstBoiled).Within(.001f));
+            Assert.That(glass.SurfaceObjectId, Is.Not.Null);
+        }
+
+        Assert.That(glass.WaterKind, Is.EqualTo(WaterKind.None));
+        Assert.That(engine.ApplyManualCommand(drink).Reason, Is.EqualTo("EmptyVessel"));
     }
 
     [Test]
@@ -261,21 +377,18 @@ public sealed class PortalWorldTests
         var clothing = new[] { "clothing.shorts_classic", "clothing.halter_vamp", "clothing.croptop_fit" };
         Assert.That(clothing.All(id => GarmentLibrary.IsPortalWearAvailable(id) &&
             !GarmentLibrary.IsSpawnable(id) && world.Content.ObjectDefinitions.ContainsKey(id)), Is.True);
-        var foundLoot = false;
-        NPCState resident = null;
-        for (var day = 0; day < 12; day++)
-        {
-            world.Tick = day * WorldBalance.DayLengthTicks + WorldBalance.DayLengthTicks * 3 / 4;
-            PortalWorld.Update(world);
-            foundLoot |= world.Entities.Objects.Values.Any(obj =>
-                obj.Fragment == PortalWorld.ApartmentFragment && clothing.Contains(obj.DefinitionId));
-            if (world.Portal.Resident is { } id) resident = world.Entities.Npcs[id];
-            if (foundLoot && resident != null) break;
-        }
-        Assert.That(foundLoot, Is.True);
-        Assert.That(resident, Is.Not.Null);
-        Assert.That(resident.WornItems.Select(item => item.DefinitionId),
-            Does.Contain("clothing.shorts_classic").And.Contain("clothing.halter_vamp"));
+        Assert.That(PortalWorld.OpenImmediately(world, Faction.Colony), Is.Null);
+        var wardrobe = world.Entities.Objects.Values.Single(obj => obj.DefinitionId == ContentIds.ModernWardrobe);
+        var stock = wardrobe.Contents.Select(item => item.DefinitionId).ToArray();
+        Assert.That(stock.Length, Is.InRange(2, 4));
+        Assert.That(stock.Distinct().Count(), Is.EqualTo(stock.Length));
+        Assert.That(stock.All(PortalContentPolicy.IsPortalWear), Is.True);
+        Assert.That(ContainerLootMath.IsLootable(world, wardrobe), Is.True);
+        Assert.That(world.Portal.Resident, Is.Not.Null);
+        var resident = world.Entities.Npcs[world.Portal.Resident.Value];
+        Assert.That(resident.WornItems.All(item => PortalContentPolicy.IsPortalWear(item.DefinitionId)), Is.True);
+        Assert.That(resident.WornItems.Count(item => world.Content.ObjectDefinitions[item.DefinitionId].Layer ==
+            WearLayer.Underwear), Is.GreaterThanOrEqualTo(2));
         Assert.That(resident.Inventory.Items, Is.Empty);
     }
 
@@ -298,8 +411,9 @@ public sealed class PortalWorldTests
             door.Junctions[0], true), Is.True);
     }
 
-    [Test]
-    public void ActiveVisitSurvivesSaveAndReturnCarriesResidentIntoCamp()
+    [TestCase(94)]
+    [TestCase(WorldSaveSerializer.BlobVersion)]
+    public void ActiveVisitSurvivesSaveAndReturnCarriesResidentIntoCamp(int version)
     {
         var world = CreateWorld();
         world.Tick = WorldBalance.DayLengthTicks * 3 / 4;
@@ -309,36 +423,40 @@ public sealed class PortalWorldTests
         Assert.That(PortalWorld.Travel(world, visitor, exterior), Is.Null);
 
         world.Portal.Mode = PortalSpawnMode.Random;
-        var reloaded = RoundTrip(world, WorldSaveSerializer.BlobVersion);
+        var reloaded = RoundTrip(world, version);
         Assert.That(reloaded.Portal.Mode, Is.EqualTo(PortalSpawnMode.Random));
+        Assert.That(reloaded.Portal.VisitSerial, Is.EqualTo(world.Portal.VisitSerial));
         Assert.That(reloaded.Portal.Visitor, Is.EqualTo(visitor.Id));
         Assert.That(reloaded.Portal.GeneratedObjects, Is.EquivalentTo(world.Portal.GeneratedObjects));
         visitor = reloaded.Entities.Npcs[visitor.Id];
         var exit = reloaded.Entities.Objects[reloaded.Portal.InteriorDoor.Value];
 
-        var resident = new NPCState
-        {
-            Id = new EntityId(900),
-            ProfileId = PortalWorld.ResidentProfileId,
-            Faction = Faction.Castaway,
-            Fragment = PortalWorld.ApartmentFragment,
-            Tile = visitor.Tile,
-            Position = visitor.Position,
-            CarriedByNpcId = visitor.Id,
-        };
-        reloaded.Entities.Npcs.Add(resident.Id, resident);
-        reloaded.Portal.Resident = resident.Id;
+        var resident = reloaded.Entities.Npcs[reloaded.Portal.Resident.Value];
+        Assert.That(resident.SpeechOrigin, Is.EqualTo(NpcSpeechOrigin.Modern));
+        if (resident.CurrentJunction is { } residentPoint) SpatialMutations.FreeJunction(reloaded, residentPoint, resident.Id);
+        resident.CurrentJunction = null;
+        resident.CarriedByNpcId = visitor.Id;
         visitor.CarriedNpcId = resident.Id;
         MoveToDoor(reloaded, visitor, exit);
         Assert.That(PortalWorld.Travel(reloaded, visitor, exit), Is.Null);
         Assert.Multiple(() =>
         {
             Assert.That(resident.Faction, Is.EqualTo(visitor.Faction));
+            Assert.That(resident.SpeechOrigin, Is.EqualTo(NpcSpeechOrigin.Modern));
             Assert.That(resident.Tile, Is.EqualTo(visitor.Tile));
             Assert.That(resident.Fragment, Is.EqualTo(visitor.Fragment));
             Assert.That(reloaded.Portal.Resident, Is.Null);
             Assert.That(reloaded.Portal.ExteriorDoor, Is.Null);
         });
+        var atCamp = RoundTrip(reloaded, WorldSaveSerializer.BlobVersion);
+        Assert.That(atCamp.Entities.Npcs[resident.Id].SpeechOrigin, Is.EqualTo(NpcSpeechOrigin.Modern));
+        if (version == 94)
+        {
+            // v94 explicitly cleared the resident profile on joining the camp.
+            // Its shared runtime ID alone cannot distinguish an admin spawn.
+            var unmarked = RoundTrip(reloaded, version);
+            Assert.That(unmarked.Entities.Npcs[resident.Id].SpeechOrigin, Is.EqualTo(NpcSpeechOrigin.Island));
+        }
     }
 
     [Test]
@@ -349,7 +467,8 @@ public sealed class PortalWorldTests
         var center = StructurePlacement.CenterJunction(previous, TileCoord.Zero);
         var migrated = RoundTrip(previous, 90);
         Assert.That(StructurePlacement.CenterJunction(migrated, TileCoord.Zero), Is.EqualTo(center));
-        Assert.That(migrated.Fragments.Items[PortalWorld.ApartmentFragment].Tiles.Count, Is.EqualTo(13));
+        Assert.That(migrated.Fragments.Items[PortalWorld.ApartmentFragment].Tiles.Count, Is.EqualTo(61));
+        Assert.That(PortalWorld.ApartmentTiles(migrated.Seed).Count(), Is.EqualTo(13));
         PortalWorld.Update(migrated);
         Assert.That(migrated.Portal.ExteriorDoor, Is.Null);
         migrated.Tick = WorldBalance.DayLengthTicks + WorldBalance.DayLengthTicks * 3 / 4;
@@ -372,6 +491,7 @@ public sealed class PortalWorldTests
         Assert.That(PortalWorld.Travel(world, visitor, doorway), Is.Null);
         Assert.That(PortalWorld.OpenImmediately(world, Faction.Colony), Is.EqualTo("PortalOccupied"));
         Assert.That(world.Portal.ExteriorDoor, Is.EqualTo(doorway.Id));
+        Assert.That(world.Portal.VisitSerial, Is.EqualTo(1));
     }
 
     [Test]

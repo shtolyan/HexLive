@@ -3,16 +3,27 @@ using System.Runtime.InteropServices;
 
 namespace HexLive.UnityPresentation.Audio
 {
-    // §114.8: FMOD records on native platforms; HTML5 needs browser media input.
+    // §114.8 / §161: FMOD records on native platforms; HTML5 needs browser media input.
     public sealed class BugReportMicrophoneCapture : IDisposable
     {
+        public BugReportMicrophoneCapture(float nativeMaxSeconds = 90f, bool nativeFinishOnSilence = false)
+        {
 #if UNITY_WEBGL && !UNITY_EDITOR
-        [DllImport("__Internal")] private static extern int HexLiveBugMicStart();
+            _maxSeconds = (int)Math.Clamp(nativeMaxSeconds, 1f, 90f);
+#else
+            _native = new FmodMicrophoneCapture(nativeMaxSeconds, nativeFinishOnSilence);
+#endif
+        }
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [DllImport("__Internal")] private static extern int HexLiveBugMicStart(int maxSeconds);
         [DllImport("__Internal")] private static extern int HexLiveBugMicState();
         [DllImport("__Internal")] private static extern float HexLiveBugMicLevel();
         [DllImport("__Internal")] private static extern int HexLiveBugMicStop();
         [DllImport("__Internal")] private static extern int HexLiveBugMicCopy([Out] byte[] destination, int capacity);
         [DllImport("__Internal")] private static extern void HexLiveBugMicCancel();
+        private static BugReportMicrophoneCapture _browserOwner;
+        private readonly int _maxSeconds;
         private bool _recording, _ownsMute, _previousMute;
         private FMOD.ChannelGroup _master;
         public bool IsRecording => _recording;
@@ -22,12 +33,14 @@ namespace HexLive.UnityPresentation.Audio
         {
             error = "";
             if (_recording) return true;
+            if (_browserOwner != null) { error = "MicrophoneBusy"; return false; }
             try
             {
                 if (FMODUnity.RuntimeManager.CoreSystem.getMasterChannelGroup(out _master) != FMOD.RESULT.OK ||
                     _master.getMute(out _previousMute) != FMOD.RESULT.OK) return false;
                 _ownsMute = true;
-                if (_master.setMute(true) != FMOD.RESULT.OK || HexLiveBugMicStart() != 1)
+                _browserOwner = this;
+                if (_master.setMute(true) != FMOD.RESULT.OK || HexLiveBugMicStart(_maxSeconds) != 1)
                 { Cancel(); error = "MicrophoneUnavailable"; return false; }
                 _recording = true; return true;
             }
@@ -37,10 +50,11 @@ namespace HexLive.UnityPresentation.Audio
         public byte[] Stop(out string error)
         {
             error = "";
+            if (!_recording || !ReferenceEquals(_browserOwner, this)) { error = "NoRecording"; return null; }
             try
             {
                 int size = HexLiveBugMicStop();
-                if (size < 44 || size > 90 * 192000 * 2 + 44) { error = "NoRecording"; return null; }
+                if (size < 44 || size > _maxSeconds * 192000 * 2 + 44) { error = "NoRecording"; return null; }
                 var wav = new byte[size];
                 if (HexLiveBugMicCopy(wav, size) != size) { error = "NoRecording"; return null; }
                 return wav;
@@ -50,7 +64,14 @@ namespace HexLive.UnityPresentation.Audio
         public void Cancel()
         {
             _recording = false;
-            try { HexLiveBugMicCancel(); }
+            try
+            {
+                if (ReferenceEquals(_browserOwner, this))
+                {
+                    _browserOwner = null;
+                    HexLiveBugMicCancel();
+                }
+            }
             finally
             {
                 if (_ownsMute)
@@ -63,7 +84,7 @@ namespace HexLive.UnityPresentation.Audio
         }
         public void Dispose() => Cancel();
 #else
-        private readonly FmodMicrophoneCapture _native = new(90f, finishOnSilence: false);
+        private readonly FmodMicrophoneCapture _native;
         public bool IsRecording => _native.IsRecording;
         public bool IsReady => _native.IsRecording;
         public float Level => _native.Level;

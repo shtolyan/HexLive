@@ -29,7 +29,6 @@ import { Face } from './roster.js';
 import { icons, needIcons } from '../icons.js';
 import { tip } from '../tooltip.js';
 
-const MODE_ICON = { ai: icons.ai, manual: icons.hand, call: icons.phone };
 // §171 the call's state under the switch (CharacterPanel.ServerVoice RenderServerVoiceButton).
 const CALL_TEXT = { ringing: 'agent.call.ringing', listening: 'agent.call.listening', speaking: 'agent.call.speaking' };
 const callTitle = (call) => (!call ? t('agent.call.button')
@@ -134,19 +133,22 @@ function Identity({ npc, send }) {
     report();
     return () => observer.disconnect();
   }, []);
-  const modes = ['ai', 'manual', ...(npc.canCall ? ['call'] : [])];
   const call = npc.call;
   return html`
     <section class="hx-id" aria-label=${npc.name}>
       <div class="hx-id__portrait" ref=${hole}></div>
       <div class="hx-id__top">
-        <div class="hx-toggle" role="group" aria-label=${t('panel.control.tooltip')} title=${npc.controlLocked ? t(npc.controlLocked) : t('panel.control.tooltip')}>
-          ${modes.map((mode) => html`
-            <button type="button" key=${mode} aria-pressed=${npc.control === mode} disabled=${!!npc.controlLocked}
-              class=${mode === 'call' && call ? `hx-call is-${call.state}` : undefined}
-              title=${mode === 'call' ? callTitle(call) : t(`panel.control.${mode}`)}
-              onClick=${() => send('control', { mode })}>${MODE_ICON[mode]()}${mode !== 'call' && html`<span>${t(`panel.control.${mode}`)}</span>`}</button>`)}
-        </div>
+        ${(npc.canCall || npc.speak) && html`<div class="hx-toggle">
+          ${npc.canCall && html`<button type="button" aria-pressed=${npc.control === 'call'}
+            class=${call ? `hx-call is-${call.state}` : undefined}
+            title=${callTitle(call)} aria-label=${callTitle(call)}
+            onClick=${() => send('control', { mode: 'call' })}>${icons.phone()}</button>`}
+          ${npc.speak && html`<button type="button" aria-label=${t('agent.speak.button')}
+            title=${t(npc.speak.state === 'sending' ? 'agent.speak.sending' : 'agent.speak.button')}
+            disabled=${!npc.speak.enabled} aria-pressed=${npc.speak.state === 'recording'}
+            onClick=${() => send('speak')}>${icons.mic()}</button>`}
+        </div>`}
+        ${npc.speak?.state === 'sending' && html`<span class="hx-call-state" role="status">${t('agent.speak.sending')}</span>`}
         ${call && html`<span class="hx-call-state" data-state=${call.state} role="status">${t(CALL_TEXT[call.state] || call.reason)}</span>`}
         <${NameCopy} npc=${npc} />
         ${npc.toast && html`<p class="hx-order-toast" role="status" key=${npc.toast}>${t(npc.toast)}</p>`}
@@ -250,6 +252,18 @@ function Needs({ npc }) {
 
 const TAG_TONE = { friend: 'good', close: 'good', acquaint: '', neutral: '', tense: 'warn', hostile: 'bad' };
 
+function PlayerOrders({ orders, send }) {
+  return orders?.length > 0 && html`
+      <div class="hx-order-row" role="group" aria-label=${t('panel.orders.action')}>
+        ${orders.map(order => html`<button type="button" key=${order.id} class="hx-order-chip"
+          data-active=${order.active} title=${order.label} aria-label=${t('panel.orders.cancel', { 0: order.label })}
+          onClick=${() => send('cancelOrder', { id: order.id })}>
+          <span class="hx-order-chip__action">${(icons[order.icon] || needIcons[order.icon] || icons.play)()}</span>
+          <span class="hx-order-chip__cancel">${icons.close()}</span>
+        </button>`)}
+      </div>`;
+}
+
 function Relations({ npc }) {
   const list = npc.relations || [];
   const [focus, setFocus] = useState(list[0]?.id);
@@ -283,7 +297,6 @@ function Group({ group, send }) {
     <${CardBox} className="hx-card hx-card--group hx-surface" send=${send}>
       <div class="hx-group__sum">
         <b>${t('group.selected', { 0: group.count })}</b>
-        <span class="hx-muted">${t('group.manual_summary', { 0: group.manual, 1: group.total })}</span>
         ${(group.blocked > 0 || group.fighting > 0) && html`<span class="hx-warn">${t('group.alerts', { 0: group.blocked, 1: group.fighting })}</span>`}
       </div>
       <div class="hx-group__faces">
@@ -291,7 +304,6 @@ function Group({ group, send }) {
           <${Face} face=${f.face} name=${f.name} size="3.25rem" /></button>`)}
       </div>
       <div class="hx-group__cmd">
-        <button type="button" class="hx-btn" onClick=${() => send('groupMode')}>${t(`panel.control.${group.mode}`)}</button>
         <button type="button" class="hx-btn hx-btn--danger" onClick=${() => send('groupStop')}>${t('group.stop')}</button>
         <span class="hx-muted">${group.feedback || t('group.order_hint')}</span>
       </div>
@@ -307,7 +319,10 @@ export function Character({ model, send }) {
   const npc = model.npc;
   return html`
     <div class="hx-bottom">
-      <${Pills} npc=${npc} />
+      <div class="hx-character-overlays">
+        <${Pills} npc=${npc} />
+        <${PlayerOrders} orders=${npc.orders} send=${send} />
+      </div>
       <${CardBox} className="hx-card hx-surface" send=${send}>
         <${Identity} npc=${npc} send=${send} />
         <${Needs} npc=${npc} />

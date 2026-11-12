@@ -1,11 +1,14 @@
+using System.IO;
 using System.Linq;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Debug;
 using HexLive.Simulation.Memory;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
+using HexLive.Simulation.Wire;
 using NUnit.Framework;
 
 namespace HexLive.Simulation.Tests.Behavior
@@ -56,6 +59,35 @@ public sealed class SleepOrderFeedbackTests
                 Is.EqualTo("SleepDanger"),
                 "Autonomous outdoor caution must retain the existing recent-memory rule.");
         });
+    }
+
+    [Test]
+    public void SleepMenuReasonReachesRemoteSnapshotAndClearsWhenThreatLeaves()
+    {
+        var world = TestWorld.CreateWorld(21604);
+        var npc = Colonist(world);
+        PrepareRestedBody(npc);
+        var hostile = world.Entities.Npcs.Values.First(other => other.Id != npc.Id);
+        npc.Perception.Hostiles.Add(new PerceivedAgent { Id = hostile.Id });
+        var encoder = new SnapshotDeltaEncoder();
+        var mirror = new WorldSnapshot();
+
+        ApplyFrame(-1);
+        Assert.That(mirror.Npcs.Single(view => view.Id == npc.Id).ManualSleepRefusal, Is.EqualTo("SleepDanger"));
+
+        npc.Perception.Hostiles.Clear();
+        npc.Memory.Dangers.Add(new DangerMemory { Tile = npc.Tile, Tick = world.Tick });
+        world.Tick++;
+        ApplyFrame(mirror.Tick);
+        Assert.That(mirror.Npcs.Single(view => view.Id == npc.Id).ManualSleepRefusal, Is.Empty);
+
+        void ApplyFrame(int mirrorTick)
+        {
+            var sent = WorldSnapshotExporter.Export(world);
+            using var frame = new MemoryStream(encoder.Encode(sent, includeDebugDetails: false));
+            using var reader = new BinaryReader(frame);
+            SnapshotDeltaReader.Apply(reader, mirror, mirrorTick);
+        }
     }
 
     [Test]

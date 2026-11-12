@@ -10,7 +10,7 @@ namespace HexLive.UnityPresentation.Audio
 /// <summary>§160 bounded runtime WAV → canonical §67.7 HXLS timeline.</summary>
 public static class VoiceVisemeBaker
 {
-    private const int SampleRate = 44100;
+    internal const int SampleRate = 44100;
     private const int LevelFrameSamples = SampleRate / 50; // 20 ms
     private const int MinimumActiveFrames = 5;             // reject clicks/impulses
     private const double ActiveThreshold = 0.005623413251903491; // -45 dBFS
@@ -118,7 +118,7 @@ public static class VoiceVisemeBaker
         return true;
     }
 
-    private static bool TryReadPcm(byte[] wav, out short[] samples, out string error)
+    internal static bool TryReadPcm(byte[] wav, out short[] samples, out string error)
     {
         samples = Array.Empty<short>();
         error = "InvalidWave";

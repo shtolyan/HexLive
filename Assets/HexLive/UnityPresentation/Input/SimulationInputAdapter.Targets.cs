@@ -84,9 +84,12 @@ public sealed partial class SimulationInputAdapter
         if(_runner==null||!_runner.SupportsNpcCommands) return;
         var controlled=actors.Where(id=>_runner.CanControlNpc(id)).ToArray();
         if(controlled.Length==0) return;
-        foreach(var actor in controlled) EnsureManual(actor.Value);
-        if(controlled.Length==1) _runner.EnqueueCommand(new MoveToCommand(controlled[0],point));
-        else _runner.EnqueueCommand(new GroupMoveCommand(controlled,point));
+        if(controlled.Length==1) EnqueueOrder(controlled[0].Value,new MoveToCommand(controlled[0],point));
+        else
+        {
+            foreach(var actor in controlled) EnsureManual(actor.Value);
+            _runner.EnqueueCommand(new GroupMoveCommand(controlled,point));
+        }
         DestinationMarker.Show(SimulationUnityMapper.ToUnityPosition(point,GroundMarkerY(point)));
     }
 }

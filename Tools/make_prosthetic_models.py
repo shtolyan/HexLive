@@ -6,21 +6,27 @@ separate material blocks.  Every limb is authored along local +Y with its joint
 at Y=0 and organic hand/foot endpoint at Y=1, allowing Unity to fit one asset to
 any actor by scaling it to the live bone-to-bone distance.
 
-Run from Blender (or Blender MCP):
-    exec(compile(open(".../Tools/make_prosthetic_models.py").read(),
-                 "make_prosthetic_models.py", "exec"))
+Run from the project checkout:
+    blender -b -P Tools/make_prosthetic_models.py -- --preview Build/ProstheticFit.png
 """
 
 from __future__ import annotations
 
+import argparse
 import math
 from pathlib import Path
+import sys
 
 import bpy
 from mathutils import Matrix, Vector
 
 
-PROJECT_ROOT = Path("/Volumes/ORICO/HexLive")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--reference", type=Path)
+parser.add_argument("--preview", type=Path, default=PROJECT_ROOT / "Build/ProstheticFit.png")
+args = parser.parse_args(sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else [])
+PREVIEW_PATH = args.preview.resolve()
 EXPORT_ROOT = PROJECT_ROOT / "Assets/HexLiveContent/Prosthetics"
 SOURCE_ROOT = PROJECT_ROOT / "Assets/ArtSource/Prosthetics"
 COLLECTION_NAME = "PROSTHETIC_EXPORT"
@@ -28,7 +34,7 @@ REFERENCE_COLLECTION_NAME = "PROSTHETIC_REFERENCE"
 WOOD_PREVIEW_COLLECTION_NAME = "PROSTHETIC_FIT_WOOD"
 MECHANICAL_PREVIEW_COLLECTION_NAME = "PROSTHETIC_FIT_MECHANICAL"
 FIT_SCENE_NAME = "ProstheticFit"
-MARTA_FBX = PROJECT_ROOT / "Assets/ImportedActors/Actors/Marta/Marta.new.fbx"
+MARTA_FBX = args.reference or PROJECT_ROOT / "Assets/ImportedActors/Actors/Marta/Marta.new.fbx"
 
 # Measured from Marta.new.fbx, rest pose. The exported assets remain normalised
 # joint-to-end = 1; these numbers fix the *cross-section and distal overhang*
@@ -239,12 +245,24 @@ def add_landmarks(root_obj, limb):
     empty(f"{prefix}__grip", root_obj, (0.0, grip_y, 0.0), role="grip")
 
 
+def lace_socket(parent, y, radius):
+    for side in (-1, 1):
+        rod_between("SocketLace", parent, (-0.062 * side, y, radius),
+                    (0.062 * side, y + 0.12, radius - 0.027), 0.009, ROPE, vertices=6)
+
+
+def piston_sleeve(parent, y, z):
+    cylinder("PistonSleeve", parent, 0.035, 0.24, y, METAL_DARK, vertices=8, z=z)
+    cylinder("PistonCollar", parent, 0.040, 0.036, y + 0.12, COPPER, vertices=8, z=z)
+
+
 def wooden_arm(side):
     suffix = "L" if side < 0 else "R"
     r = root(f"WoodArm{suffix}", "arm")
     cone("Socket", r, 0.18, 0.135, 0.20, 0.08, LEATHER, vertices=10)
     torus_binding("BindingUpper", r, -0.005, 0.173, 0.020, ROPE)
     torus_binding("BindingLower", r, 0.16, 0.132, 0.017, ROPE)
+    lace_socket(r, 0.015, 0.161)
     rod_between("ElbowPin", r, (-0.20, 0.105, 0.0),
                 (0.20, 0.105, 0.0), 0.052, WOOD_DARK, vertices=10)
     cone("ForearmWood", r, 0.105, 0.070, 0.72, 0.55, WOOD_LIGHT, vertices=8)
@@ -254,6 +272,9 @@ def wooden_arm(side):
     # there; its proportions come from Marta's full hand + finger vertex groups.
     box("Palm", r, (0.34, 0.32, ARM_HAND_THICKNESS),
         (0.0, 1.15, -0.006), WOOD, bevel=0.024)
+    for x in (-0.103, 0.103):
+        box("PalmStrap", r, (0.043, 0.265, 0.014),
+            (x, 1.15, 0.091), LEATHER, bevel=0.005)
     rod_between("FixedFingerOuter", r, (0.115 * side, 1.27, 0.018),
                 (0.145 * side, 1.0 + ARM_HAND_OVERHANG, 0.025),
                 0.040, WOOD_LIGHT, vertices=7)
@@ -272,14 +293,18 @@ def wooden_leg(side):
     cone("Socket", r, 0.19, 0.15, 0.22, 0.085, LEATHER, vertices=10)
     torus_binding("BindingUpper", r, -0.01, 0.184, 0.021, ROPE)
     torus_binding("BindingLower", r, 0.175, 0.146, 0.018, ROPE)
+    lace_socket(r, 0.023, 0.174)
     rod_between("KneePin", r, (-0.22, 0.13, 0.0),
                 (0.22, 0.13, 0.0), 0.064, WOOD_DARK, vertices=10)
     cone("ShinWood", r, 0.115, 0.075, 0.68, 0.55, WOOD_LIGHT, vertices=8)
     torus_binding("AnkleBinding", r, 0.91, 0.081, 0.015, ROPE)
     box("Foot", r, (LEG_FOOT_WIDTH, LEG_FOOT_HEIGHT - 0.045, LEG_FOOT_LENGTH),
         (0.0, 1.035, LEG_FOOT_FORWARD_CENTER), WOOD, bevel=0.025)
-    box("Sole", r, (LEG_FOOT_WIDTH + 0.018, 0.045, LEG_FOOT_LENGTH + 0.02),
-        (0.0, 1.145, LEG_FOOT_FORWARD_CENTER), WOOD_DARK, bevel=0.012)
+    box("Sole", r, (LEG_FOOT_WIDTH + 0.018, 0.034, LEG_FOOT_LENGTH + 0.02),
+        (0.0, 1.139, LEG_FOOT_FORWARD_CENTER), WOOD_DARK, bevel=0.010)
+    for z in (-0.195, -0.065, 0.065, 0.195):
+        box("Tread", r, (LEG_FOOT_WIDTH - 0.018, 0.014, 0.082),
+            (0.0, 1.16, LEG_FOOT_FORWARD_CENTER + z), LEATHER, bevel=0.005)
     add_landmarks(r, "leg")
     return r
 
@@ -300,9 +325,14 @@ def mechanical_arm(side):
                 (-0.060 * side, 0.91, -0.027), 0.028, METAL, vertices=8)
     rod_between("Piston", r, (0.0, 0.23, -0.025),
                 (0.0, 0.89, 0.025), 0.021, COPPER, vertices=8)
+    piston_sleeve(r, 0.44, -0.008)
     cylinder("WristHub", r, 0.090, 0.11, 0.94, METAL_DARK, vertices=12)
     box("Palm", r, (0.34, 0.32, ARM_HAND_THICKNESS),
         (0.0, 1.15, -0.006), METAL, bevel=0.022)
+    box("PalmPlate", r, (0.21, 0.18, 0.023),
+        (0.0, 1.14, 0.091), METAL_DARK, bevel=0.010)
+    rod_between("KnuckleAxle", r, (-0.137, 1.285, 0.027),
+                (0.137, 1.285, 0.027), 0.022, COPPER, vertices=8)
     rod_between("FingerOuter", r, (0.115 * side, 1.27, 0.020),
                 (0.145 * side, 1.0 + ARM_HAND_OVERHANG, 0.025),
                 0.036, METAL_DARK, vertices=8)
@@ -332,9 +362,13 @@ def mechanical_leg(side):
                 (-0.062 * side, 0.91, -0.025), 0.032, METAL, vertices=8)
     rod_between("ShinPiston", r, (0.0, 0.25, -0.03),
                 (0.0, 0.89, 0.03), 0.023, COPPER, vertices=8)
+    piston_sleeve(r, 0.45, -0.010)
     cylinder("AnkleHub", r, 0.094, 0.11, 0.92, METAL_DARK, vertices=12)
     box("FootFrame", r, (LEG_FOOT_WIDTH, LEG_FOOT_HEIGHT - 0.045, LEG_FOOT_LENGTH),
         (0.0, 1.035, LEG_FOOT_FORWARD_CENTER), METAL, bevel=0.022)
+    for z in (-0.07, 0.04, 0.15):
+        rod_between("FootRib", r, (-0.104, 0.947, LEG_FOOT_FORWARD_CENTER + z),
+                    (0.104, 0.947, LEG_FOOT_FORWARD_CENTER + z), 0.014, METAL_DARK, vertices=6)
     box("Sole", r, (LEG_FOOT_WIDTH + 0.018, 0.042, LEG_FOOT_LENGTH + 0.02),
         (0.0, 1.145, LEG_FOOT_FORWARD_CENTER), METAL_DARK, bevel=0.010)
     rod_between("ToeBrace", r,
@@ -529,7 +563,8 @@ def add_fit_stage(scene):
     scene.render.resolution_y = 1050
     scene.render.resolution_percentage = 100
     scene.render.image_settings.file_format = "PNG"
-    scene.render.filepath = "/private/tmp/hexlive_prosthetic_fit.png"
+    PREVIEW_PATH.parent.mkdir(parents=True, exist_ok=True)
+    scene.render.filepath = str(PREVIEW_PATH)
     if scene.world is None:
         scene.world = bpy.data.worlds.new("ProstheticFitWorld")
     scene.world.use_nodes = True
@@ -631,5 +666,5 @@ print(
     str(EXPORT_ROOT),
     "MARTA_ARM_M", MARTA_ARM_LENGTH_M,
     "MARTA_LEG_M", MARTA_LEG_LENGTH_M,
-    "PREVIEW", "/private/tmp/hexlive_prosthetic_fit.png",
+    "PREVIEW", str(PREVIEW_PATH),
 )

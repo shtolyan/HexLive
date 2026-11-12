@@ -6,6 +6,11 @@ namespace HexLive.Simulation.Content
 /// <summary>Portable apartment finds. Acquisition is owned by the portal.</summary>
 public static class ModernLootCatalog
 {
+    public const float WardrobeWidth = .826f;
+    public const float WardrobeDepth = .420f;
+    public const float WardrobeHeight = 1.360f;
+    public const float WardrobeFootprintRadius = .470f;
+
     public static bool IsApartmentTool(string id) => id is
         ContentIds.KitchenKnife or ContentIds.BaseballBat or ContentIds.SteelHatchet or
         ContentIds.Flashlight or ContentIds.DisposableLighter or ContentIds.WindproofLighter or
@@ -19,6 +24,7 @@ public static class ModernLootCatalog
         ("furniture.modern_bed", "Apartment bed"),
         ("furniture.modern_fridge", "Refrigerator"),
         ("furniture.modern_shelf", "Shelf rack"),
+        (ContentIds.ModernWardrobe, "Apartment wardrobe"),
         ("furniture.modern_table", "Dining table"),
         ("furniture.modern_chair", "Dining chair"),
         ("furniture.modern_sofa", "Sofa"),
@@ -76,6 +82,11 @@ public static class ModernLootCatalog
         {
             var furniture = AddPickup(id, name, "Furniture");
             if (id == "furniture.modern_shelf") furniture.SolidRadius = .38f;
+            if (id == ContentIds.ModernWardrobe)
+            {
+                furniture.SolidRadius = WardrobeFootprintRadius;
+                furniture.Tags.Add(ObjectTags.Wardrobe);
+            }
             if (id is not ("furniture.modern_chair" or "furniture.modern_sofa")) continue;
             furniture.Tags.Add("Chair");
             furniture.Interactions.Add(new InteractionDefinition

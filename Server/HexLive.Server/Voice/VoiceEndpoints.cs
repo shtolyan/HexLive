@@ -33,7 +33,7 @@ public static class VoiceEndpoints
 
     public static VoiceBrainService? Map(WebApplication app, WorldSupervisor worlds, ControlLeases leases,
         AgentSessionRegistry agents, PlayerHttpIdentity identity, ILogger log, AccountStore? accounts = null,
-        HttpClient? providerHttp = null)
+        HttpClient? providerHttp = null, PlayerSpeechRelay? playerSpeech = null, DeepgramTokenBroker? deepgram = null)
     {
         if (!BrainOptions.Configured()) return null;
         var options = BrainOptions.FromEnvironment();
@@ -77,6 +77,8 @@ public static class VoiceEndpoints
                 Owns(ticket.OwnerUserId[3..], npc), () => worlds.Host)), log, providerHttp, canSpend: CanSpend, callLifetime: calls.Lifetime);
         voice.MapCompletions(app, BrainPath);
         VoiceBrainService.MapClientScript(app, Root + "/client.js");
+        if (playerSpeech != null && deepgram != null)
+            PlayerSpeechEndpoints.Map(app, worlds, identity, playerSpeech, deepgram, voice, CanSpend, log);
         var recent = new ConcurrentDictionary<string, (long Window, int Count)>();
         app.MapPost(Root + "/control", (HttpContext c, VoiceControlRequest request) =>
         {

@@ -201,6 +201,7 @@ public static class Program
         ControlLeases? controlLeases = null;
         AccessTokenFile? playerToken = null;
         var agentSessions = new AgentSessionRegistry();
+        var playerSpeech = new Voice.PlayerSpeechRelay();
         using var deepgram = new DeepgramTokenBroker();
         using var firebaseHttp = options.FirebaseProject is null ? null : new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
         var playerAccounts = options.FirebaseProject is null ? null : new AccountStore(options.AccountsPath, options.FirebaseProject);
@@ -366,7 +367,7 @@ public static class Program
                 options.McpEnabled ? agentSessions : null,
                 viewerSession.WorldGeneration,
                 controlOwner is null ? null : deepgram,
-                Guid.NewGuid().ToString("N"), adminViewer, viewerSession.Assignments, playerMcpAccess);
+                Guid.NewGuid().ToString("N"), adminViewer, viewerSession.Assignments, playerMcpAccess, playerSpeech);
             try
             {
                 await viewer.RunAsync(viewerLifetime.Token);
@@ -392,7 +393,8 @@ public static class Program
         if (controlLeases is not null && (playerToken is not null || playerAccounts is not null))
             voiceBrain = Voice.VoiceEndpoints.Map(app, worlds, controlLeases, agentSessions,
                 app.Services.GetRequiredService<PlayerHttpIdentity>(),
-                Microsoft.Extensions.Logging.LoggerFactory.Create(b => b.AddSimpleConsole(o => o.SingleLine = true)).CreateLogger("voice"), playerAccounts);
+                Microsoft.Extensions.Logging.LoggerFactory.Create(b => b.AddSimpleConsole(o => o.SingleLine = true)).CreateLogger("voice"), playerAccounts,
+                playerSpeech: playerSpeech, deepgram: deepgram);
         var voiceReconciliation = voiceBrain?.ReconcilePendingContinuouslyAsync(lifetime.Token) ?? Task.CompletedTask;
         RetiredBugTracker.Map(app);
         if (options.WebRoot is not null)
@@ -554,6 +556,13 @@ public static class Program
                 leases.CollectExpired(expired);
                 foreach (var (npcId, owner) in expired)
                 {
+                    if (owner.StartsWith("ws:", StringComparison.Ordinal))
+                    {
+                        // §121.7: the simulation drains accepted player orders before returning to AI.
+                        Console.WriteLine($"[control] viewer lease of NPC{npcId} expired");
+                        continue;
+                    }
+
                     var admission = AgentControlActions.Release(worlds.Host, npcId);
                     Console.WriteLine(
                         $"[control] lease of NPC{npcId} by {owner} expired — " +

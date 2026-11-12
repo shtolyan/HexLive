@@ -192,7 +192,9 @@ public static class WorldSaveSerializer
     // v91 (§176): portal settings, midnight cursor, door/visitor ids and generated room objects.
     // v92 (§176): surface parent and slot for loose items, at the end of each object record.
     // v93 (§128.5): a carried backpack keeps the physical instances in its pockets.
-    public const int BlobVersion = 93;
+    // v94 (§176): apartment visit serial and the expanded reserved grid.
+    // v95 (§67.16): authored speech origin at the tail of each NPC record.
+    public const int BlobVersion = 95;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -218,6 +220,9 @@ public static class WorldSaveSerializer
                 $"Cannot write save blob version {version}; supported writer range is " +
                 $"{OldestReadableBlobVersion}..{BlobVersion}.");
         }
+
+        if (version < 94 && world.Portal.VisitSerial != 0)
+            throw new InvalidDataException("The previous save layout cannot represent a regenerated apartment.");
 
         w.Write(version);
         w.Write(world.Seed);
@@ -570,6 +575,7 @@ public static class WorldSaveSerializer
             w.Write(portal.OperatorOpened);
             w.Write(portal.GeneratedObjects.Count);
             foreach (var id in portal.GeneratedObjects) w.Write(id.Value);
+            if (version >= 94) w.Write(portal.VisitSerial);
         }
         w.Write(EndMarker);
     }
@@ -756,7 +762,7 @@ public static class WorldSaveSerializer
 
         ReadJunctionFlagSet(world, r, static junction => junction.Blocked = true);
         ReadJunctionFlagSet(world, r, static junction => junction.Door = true);
-        PortalWorld.RestoreApartmentWalls(world);
+        if (version < 94) PortalWorld.RestoreApartmentWalls(world, preserveLegacyJunctions: version >= 91);
 
         // §148: разведанное. Старый сейв (до v54) его не нёс — тогда остров
         // открывается заново, но ходить по нему уже некуда торопиться.
@@ -788,6 +794,10 @@ public static class WorldSaveSerializer
 
         if (version < 74) MigrateProduceOrigins(world);
 
+        var authoredRaiders = version < 95
+            ? world.Entities.Npcs.Values.Where(n => n.SpeechOrigin == NpcSpeechOrigin.Raider)
+                .Select(n => n.Id).ToHashSet()
+            : null;
         world.Entities.Npcs.Clear();
         var npcCount = r.ReadInt32();
         for (var i = 0; i < npcCount; i++)
@@ -1130,6 +1140,7 @@ public static class WorldSaveSerializer
         portal.Mode = PortalSpawnMode.Camp;
         portal.Camp = Faction.Colony;
         portal.LastOpeningDay = PortalWorld.OpeningDayAt(world.Tick);
+        portal.VisitSerial = 0;
         portal.ExteriorDoor = null;
         portal.InteriorDoor = null;
         portal.Visitor = null;
@@ -1166,6 +1177,15 @@ public static class WorldSaveSerializer
                 portal.GeneratedObjects.Add(new ObjectId(id));
             }
 
+            if (version >= 94)
+            {
+                portal.VisitSerial = r.ReadInt32();
+                if (portal.VisitSerial < 0 || outside != 0 &&
+                    (PortalWorld.DoorVisitSerial(world.Entities.Objects[new ObjectId(outside)].Variant) != portal.VisitSerial ||
+                     PortalWorld.DoorVisitSerial(world.Entities.Objects[new ObjectId(inside)].Variant) != portal.VisitSerial))
+                    throw new InvalidDataException("Invalid portal visit serial.");
+            }
+
             bool ValidPortalDoor(int id, bool apartment) =>
                 world.Entities.Objects.TryGetValue(new ObjectId(id), out var door) &&
                 door.DefinitionId == PortalWorld.DoorDefinitionId &&
@@ -1177,6 +1197,18 @@ public static class WorldSaveSerializer
             throw new InvalidDataException("Save blob end marker missing — truncated or corrupt save.");
         }
 
+        if (authoredRaiders != null)
+        {
+            foreach (var npc in world.Entities.Npcs.Values.Concat(world.Entities.Corpses.Values))
+            {
+                if (npc.ProfileId == PortalWorld.ResidentProfileId)
+                    npc.SpeechOrigin = NpcSpeechOrigin.Modern;
+                else if (authoredRaiders.Contains(npc.Id) || RaidWaveSystem.WasLegacyRaider(world, npc.Id))
+                    npc.SpeechOrigin = NpcSpeechOrigin.Raider;
+            }
+        }
+
+        PortalWorld.ClearClosedApartmentOnLoad(world);
         MigrateRetiredContent(world, version);
         LeafDryingMath.InitializeCarried(world);
         foreach (var obj in world.Entities.Objects.Values)
@@ -2385,6 +2417,7 @@ public static class WorldSaveSerializer
             }
         }
         if (version >= 90) WriteNullableEntity(w,npc.Mind.TravelLeaderNpcId);
+        if (version >= 95) w.Write((byte)npc.SpeechOrigin);
     }
 
     private static NPCState ReadNpc(BinaryReader r, int version)
@@ -3155,6 +3188,12 @@ public static class WorldSaveSerializer
         }
 
         if (version >= 90) npc.Mind.TravelLeaderNpcId = ReadNullableEntity(r);
+        if (version >= 95)
+        {
+            npc.SpeechOrigin = (NpcSpeechOrigin)r.ReadByte();
+            if (npc.SpeechOrigin is not (NpcSpeechOrigin.Island or NpcSpeechOrigin.Modern or NpcSpeechOrigin.Raider))
+                throw new InvalidDataException("Invalid NPC speech origin.");
+        }
 
         // v66/v67 kept one global pair; v68's item state is authoritative.
         // Legacy values stay local to this reader and never become runtime state.

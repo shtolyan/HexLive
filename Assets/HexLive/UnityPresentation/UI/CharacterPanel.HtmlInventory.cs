@@ -226,7 +226,7 @@ namespace HexLive.UnityPresentation.UI
                     items.Add(ItemModel(slot.ItemDefinitionId, false, slot.SourceIndex, Math.Max(1, slot.StackCount),
                         held, slot.ItemDefinitionId == npc.FavoriteWeaponId,
                         container.Kind == InventoryContainerKind.Overflow,
-                        carriedDurability, water, stacks, carriedWetness, carriedDirtiness));
+                        carriedDurability, water, stacks, carriedWetness, carriedDirtiness, slot.ResourceAmount));
                 }
             }
 
@@ -240,7 +240,6 @@ namespace HexLive.UnityPresentation.UI
             {
                 ["name"] = Loc.NpcName(npc.DisplayName),
                 ["readonly"] = !_inventoryMutable,
-                ["outfitLocked"] = _outfitLockedNow,
                 ["toast"] = HexLive.UnityPresentation.Input.ManualOrderFeedback.IsFresh(npc.Id.Value)
                     ? HexLive.UnityPresentation.Input.ManualOrderFeedback.ReasonKey : null, // §121, as on the card
                 ["capacity"] = new JObject { ["used"] = npc.InventoryUsedSlots, ["cap"] = Math.Max(0, npc.InventoryCapacity) },
@@ -253,7 +252,7 @@ namespace HexLive.UnityPresentation.UI
 
         private JObject ItemModel(string id, bool worn, int sourceIndex, int count, bool inUse, bool favorite, bool overflow,
             Dictionary<string, float> durability, Dictionary<int, WaterContainerState> water, Dictionary<string, int> stacks,
-            Dictionary<string, float> wetness, Dictionary<string, float> dirtiness)
+            Dictionary<string, float> wetness, Dictionary<string, float> dirtiness, float resourceAmount = 0f)
         {
             var def = ResolveDef(id);
             var info = ResolveItemInfo(id, def);
@@ -263,20 +262,21 @@ namespace HexLive.UnityPresentation.UI
             // UITK elements cannot be constructed in a MonoBehaviour initializer.
             _statScratch ??= new VisualElement();
             BuildItemStats(def, info, worn, durability, water, stacks, wetness, dirtiness,
-                sourceIndex, ResolveInventoryOwnerId(id, worn, sourceIndex), _statScratch);
+                sourceIndex, ResolveInventoryOwnerId(id, worn, sourceIndex), _statScratch, resourceAmount);
             var stats = StatRows(_statScratch);
             _statScratch.Clear();
 
             // Exactly the card's predicates (ShowItemDetail).
             var wearable = def != null && def.Layer.HasValue;
-            var outfitBlocked = _outfitLockedNow && (worn || wearable);
             var actions = new JArray();
+            if (CanEatInventory(def, worn)) actions.Add("eat");
+            if (CanCookInventory(id, worn)) actions.Add("cook");
             if (_inventoryMutable && !worn && id == ContentIds.Flashlight) actions.Add("switch_light");
-            if (_inventoryMutable && (worn || wearable) && !outfitBlocked) actions.Add(worn ? "stow" : "wear");
+            if (_inventoryMutable && (worn || wearable)) actions.Add(worn ? "stow" : "wear");
             if (_inventoryMutable && !worn && (InventoryPlacementMath.CanPlace(id) || PortableFurniture.CanCarry(id)))
                 actions.Add(InventoryPlacementVerb(id) == "inv.action.place" ? "place" : "plant");
             if (_inventoryMutable && CanFillVessel(id, worn, water, sourceIndex) && _inventoryHasTwoHands) actions.Add("fill");
-            if (_inventoryMutable && !(_outfitLockedNow && worn) && !PortableFurniture.CanCarry(id)) actions.Add("drop");
+            if (_inventoryMutable && !PortableFurniture.CanCarry(id)) actions.Add("drop");
 
             return new JObject
             {
@@ -303,7 +303,7 @@ namespace HexLive.UnityPresentation.UI
         private JObject CraftModel(NpcSnapshot npc)
         {
             if (!_craftAvailable)
-                return new JObject { ["blocked"] = npc.IsManualControl ? "craft.block.Incapacitated" : "craft.block.NotManual" };
+                return new JObject { ["blocked"] = npc.Health <= 0f ? "craft.block.Incapacitated" : "inv.readonly" };
 
             var categories = new JArray();
             var seenCategories = new HashSet<string>(StringComparer.Ordinal);
@@ -316,7 +316,7 @@ namespace HexLive.UnityPresentation.UI
                 var info = ResolveItemInfo(id, def);
                 var category = CraftCategories.For(id).ToString().ToLowerInvariant();
                 if (seenCategories.Add(category)) categories.Add(category);
-                var queued = _craftQueue.Remaining(_inventoryActorId, id);
+                var queued = QueuedCraftCount(id);
                 recipes.Add(new JObject
                 {
                     ["id"] = id, ["icon"] = IconKey(id), ["emoji"] = info.Emoji, ["name"] = ItemName(def, info),
@@ -340,18 +340,14 @@ namespace HexLive.UnityPresentation.UI
                     ["station"] = string.IsNullOrEmpty(option.StationTag) ? null : option.StationTag.ToLowerInvariant(),
                     ["progress"] = option.IsResume && option.WorkRequired > 0
                         ? Mathf.Clamp01(option.WorkDone / (float)option.WorkRequired) : 0f,
-                    ["block"] = !_craftCanOrder ? CraftBlockReason.NotManual.ToString() :
-                        !option.CanCraft && !option.IsActive ? option.BlockReason.ToString() : null,
+                    ["block"] = !option.CanCraft && !option.IsActive ? option.BlockReason.ToString() : null,
                     ["button"] = option.IsActive ? "working" : option.IsResume ? "continue" : "create",
                     ["queued"] = queued,
                     ["canQueue"] = _craftCanOrder && (option.CanCraft || option.IsActive),
                 };
             }
 
-            JObject stopped = null;
-            if (_craftQueue.TryGetStop(_inventoryActorId, out var stoppedOutput, out var reason))
-                stopped = new JObject { ["recipe"] = stoppedOutput, ["reason"] = reason.ToString() };
-            return new JObject { ["blocked"] = null, ["categories"] = categories, ["recipes"] = recipes, ["detail"] = detail, ["stopped"] = stopped };
+            return new JObject { ["blocked"] = null, ["categories"] = categories, ["recipes"] = recipes, ["detail"] = detail };
         }
 
         // ---- commands -----------------------------------------------------------
@@ -363,9 +359,6 @@ namespace HexLive.UnityPresentation.UI
             switch (command)
             {
                 case "close": CloseInventory(); return;
-                case "outfitLock":
-                    if (((bool?)args["value"] ?? false) != _outfitLockedNow) ToggleOutfitLock();
-                    return;
                 case "dollLayer":
                     if (Enum.TryParse<VisualWearLayer>((string)args["layer"], true, out var layer))
                     {
@@ -378,7 +371,10 @@ namespace HexLive.UnityPresentation.UI
                     EnqueueSelectedCraft();
                     return;
                 case "craftCancel":
-                    _craftQueue.Cancel(_inventoryActorId, (string)args["recipe"] ?? "");
+                    var recipe = (string)args["recipe"];
+                    foreach (var order in _craftOrders)
+                        if (order.Action == "Craft" && order.Detail == recipe && !order.Active)
+                            CancelPlayerOrder(_inventoryActorId, order.Id);
                     return;
                 case "action":
                     if (!SelectHtmlItem((string)args["uid"])) return;
@@ -386,6 +382,8 @@ namespace HexLive.UnityPresentation.UI
                     switch ((string)args["kind"])
                     {
                         case "wear": EnqueueInventoryAction(InventoryAction.Wear); break;
+                        case "eat": EnqueueInventoryAction(InventoryAction.Eat); break;
+                        case "cook": EnqueueInventoryAction(InventoryAction.Cook); break;
                         case "stow": EnqueueInventoryAction(InventoryAction.Stow); break;
                         case "drop": EnqueueInventoryAction(InventoryAction.Drop, count); break;
                         case "fill": EnqueueFillVessel(); break;

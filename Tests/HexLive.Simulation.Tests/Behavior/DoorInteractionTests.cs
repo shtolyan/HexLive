@@ -119,6 +119,25 @@ public sealed class DoorInteractionTests
         Execute(world,visitor,DoorInteractionMath.KnockTicks+1);
         Assert.That(door.IsDoorOpen,Is.True);
     }
+
+    [Test]
+    public void VisitorCanKnockAtAnEmptyHouseAndFinishWithoutAReply()
+    {
+        var (engine, visitor, owner, door) = Setup();
+        var world = engine.World;
+        owner.Tile = new TileCoord(99, 99);
+        var previousCue = owner.Execution.LastSocialCueKind;
+
+        Assert.That(engine.ApplyManualCommand(new KnockDoorCommand(visitor.Id, door.Id)).Accepted, Is.True);
+        Execute(world, visitor, DoorInteractionMath.KnockTicks + 1);
+
+        Assert.That(visitor.Execution.LastSocialCueKind, Is.EqualTo("DoorKnock"));
+        Assert.That(visitor.Execution.Status, Is.EqualTo(ExecutionStatus.Completed));
+        Assert.That(door.IsDoorOpen, Is.False);
+        Assert.That(door.IsOccupied, Is.False);
+        Assert.That(owner.Execution.LastSocialCueKind, Is.EqualTo(previousCue));
+    }
+
     [Test]
     public void AxeBreakTakesFourRealTreesAndCannotBeClosed()
     {

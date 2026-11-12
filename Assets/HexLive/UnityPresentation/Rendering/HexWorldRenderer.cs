@@ -3234,7 +3234,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     female.Id.Value, partnerId,
                     snapshot.Tick, female.ExecutionStartTick,
                     female.ExecutionEndTick, snapshot.TickDeltaTime,
-                    anchor, rotation,
+                    anchor, rotation, ActorScale,
                     _runner != null && !_runner.IsPaused
                         ? _runner.SpeedMultiplier : 1f,
                     female.RomanceForced);
@@ -6651,9 +6651,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
                 var actorBody = Instantiate(actorPrefab, actorRoot.transform);
                 actorBody.name = npc.ActorMesh;
-                var targetHeight = HexRadius * NpcHeightFactor * 2.4f;
-                var scale = targetHeight / ActorSourceHeightMeters;
-                actorBody.transform.localScale = Vector3.one * scale;
+                actorBody.transform.localScale = Vector3.one * ActorScale;
                 actorBody.transform.localPosition = Vector3.zero;
 
                 var view = actorRoot.AddComponent<NpcActorView>();

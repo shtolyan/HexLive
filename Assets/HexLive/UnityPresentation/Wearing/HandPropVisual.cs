@@ -5,6 +5,10 @@ namespace HexLive.UnityPresentation.Wearing
 // §59.5: both hands share loading, geometry validation, scale and grip rules.
 internal static class HandPropVisual
 {
+    // Center of the orange handle at the recessed grip, in the folding saw's
+    // imported mesh coordinates. The prefab origin is near the blade hinge.
+    private static readonly Vector3 FoldingSawGripPoint = new(0f, -.002055f, .00018f);
+
     public static GameObject Create(string itemId, Transform hand, bool leftHanded)
     {
         var model = CreateModel(itemId, hand, leftHanded);
@@ -27,8 +31,15 @@ internal static class HandPropVisual
             if (prefab == null || !ObjectFit.HasRenderableGeometry(prefab)) return null;
             var grip = new GameObject($"HandProp {itemId}");
             grip.transform.SetParent(hand, false);
-            Object.Instantiate(prefab, grip.transform, false);
+            var native = Object.Instantiate(prefab, grip.transform, false);
+            bool foldingSaw = itemId == Simulation.Content.ContentIds.FoldingSaw;
+            // Match the sawing clip's +Z blade and -Y teeth in either hand.
+            if (foldingSaw)
+                grip.transform.localRotation = Quaternion.Euler(180f, 0f, 0f);
             ApplyObjectFitScale(grip, itemId, Vector3.one, Vector3.one);
+            if (foldingSaw)
+                grip.transform.localPosition = -hand.InverseTransformPoint(
+                    native.transform.TransformPoint(FoldingSawGripPoint));
             return grip;
         }
 

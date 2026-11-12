@@ -44,7 +44,9 @@ public sealed class GiftGarmentChoiceTests
         Assert.That(gift.OwnerId, Is.EqualTo(receiver.Id.Value)); Assert.That(receiver.Inventory.Items[0], Is.SameAs(gift));
         Assert.That(receiver.WornItems, Is.Empty); Assert.That(world.Events.Items.Any(e => e.Type == "ItemStolen"), Is.False);
         receiver.Mind.ManualControl = false; receiver.Execution.CurrentInteraction = null;
-        GiftGarmentChoice.TryWearOwnedUpgrade(world, receiver);
+        world.Environment.GlobalTemperature = 20f;
+        receiver.Needs.Hunger = receiver.Needs.Thirst = 0f;
+        OutfitPreference.TryWearCarriedFavorite(world, receiver, 20f);
         Assert.That(receiver.WornItems.Any(i => ReferenceEquals(i, gift)), Is.True);
     }
 

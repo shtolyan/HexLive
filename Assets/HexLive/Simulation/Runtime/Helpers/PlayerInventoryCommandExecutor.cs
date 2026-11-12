@@ -51,13 +51,6 @@ internal static class PlayerInventoryCommandExecutor
             return FlashlightMath.TryToggleCarried(npc, item, out reason);
         }
 
-        if (npc.Mind.OutfitLocked &&
-            (action == InventoryAction.Wear || reference.Source == InventoryItemSource.Worn))
-        {
-            reason = "OutfitLocked";
-            return false;
-        }
-
         if (action == InventoryAction.Wear &&
             (reference.Source != InventoryItemSource.Carried ||
              !world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var wearDef) ||

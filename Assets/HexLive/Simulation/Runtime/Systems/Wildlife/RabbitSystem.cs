@@ -267,7 +267,7 @@ public sealed class RabbitSystem : ISimulationSystem
 
     private static bool HasHuntIntent(NPCState npc, int crabId) =>
         ManualControlMath.IsManual(npc) ? ManualCrabHunt.IsOrdered(npc, crabId) :
-        npc.Mind.CurrentGoal == GoalType.Hunt;
+        npc.Mind.CurrentGoal == GoalType.Hunt && !OutfitPreference.IsPuttingOnHuntArmor(npc);
 
     private static void FleeHop(WorldState world, Wildlife.RabbitState rabbit, NPCState threat)
     {

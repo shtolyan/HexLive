@@ -14,7 +14,7 @@ internal static class GiftGarmentChoice
 
     internal static bool CanDecide(WorldState world, NPCState npc) =>
         PlayerLootTargets.CanReactToGift(world, npc) && !ManualControlMath.IsManual(npc) &&
-        !npc.Mind.OutfitLocked && !npc.IsFighting && !npc.IsBeingCarried &&
+        !npc.IsFighting && !npc.IsBeingCarried &&
         !npc.IsCarryingPerson && !npc.Movement.IsMoving && npc.Memory.Dangers.Count == 0 &&
         npc.Execution.Status != ExecutionStatus.InProgress &&
         world.Tick >= npc.Mind.WakeGraceUntilTick;
@@ -31,17 +31,6 @@ internal static class GiftGarmentChoice
                 WearSlotCatalog.Occupies(definition, existing) &&
                 score <= Score(npc.Id.Value, worn) + .0001f) return false;
         return true;
-    }
-
-    internal static void TryWearOwnedUpgrade(WorldState world, NPCState npc)
-    {
-        if (!CanDecide(world, npc) || npc.Plan.Status == PlanStatus.Active) return;
-        ItemInstance best = null;
-        foreach (var item in npc.Inventory.Items)
-            if (item.OwnerId == npc.Id.Value && ShouldWear(world, npc, item) &&
-                InventoryMath.FitsAfterWear(world, npc, item) &&
-                (best == null || Score(npc.Id.Value, item) > Score(npc.Id.Value, best))) best = item;
-        if (best != null) ExecutionSystem.WearCarriedItem(world, npc, best);
     }
 }
 }

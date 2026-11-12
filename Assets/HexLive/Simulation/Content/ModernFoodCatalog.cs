@@ -11,7 +11,9 @@ namespace HexLive.Simulation.Content
 /// <summary>§176: perishable-looking apartment finds share ordinary food and container rules.</summary>
 public static class ModernFoodCatalog
 {
-    internal const int FridgeCapacity = 6;
+    // #747: twenty food cells. Capacity is derived at runtime, never saved, so
+    // fridges in existing saves and on the wire grow without a migration.
+    internal const int FridgeCapacity = 20;
 
     private static readonly (string Id, string Name, float Hunger, float Thirst, float Comfort, int EatTicks)[] Foods =
     {

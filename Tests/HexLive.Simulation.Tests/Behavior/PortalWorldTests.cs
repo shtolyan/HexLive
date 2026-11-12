@@ -306,7 +306,7 @@ public sealed class PortalWorldTests
         var fridge = world.Entities.Objects[originalFridge.Id];
         Assert.That(fridge.Contents.Select(item => item.DefinitionId), Is.EqualTo(stock));
         Assert.That(ContainerLootMath.IsLootable(world, fridge), Is.True);
-        Assert.That(ContainerLootMath.Capacity(world, fridge), Is.EqualTo(6));
+        Assert.That(ContainerLootMath.Capacity(world, fridge), Is.EqualTo(20));
         Assert.That(ContainerLootMath.CanAccept(world, fridge, new[] { new ItemInstance(ContentIds.Stone) }), Is.False);
 
         var outside = world.Entities.Objects[world.Portal.ExteriorDoor.Value];

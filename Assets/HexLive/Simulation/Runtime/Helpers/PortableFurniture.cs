@@ -21,6 +21,24 @@ public static class PortableFurniture
         definitionId is ContentIds.BedBasic or ContentIds.StorageChest or "chair.basic" ||
         PortalWorld.IsFurniture(definitionId);
 
+    /// <summary>
+    /// #745: pieces that block their authored junction footprint wherever they
+    /// stand — on the ground as well as indoors, like <c>bed.basic</c>. The
+    /// modern table has no Obstacle tag and no radius, so outdoors it blocked
+    /// nothing: the construction overlay drew its 11 footprint points, yet a
+    /// route ran straight through them and under the tabletop.
+    /// </summary>
+    public static bool BlocksFootprintEverywhere(string definitionId) =>
+        definitionId is ContentIds.BedBasic or ContentIds.ModernTable;
+
+    /// <summary>Stamp the authored footprint once the placement yaw is final
+    /// (spawn happens at yaw 0, and the table's 4-3-4 rows turn with it).</summary>
+    internal static void ApplyPlacedFootprint(WorldState world, WorldObjectState placed)
+    {
+        if (placed != null && placed.DefinitionId == ContentIds.ModernTable)
+            WorldObjectMutations.SetAuthoredFurnitureBlocking(world, placed, blocked: true);
+    }
+
     public static bool IsBuiltInBed(string definitionId, string variant, bool hasFloor) =>
         definitionId == ContentIds.BedBasic &&
         (variant == ContentIds.HutBedVariant || hasFloor && variant != BasicPlacedVariant);
@@ -120,6 +138,7 @@ public static class PortableFurniture
         placed.LeafDryingStartTick = item.LeafDryingStartTick;
         placed.Dirtiness = item.Dirtiness;
         placed.Bloodiness = item.Bloodiness;
+        ApplyPlacedFootprint(world, placed);
         items.RemoveAt(source.Index);
         Trace.Emit(world, actor.Id, "FurniturePlaced", $"Def={item.DefinitionId} Obj={placed.Id.Value} Tile={tile.Coord}");
         events.Commit();

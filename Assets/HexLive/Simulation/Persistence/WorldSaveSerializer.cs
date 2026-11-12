@@ -1362,6 +1362,14 @@ public static class WorldSaveSerializer
             {
                 WorldObjectMutations.SetAuthoredFurnitureBlocking(world, obj, blocked: true);
             }
+
+            // #745: a table placed in 0.1.120 blocked nothing. Stamp its 11-point
+            // footprint (idempotent); the apartment's own table is left as is.
+            if (obj.DefinitionId == ContentIds.ModernTable &&
+                obj.Variant == PortalWorld.PlacedFurnitureVariant)
+            {
+                WorldObjectMutations.SetAuthoredFurnitureBlocking(world, obj, blocked: true);
+            }
         }
 
         // Migration is spatial too: both legacy hut cots could retain one

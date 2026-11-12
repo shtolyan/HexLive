@@ -484,6 +484,7 @@ public static class PortalWorld
         placed.Durability = ground?.Durability ?? carriedItem.Durability;
         placed.Dirtiness = ground?.Dirtiness ?? carriedItem.Dirtiness;
         placed.Bloodiness = ground?.Bloodiness ?? carriedItem.Bloodiness;
+        PortableFurniture.ApplyPlacedFootprint(world, placed);
         return null;
     }
 

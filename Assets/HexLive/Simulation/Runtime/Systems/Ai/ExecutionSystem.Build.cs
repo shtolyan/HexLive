@@ -342,7 +342,7 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        var bedAnywhere = raised.DefinitionId == ContentIds.BedBasic;
+        var bedAnywhere = PortableFurniture.BlocksFootprintEverywhere(raised.DefinitionId);
         if (!bedAnywhere &&
             (!world.Tiles.Items.TryGetValue(raised.Tile, out var tile) ||
              !tile.Flags.HasFlag(TileFlags.Indoor)))

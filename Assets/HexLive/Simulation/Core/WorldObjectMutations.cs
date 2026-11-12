@@ -163,6 +163,15 @@ public static class WorldObjectMutations
             return;
         }
 
+        // #745: an authored footprint is owned by the object, not by its tag.
+        // A piece without "Obstacle" (the modern table) still blocks its rows,
+        // so despawning or picking it up must give exactly those points back.
+        if (!blocked && worldObject.BlockedJunctions.Count > 0)
+        {
+            ReleaseOwnedBlocking(world, worldObject);
+            return;
+        }
+
         if (!world.Content.ObjectDefinitions.TryGetValue(worldObject.DefinitionId, out var definition))
         {
             return;

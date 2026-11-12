@@ -55,6 +55,7 @@ public static class ContentIds
     public const string CannedPeaches = "food.canned_peaches";
     public const string ModernFridge = "furniture.modern_fridge";
     public const string ModernWardrobe = "furniture.modern_wardrobe";
+    public const string ModernTable = "furniture.modern_table";
     public const string StorageChest = "furniture.storage_chest";
 
     // ── Ресурсы ──────────────────────────────────────────────────────────

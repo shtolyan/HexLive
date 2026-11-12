@@ -463,6 +463,7 @@ public sealed class ViewerConnection
                 // stays "Open" while nothing can actually cross it.
                 if (buffer[0] == (byte)FrameKind.Ping)
                 {
+                    RenewViewerControlLeases();
                     var token = new byte[result.Count - 1];
                     Buffer.BlockCopy(buffer, 1, token, 0, token.Length);
                     await SendAsync(Frame.Wrap(FrameKind.Pong, token), cancel).ConfigureAwait(false);
@@ -658,6 +659,31 @@ public sealed class ViewerConnection
         }
         await SendAsync(Frame.CommandResult(correlationId, admission), cancel)
             .ConfigureAwait(false);
+    }
+
+    private void RenewViewerControlLeases()
+    {
+        if (!ControlEnabled)
+            return;
+
+        var owner = _controlOwner!;
+        var current = new HashSet<int>(_assignedNpcIds!);
+        if (_currentAssignments != null)
+            current.RemoveWhere(id => !_currentAssignments.StillAssigned(owner.Substring(3), id));
+        var manual = _host.Read(world =>
+        {
+            var assigned = TravelPartyMath.EffectiveAssignments(world, current);
+            var result = new List<int>();
+            foreach (var id in assigned)
+            {
+                if (world.Entities.Npcs.TryGetValue(new HexLive.Simulation.Common.EntityId(id), out var npc) &&
+                    npc.Health > 0f && npc.Mind.ManualControl && npc.Mind.ExternalControl?.IsActive != true)
+                    result.Add(id);
+            }
+            return result;
+        });
+        foreach (var id in manual)
+            _leases!.TryRenew(id, owner, out _);
     }
 
     private bool TryMapLease(ISimulationCommand command, out string refusal)

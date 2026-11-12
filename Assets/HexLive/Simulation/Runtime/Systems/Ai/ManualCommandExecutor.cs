@@ -69,6 +69,9 @@ internal static partial class ManualCommandExecutor
             case QueuePlayerOrderCommand queued:
                 ApplyQueuePlayerOrder(world, queued, admission);
                 break;
+            case CancelPlayerOrderCommand cancelled:
+                ApplyCancelPlayerOrder(world, cancelled, admission);
+                break;
             case RecordAgentSocialCommand agentSocial:
                 ApplyRecordAgentSocial(world, agentSocial, admission);
                 break;
@@ -2244,6 +2247,7 @@ internal static partial class ManualCommandExecutor
             out var manual, out var ignored, out var ai);
         foreach (var npc in actors)
         {
+            npc.Mind.PlayerOrders.Clear();
             ClearForNewOrder(world, npc, "Групповой приказ отставить",
                 keepCarriedPerson: true);
             npc.Mind.CurrentGoal = GoalType.None;

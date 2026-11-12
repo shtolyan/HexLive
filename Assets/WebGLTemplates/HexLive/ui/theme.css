@@ -964,6 +964,10 @@
 }
 .hx-order-chip[data-active="true"] { color: var(--hx-leaf); border-color: currentColor; }
 .hx-order-chip .hx-icon { width: 1.125rem; height: 1.125rem; }
+.hx-order-chip__action, .hx-order-chip__cancel { display: grid; place-items: center; }
+.hx-order-chip__cancel { display: none; }
+.hx-order-chip:is(:hover, :focus-visible) .hx-order-chip__cancel { display: grid; }
+.hx-order-chip:is(:hover, :focus-visible) .hx-order-chip__action { display: none; }
 .hx-rel__faces { display: flex; gap: 0.25rem; overflow-x: auto; padding-bottom: 0.125rem; }
 .hx-rel__faces button {
   flex: none;

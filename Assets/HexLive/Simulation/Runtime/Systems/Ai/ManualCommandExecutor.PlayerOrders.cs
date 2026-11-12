@@ -81,6 +81,11 @@ internal static partial class ManualCommandExecutor
 
         if (!TryTakeOrder(world, actor, "Queue", requireManual: false, admission, out var npc))
             return;
+        if (npc.Mind.ExternalControl?.IsActive == true)
+        {
+            Reject(world, actor, "Queue", "ControlledByAgent", admission);
+            return;
+        }
         if (Incapacitated(world, npc))
         {
             Reject(world, actor, "Queue", "Incapacitated", admission);
@@ -99,12 +104,44 @@ internal static partial class ManualCommandExecutor
             SelfActionCommand self => self.Kind.ToString(),
             InteractCommand interaction => interaction.Interaction + "|" +
                 (interaction.InteractionId.Length <= 128 ? interaction.InteractionId : string.Empty),
+            CraftByOutputCommand craft => craft.OutputDefinitionId.Length <= 128
+                ? craft.OutputDefinitionId : string.Empty,
+            ManageInventoryCommand inventory => inventory.Action.ToString(),
             _ => string.Empty
         };
         queue.Pending.Add(new PlayerOrderQueue.Entry(++queue.NextId, command.Order, OrderName(command.Order), detail));
 
         if (!npc.Mind.ManualControl)
             ApplySetManual(world, new SetManualControlCommand(actor, true), admission);
+        ManualControlMath.RenewInactivityLease(world, npc);
+    }
+
+    private static void ApplyCancelPlayerOrder(
+        WorldState world, CancelPlayerOrderCommand command, AdmissionTracker admission)
+    {
+        if (admission.AssignedNpcIds is { } assignments && !assignments.Contains(command.Npc.Value))
+        {
+            Reject(world, command.Npc, "CancelOrder", "NotAssigned", admission);
+            return;
+        }
+        if (!TryTakeOrder(world, command.Npc, "CancelOrder", requireManual: true, admission, out var npc))
+            return;
+
+        var queue = npc.Mind.PlayerOrders;
+        if (queue.Active?.Id == command.OrderId)
+        {
+            queue.Active = null;
+            ClearForNewOrder(world, npc, "Игрок отменил действие", keepCarriedPerson: true,
+                keepRestPose: KeepsRestPoseAcrossModeSwitch(world, npc));
+            npc.Mind.CurrentGoal = GoalType.None;
+            ClearAttackOrder(world, npc);
+        }
+        else if (queue.Pending.RemoveAll(order => order.Id == command.OrderId) == 0)
+        {
+            // The selected action may have completed between the snapshot and the click.
+            return;
+        }
+
         ManualControlMath.RenewInactivityLease(world, npc);
     }
 

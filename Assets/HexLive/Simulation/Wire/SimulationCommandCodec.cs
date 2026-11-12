@@ -111,6 +111,7 @@ public static class SimulationCommandCodec
         RemoveFurniture = 60,
         CraftItemAtStation = 61, // §54.14 append-only
         QueuePlayerOrder = 62, // §121.13
+        CancelPlayerOrder = 63,
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -122,6 +123,11 @@ public static class SimulationCommandCodec
                     throw new InvalidDataException("Unsupported queued player order.");
                 w.Write((ushort)CommandType.QueuePlayerOrder);
                 Write(w, queued.Order);
+                break;
+            case CancelPlayerOrderCommand cancelled:
+                w.Write((ushort)CommandType.CancelPlayerOrder);
+                WriteEntity(w, cancelled.Npc);
+                w.Write(cancelled.OrderId);
                 break;
             case BeginGiftSessionCommand c:
                 w.Write((ushort)CommandType.BeginGiftSession); WriteEntity(w, c.Npc); WriteEntity(w, c.Recipient);
@@ -493,6 +499,8 @@ public static class SimulationCommandCodec
                     throw new InvalidDataException("Unsupported queued player order.");
                 return new QueuePlayerOrderCommand(order);
             }
+            case CommandType.CancelPlayerOrder:
+                return new CancelPlayerOrderCommand(ReadEntity(r), r.ReadInt32());
             case CommandType.RecordAgentSocial:
                 return new RecordAgentSocialCommand(
                     ReadEntity(r), r.ReadString(), (Agents.CompanionReaction)r.ReadByte());

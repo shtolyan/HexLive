@@ -422,12 +422,11 @@ namespace HexLive.UnityPresentation.UI
         private JObject GroupModel(WorldSnapshot snapshot)
         {
             var faces = new JArray();
-            int count = 0, manual = 0, blocked = 0, fighting = 0;
+            int count = 0, blocked = 0, fighting = 0;
             foreach (var npc in snapshot.Npcs)
             {
                 if (!NpcSelection.Contains(npc.Id.Value) || _runner == null || !_runner.CanControlNpc(npc.Id) || npc.Health <= 0f) continue;
                 count++;
-                if (npc.IsManualControl) manual++;
                 if (npc.IsDying || npc.IsUnconscious || npc.IsFainted) blocked++;
                 if (npc.IsFighting) fighting++;
                 faces.Add(new JObject { ["id"] = npc.Id.Value, ["name"] = Loc.NpcName(npc.DisplayName), ["face"] = FaceKey(npc.Id.Value),
@@ -436,8 +435,7 @@ namespace HexLive.UnityPresentation.UI
             if (count <= 1) return null;
             return new JObject
             {
-                ["count"] = count, ["manual"] = manual, ["total"] = count, ["blocked"] = blocked, ["fighting"] = fighting,
-                ["mode"] = manual == 0 ? "ai" : manual == count ? "manual" : "mixed",
+                ["count"] = count, ["blocked"] = blocked, ["fighting"] = fighting,
                 ["faces"] = faces,
                 ["feedback"] = GroupOrderFeedback.IsFresh ? GroupOrderFeedback.LocalizedSummary() : null,
             };
@@ -461,12 +459,12 @@ namespace HexLive.UnityPresentation.UI
                 case "control":
                     var mode = (string)args["mode"];
                     if (mode == "call") SelectCharacterControlMode(ServerVoiceActive || _callPreparing ? CharacterControlMode.Ai : CharacterControlMode.Call);
-                    else SelectCharacterControlMode(mode == "manual" ? CharacterControlMode.Manual : CharacterControlMode.Ai);
                     return;
                 case "pace":
                     if (((string)args["value"] == "run") != _runByDefaultNow) TogglePace();
                     return;
                 case "stop": StopSingle(); return;
+                case "cancelOrder": CancelPlayerOrder(NpcSelection.PrimaryId, (int?)args["id"] ?? 0); return;
                 case "open":
                     switch ((string)args["window"])
                     {
@@ -477,7 +475,6 @@ namespace HexLive.UnityPresentation.UI
                     return;
                 case "collapse": _collapsed = true; return;
                 case "expand": _collapsed = false; return;
-                case "groupMode": ToggleGroupManual(); return;
                 case "groupStop": StopGroup(); return;
                 case "coverage":
                     // How much of the screen height the card covers from the bottom (0–1).

@@ -55,7 +55,6 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
     // actor proves the viewer is still actively presenting that control, so a
     // cheap idempotent heartbeat every two seconds keeps ownership alive while
     // still letting a disconnected viewer or a cleared selection expire.
-    private const float RemoteLeaseHeartbeatSeconds = 2f;
 
     private Camera? _camera;
     private HexWorldRenderer? _worldRenderer;
@@ -64,7 +63,6 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
     private int _hoveredMobId = -1;
     private bool _hasHoveredMob;
     private Renderer[]? _hoveredMobRenderers;
-    private float _nextRemoteLeaseHeartbeatAt;
 
     private readonly List<ContextMenuEntry> _entries = new();
     private readonly List<int> _selectedColonyIds = new();
@@ -198,7 +196,6 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         }
 
         RefreshControlSelection();
-        RenewRemoteLeaseForSelection();
         if (_plantingActorId >= 0)
         {
             if (!UpdatePlantingPlacement())
@@ -469,35 +466,6 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         // Bug #279: окно отчёта об ошибке блокирует мир своим флагом — общий
         // NpcSelection.PointerOverUi затирается CharacterPanel каждый кадр.
         BugReportPanel.IsOpen;
-
-    private void RenewRemoteLeaseForSelection()
-    {
-        var now = Time.unscaledTime;
-        if (_runner == null || !_runner.Link.IsRemote ||
-            !_runner.SupportsNpcCommands || _manualSelectedIds.Count == 0)
-        {
-            // The next genuine manual selection renews immediately instead of
-            // waiting a full interval with a possibly near-expired server lease.
-            _nextRemoteLeaseHeartbeatAt = now;
-            return;
-        }
-
-        if (now < _nextRemoteLeaseHeartbeatAt)
-        {
-            return;
-        }
-
-        _nextRemoteLeaseHeartbeatAt = now + RemoteLeaseHeartbeatSeconds;
-        if (_manualSelectedIds.Count == 1)
-        {
-            _runner.EnqueueCommand(new SetManualControlCommand(
-                new EntityId(_manualSelectedIds[0]), true));
-            return;
-        }
-
-        _runner.EnqueueCommand(new SetGroupManualControlCommand(
-            SelectedActors(), true));
-    }
 
     // ── Наведение ────────────────────────────────────────────────────────
 
@@ -951,17 +919,20 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             return true;
         }
 
-        if (!CommandMode)
+        if (_selectedColonyIds.Count == 0)
         {
             return false;
         }
 
         var clickSnapshot = _runner.IsReady ? _runner.CreateSnapshot() : null;
-        if (TryOpenTargetChooser(clickSnapshot, mousePos)) return true;
+        if (CommandMode && TryOpenTargetChooser(clickSnapshot, mousePos)) return true;
         PickTarget(clickSnapshot, mousePos, out var clickedNpc, out var clickedMob, out var clickedObject);
 
         if (clickedNpc >= 0)
         {
+            if (!CommandMode)
+                return false;
+
             // §121.9: клик по себе — меню самодействий, не приказ и не выбор.
             if (clickedNpc == OrderNpcId)
             {
@@ -992,13 +963,14 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             // §121.11 (bug #294): ОДИН клик — всегда идти. Темпа жест больше не
             // несёт (run: null): им владеет постоянная настройка персонажа в
             // симуляции, и у каждой выделенной девушки она своя.
-            if (_selectedColonyIds.Count == 1 && ManualNpcId >= 0)
+            if (OrderNpcId >= 0)
             {
-                EnqueueOrder(ManualNpcId, new MoveToCommand(new EntityId(ManualNpcId), point));
+                EnqueueOrder(OrderNpcId, new MoveToCommand(new EntityId(OrderNpcId), point));
             }
             else
             {
-                _runner.EnqueueCommand(new GroupMoveCommand(SelectedActors(), point));
+                EnsureGroupManual();
+                _runner.EnqueueCommand(new GroupMoveCommand(OrderActors(), point));
             }
             DestinationMarker.Show(SimulationUnityMapper.ToUnityPosition(point, GroundMarkerY(point)));
             return true;

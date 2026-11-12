@@ -33194,6 +33194,14 @@ MonoBehaviour:
       - 'Очередь действий заполнена'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'panel.orders.cancel'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cancel {0}'
+      - 'Отменить: {0}'
+      Flags: 0101
+      Languages_Touch: []
     mTerm_AppName:
     mLanguages:
     - Name: English

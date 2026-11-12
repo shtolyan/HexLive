@@ -148,11 +148,25 @@ public sealed class QueuePlayerOrderCommand : ISimulationCommand
         PlaceInventoryFurnitureCommand or GatherAllOnHexCommand or
         AttackNpcCommand or AttackMobCommand or CarryPersonCommand or
         PutDownPersonCommand or PutPersonInBedCommand or CraftItemCommand or
-        TalkToCommand or
+        CraftByOutputCommand { RequestId: "" } or TalkToCommand or
         RequestItemCommand or RomancePersonCommand or AidPersonCommand or
         TreatLimbsCommand or MedicalAidCommand or SelfActionCommand or
         ButcherPersonCommand or PreyPersonCommand or AbusePersonCommand or
-        KnockDoorCommand or BreakDoorCommand;
+        KnockDoorCommand or BreakDoorCommand or FillVesselCommand or
+        ManageInventoryCommand { Action: InventoryAction.Eat or InventoryAction.Cook };
+}
+
+public sealed class CancelPlayerOrderCommand : ISimulationCommand
+{
+    public CancelPlayerOrderCommand(EntityId npc, int orderId)
+    {
+        Npc = npc;
+        OrderId = orderId;
+    }
+
+    public EntityId Npc { get; }
+    public int OrderId { get; }
+    public EntityId? TargetEntity => Npc;
 }
 
 public interface IGroupSimulationCommand : ISimulationCommand

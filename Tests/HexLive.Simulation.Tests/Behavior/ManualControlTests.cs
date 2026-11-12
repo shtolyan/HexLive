@@ -144,6 +144,61 @@ public sealed class ManualControlTests
     }
 
     [Test]
+    public void CancellingOneOrderLeavesOtherOrdersAndReturnsControlAfterIdle()
+    {
+        var now = 0d;
+        var engine = TestWorld.CreateEngine(clock: new SimulationClock(() => now));
+        var world = engine.World;
+        var npc = Colonist(world);
+        npc.Needs.Hunger = 0f;
+        npc.Needs.Thirst = 0f;
+        engine.Step();
+        var destination = NearbyFreeJunction(world, npc);
+        var run = new ManualOrderSystem();
+
+        engine.ApplyManualCommand(new QueuePlayerOrderCommand(new MoveToCommand(npc.Id, destination.WorldPosition)));
+        engine.ApplyManualCommand(new QueuePlayerOrderCommand(new SelfActionCommand(npc.Id, SelfActionKind.GroundSit)));
+        engine.ApplyManualCommand(new QueuePlayerOrderCommand(new SelfActionCommand(npc.Id, SelfActionKind.GoHome)));
+        run.Run(world);
+
+        var orders = Debug.WorldSnapshotExporter.Export(world).Npcs.Single(n => n.Id == npc.Id).PlayerOrders;
+        var active = orders[0].Id;
+        var removed = orders[1].Id;
+        var waiting = orders[2].Id;
+        Assert.That(engine.ApplyManualCommand(new CancelPlayerOrderCommand(npc.Id, removed)).Accepted, Is.True);
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.PlayerOrder));
+        Assert.That(engine.ApplyManualCommand(new CancelPlayerOrderCommand(npc.Id, active)).Accepted, Is.True);
+        Assert.That(engine.ApplyManualCommand(new CancelPlayerOrderCommand(npc.Id, active)).Accepted, Is.True);
+
+        orders = Debug.WorldSnapshotExporter.Export(world).Npcs.Single(n => n.Id == npc.Id).PlayerOrders;
+        Assert.That(orders.Select(o => o.Id), Is.EqualTo(new[] { waiting }));
+        engine.ApplyManualCommand(new CancelPlayerOrderCommand(npc.Id, waiting));
+        now = Spec121.ManualIdleReleaseSeconds;
+        run.Run(world);
+        Assert.That(npc.Mind.ManualControl, Is.False);
+    }
+
+    [Test]
+    public void PlayerCanOrderInventoryUseFromAiControl()
+    {
+        var engine = TestWorld.CreateEngine();
+        var npc = Colonist(engine.World);
+        npc.Needs.Hunger = .3f;
+        npc.Needs.Thirst = 0f;
+        engine.Step();
+        var index = npc.Inventory.Items.Count;
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.MeatCooked));
+        var command = new ManageInventoryCommand(npc.Id,
+            new InventoryItemRef(InventoryItemSource.Carried, index, ContentIds.MeatCooked), InventoryAction.Eat);
+
+        Assert.That(engine.ApplyManualCommand(new QueuePlayerOrderCommand(command)).Accepted, Is.True);
+        new ManualOrderSystem().Run(engine.World);
+        Assert.That(npc.Mind.ManualControl, Is.True);
+        Assert.That(npc.Plan.Steps.Single().Interaction, Is.EqualTo(InteractionType.Eat));
+        Assert.That(npc.Execution.TargetInventoryItem, Is.SameAs(npc.Inventory.Items[index]));
+    }
+
+    [Test]
     public void ManualNpcNeverTakesAGoalFromTheAuction()
     {
         var engine = TestWorld.CreateEngine();

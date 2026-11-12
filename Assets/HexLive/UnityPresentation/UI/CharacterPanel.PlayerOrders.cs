@@ -1,5 +1,9 @@
+using System.Collections.Generic;
+using System.Linq;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
+using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
@@ -10,6 +14,9 @@ namespace HexLive.UnityPresentation.UI
     public sealed partial class CharacterPanel
     {
         private ScrollView _playerOrdersRow;
+        private readonly List<PlayerOrderView> _drawnPlayerOrders = new();
+        private int _drawnOrderActor = -1;
+        private string _drawnOrderLanguage;
 
         private VisualElement BuildPlayerOrdersRow()
         {
@@ -27,15 +34,22 @@ namespace HexLive.UnityPresentation.UI
             if (_playerOrdersRow == null)
                 return;
 
-            _playerOrdersRow.Clear();
             bool show = _controlAvailable && npc.PlayerOrders.Count > 0;
             _playerOrdersRow.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
-            if (!show)
+            if (!show || (_drawnOrderActor == npc.Id.Value && _drawnOrderLanguage == Loc.Code &&
+                _drawnPlayerOrders.SequenceEqual(npc.PlayerOrders)))
                 return;
 
+            _drawnOrderActor = npc.Id.Value;
+            _drawnOrderLanguage = Loc.Code;
+            _drawnPlayerOrders.Clear();
+            _drawnPlayerOrders.AddRange(npc.PlayerOrders);
+            _playerOrdersRow.Clear();
             foreach (var order in npc.PlayerOrders)
             {
-                var item = new VisualElement { tooltip = PlayerOrderLabel(order) };
+                var actorId = npc.Id.Value;
+                var item = new Button(() => CancelPlayerOrder(actorId, order.Id))
+                    { tooltip = string.Format(Loc.Get("panel.orders.cancel"), PlayerOrderLabel(order)) };
                 item.style.width = 32;
                 item.style.height = 32;
                 item.style.marginRight = 4;
@@ -50,6 +64,15 @@ namespace HexLive.UnityPresentation.UI
                 item.Add(icon);
                 _playerOrdersRow.Add(item);
             }
+        }
+
+        private void CancelPlayerOrder(int actorId, int orderId)
+        {
+            if (_runner == null || !NpcSelection.Contains(actorId) || orderId <= 0)
+                return;
+            var actor = new EntityId(actorId);
+            if (_runner.CanControlNpc(actor))
+                _runner.EnqueueCommand(new CancelPlayerOrderCommand(actor, orderId));
         }
 
         private JArray HtmlPlayerOrders(NpcSnapshot npc)
@@ -96,6 +119,9 @@ namespace HexLive.UnityPresentation.UI
                 "PutDownPerson" => "menu.put_down_person",
                 "PutPersonInBed" => "menu.self.sleep",
                 "Craft" => "interaction.Craft.verb",
+                "Inventory" when order.Detail == "Eat" => "inv.action.eat",
+                "Inventory" when order.Detail == "Cook" => "menu.cook_meat",
+                "FillVessel" => "inv.action.fill",
                 "TalkTo" or "RequestItem" => "menu.talk_to",
                 "Romance" or "ForceRomance" => "menu.romance",
                 "Aid" => "menu.aid",
@@ -128,6 +154,9 @@ namespace HexLive.UnityPresentation.UI
             "MoveTo" => "walk",
             "TalkTo" or "RequestItem" or "KnockDoor" => "social",
             "Craft" or "PlantSeed" or "PlaceInventoryFurniture" or "BreakDoor" => "hammer",
+            "Inventory" when order.Detail == "Eat" => "hunger",
+            "Inventory" when order.Detail == "Cook" => "hammer",
+            "FillVessel" => "thirst",
             "GatherAll" or "CarryPerson" or "PutDownPerson" => "bag",
             "Aid" or "TreatLimbs" or "MedicalAid" => "health",
             "Romance" or "ForceRomance" => "heartFill",

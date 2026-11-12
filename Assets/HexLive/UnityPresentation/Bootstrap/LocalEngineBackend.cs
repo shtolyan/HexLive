@@ -78,7 +78,7 @@ public sealed class LocalEngineBackend : ISimulationBackend
         PlayerAuthority.CanControl(_engine.World, npc, out _);
 
     public bool TryGetCraftingOptions(EntityId npc, List<CraftRecipeOption> into) =>
-        CraftingOptions.TryFill(_engine.World, npc, into);
+        CraftingOptions.TryFill(_engine.World, npc, into, allowAutomaticControl: true);
 
     // §121: очередь опустошается в начале Step, то есть тем же главным потоком,
     // который сюда кладёт. Замка нет и не нужно.

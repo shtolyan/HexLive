@@ -29,7 +29,7 @@ public static class PlayerCraftingOptions
         for (var i = 0; i < ids.Count; i++)
         {
             var npc = new NpcCraftingOptionsSnapshot { NpcId = ids[i] };
-            if (CraftingOptions.TryFill(world, new EntityId(ids[i]), npc.Options))
+            if (CraftingOptions.TryFill(world, new EntityId(ids[i]), npc.Options, allowAutomaticControl: true))
             {
                 result.Npcs.Add(npc);
             }

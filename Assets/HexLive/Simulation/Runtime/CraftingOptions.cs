@@ -187,7 +187,7 @@ public static class CraftingOptions
     }
 
     public static bool TryFill(
-        WorldState world, EntityId npcId, List<CraftRecipeOption> into)
+        WorldState world, EntityId npcId, List<CraftRecipeOption> into, bool allowAutomaticControl = false)
     {
         into.Clear();
         if (world == null || !world.Entities.Npcs.TryGetValue(npcId, out var npc))
@@ -214,7 +214,7 @@ public static class CraftingOptions
                 RecipeCatalog.ByOutput.TryGetValue(fitted, out var fittedRecipe) &&
                 SameCraftBill(pair.Value, fittedRecipe))
                 continue;
-            into.Add(Resolve(world, npc, pair.Value, scan));
+            into.Add(Resolve(world, npc, pair.Value, scan, allowAutomaticControl: allowAutomaticControl));
         }
         return true;
     }
@@ -279,7 +279,8 @@ public static class CraftingOptions
     }
 
     private static CraftRecipeOption Resolve(
-        WorldState world, NPCState npc, Recipe recipe, GroundScan scan, ObjectId? exactStation = null)
+        WorldState world, NPCState npc, Recipe recipe, GroundScan scan, ObjectId? exactStation = null,
+        bool allowAutomaticControl = false)
     {
         var goal = recipe?.Goal ?? GoalType.None;
         var option = new CraftRecipeOption
@@ -318,7 +319,7 @@ public static class CraftingOptions
             ResolveAtStation(world, npc, recipe, option, scan, exactStation);
         }
 
-        var actorBlock = ActorBlock(world, npc, goal);
+        var actorBlock = ActorBlock(world, npc, goal, allowAutomaticControl);
         if (actorBlock != CraftBlockReason.None)
         {
             option.CanCraft = false;
@@ -545,7 +546,7 @@ public static class CraftingOptions
     }
 
     private static CraftBlockReason ActorBlock(
-        WorldState world, NPCState npc, GoalType goal)
+        WorldState world, NPCState npc, GoalType goal, bool allowAutomaticControl = false)
     {
         // §149.4 / #231: «свой» — это PlayerAuthority, а не буквальная
         // Faction.Colony. На сервере игроку выдают девушку любого лагеря
@@ -553,7 +554,7 @@ public static class CraftingOptions
         // NotManual при живой лизе и Mind.ManualControl=true — крафт был
         // заблокирован целиком с подсказкой «включите ручное управление».
         // Локальной игре правка инертна: там все свои — Faction.Colony.
-        if (!npc.Mind.ManualControl || !PlayerAuthority.IsPlayerOwned(world, npc))
+        if ((!allowAutomaticControl && !npc.Mind.ManualControl) || !PlayerAuthority.IsPlayerOwned(world, npc))
         {
             return CraftBlockReason.NotManual;
         }

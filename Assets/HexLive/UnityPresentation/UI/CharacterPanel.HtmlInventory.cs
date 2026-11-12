@@ -303,7 +303,7 @@ namespace HexLive.UnityPresentation.UI
         private JObject CraftModel(NpcSnapshot npc)
         {
             if (!_craftAvailable)
-                return new JObject { ["blocked"] = npc.IsManualControl ? "craft.block.Incapacitated" : "craft.block.NotManual" };
+                return new JObject { ["blocked"] = npc.Health <= 0f ? "craft.block.Incapacitated" : "inv.readonly" };
 
             var categories = new JArray();
             var seenCategories = new HashSet<string>(StringComparer.Ordinal);
@@ -316,7 +316,7 @@ namespace HexLive.UnityPresentation.UI
                 var info = ResolveItemInfo(id, def);
                 var category = CraftCategories.For(id).ToString().ToLowerInvariant();
                 if (seenCategories.Add(category)) categories.Add(category);
-                var queued = _craftQueue.Remaining(_inventoryActorId, id);
+                var queued = QueuedCraftCount(id);
                 recipes.Add(new JObject
                 {
                     ["id"] = id, ["icon"] = IconKey(id), ["emoji"] = info.Emoji, ["name"] = ItemName(def, info),
@@ -340,18 +340,14 @@ namespace HexLive.UnityPresentation.UI
                     ["station"] = string.IsNullOrEmpty(option.StationTag) ? null : option.StationTag.ToLowerInvariant(),
                     ["progress"] = option.IsResume && option.WorkRequired > 0
                         ? Mathf.Clamp01(option.WorkDone / (float)option.WorkRequired) : 0f,
-                    ["block"] = !_craftCanOrder ? CraftBlockReason.NotManual.ToString() :
-                        !option.CanCraft && !option.IsActive ? option.BlockReason.ToString() : null,
+                    ["block"] = !option.CanCraft && !option.IsActive ? option.BlockReason.ToString() : null,
                     ["button"] = option.IsActive ? "working" : option.IsResume ? "continue" : "create",
                     ["queued"] = queued,
                     ["canQueue"] = _craftCanOrder && (option.CanCraft || option.IsActive),
                 };
             }
 
-            JObject stopped = null;
-            if (_craftQueue.TryGetStop(_inventoryActorId, out var stoppedOutput, out var reason))
-                stopped = new JObject { ["recipe"] = stoppedOutput, ["reason"] = reason.ToString() };
-            return new JObject { ["blocked"] = null, ["categories"] = categories, ["recipes"] = recipes, ["detail"] = detail, ["stopped"] = stopped };
+            return new JObject { ["blocked"] = null, ["categories"] = categories, ["recipes"] = recipes, ["detail"] = detail };
         }
 
         // ---- commands -----------------------------------------------------------
@@ -375,7 +371,10 @@ namespace HexLive.UnityPresentation.UI
                     EnqueueSelectedCraft();
                     return;
                 case "craftCancel":
-                    _craftQueue.Cancel(_inventoryActorId, (string)args["recipe"] ?? "");
+                    var recipe = (string)args["recipe"];
+                    foreach (var order in _craftOrders)
+                        if (order.Action == "Craft" && order.Detail == recipe && !order.Active)
+                            CancelPlayerOrder(_inventoryActorId, order.Id);
                     return;
                 case "action":
                     if (!SelectHtmlItem((string)args["uid"])) return;

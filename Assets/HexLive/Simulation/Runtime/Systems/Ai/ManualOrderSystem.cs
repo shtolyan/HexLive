@@ -131,6 +131,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
             if (npc.Mind.CurrentGoal == GoalType.None &&
                 npc.Mind.ManualAttackNpcId is null &&
                 npc.Mind.ManualAttackMobId is null &&
+                npc.Mind.PlayerOrders.Pending.Count == 0 &&
                 !ManualControlMath.HasActiveOrder(npc) &&
                 ManualControlMath.InactivityLeaseExpired(world, npc))
             {

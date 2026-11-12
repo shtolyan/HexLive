@@ -285,8 +285,11 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         }
 
         _plantingObjectJunctions.Clear();
+        var placingSeed = PlantGrowthCatalog.TryGetBySeed(_plantingSeedDefinitionId, out _);
         foreach (var worldObject in snapshot.Objects)
         {
+            if (placingSeed && worldObject.SurfaceObjectId is null &&
+                PlantGrowthCatalog.TryGetBySeed(worldObject.DefinitionId, out _)) continue;
             foreach (var objectJunction in worldObject.Junctions)
             {
                 _plantingObjectJunctions.Add(objectJunction);

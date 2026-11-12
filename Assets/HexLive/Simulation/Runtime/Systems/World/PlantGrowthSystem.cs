@@ -189,7 +189,7 @@ public sealed class PlantGrowthSystem : ISimulationSystem
     /// <summary>
     /// Authoritative free-space rule shared by inventory placement and the
     /// legacy ground-seed action.  A planting slot is one exact dry, walkable
-    /// junction: no other world object may already own that point, and no
+    /// junction: world objects other than eligible loose seeds block the point, and no
     /// person/reservation except the planter may occupy it.
     /// </summary>
     public static bool CanPlantAt(
@@ -197,7 +197,8 @@ public sealed class PlantGrowthSystem : ISimulationSystem
         JunctionId anchor,
         TileCoord tile,
         EntityId? allowedOccupant = null,
-        ObjectId? ignoredObject = null)
+        ObjectId? ignoredObject = null,
+        bool allowLooseSeeds = false)
     {
         if (!world.Junctions.Items.TryGetValue(anchor, out var junction) ||
             junction.Blocked || !junction.Tiles.Contains(tile) ||
@@ -231,7 +232,9 @@ public sealed class PlantGrowthSystem : ISimulationSystem
                 continue;
             }
 
-            if (worldObject.Junctions.Contains(anchor))
+            if (worldObject.Junctions.Contains(anchor) &&
+                !(allowLooseSeeds && worldObject.SurfaceObjectId is null &&
+                  PlantGrowthCatalog.TryGetBySeed(worldObject.DefinitionId, out _)))
             {
                 return false;
             }
@@ -251,7 +254,7 @@ public sealed class PlantGrowthSystem : ISimulationSystem
         if (!PlantGrowthCatalog.TryGetBySeed(seedDefinitionId, out var profile) ||
             profile.StageDefinitionIds.Length == 0 ||
             !world.Content.ObjectDefinitions.ContainsKey(profile.StageDefinitionIds[0]) ||
-            !CanPlantAt(world, anchor, tile, planter, ignoredObject) ||
+            !CanPlantAt(world, anchor, tile, planter, ignoredObject, allowLooseSeeds: true) ||
             !world.Junctions.Items.TryGetValue(anchor, out var junction))
         {
             return null;

@@ -42,20 +42,33 @@ public sealed partial class ExecutionSystem
         var step = npc.Plan.Steps[^1];
         var sourceIndex = step.TimeoutEndTick ?? -1;
         var seedDefinitionId = npc.Plan.TargetItemDefinitionId ?? string.Empty;
-        var seed = npc.Execution.TargetInventoryItem;
-        if (seed is null || !InventoryMath.ContainsReference(npc.Inventory.Items, seed))
+        WorldObjectState groundSeed = null;
+        ItemInstance seed = null;
+        if (step.TargetObject is { } seedObjectId)
         {
-            // A save/load clears transient object references. Seeds have no
-            // per-instance state, so the guarded source index can safely
-            // restore this exact pending inventory selection.
-            seed = sourceIndex >= 0 && sourceIndex < npc.Inventory.Items.Count &&
-                npc.Inventory.Items[sourceIndex].DefinitionId == seedDefinitionId
-                    ? npc.Inventory.Items[sourceIndex]
-                    : null;
-            npc.Execution.TargetInventoryItem = seed;
+            if (!world.Entities.Objects.TryGetValue(seedObjectId, out groundSeed) ||
+                !GardenMath.IsUsableGroundSeed(world, npc, groundSeed, target, seedDefinitionId))
+            {
+                FailInventoryPlanting(world, npc, "PlantSeed: on-site seed disappeared");
+                return;
+            }
+        }
+        else
+        {
+            seed = npc.Execution.TargetInventoryItem;
+            if (seed is null || !InventoryMath.ContainsReference(npc.Inventory.Items, seed))
+            {
+                // A save/load clears transient references. The guarded index
+                // recovers the pending carried seed.
+                seed = sourceIndex >= 0 && sourceIndex < npc.Inventory.Items.Count &&
+                    npc.Inventory.Items[sourceIndex].DefinitionId == seedDefinitionId
+                        ? npc.Inventory.Items[sourceIndex]
+                        : null;
+                npc.Execution.TargetInventoryItem = seed;
+            }
         }
 
-        if (seed is null || seed.DefinitionId != seedDefinitionId ||
+        if ((groundSeed is null && (seed is null || seed.DefinitionId != seedDefinitionId)) ||
             !InventoryPlacementMath.CanPlace(seedDefinitionId))
         {
             FailInventoryPlanting(world, npc, "PlantSeed: selected seed disappeared");
@@ -80,7 +93,8 @@ public sealed partial class ExecutionSystem
             }
             plantingSite = siteId;
         }
-        if (!PlantGrowthSystem.CanPlantAt(world, target, tile, npc.Id, plantingSite))
+        if (!PlantGrowthSystem.CanPlantAt(world, target, tile, npc.Id, plantingSite,
+                allowLooseSeeds: PlantGrowthCatalog.TryGetBySeed(seedDefinitionId, out _)))
         {
             FailInventoryPlanting(world, npc, "PlantSeed: planting spot became occupied");
             return;
@@ -129,7 +143,7 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        if (!InventoryMath.RemoveReference(npc.Inventory.Items, seed))
+        if (seed is not null && !InventoryMath.RemoveReference(npc.Inventory.Items, seed))
         {
             FailInventoryPlanting(world, npc, "PlantSeed: selected seed disappeared");
             return;
@@ -142,11 +156,12 @@ public sealed partial class ExecutionSystem
         {
             // The site was validated immediately above; retain ownership if a
             // content mutation nevertheless made the final spawn impossible.
-            npc.Inventory.Items.Add(seed);
+            if (seed is not null) npc.Inventory.Items.Add(seed);
             FailInventoryPlanting(world, npc, "PlantSeed: final placement failed");
             return;
         }
 
+        if (groundSeed is not null) WorldObjectMutations.DespawnObject(world, groundSeed.Id);
         if (plantingSite is { } completedSite) WorldObjectMutations.DespawnObject(world, completedSite);
         npc.Plan.TargetObjectId = null;
 

@@ -41,6 +41,63 @@ public sealed class PlantingBlueprintTests
     }
 
     [Test]
+    public void WorldBuildMenuAcceptsSeedsUnderTheBlueprintAndUsesOneGroundInstance()
+    {
+        var (engine, npc, center) = Place(ContentIds.YuccaSeed);
+        var world = engine.World;
+        var point = world.Tiles.Items[center.Tile].Junctions
+            .First(j => world.Junctions.Items[j].Tiles.Count == 1 &&
+                PlantGrowthSystem.CanPlantAt(world, j, center.Tile));
+        var first = WorldObjectMutations.SpawnObject(world, ContentIds.HerbSeed, npc.Fragment, center.Tile, point);
+        var second = WorldObjectMutations.SpawnObject(world, ContentIds.HerbSeed, npc.Fragment, center.Tile, point);
+        var otherCrop = WorldObjectMutations.SpawnObject(world, ContentIds.YuccaSeed, npc.Fragment, center.Tile, point);
+        var key = FurniturePlacement.KeyOf(world.Junctions.Items[point].WorldPosition);
+        var placed = engine.ApplyManualCommand(new PlaceFurnitureCommand(ContentIds.HerbSeed, key.XKey, key.YKey, 0));
+        Assert.That(placed.Accepted, Is.True, placed.Reason);
+        var site = world.Entities.Objects.Values.Single(o => o.BuildProduct == ContentIds.HerbSeed &&
+            o.Junctions.Contains(point));
+
+        var accepted = engine.ApplyManualCommand(new InteractCommand(npc.Id, site.Id, InteractionType.Build));
+        Assert.That(accepted.Accepted, Is.True, accepted.Reason);
+        Assert.That(npc.Plan.Steps[^1].TargetObject, Is.EqualTo(first.Id));
+        FinishAtPlannedPoint(world, npc);
+        Assert.Multiple(() =>
+        {
+            Assert.That(world.Entities.Objects.ContainsKey(site.Id), Is.False);
+            Assert.That(world.Entities.Objects.ContainsKey(first.Id), Is.False);
+            Assert.That(world.Entities.Objects.ContainsKey(second.Id), Is.True);
+            Assert.That(world.Entities.Objects.ContainsKey(otherCrop.Id), Is.True);
+            Assert.That(world.Entities.Objects.Values.Any(o =>
+                o.DefinitionId == ContentIds.HerbSprout && o.Junctions.Contains(point)), Is.True);
+        });
+    }
+
+    [Test]
+    public void AutonomousGardenCanPlantTheSeedAlreadyOnItsBlueprint()
+    {
+        var (engine, npc, site) = Place(ContentIds.HerbSeed);
+        var world = engine.World;
+        var seed = WorldObjectMutations.SpawnObject(
+            world, ContentIds.HerbSeed, npc.Fragment, site.Tile, site.Junctions[0]);
+        npc.Mind.ManualControl = false;
+        npc.Mind.CurrentGoal = GoalType.TendGarden;
+        npc.Plan.Status = PlanStatus.None;
+        npc.Perception.Objects.Clear();
+        npc.Perception.Objects.Add(new PerceivedObject
+        {
+            Id = site.Id, DefinitionId = site.DefinitionId, Tile = site.Tile, IsReachable = true
+        });
+
+        new PlanningSystem().Run(world);
+        Assert.That(npc.Plan.TargetObjectId, Is.EqualTo(site.Id));
+        Assert.That(npc.Plan.Steps[^1].TargetObject, Is.EqualTo(seed.Id));
+        FinishAtPlannedPoint(world, npc);
+        Assert.That(world.Entities.Objects.ContainsKey(seed.Id), Is.False);
+        Assert.That(world.Entities.Objects.Values.Any(o => o.DefinitionId == ContentIds.HerbSprout &&
+            o.Junctions.Contains(site.Junctions[0])), Is.True);
+    }
+
+    [Test]
     public void PointPlantingRejectsInvalidTileAndNonSeedCatalogWithoutMutation()
     {
         var (engine,npc,site) = Place(ContentIds.YuccaSeed);

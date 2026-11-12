@@ -35,9 +35,10 @@ public sealed partial class PlanningSystem
         npc.Plan.Steps.Add(new PlanStep
         {
             Type = PlanStepType.PlantInventorySeed, TargetJunction = point.Id,
+            TargetObject = task.GroundSeed?.Id,
             TimeoutEndTick = task.SeedIndex, Interaction = InteractionType.Plant
         });
-        npc.Execution.TargetInventoryItem = npc.Inventory.Items[task.SeedIndex];
+        npc.Execution.TargetInventoryItem = task.GroundSeed is null ? npc.Inventory.Items[task.SeedIndex] : null;
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
         return true;

@@ -22,6 +22,7 @@ internal static class GardenMath
     {
         public PlantGrowthCatalog.Profile Crop;
         public int SeedIndex = -1;
+        public WorldObjectState GroundSeed;
         public PerceivedObject Source;
         public WorldObjectState Site;
         public InteractionType Interaction;
@@ -73,8 +74,12 @@ internal static class GardenMath
                 if (worker.Id != npc.Id && worker.Plan.Status == PlanStatus.Active &&
                     worker.Plan.TargetObjectId == site.Id) { claimed = true; break; }
             if (claimed || !PlantGrowthCatalog.TryGetBySeed(site.BuildProduct, out var crop) ||
-                !PlantGrowthSystem.CanPlantAt(world, site.Junctions[0], site.Tile, npc.Id, site.Id) ||
-                !TryCreateTask(world, npc, crop, home, out var candidate)) continue;
+                !PlantGrowthSystem.CanPlantAt(world, site.Junctions[0], site.Tile, npc.Id, site.Id,
+                    allowLooseSeeds: true)) continue;
+            var seed = FindGroundSeed(world, npc, site.Junctions[0], crop.SeedDefinitionId);
+            Task candidate;
+            if (seed is not null) candidate = new Task { Crop = crop, GroundSeed = seed };
+            else if (!TryCreateTask(world, npc, crop, home, out candidate)) continue;
             candidate.Site = site;
             task = candidate;
             return true;
@@ -89,6 +94,35 @@ internal static class GardenMath
         }
         return task != null;
     }
+
+    internal static WorldObjectState FindGroundSeed(
+        WorldState world, NPCState npc, JunctionId anchor, string seedDefinitionId)
+    {
+        if (!world.Junctions.Items.TryGetValue(anchor, out var junction)) return null;
+        WorldObjectState seed = null;
+        foreach (var tile in junction.Tiles)
+        {
+            if (!world.Caches.ObjectsByTile.TryGetValue(tile, out var ids)) continue;
+            foreach (var id in ids)
+            {
+                if ((seed is null || id.Value < seed.Id.Value) &&
+                    world.Entities.Objects.TryGetValue(id, out var candidate) &&
+                    IsUsableGroundSeed(world, npc, candidate, anchor, seedDefinitionId))
+                {
+                    seed = candidate;
+                }
+            }
+        }
+
+        return seed;
+    }
+
+    internal static bool IsUsableGroundSeed(WorldState world, NPCState npc,
+        WorldObjectState seed, JunctionId anchor, string seedDefinitionId) =>
+        seed.DefinitionId == seedDefinitionId && seed.SurfaceObjectId is null &&
+        seed.Junctions.Count == 1 && seed.Junctions[0] == anchor &&
+        (!seed.IsOccupied || seed.CurrentUser == npc.Id) &&
+        CampPropertyMath.CanUseUnordered(world, npc, seed);
 
     private static bool TryCreateTask(WorldState world, NPCState npc,
         PlantGrowthCatalog.Profile crop, TileCoord home, out Task candidate)

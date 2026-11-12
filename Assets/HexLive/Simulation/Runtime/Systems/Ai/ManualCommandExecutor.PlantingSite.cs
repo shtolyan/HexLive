@@ -10,7 +10,7 @@ internal static partial class ManualCommandExecutor
         if (!BuildCatalogDefinition.TryGet(command.CatalogId, out _) ||
             !PlantGrowthCatalog.TryGetBySeed(command.CatalogId, out _))
         { admission.Reject("UnknownProduct"); return; }
-        if (!PlantGrowthSystem.CanPlantAt(world, command.Anchor, command.Tile))
+        if (!PlantGrowthSystem.CanPlantAt(world, command.Anchor, command.Tile, allowLooseSeeds: true))
         { admission.Reject("PlantingSpotOccupied"); return; }
         var site = WorldObjectMutations.SpawnObject(world, ContentIds.BuildSite,
             world.Junctions.Items[command.Anchor].Fragment, command.Tile, command.Anchor);

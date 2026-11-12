@@ -75,6 +75,8 @@ public sealed partial class LootTransferPanel : MonoBehaviour
     private int _lastTick = -1;
     private string _signature = string.Empty;
     private bool _pending;
+    private const float PendingFailureGraceSeconds = 2f;
+    private float _pendingSince;
     private int _pendingTick;
     private string _pendingSignature = string.Empty;
 
@@ -644,7 +646,13 @@ public sealed partial class LootTransferPanel : MonoBehaviour
             _pending = false;
             _status.text = DragHint();
         }
+        // На удалённом сервере команда идёт туда-обратно дольше одного тика:
+        // следующий снапшот приходил раньше, чем приказ применялся, и окно
+        // объявляло «не удалось», хотя через мгновение всё происходило. Отказ
+        // по неизменной раскладке объявляется только после паузы реального
+        // времени; настоящий отказ симуляции приходит своим тостом сразу.
         else if (snapshot.Tick > _pendingTick &&
+                 Time.unscaledTime - _pendingSince > PendingFailureGraceSeconds &&
                  looter.CurrentGoal != "PlayerInventory" &&
                  looter.PlanStatus != "Active")
         {
@@ -1363,6 +1371,7 @@ public sealed partial class LootTransferPanel : MonoBehaviour
     private void MarkPending()
     {
         _pending = true;
+        _pendingSince = Time.unscaledTime;
         _pendingTick = _lastTick;
         _pendingSignature = _signature;
         _status.text = Loc.Get("loot.transferring");

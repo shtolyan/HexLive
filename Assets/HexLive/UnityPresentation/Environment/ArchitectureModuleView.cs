@@ -105,6 +105,7 @@ namespace HexLive.UnityPresentation.Environment
             if (_model != null) Destroy(_model);
             _model = null;
             _door = null;
+            _doorLeafRenderers = System.Array.Empty<Renderer>();
             _renderers = System.Array.Empty<Renderer>();
             _definitionId = element.DefinitionId;
             _sticks = -1;
@@ -201,7 +202,38 @@ namespace HexLive.UnityPresentation.Environment
         /// decision, and that needs the room's floor sectors — data the world
         /// snapshot does not carry — so a module door opens to its authored side.
         /// </summary>
-        private void ConfigureDoor(GameObject model) =>
+        private void ConfigureDoor(GameObject model)
+        {
             _door = BlueprintArchitectureFactory.ConfigureAuthoredDoor(model, startOpen: true);
+            _doorLeafRenderers = _door != null
+                ? _door.GetComponentsInChildren<Renderer>(true)
+                : System.Array.Empty<Renderer>();
+        }
+
+        private Renderer[] _doorLeafRenderers = System.Array.Empty<Renderer>();
+
+        /// <summary>
+        /// §129.5 r2 (bug #726): the world-space middle of the door leaf as it
+        /// is drawn right now — where a break-in's axe lands (hand IK target).
+        /// Measured from the leaf's own renderers, so a swung or rebuilt leaf
+        /// never needs a hand-kept offset.
+        /// </summary>
+        public bool TryGetDoorLeafCenter(out Vector3 center)
+        {
+            center = default;
+            if (_door == null || _model == null || !_model.activeInHierarchy) return false;
+            var found = false;
+            var bounds = default(Bounds);
+            foreach (var leaf in _doorLeafRenderers)
+            {
+                if (leaf == null || !leaf.enabled || !leaf.gameObject.activeInHierarchy) continue;
+                if (!found) bounds = leaf.bounds;
+                else bounds.Encapsulate(leaf.bounds);
+                found = true;
+            }
+
+            if (found) center = bounds.center;
+            return found;
+        }
     }
 }

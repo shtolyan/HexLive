@@ -33,6 +33,11 @@ public sealed partial class ExecutionSystem
             npc.Execution.TargetObject=door.Id;
             npc.Execution.CurrentInteraction=breaking?InteractionType.Harvest:(InteractionType?)null;
             npc.Execution.ActionTool=tool;
+            // §129.5 r2 (bug #726): the axe is BOUND to this action, as every
+            // timed work binds its tool. Unbound, ActionItemResolver fell back to
+            // the door's own (non-existent) harvest recipe, exported an empty
+            // hand, and the view played the bare-handed crouch instead of chopping.
+            npc.Execution.ActionItemsBound=breaking;
             npc.Execution.StartTick=world.Tick;
             npc.Execution.EndTick=world.Tick+Math.Max(1,duration);
             if(breaking) DoorInteractionMath.BreakAttempt(world,npc,door);
@@ -40,6 +45,8 @@ public sealed partial class ExecutionSystem
             return;
         }
         npc.Execution.ActionTool=tool;
+        // Rebind every tick: a restored save does not persist the binding.
+        npc.Execution.ActionItemsBound=breaking;
         if(breaking)
         {
             door.Durability=Math.Max(0f,door.Durability-1f/DoorInteractionMath.BreakWorkTicks(world,npc));

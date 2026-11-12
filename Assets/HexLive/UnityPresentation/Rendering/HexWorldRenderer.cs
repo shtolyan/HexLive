@@ -3442,8 +3442,24 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             foreach (var progressObject in snapshot.Objects)
             {
-                if (progressObject.Id.Value != progressTargetId ||
-                    progressObject.CraftWorkRequired <= 0 || progressObject.CraftStationObjectId.HasValue)
+                if (progressObject.Id.Value != progressTargetId)
+                {
+                    continue;
+                }
+
+                // §129.5 r2 (bug #726): breaking a door in shows how much of
+                // it is already smashed. The leaf's Durability falls 1 → 0 over
+                // the whole job and survives an interruption, so the bar is
+                // the door's own state, not this one swing session.
+                if (npc.CurrentInteraction == "Harvest" &&
+                    progressObject.DefinitionId == HexLive.Simulation.Core.DoorTopology.DoorDefinitionId)
+                {
+                    showWorldProgress = !progressObject.IsDoorOpen && progressObject.Durability > 0f;
+                    worldProgress = Mathf.Clamp01(1f - progressObject.Durability);
+                    break;
+                }
+
+                if (progressObject.CraftWorkRequired <= 0 || progressObject.CraftStationObjectId.HasValue)
                 {
                     continue;
                 }
@@ -3725,7 +3741,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             npc.CurrentInteraction == "Rest" && npc.ExecutionStatus == "InProgress");
 
         var hasTargetObject = TryGetTargetObject(snapshot, npc, out var targetObject);
-        if (TryGetActionTargetPoint(snapshot, npc, hasTargetObject, targetObject, out var actionTarget))
+        var hasActionTarget = TryGetActionTargetPoint(snapshot, npc, hasTargetObject, targetObject, out var actionTarget);
+        if (hasActionTarget)
         {
             actorView.SetActionTargetPoint(actionTarget);
         }
@@ -3748,8 +3765,19 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         if (ShouldLookAtInteractionTarget(npc) && hasTargetObject)
         {
-            var targetPoint = GetObjectAnchorPosition(snapshot, targetObject);
-            targetPoint.y += HexRadius * NpcHeightFactor * 0.8f;
+            // Bug #726: a door's anchor is its building's origin; she looks
+            // where the axe lands instead.
+            Vector3 targetPoint;
+            if (hasActionTarget &&
+                targetObject.DefinitionId == HexLive.Simulation.Core.DoorTopology.DoorDefinitionId)
+            {
+                targetPoint = actionTarget;
+            }
+            else
+            {
+                targetPoint = GetObjectAnchorPosition(snapshot, targetObject);
+                targetPoint.y += HexRadius * NpcHeightFactor * 0.8f;
+            }
             actorView.LookAtPoint(targetPoint);
             return;
         }
@@ -3847,8 +3875,33 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private static bool IsCoconutDefinition(string definitionId) =>
         definitionId.StartsWith("food.coconut", System.StringComparison.Ordinal);
 
+    // §129.5 r2 (bug #726): the authored door leaf (architecture.door.wood.fbx,
+    // HL_Door_Pivot children) spans 0.06–1.43 wu up, so its middle is 0.745 wu
+    // above the floor. Used only when the live leaf has no renderers to measure.
+    private const float DoorLeafCenterHeight = 0.745f;
+
     private Vector3 GetObjectActionTargetPosition(WorldSnapshot snapshot, ObjectSnapshot worldObject)
     {
+        // §129.5 r2 (bug #726): breaking in swings the axe into the MIDDLE of
+        // the door leaf, the way the same Chop clip + hand IK strikes a coconut
+        // or a trunk. The module's anchor is the building's origin, not the door.
+        if (worldObject.DefinitionId == HexLive.Simulation.Core.DoorTopology.DoorDefinitionId)
+        {
+            if (_objectViewParts.TryGetValue(worldObject.Id.Value, out var doorParts) &&
+                doorParts.Module != null && doorParts.Module.TryGetDoorLeafCenter(out var leafCenter))
+            {
+                return leafCenter;
+            }
+
+            if (worldObject.Junctions.Count > 0 &&
+                _junctionPositions.TryGetValue(worldObject.Junctions[0].Value, out var throat))
+            {
+                // The door's one junction is the doorway throat, on the wall line.
+                return SimulationUnityMapper.ToUnityPosition(throat,
+                    ObjectGroundY(worldObject) + DoorLeafCenterHeight);
+            }
+        }
+
         var point = GetObjectAnchorPosition(snapshot, worldObject);
         point.y += ActionTargetLift(worldObject.DefinitionId);
         return point;

@@ -160,6 +160,37 @@ public sealed class DoorInteractionTests
         Assert.That(world.Entities.Objects.ContainsKey(door.Id),Is.True);
         Assert.That(door.IsOccupied,Is.False);
     }
+    // Bug #726: the view can only swing the axe (Chop clip + hand IK at the
+    // door) and fill the bar if the snapshot says so: the axe in the working
+    // hand and the door's remaining strength, also after a reload.
+    [Test]
+    public void BreakInExportsTheAxeInHandAndTheDoorsRemainingStrength()
+    {
+        var(engine,visitor,owner,door)=Setup(); var world=engine.World;
+        owner.Tile=new TileCoord(99,99);
+        Assert.That(engine.ApplyManualCommand(new BreakDoorCommand(visitor.Id,door.Id)).Accepted,Is.True);
+        Execute(world,visitor,20);
+        var snapshot=WorldSnapshotExporter.Export(world);
+        var actor=snapshot.Npcs.Single(n=>n.Id==visitor.Id);
+        var leaf=snapshot.Objects.Single(o=>o.Id==door.Id);
+        Assert.That(actor.CurrentInteraction,Is.EqualTo("Harvest"));
+        Assert.That(actor.TargetObjectId,Is.EqualTo(door.Id.Value));
+        Assert.That(actor.HeldItemId,Is.EqualTo("tool.axe_stone"));
+        Assert.That(leaf.DefinitionId,Is.EqualTo(DoorTopology.DoorDefinitionId));
+        Assert.That(leaf.Durability,Is.InRange(.01f,.99f));
+        Execute(world,visitor,10);
+        Assert.That(WorldSnapshotExporter.Export(world).Objects.Single(o=>o.Id==door.Id).Durability,
+            Is.LessThan(leaf.Durability));
+
+        using var bytes=new MemoryStream();
+        using(var writer=new BinaryWriter(bytes,System.Text.Encoding.UTF8,true)) WorldSaveSerializer.Write(world,writer);
+        bytes.Position=0; var loaded=TestWorld.CreateWorld(world.Seed); loaded.Mode=world.Mode;
+        using(var reader=new BinaryReader(bytes)) WorldSaveSerializer.Read(loaded,reader);
+        var worker=loaded.Entities.Npcs[visitor.Id];
+        Execute(loaded,worker,1);
+        Assert.That(WorldSnapshotExporter.Export(loaded).Npcs.Single(n=>n.Id==visitor.Id).HeldItemId,
+            Is.EqualTo("tool.axe_stone"));
+    }
     [Test]
     public void EvenAbortedAttemptHurtsTrustAndFrightensCoward()
     {

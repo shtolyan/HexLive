@@ -136,7 +136,8 @@ namespace HexLive.UnityPresentation.Audio
         // base gain in one place prevents its peak ceiling from drifting away
         // from the gain FMOD actually applies.
         public const float VoicePlaybackBaseGain = 0.75f;
-        private static readonly Def VoiceDef = new(VoicePlaybackBaseGain, 1.2f, 22f, 0.03f);
+        public const float VoiceMaxDistance = 22f;
+        private static readonly Def VoiceDef = new(VoicePlaybackBaseGain, 1.2f, VoiceMaxDistance, 0.03f);
 
         // ---- §67.16: язык озвучки = локаль игрока --------------------------
         // Банки лежат параллельными деревьями с ОДИНАКОВЫМИ именами файлов, так
@@ -1026,7 +1027,11 @@ namespace HexLive.UnityPresentation.Audio
                        (listenerRelative
                            ? FMOD.MODE._2D
                            : FMOD.MODE._3D | FMOD.MODE._3D_LINEARSQUAREROLLOFF);
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (!TryOpenDynamicPcm(core, wavPath, mode, out var sound))
+#else
             if (CreateSound(core, wavPath, mode, default, out var sound) != FMOD.RESULT.OK)
+#endif
             {
                 return default;
             }
@@ -1056,6 +1061,41 @@ namespace HexLive.UnityPresentation.Audio
                 VisemeFile = visemePath
             };
         }
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        private static bool TryOpenDynamicPcm(FMOD.System core, string path, FMOD.MODE mode, out FMOD.Sound sound)
+        {
+            sound = default;
+            byte[] wav;
+            try { wav = File.ReadAllBytes(path); }
+            catch (IOException) { return false; }
+            if (!VoiceVisemeBaker.TryReadPcm(wav, out var pcm, out _)) return false;
+            var info = new FMOD.CREATESOUNDEXINFO
+            {
+                cbsize = System.Runtime.InteropServices.Marshal.SizeOf<FMOD.CREATESOUNDEXINFO>(),
+                length = (uint)(pcm.Length * sizeof(short)),
+                numchannels = 1,
+                defaultfrequency = VoiceVisemeBaker.SampleRate,
+                format = FMOD.SOUND_FORMAT.PCM16,
+            };
+            // Web FMOD has no WAV decoder. Fill its user PCM buffer directly.
+            if (core.createSound(string.Empty, mode | FMOD.MODE.OPENUSER, ref info, out sound) != FMOD.RESULT.OK)
+                return false;
+            if (sound.@lock(0, info.length, out var p1, out var p2, out var l1, out var l2) != FMOD.RESULT.OK)
+            {
+                sound.release();
+                sound = default;
+                return false;
+            }
+            try
+            {
+                if (l1 > 0) System.Runtime.InteropServices.Marshal.Copy(pcm, 0, p1, (int)l1 / sizeof(short));
+                if (l2 > 0) System.Runtime.InteropServices.Marshal.Copy(pcm, (int)l1 / sizeof(short), p2, (int)l2 / sizeof(short));
+            }
+            finally { sound.unlock(p1, p2, l1, l2); }
+            return true;
+        }
+#endif
 
         /// <summary>Позиция воспроизведения хэндла в мс (-1 = не играет) —
         /// §67.7: часы липсинка (по ним сэмплируется .vis-таймлайн).</summary>

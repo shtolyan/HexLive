@@ -4,7 +4,7 @@ namespace HexLive.AgentCore.Studio;
 
 /// <summary>Provider-independent voice seam around the proven PCM/FMOD conversion path.</summary>
 public sealed class ElevenLabsVoiceAdapter(string integrationId,
-    Func<CancellationToken, Task<string>> getKey) : IVoiceAdapter
+    Func<CancellationToken, Task<string>> getKey, HttpClient? http = null) : IVoiceAdapter
 {
     public async Task<byte[]> SynthesizeWavAsync(VoiceSelection selection, string text, CancellationToken token)
     {
@@ -17,7 +17,7 @@ public sealed class ElevenLabsVoiceAdapter(string integrationId,
         {
             McpUri = new Uri("http://localhost/mcp"), McpToken = "", XaiKey = "", XaiModel = "",
             ElevenLabsKey = key, ElevenLabsVoiceId = selection.VoiceId, ElevenLabsModel = selection.ModelId,
-        });
+        }, http: http);
         // No MCP or model call is made by this adapter.
         var wav = (await provider.SynthesizeAsync(text, token)).Wav;
         if (wav.Length > 6 * 1024 * 1024) throw new InvalidDataException("VoiceTooLarge");

@@ -7072,6 +7072,7 @@ namespace HexLive.UnityPresentation.UI
             button.style.overflow = Overflow.Hidden;
             button.name = "character-control-modes";
             button.Add(BuildPhoneControlSegment());
+            button.Add(BuildPlayerSpeechButton());
 
             button.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(button, GoldDim));
             button.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(

@@ -381,12 +381,13 @@ public sealed class NpcSpeechDirector
     /// <summary>§160: external agent speech uses the same one-mouth arbiter.</summary>
     public bool SayExternal(
         string wavPath, string visemePath, string emotion, SpeechCatalog.Rank rank,
-        float playbackGain = 1f)
+        float playbackGain = 1f, bool positional = false)
     {
         if (_phoneVoice || _romanceScene) return false;
         if (string.IsNullOrEmpty(wavPath)) return false;
         var alarm = rank == SpeechCatalog.Rank.Alarm;
-        if (!_stage.CanSpeakExternal(rank == SpeechCatalog.Rank.Talk)) return false;
+        var playerReply = rank == SpeechCatalog.Rank.Talk && !positional;
+        if (!_stage.CanSpeakExternal(playerReply)) return false;
 
         var now = _clock();
         var busy = now < _activeUntil;
@@ -405,7 +406,7 @@ public sealed class NpcSpeechDirector
         };
         var line = SpeechCatalog.Get(visualId);
         var length = _stage.PlayExternalVoiceLine(
-            wavPath, visemePath, emotion ?? "neutral", rank == SpeechCatalog.Rank.Talk,
+            wavPath, visemePath, emotion ?? "neutral", playerReply,
             playbackGain);
         if (length <= 0f) return false;
         var hold = Mathf.Max(SpeechCatalog.MinBubbleSeconds, length) + SpeechCatalog.BubbleTailSeconds;
@@ -414,7 +415,7 @@ public sealed class NpcSpeechDirector
         _heldFace = null;
         _activeUntil = now + hold;
         _activeRank = rank;
-        _activePlayerReply = rank == SpeechCatalog.Rank.Talk;
+        _activePlayerReply = playerReply;
         _lastAny = now;
         if (rank == SpeechCatalog.Rank.Ambient) _lastAmbient = now;
         return true;

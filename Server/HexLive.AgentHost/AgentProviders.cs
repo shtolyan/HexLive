@@ -32,7 +32,8 @@ public sealed class AgentProviders : IAgentProviders
     public static bool IsAllowedTool(string name) => AllowedTools.Contains(name);
 
     private readonly AgentProviderOptions _options;
-    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(45) };
+    private readonly HttpClient _http;
+    private readonly bool _ownsHttp;
 
     private readonly IModelAdapter? _modelAdapter;
     private readonly ModelSelection? _modelSelection;
@@ -40,9 +41,12 @@ public sealed class AgentProviders : IAgentProviders
     private readonly VoiceSelection? _voiceSelection;
 
     public AgentProviders(AgentProviderOptions options, IModelAdapter? modelAdapter = null,
-        ModelSelection? modelSelection = null, IVoiceAdapter? voiceAdapter = null, VoiceSelection? voiceSelection = null)
+        ModelSelection? modelSelection = null, IVoiceAdapter? voiceAdapter = null, VoiceSelection? voiceSelection = null,
+        HttpClient? http = null)
     {
         _options = options;
+        _ownsHttp = http == null;
+        _http = http ?? new HttpClient { Timeout = TimeSpan.FromSeconds(45) };
         _modelAdapter = modelAdapter; _modelSelection = modelSelection;
         _voiceAdapter = voiceAdapter; _voiceSelection = voiceSelection;
         if ((modelAdapter == null) != (modelSelection == null)) throw new ArgumentException("ModelAdapterSelectionRequired");
@@ -573,5 +577,5 @@ public sealed class AgentProviders : IAgentProviders
         return stream.ToArray();
     }
 
-    public void Dispose() => _http.Dispose();
+    public void Dispose() { if (_ownsHttp) _http.Dispose(); }
 }

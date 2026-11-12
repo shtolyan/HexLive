@@ -24,11 +24,13 @@ public sealed partial class VoiceBrainService
     private readonly VoiceConversationMemory _memory;
     private readonly ContactClock _contacts;
     private readonly IUsageLedger? _ledger;
+    private readonly IVoiceAdapter _playerSpeechVoice;
     private readonly UsageTariffs? _tariffs;
     private readonly Func<SessionTicket, IWorldGateway> _worldFor;
     private readonly ILogger _log;
     private readonly byte[] _secret;
     private readonly Dictionary<string, string> _voices;
+    private readonly Dictionary<string, string> _playerSpeechVoices;
     private readonly Func<string, bool>? _canSpend;
     private readonly Func<SessionTicket, CancellationToken?>? _callLifetime;
 
@@ -39,6 +41,7 @@ public sealed partial class VoiceBrainService
         http ??= new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
         _llm = new OpenAiStream(http, options.OpenAiKey);
         ElevenLabs = new ElevenLabsAgents(http, options.ElevenLabsKey);
+        _playerSpeechVoice = new ElevenLabsVoiceAdapter("ElevenLabs", _ => Task.FromResult(options.ElevenLabsKey), http);
         Tickets = new SessionTickets(options.TicketKey);
         _bonds = new RelationshipStore(Path.Combine(options.StateDirectory, "bonds"));
         _memory = new VoiceConversationMemory(Path.Combine(options.StateDirectory, "conversations"));
@@ -54,6 +57,10 @@ public sealed partial class VoiceBrainService
         _log = log;
         _secret = Encoding.UTF8.GetBytes(options.BrainSecret);
         _voices = LoadVoices(options.VoicesPath);
+        using var authoredVoices = typeof(VoiceBrainService).Assembly.GetManifestResourceStream(
+            "HexLive.VoiceBrain.character-voices.json")!;
+        _playerSpeechVoices = ReadVoices(authoredVoices);
+        foreach (var pair in _voices) _playerSpeechVoices[pair.Key] = pair.Value;
         _canSpend = canSpend;
         _callLifetime = callLifetime;
     }
@@ -77,11 +84,42 @@ public sealed partial class VoiceBrainService
     /// voice of their sex — Masha for a woman, Kshishtof for a man (§58.9: a Tonny body with no voice bank
     /// used to answer the phone in Masha's voice).
     /// </summary>
-    public string VoiceFor(string? requested, string? voiceBank, string? name, string? actorMesh = null, bool male = false)
+    public string VoiceFor(string? requested, string? voiceBank, string? name, string? actorMesh = null, bool male = false) =>
+        VoiceFor(_voices, requested, voiceBank, name, actorMesh, male);
+
+    public string PlayerSpeechVoiceFor(string? voiceBank, string? name, string? actorMesh, bool male) =>
+        VoiceFor(_playerSpeechVoices, null, voiceBank, name, actorMesh, male);
+
+    private static string VoiceFor(Dictionary<string, string> voices, string? requested,
+        string? voiceBank, string? name, string? actorMesh, bool male)
     {
         foreach (var key in new[] { requested, voiceBank, actorMesh, name })
-            if (key is { Length: > 0 } k && _voices.TryGetValue(k, out var id)) return id;
-        return male && _voices.TryGetValue("Kshishtof", out var man) ? man : _voices.GetValueOrDefault("Masha", "");
+            if (key is { Length: > 0 } k && voices.TryGetValue(k, out var id)) return id;
+        return male && voices.TryGetValue("Kshishtof", out var man) ? man : voices.GetValueOrDefault("Masha", "");
+    }
+
+    public Task<byte[]> SynthesizePlayerSpeechAsync(UsageContext context, string voiceId, string text,
+        CancellationToken cancellationToken)
+    {
+        const string integration = "ElevenLabs";
+        var adapter = _playerSpeechVoice;
+        if (_ledger != null) adapter = new MeteredVoiceAdapter(adapter, _ledger, context, integration, _tariffs);
+        return adapter.SynthesizeWavAsync(new VoiceSelection(integration, voiceId, "eleven_flash_v2_5"),
+            text, cancellationToken);
+    }
+
+    public void RecordPlayerSpeechRecognition(UsageContext context, double seconds, string status, string error)
+    {
+        if (_ledger == null) return;
+        var usage = new UsageEvent
+        {
+            AtUtc = DateTimeOffset.UtcNow, OwnerUserId = context.OwnerUserId, CharacterId = context.CharacterId,
+            WorldId = context.WorldId, NpcId = context.NpcId, SessionId = context.SessionId,
+            Kind = UsageKind.Stt, Provider = "Deepgram", Model = "nova-3", AudioSeconds = seconds,
+            Status = status, Error = error
+        };
+        try { _ledger.Append(_tariffs?.Price(usage) ?? usage); }
+        catch (Exception ex) { _log.LogWarning("Player speech usage write failed: {Type}", ex.GetType().Name); }
     }
 
     public object RelationshipView(string characterId, string ownerUserId)
@@ -231,9 +269,15 @@ public sealed partial class VoiceBrainService
 
     private static Dictionary<string, string> LoadVoices(string path)
     {
+        if (path.Length == 0 || !File.Exists(path)) return new(StringComparer.OrdinalIgnoreCase);
+        using var stream = File.OpenRead(path);
+        return ReadVoices(stream);
+    }
+
+    private static Dictionary<string, string> ReadVoices(Stream stream)
+    {
         var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        if (path.Length == 0 || !File.Exists(path)) return map;
-        using var doc = JsonDocument.Parse(File.ReadAllText(path));
+        using var doc = JsonDocument.Parse(stream);
         if (doc.RootElement.TryGetProperty("characters", out var characters) && characters.ValueKind == JsonValueKind.Object)
             foreach (var c in characters.EnumerateObject())
                 if (c.Value.TryGetProperty("voice_id", out var id) && id.GetString() is { Length: > 0 } v) map[c.Name] = v;

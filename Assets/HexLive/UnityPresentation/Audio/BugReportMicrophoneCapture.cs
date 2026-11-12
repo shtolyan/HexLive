@@ -8,19 +8,22 @@ namespace HexLive.UnityPresentation.Audio
     {
         public BugReportMicrophoneCapture(float nativeMaxSeconds = 90f, bool nativeFinishOnSilence = false)
         {
-#if !UNITY_WEBGL || UNITY_EDITOR
+#if UNITY_WEBGL && !UNITY_EDITOR
+            _maxSeconds = (int)Math.Clamp(nativeMaxSeconds, 1f, 90f);
+#else
             _native = new FmodMicrophoneCapture(nativeMaxSeconds, nativeFinishOnSilence);
 #endif
         }
 
 #if UNITY_WEBGL && !UNITY_EDITOR
-        [DllImport("__Internal")] private static extern int HexLiveBugMicStart();
+        [DllImport("__Internal")] private static extern int HexLiveBugMicStart(int maxSeconds);
         [DllImport("__Internal")] private static extern int HexLiveBugMicState();
         [DllImport("__Internal")] private static extern float HexLiveBugMicLevel();
         [DllImport("__Internal")] private static extern int HexLiveBugMicStop();
         [DllImport("__Internal")] private static extern int HexLiveBugMicCopy([Out] byte[] destination, int capacity);
         [DllImport("__Internal")] private static extern void HexLiveBugMicCancel();
         private static BugReportMicrophoneCapture _browserOwner;
+        private readonly int _maxSeconds;
         private bool _recording, _ownsMute, _previousMute;
         private FMOD.ChannelGroup _master;
         public bool IsRecording => _recording;
@@ -37,7 +40,7 @@ namespace HexLive.UnityPresentation.Audio
                     _master.getMute(out _previousMute) != FMOD.RESULT.OK) return false;
                 _ownsMute = true;
                 _browserOwner = this;
-                if (_master.setMute(true) != FMOD.RESULT.OK || HexLiveBugMicStart() != 1)
+                if (_master.setMute(true) != FMOD.RESULT.OK || HexLiveBugMicStart(_maxSeconds) != 1)
                 { Cancel(); error = "MicrophoneUnavailable"; return false; }
                 _recording = true; return true;
             }
@@ -51,7 +54,7 @@ namespace HexLive.UnityPresentation.Audio
             try
             {
                 int size = HexLiveBugMicStop();
-                if (size < 44 || size > 90 * 192000 * 2 + 44) { error = "NoRecording"; return null; }
+                if (size < 44 || size > _maxSeconds * 192000 * 2 + 44) { error = "NoRecording"; return null; }
                 var wav = new byte[size];
                 if (HexLiveBugMicCopy(wav, size) != size) { error = "NoRecording"; return null; }
                 return wav;

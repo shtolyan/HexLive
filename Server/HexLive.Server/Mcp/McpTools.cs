@@ -1340,7 +1340,8 @@ public sealed class McpTools
             isError = true;
             return "utteranceId/turnId/text обязательны, sha256 содержит 64 hex-символа.";
         }
-        if ((delivery == AgentSpeechDelivery.PlayerReply && priority != AgentSpeechPriority.Talk) ||
+        if (delivery == AgentSpeechDelivery.PlayerBroadcast ||
+            (delivery == AgentSpeechDelivery.PlayerReply && priority != AgentSpeechPriority.Talk) ||
             (delivery == AgentSpeechDelivery.World && priority != AgentSpeechPriority.Ambient))
         {
             isError = true;

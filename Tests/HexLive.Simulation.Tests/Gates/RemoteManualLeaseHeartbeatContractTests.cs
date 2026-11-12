@@ -14,12 +14,16 @@ public sealed class RemoteManualLeaseHeartbeatContractTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(source, Does.Contain("RemoteLeaseHeartbeatSeconds = 2f"));
-            Assert.That(source, Does.Contain("RefreshControlSelection();\n        RenewRemoteLeaseForSelection();"));
-            Assert.That(source, Does.Contain("_runner.Link.IsRemote"));
-            Assert.That(source, Does.Contain("new SetManualControlCommand("));
-            Assert.That(source, Does.Contain("new SetGroupManualControlCommand("));
-            Assert.That(source, Does.Contain("SelectedActors(), true"));
+            // §121.7 / #728: the heartbeat is the player's ATTENTION, not the mere
+            // selection — it stops when the mouse and keyboard go quiet and no
+            // window of that character is open, so a forgotten one returns to AI.
+            Assert.That(source, Does.Contain("PresenceHeartbeatSeconds = 2f"));
+            Assert.That(source, Does.Contain("PresenceAttentionSeconds = 4f"));
+            Assert.That(source, Does.Contain("RefreshControlSelection();"));
+            Assert.That(source, Does.Contain("UpdatePresenceHeartbeat();"));
+            Assert.That(source, Does.Contain("LootTransferPanel.IsOpen || ContextMenuPanel.IsOpen"));
+            Assert.That(source, Does.Contain("foreach (var id in _manualSelectedIds)"));
+            Assert.That(source, Does.Contain("new SetManualControlCommand(new EntityId(id), true)"));
         });
     }
 

@@ -123,7 +123,7 @@ public sealed class ManualControlTests
             Is.EqualTo(new[] { ("MoveTo", true), ("SelfAction", false) }));
         Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.PlayerOrder));
 
-        now = 72d;
+        now = Spec121.ManualIdleReleaseSeconds * 2d;
         for (var i = 0; i < 600 && npc.Mind.CurrentGoal != GoalType.Sit; i++)
             engine.Step();
 
@@ -134,16 +134,16 @@ public sealed class ManualControlTests
         Assert.That(after.PlayerOrders.Select(order => (order.Action, order.Active)),
             Is.EqualTo(new[] { ("SelfAction", true) }));
 
-        now = 144d;
+        now = Spec121.ManualIdleReleaseSeconds * 4d;
         for (var i = 0; i < 600 && npc.Mind.PlayerOrders.Active != null; i++)
             engine.Step();
 
         Assert.That(npc.Mind.PlayerOrders.Active, Is.Null);
         Assert.That(npc.Mind.ManualControl, Is.True);
-        now = 179.999d;
+        now = Spec121.ManualIdleReleaseSeconds * 5d - 0.001d;
         new ManualOrderSystem().Run(engine.World);
         Assert.That(npc.Mind.ManualControl, Is.True);
-        now = 180d;
+        now = Spec121.ManualIdleReleaseSeconds * 5d;
         new ManualOrderSystem().Run(engine.World);
         Assert.That(npc.Mind.ManualControl, Is.False);
     }

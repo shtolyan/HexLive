@@ -51,10 +51,16 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
     // только к зверям и к людям БЕЗ готового вида (первые кадры после спавна,
     // примитивы прототипных сцен) — у остальных был честный точный луч.
     private const float PickRadiusPixels = 70f;
-    // Server lease may be configured as low as five seconds. A selected manual
-    // actor proves the viewer is still actively presenting that control, so a
-    // cheap idempotent heartbeat every two seconds keeps ownership alive while
-    // still letting a disconnected viewer or a cleared selection expire.
+    // §121.7 / #728: «забыли про неё» решает ВНИМАНИЕ игрока, а не одни приказы.
+    // Пока выделенная ручная колонистка у игрока под рукой — он двигает мышь,
+    // жмёт клавиши или держит открытым её окно (лут, инвентарь, меню) — клиент
+    // раз в две секунды шлёт идемпотентный SetManualControl(true), и симуляция
+    // продлевает окно простоя. Снял выделение или отошёл от компьютера —
+    // сердцебиение молчит, и через ManualIdleReleaseSeconds её забирает ИИ.
+    private const float PresenceHeartbeatSeconds = 2f;
+    private const float PresenceAttentionSeconds = 4f;
+    private float _attentionAt = float.NegativeInfinity;
+    private float _presenceSentAt = float.NegativeInfinity;
 
     private Camera? _camera;
     private HexWorldRenderer? _worldRenderer;
@@ -196,6 +202,7 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         }
 
         RefreshControlSelection();
+        UpdatePresenceHeartbeat();
         if (_plantingActorId >= 0)
         {
             if (!UpdatePlantingPlacement())
@@ -222,6 +229,40 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
     {
         ClearHover();
         CancelPlantingPlacement();
+    }
+
+    private void UpdatePresenceHeartbeat()
+    {
+        var now = Time.unscaledTime;
+        var mouse = UnityEngine.InputSystem.Mouse.current;
+        var keyboard = UnityEngine.InputSystem.Keyboard.current;
+        if ((mouse != null &&
+             (mouse.delta.ReadValue().sqrMagnitude > 0f ||
+              mouse.scroll.ReadValue().sqrMagnitude > 0f ||
+              mouse.leftButton.isPressed || mouse.rightButton.isPressed ||
+              mouse.middleButton.isPressed)) ||
+            keyboard?.anyKey.isPressed == true ||
+            // HTML-окна WebGL забирают указатель себе: мышь над ними до Unity
+            // не доходит, поэтому открытое окно персонажа само есть внимание.
+            LootTransferPanel.IsOpen || ContextMenuPanel.IsOpen ||
+            CharacterPanel.BlocksWorldPointer || CraftProjectDetailsPanel.BlocksWorldInput ||
+            _plantingActorId >= 0)
+        {
+            _attentionAt = now;
+        }
+
+        if (_runner == null || _manualSelectedIds.Count == 0 ||
+            now - _attentionAt > PresenceAttentionSeconds ||
+            now - _presenceSentAt < PresenceHeartbeatSeconds)
+        {
+            return;
+        }
+
+        _presenceSentAt = now;
+        foreach (var id in _manualSelectedIds)
+        {
+            _runner.EnqueueCommand(new SetManualControlCommand(new EntityId(id), true));
+        }
     }
 
     private bool UpdatePlantingPlacement()
@@ -930,7 +971,11 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
 
         if (clickedNpc >= 0)
         {
-            if (!CommandMode)
+            // #731: выделен ровно один свой персонаж — левый клик по ДРУГОМУ
+            // человеку на сцене открывает меню действий в любом режиме, а не
+            // переключает выделение (сменить персонажа — список лагеря). Клик
+            // по себе под ИИ по-прежнему отдаётся камере (follow, §123.1).
+            if (!CommandMode && (OrderNpcId < 0 || clickedNpc == OrderNpcId))
                 return false;
 
             // §121.9: клик по себе — меню самодействий, не приказ и не выбор.

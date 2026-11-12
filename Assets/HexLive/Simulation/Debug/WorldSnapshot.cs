@@ -470,6 +470,19 @@ public sealed class InventorySlotSnapshot
     // Empty for ordinary cells; a typed holster cell carries the one exact id
     // it accepts even while the cell itself is empty.
     public string AcceptedItemDefinitionId { get; set; } = string.Empty;
+
+    // §128.4 / bug #727: state of the exact physical item at SourceIndex, so the
+    // read-only card of a wardrobe/chest cell says what the carried card says —
+    // owner, wear, wetness, dirt. Empty cells keep the defaults.
+    public float Durability { get; set; } = 1f;
+
+    public float Wetness { get; set; }
+
+    public float Dirtiness { get; set; }
+
+    public float Bloodiness { get; set; }
+
+    public int OwnerId { get; set; }
 }
 
 public sealed class InventoryContainerSnapshot

@@ -253,6 +253,43 @@ public sealed class ContainerLootTests
     }
 
     [Test]
+    // §128.4 / bug #727: the read-only card of a wardrobe cell must have the same
+    // owner, wear, wetness and dirt the carried card shows — so they travel in
+    // the cell itself, through the wire, not only in the NPC's parallel lists.
+    public void WardrobeCellCarriesGarmentStateThroughTheWire()
+    {
+        var world = TestWorld.CreateWorld(128503);
+        var npc = Colonist(world);
+        var anchor = Junction(world, npc);
+        var wardrobe = WorldObjectMutations.SpawnObject(
+            world, ContentIds.Wardrobe, npc.Fragment, npc.Tile, anchor);
+        var garment = WorldObjectMutations.SpawnObject(
+            world, "clothing.skirt_primal", npc.Fragment, npc.Tile, anchor);
+        garment.Wetness = 0.7f;
+        garment.Durability = 0.6f;
+        garment.Dirtiness = 0.5f;
+        garment.Bloodiness = 0.25f;
+        garment.Owner = npc.Id;
+
+        var decoded = new WorldSnapshot();
+        using var stream = new MemoryStream();
+        using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+            WorldSnapshotCodec.Write(WorldSnapshotExporter.Export(world), writer, includeDebugDetails: false);
+        stream.Position = 0;
+        using (var reader = new BinaryReader(stream)) WorldSnapshotCodec.Read(reader, decoded);
+        var cell = decoded.Objects.Single(obj => obj.Id == wardrobe.Id).Contents
+            .Single(row => row.ItemDefinitionId == "clothing.skirt_primal");
+        Assert.Multiple(() =>
+        {
+            Assert.That(cell.Durability, Is.EqualTo(0.6f));
+            Assert.That(cell.Wetness, Is.EqualTo(0.7f));
+            Assert.That(cell.Dirtiness, Is.EqualTo(0.5f));
+            Assert.That(cell.Bloodiness, Is.EqualTo(0.25f));
+            Assert.That(cell.OwnerId, Is.EqualTo(npc.Id.Value));
+        });
+    }
+
+    [Test]
     public void RackAndCollectorExposeFilteredPhysicalSlots()
     {
         var world = TestWorld.CreateWorld(151001);

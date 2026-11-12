@@ -175,7 +175,9 @@ public sealed class Handshake
     // 30: §176 — the reserved apartment grid and visit-specific topology.
     // 31: §121.9 — snapshot v47 carries the reason a manual sleep order is blocked.
     //     §54.14 — command v13 can name the exact station for cooking.
-    public const int ProtocolVersion = 33; // matched client/server required
+    // 33: §121.13 — snapshot v49 carries the player order queue.
+    // 34: §128.4/#727 — snapshot v50 carries each cell's item state.
+    public const int ProtocolVersion = 34; // matched client/server required
 
     public string WorldId { get; set; } = string.Empty;
     public string CreationConfig { get; set; } = string.Empty;

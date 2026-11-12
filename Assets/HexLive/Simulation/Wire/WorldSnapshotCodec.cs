@@ -97,7 +97,8 @@ public static class WorldSnapshotCodec
     // v42: per-vessel visual provenance and exact held-bottle fill (§55.5).
     // v43: persistent craft project current/last worker (§119, #422).
     // v44: §54.21 / #429 distinguishes harvest scatter from inventory piles.
-    public const int WireVersion = 49; // §121.13: player order queue in NPC mind.
+    // v49: §121.13 player order queue in NPC mind.
+    public const int WireVersion = 50; // §128.4/#727: per-cell item state (wear, wet, dirt, blood, owner).
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -562,6 +563,7 @@ public static class WorldSnapshotCodec
             // строка стоит байт, а поле, забытое ради байта, живёт до
             // следующего ключевого кадра (гейт покрытия провода ловит ровно это).
             WireIo.WriteString(w, slot.AcceptedItemDefinitionId);
+            WriteSlotItemState(w, slot);
         }
         // §151: always present beside Contents for the same reason as its
         // count. Zero is the legacy/unbounded container projection.
@@ -708,6 +710,7 @@ public static class WorldSnapshotCodec
                     LeafDryness=r.ReadSingle(),
                     AcceptedItemDefinitionId = r.ReadString()
                 });
+                ReadSlotItemState(r, o.Contents[o.Contents.Count - 1]);
             }
             o.ContainerCapacity = r.ReadInt32();
 
@@ -1139,8 +1142,29 @@ public static class WorldSnapshotCodec
                 w.Write((byte)slot.LastAddedWaterKind);
             w.Write(slot.LeafDryness);
                 WireIo.WriteString(w, slot.AcceptedItemDefinitionId);
+                WriteSlotItemState(w, slot);
             }
         }
+    }
+
+    // §128.4 / bug #727 (wire v50): the physical item's own state rides with
+    // its cell, for carried pockets and container contents alike.
+    private static void WriteSlotItemState(BinaryWriter w, InventorySlotSnapshot slot)
+    {
+        w.Write(slot.Durability);
+        w.Write(slot.Wetness);
+        w.Write(slot.Dirtiness);
+        w.Write(slot.Bloodiness);
+        w.Write(slot.OwnerId);
+    }
+
+    private static void ReadSlotItemState(BinaryReader r, InventorySlotSnapshot slot)
+    {
+        slot.Durability = r.ReadSingle();
+        slot.Wetness = r.ReadSingle();
+        slot.Dirtiness = r.ReadSingle();
+        slot.Bloodiness = r.ReadSingle();
+        slot.OwnerId = r.ReadInt32();
     }
 
     private static void WriteNpcWear(BinaryWriter w, NpcSnapshot n)
@@ -1530,6 +1554,7 @@ public static class WorldSnapshotCodec
                 slot.LastAddedWaterKind = (Agents.WaterKind)r.ReadByte();
                 slot.LeafDryness=r.ReadSingle();
                 slot.AcceptedItemDefinitionId = r.ReadString();
+                ReadSlotItemState(r, slot);
             }
         }
     }

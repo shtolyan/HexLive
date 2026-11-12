@@ -272,7 +272,13 @@ public static class WorldSnapshotExporter
                         WaterKind = physical?.WaterKind ?? WaterKind.None,
                         LastAddedWaterKind = physical?.LastAddedWaterKind ?? WaterKind.None,
                         LeafDryness=physical is not null && Runtime.LeafDryingMath.HasLeaves(physical.DefinitionId)
-                            ? Runtime.LeafDryingMath.VisualFraction(world.Tick,physical.LeafDryingStartTick) : 0f
+                            ? Runtime.LeafDryingMath.VisualFraction(world.Tick,physical.LeafDryingStartTick) : 0f,
+                        // §128.4 / #727: the card of a stored item shows its own state.
+                        Durability = physical?.Durability ?? 1f,
+                        Wetness = physical?.Wetness ?? 0f,
+                        Dirtiness = physical?.Dirtiness ?? 0f,
+                        Bloodiness = physical?.Bloodiness ?? 0f,
+                        OwnerId = physical?.OwnerId ?? 0
                     });
                 }
             }
@@ -862,6 +868,8 @@ public static class WorldSnapshotExporter
             };
             foreach (var sourceSlot in sourceContainer.Slots)
             {
+                var physical = sourceSlot.SourceIndex >= 0 && sourceSlot.SourceIndex < npc.Inventory.Items.Count
+                    ? npc.Inventory.Items[sourceSlot.SourceIndex] : null;
                 targetContainer.Slots.Add(new InventorySlotSnapshot
                 {
                     Index = sourceSlot.Index,
@@ -874,7 +882,12 @@ public static class WorldSnapshotExporter
                     LeafDryness=sourceSlot.SourceIndex >= 0 && sourceSlot.SourceIndex < npc.Inventory.Items.Count &&
                         Runtime.LeafDryingMath.HasLeaves(sourceSlot.ItemDefinitionId)
                         ? Runtime.LeafDryingMath.VisualFraction(world.Tick,npc.Inventory.Items[sourceSlot.SourceIndex].LeafDryingStartTick) : 0f,
-                    AcceptedItemDefinitionId = sourceSlot.AcceptedItemDefinitionId
+                    AcceptedItemDefinitionId = sourceSlot.AcceptedItemDefinitionId,
+                    Durability = physical?.Durability ?? 1f,
+                    Wetness = physical?.Wetness ?? 0f,
+                    Dirtiness = physical?.Dirtiness ?? 0f,
+                    Bloodiness = physical?.Bloodiness ?? 0f,
+                    OwnerId = physical?.OwnerId ?? 0
                 });
             }
 

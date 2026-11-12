@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using HexLive.Simulation.Agents;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
@@ -54,6 +55,19 @@ namespace HexLive.UnityPresentation.UI
                     Kind = containerSlot.WaterKind };
             var owners = owner == null ? null : worn ? owner.WornOwnerIds : owner.InventoryOwnerIds;
             var ownerId = owner == null ? int.MaxValue : owners != null && sourceIndex >= 0 && sourceIndex < owners.Count ? owners[sourceIndex] : 0;
+            if (owner == null && containerSlot != null)
+            {
+                // #727: a wardrobe/chest cell carries its physical item's own
+                // state, exactly the fields the carried card reads from the NPC
+                // (non-stackable items only, as WorldSnapshotExporter does there).
+                ownerId = containerSlot.OwnerId;
+                if (!InventoryState.IsStackable(id))
+                {
+                    durability[id] = containerSlot.Durability;
+                    wetness[id] = containerSlot.Wetness;
+                    dirtiness[id] = Mathf.Min(1f, containerSlot.Dirtiness + containerSlot.Bloodiness);
+                }
+            }
             if (_runner != null && _runner.IsReady) RefreshInventoryOwnerNames(_runner.CreateSnapshot());
             BuildItemStats(definition, info, worn, durability, water,
                 new Dictionary<string, int> { [id] = count }, wetness, dirtiness, sourceIndex, ownerId, rows,

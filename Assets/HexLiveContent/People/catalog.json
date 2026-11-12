@@ -1546,7 +1546,6 @@
         "artId": "clothing.skirt_primal",
         "sex": "Female",
         "slots": [
-          "Belly",
           "Pelvis"
         ],
         "simulation": {
@@ -1560,7 +1559,6 @@
           "dressDurationTicks": 8,
           "capacity": 2,
           "covers": [
-            "Torso",
             "Pelvis"
           ],
           "craft": {
@@ -1595,7 +1593,6 @@
         "artId": "clothing.skirt_primal",
         "sex": "Female",
         "slots": [
-          "Belly",
           "Pelvis"
         ],
         "simulation": {
@@ -1609,7 +1606,6 @@
           "dressDurationTicks": 8,
           "capacity": 2,
           "covers": [
-            "Torso",
             "Pelvis"
           ],
           "craft": {
@@ -1644,7 +1640,6 @@
         "artId": "clothing.skirt_primal",
         "sex": "Female",
         "slots": [
-          "Belly",
           "Pelvis"
         ],
         "simulation": {
@@ -1658,7 +1653,6 @@
           "dressDurationTicks": 8,
           "capacity": 2,
           "covers": [
-            "Torso",
             "Pelvis"
           ],
           "craft": {
@@ -1693,7 +1687,6 @@
         "artId": "clothing.skirt_primal",
         "sex": "Female",
         "slots": [
-          "Belly",
           "Pelvis"
         ],
         "simulation": {
@@ -1707,7 +1700,6 @@
           "dressDurationTicks": 8,
           "capacity": 2,
           "covers": [
-            "Torso",
             "Pelvis"
           ],
           "craft": {
@@ -1742,7 +1734,6 @@
         "artId": "clothing.skirt_primal_male",
         "sex": "Male",
         "slots": [
-          "Belly",
           "Pelvis"
         ],
         "simulation": {
@@ -1756,7 +1747,6 @@
           "dressDurationTicks": 8,
           "capacity": 2,
           "covers": [
-            "Torso",
             "Pelvis"
           ],
           "craft": {
@@ -1791,7 +1781,6 @@
         "artId": "clothing.skirt_primal_male",
         "sex": "Male",
         "slots": [
-          "Belly",
           "Pelvis"
         ],
         "simulation": {
@@ -1805,7 +1794,6 @@
           "dressDurationTicks": 8,
           "capacity": 2,
           "covers": [
-            "Torso",
             "Pelvis"
           ],
           "craft": {
@@ -1840,7 +1828,6 @@
         "artId": "clothing.skirt_primal_male",
         "sex": "Male",
         "slots": [
-          "Belly",
           "Pelvis"
         ],
         "simulation": {
@@ -1854,7 +1841,6 @@
           "dressDurationTicks": 8,
           "capacity": 2,
           "covers": [
-            "Torso",
             "Pelvis"
           ],
           "craft": {
@@ -1889,7 +1875,6 @@
         "artId": "clothing.skirt_primal_male",
         "sex": "Male",
         "slots": [
-          "Belly",
           "Pelvis"
         ],
         "simulation": {
@@ -1903,7 +1888,6 @@
           "dressDurationTicks": 8,
           "capacity": 2,
           "covers": [
-            "Torso",
             "Pelvis"
           ],
           "craft": {

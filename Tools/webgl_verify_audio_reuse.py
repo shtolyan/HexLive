@@ -85,6 +85,16 @@ def verify(checkout: Path, commit: str, manifest: bytes) -> dict:
                 current.add(path.relative_to(checkout).as_posix())
     if current != set(tree):
         raise ValueError("SourceTreeChanged")
+    # §67.16: older releases excluded Hexkufa even when their source tree
+    # matched. Reusing their archive would make authored raiders silent.
+    hexkufa_prefix = AUDIO_ROOT + "/Sfx/Voices/"
+    required_hexkufa = {
+        str(PurePosixPath(path.removeprefix(AUDIO_ROOT + "/")).with_suffix(
+            ".vis" if path.endswith(".vis") else ".fsb"))
+        for path in current if path.startswith(hexkufa_prefix)
+    }
+    if not required_hexkufa.issubset(entries):
+        raise ValueError("PublishedManifestMissingHexkufa")
     mapping = [(entry, source_for(entry, current)) for entry in entries]
     hashes = {}
     process = subprocess.Popen(["git", "-C", str(checkout), "cat-file", "--batch"],

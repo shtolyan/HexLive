@@ -25,6 +25,7 @@ public sealed class RaidWaveTests
         var interval = Spec72.RaidWaveIntervalDays * EnvironmentSystem.DayLengthTicks;
 
         var initial = world.Entities.Npcs.Values.Single(n => n.Faction == Faction.Outsiders);
+        Assert.That(initial.SpeechOrigin, Is.EqualTo(NpcSpeechOrigin.Raider));
         Assert.That(initial.Sex, Is.EqualTo(GarmentSex.Male));
         Assert.That(initial.Inventory.Items.Any(i => i.DefinitionId == GearCatalog.Knife), Is.True,
             "Авторский чужак сохраняет нож как второй трофей §79.");
@@ -34,6 +35,7 @@ public sealed class RaidWaveTests
         world.Tick = interval;
         system.Run(world);
         var wave1 = world.Entities.Npcs[new EntityId(1001)];
+        Assert.That(wave1.SpeechOrigin, Is.EqualTo(NpcSpeechOrigin.Raider));
         Assert.That(wave1.Sex, Is.EqualTo(GarmentSex.Female));
         Assert.That(wave1.Inventory.Items.Any(i => i.DefinitionId == GearCatalog.Axe), Is.True);
         Assert.That(wave1.EquippedArmor, Is.GreaterThan(0f),
@@ -53,6 +55,39 @@ public sealed class RaidWaveTests
         Assert.That(wave3.Sex, Is.EqualTo(GarmentSex.Female));
         Assert.That(wave3.Inventory.Items.Any(i => i.DefinitionId == GearCatalog.Machete), Is.True);
         Assert.That(world.RaidWavesSpawned, Is.EqualTo(3));
+    }
+
+    [TestCase(94)]
+    [TestCase(WorldSaveSerializer.BlobVersion)]
+    public void FormerRaidersKeepTheirOriginAcrossSaveAndCampChange(int version)
+    {
+        var world = TestWorld.CreateWorld();
+        var authoredRaider = world.Entities.Npcs.Values.Single(n => n.Faction == Faction.Outsiders);
+        var islander = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        world.Tick = Spec72.RaidWaveIntervalDays * EnvironmentSystem.DayLengthTicks;
+        new RaidWaveSystem().Run(world);
+        var waveRaider = world.Entities.Npcs[new EntityId(1001)];
+        foreach (var npc in new[] { authoredRaider, waveRaider })
+        {
+            npc.Faction = Faction.Colony;
+            npc.Traits.Remove(TraitKind.Abuser);
+        }
+        islander.Faction = Faction.Outsiders;
+
+        using var blob = new MemoryStream();
+        using (var writer = new BinaryWriter(blob, System.Text.Encoding.UTF8, leaveOpen: true))
+            WorldSaveSerializer.WriteAtVersion(world, writer, version);
+        blob.Position = 0;
+        var loaded = TestWorld.CreateWorld();
+        using (var reader = new BinaryReader(blob))
+            WorldSaveSerializer.Read(loaded, reader);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(loaded.Entities.Npcs[authoredRaider.Id].SpeechOrigin, Is.EqualTo(NpcSpeechOrigin.Raider));
+            Assert.That(loaded.Entities.Npcs[waveRaider.Id].SpeechOrigin, Is.EqualTo(NpcSpeechOrigin.Raider));
+            Assert.That(loaded.Entities.Npcs[islander.Id].SpeechOrigin, Is.EqualTo(NpcSpeechOrigin.Island));
+        });
     }
 
     [Test]

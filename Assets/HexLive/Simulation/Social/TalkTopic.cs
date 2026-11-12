@@ -86,6 +86,8 @@ public static class TalkTopicRequest
             if (topic == allowed) return true;
         return false;
     }
+
+    public static bool IsAboutLeavingIsland(TalkTopic topic) => topic is TalkTopic.Escape or TalkTopic.Home;
 }
 
 }

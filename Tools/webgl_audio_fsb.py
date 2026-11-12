@@ -56,9 +56,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--quality", type=int, default=50, help="Vorbis quality 1..100")
     p.add_argument("--jobs", type=int, default=6, help="parallel hexfsb processes")
     p.add_argument("--cache", type=pathlib.Path, default=DEFAULT_CACHE)
-    p.add_argument("--exclude-prefix", action="append", default=None,
-                   help="manifest prefix dropped from the web build entirely; default: "
-                        "Sfx/Voices/ (hexkufa — frozen, §67.16; the game never plays it)")
+    p.add_argument("--exclude-prefix", action="append", default=[],
+                   help="optional manifest prefix dropped from a diagnostic web build")
     p.add_argument("--dry-run", action="store_true")
     return p.parse_args()
 
@@ -119,10 +118,9 @@ def main() -> int:
         sys.exit(f"hexfsb not found: {args.hexfsb} — Tools/webgl/build_hexfsb.sh <sdk-copy>")
 
     entries = json.loads(manifest_path.read_text())["files"]
-    excluded_prefixes = args.exclude_prefix if args.exclude_prefix is not None else ["Sfx/Voices/"]
-    dropped = [e for e in entries if any(e.startswith(prefix) for prefix in excluded_prefixes)]
-    entries = [e for e in entries if e not in set(dropped)]
-    print(f"[fsb] dropped {len(dropped)} entries under {excluded_prefixes}")
+    dropped = {entry for entry in entries if any(entry.startswith(prefix) for prefix in args.exclude_prefix)}
+    entries = [entry for entry in entries if entry not in dropped]
+    print(f"[fsb] dropped {len(dropped)} entries under {args.exclude_prefix}")
     chosen = pick_sources(entries)
     loose = [e for e in entries if pathlib.PurePosixPath(e).suffix.lower() in AUDIO]
     kept = [e for e in entries if pathlib.PurePosixPath(e).suffix.lower() not in AUDIO]

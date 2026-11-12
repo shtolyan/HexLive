@@ -84,6 +84,15 @@ public sealed class CharacterViewTests
             Does.Contain("угроза жизни подтверждена (обезвоживание)").And.Not.Contain("Здоровье сейчас: в норме"));
     }
 
+    [TestCase("Island", "свой лагерь")]
+    [TestCase("Modern", "прежнему дому")]
+    [TestCase("Raider", "родной язык — хекскуфа")]
+    public void PersonalHistoryUsesOriginEvenAfterJoiningACamp(string speechOrigin, string description)
+    {
+        var state = JsonSerializer.SerializeToElement(new { speechOrigin, faction = "Colony" });
+        Assert.That(CharacterView.Build(state), Does.Contain("Происхождение:").And.Contain(description));
+    }
+
     [Test]
     public void AManSpeaksOfHimselfInTheMasculine()
     {

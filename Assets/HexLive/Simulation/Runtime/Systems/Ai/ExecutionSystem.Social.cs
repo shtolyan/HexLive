@@ -1041,17 +1041,19 @@ public sealed partial class ExecutionSystem
             target.Social.GetOrCreate(npc.Id).Affinity);
         var like = System.Math.Max(0f, mutualAff);
         var dislike = System.Math.Max(0f, -mutualAff);
+        var knowsLifeOffIsland = npc.SpeechOrigin == NpcSpeechOrigin.Modern ||
+            target.SpeechOrigin == NpcSpeechOrigin.Modern;
 
         // Weights are parallel to TalkTopicOrder. Base keeps every subject
         // possible; context terms make the fitting ones far likelier.
         var w = TalkTopicWeights;
         w[0] = 1.00f;                                   // SmallTalk
-        w[1] = 0.60f + 0.60f * System.Math.Max(cold, rain); // Escape (misery → wanting off the rock)
+        w[1] = knowsLifeOffIsland ? 0.60f + 0.60f * System.Math.Max(cold, rain) : 0f; // Escape
         w[2] = 0.40f + 1.00f * stress;                  // Dogs (fear talk)
         w[3] = 0.30f + 1.20f * rain + 1.00f * cold + 0.80f * hot; // Weather
         w[4] = 0.30f + 1.50f * hunger;                  // Food
         w[5] = 0.30f + 1.00f * cold;                    // Fire (warmth)
-        w[6] = 0.50f + 0.80f * (1f - social);           // Home (homesick when starved of company)
+        w[6] = knowsLifeOffIsland ? 0.50f + 0.80f * (1f - social) : 0f; // Home
         w[7] = 0.50f;                                   // Gossip
         w[8] = 0.20f + 1.20f * like;                    // Flirt (they warm to each other)
         w[9] = 0.40f + 0.80f * like;                    // Joke
@@ -1145,6 +1147,9 @@ public sealed partial class ExecutionSystem
     private static TalkTopic PickSpeakerTopic(
         WorldState world, NPCState speaker, NPCState listener, TalkTopic shared)
     {
+        if (TalkTopicRequest.IsAboutLeavingIsland(shared) && speaker.SpeechOrigin != NpcSpeechOrigin.Modern)
+            shared = TalkTopic.SmallTalk;
+
         // Strongest complaint first — one clear voice per turn, not a mixture.
         // Thresholds are deliberately high: chatter stays about the island and
         // each other until something really is wrong.

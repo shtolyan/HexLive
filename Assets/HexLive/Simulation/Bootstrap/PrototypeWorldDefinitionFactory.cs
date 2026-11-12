@@ -399,6 +399,7 @@ namespace HexLive.Simulation.Bootstrap
                     // тело МАРТЫ — а это читается как сломанный импорт, не как
                     // опечатка.
                     ActorMesh = "Kshishtof",
+                    SpeechOrigin = Agents.NpcSpeechOrigin.Raider,
                     Faction = Agents.Faction.Outsiders,
                     FragmentId = 1,
                     TileQ = seats[i].Q,

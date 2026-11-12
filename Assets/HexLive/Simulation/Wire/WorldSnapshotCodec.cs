@@ -96,7 +96,7 @@ public static class WorldSnapshotCodec
     // v42: per-vessel visual provenance and exact held-bottle fill (§55.5).
     // v43: persistent craft project current/last worker (§119, #422).
     // v44: §54.21 / #429 distinguishes harvest scatter from inventory piles.
-    public const int WireVersion = 47; // §121.9: manual sleep refusal in NPC vitals.
+    public const int WireVersion = 48; // §67.16: authored NPC speech origin in identity.
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -953,6 +953,7 @@ public static class WorldSnapshotCodec
         w.Write((byte)n.Faction);
         w.Write(n.IsHostileToColony);
         w.Write(n.HexkufaExposure);
+        w.Write((byte)n.SpeechOrigin);
     }
 
     private static void WriteNpcTransform(BinaryWriter w, NpcSnapshot n)
@@ -1335,6 +1336,7 @@ public static class WorldSnapshotCodec
         n.Faction = (Agents.Faction)r.ReadByte();
         n.IsHostileToColony = r.ReadBoolean();
         n.HexkufaExposure = r.ReadInt32();
+        n.SpeechOrigin = (Agents.NpcSpeechOrigin)r.ReadByte();
     }
 
     private static void ReadNpcTransform(BinaryReader r, NpcSnapshot n)

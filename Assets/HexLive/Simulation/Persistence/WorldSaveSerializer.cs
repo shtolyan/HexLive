@@ -3175,7 +3175,7 @@ public static class WorldSaveSerializer
         if (version >= 73 && r.ReadBoolean())
         {
             var topic = (TalkTopic)r.ReadInt32();
-            if (!TalkTopicRequest.IsAllowed(topic))
+            if (!TalkTopicRequest.IsAllowed(topic) && !SocialContact.IsResult(topic))
                 throw new InvalidDataException("Invalid requested Talk topic in save.");
             npc.Plan.RequestedTalkTopic = topic;
         }

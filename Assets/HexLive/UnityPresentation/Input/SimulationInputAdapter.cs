@@ -1568,6 +1568,15 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
                 () => EnqueueOrder(carrier!.Id.Value, new TalkToCommand(
                     new EntityId(carrier.Id.Value), new EntityId(npcId))),
                 canOrderSocial, canOrderSocial ? null : socialBlocked));
+            if (!lying && HexLive.UnityPresentation.TwoPeopleTest.SocialContactPairView.CanPlayAll())
+            {
+                _entries.Add(new ContextMenuEntry(Loc.Get("menu.hug"),
+                    () => EnqueueOrder(carrier!.Id.Value, new TalkToCommand(carrier.Id, target.Id, TalkTopic.Hug)),
+                    canOrderSocial, canOrderSocial ? null : socialBlocked));
+                _entries.Add(new ContextMenuEntry(Loc.Get("menu.kiss"),
+                    () => EnqueueOrder(carrier!.Id.Value, new TalkToCommand(carrier.Id, target.Id, TalkTopic.Kiss)),
+                    canOrderSocial, canOrderSocial ? null : socialBlocked));
+            }
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.ask_bathe"),
                 () => EnqueueOrder(carrier!.Id.Value, new TalkToCommand(
                     carrier.Id, new EntityId(npcId), TalkTopic.AskBathe)),

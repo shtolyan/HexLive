@@ -197,7 +197,8 @@ public sealed class NpcSpeechDirector
         var cue = SpeechCatalog.ForCue(cueKind);
         if (!string.IsNullOrEmpty(cue.SpeechId))
         {
-            Say(cue.SpeechId, peerFace);
+            var contactAnswer = cueKind is "HugAccepted" or "HugDeclined" or "KissAccepted" or "KissDeclined";
+            Say(cue.SpeechId, peerFace, contactAnswer);
             return;
         }
 
@@ -298,7 +299,9 @@ public sealed class NpcSpeechDirector
     /// <summary>§107.5: та же реплика, но в пузыре ЛИЦО того, о ком она — а не
     /// значок. Значок при этом не пропадает: если картинка тревожная, он метит
     /// угол пузыря маленьким треугольником.</summary>
-    public bool Say(string speechId, Sprite subjectFace)
+    public bool Say(string speechId, Sprite subjectFace) => Say(speechId, subjectFace, false);
+
+    private bool Say(string speechId, Sprite subjectFace, bool contactAnswer)
     {
         if (_phoneVoice || (_romanceScene && speechId is not ("happy_romance" or "cry_romance_forced"))) return false;
         if (string.IsNullOrEmpty(speechId))
@@ -312,7 +315,8 @@ public sealed class NpcSpeechDirector
         }
 
         var line = SpeechCatalog.Get(speechId);
-        var alarm = line.Rank == SpeechCatalog.Rank.Alarm;
+        var rank = contactAnswer ? SpeechCatalog.Rank.Action : line.Rank;
+        var alarm = rank == SpeechCatalog.Rank.Alarm;
         if (!_stage.CanSpeak(alarm))
         {
             return false;
@@ -321,18 +325,19 @@ public sealed class NpcSpeechDirector
         var now = _clock();
         var busy = now < _activeUntil;
 
-        // Equal rank does not interrupt — whoever started, finishes.
-        if (busy && (line.Rank <= _activeRank || (_activePlayerReply && !alarm)))
+        // Contact answers own the response beat even if a task cue just started.
+        if (busy && (rank < _activeRank || (rank == _activeRank && !contactAnswer) ||
+                     (_activePlayerReply && !alarm)))
         {
             return false;
         }
 
-        if (!alarm && now - _lastAny < GlobalGap)
+        if (!alarm && !contactAnswer && now - _lastAny < GlobalGap)
         {
             return false;
         }
 
-        if (line.MinGap > 0f &&
+        if (!contactAnswer && line.MinGap > 0f &&
             _lastSaid.TryGetValue(speechId, out var last) && now - last < line.MinGap)
         {
             return false;
@@ -371,7 +376,7 @@ public sealed class NpcSpeechDirector
         }
 
         _activeUntil = now + hold;
-        _activeRank = line.Rank;
+        _activeRank = rank;
         _activePlayerReply = false;
         _lastAny = now;
         _lastSaid[speechId] = now;

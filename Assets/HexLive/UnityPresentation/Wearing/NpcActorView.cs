@@ -834,6 +834,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // Face life (blink + mood expression) on the body blend shapes.
     private NpcFaceAnimator _face;
     private bool _romanceVisual;
+    private bool _socialContactVisual;
+    private bool _socialContactLookAt;
+    private bool _socialContactFullBody;
     private bool _romanceDistressed;
     private bool _romanceLookAtWasEnabled;
     private bool _romanceFullBodyWasEnabled;
@@ -2203,6 +2206,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     /// <summary>§118.4: аниматор тела — CarriedPoseFollower целится в кости.</summary>
     internal Animator BodyAnimator => _animator;
+
+    internal void SetSocialContactVisual(bool active)
+    {
+        if (_socialContactVisual == active) return;
+        _socialContactVisual = active;
+        if (active)
+        {
+            _socialContactLookAt = _lookAtIK != null && _lookAtIK.enabled;
+            _socialContactFullBody = _fullBodyIK != null && _fullBodyIK.enabled;
+        }
+        if (_lookAtIK != null) _lookAtIK.enabled = !active && _socialContactLookAt && !_romanceVisual;
+        if (_fullBodyIK != null) _fullBodyIK.enabled = !active && _socialContactFullBody && !_romanceVisual;
+    }
 
     internal void SetRomanceVisual(bool active, bool distressed)
     {
@@ -5471,15 +5487,24 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var pos = at ?? (TryGetBodyCenter(out var center) ? center : transform.position);
         var emotion = UI.SpeechCatalog.EmotionOf(speechId);
         var speaksHexkufa = SpeechOrigin == NpcSpeechOrigin.Raider;
+        var contact = UI.SpeechCatalog.ContactTake(speechId, _voiceChar);
         var id = "voice_" + _voiceChar + "_" + speechId;
-        if (!HasVoice(id))
+        var nextVoice = default(Audio.FmodSfx.Loop);
+        if (contact is { } take)
         {
-            id = "voice_" + _voiceChar + "_" + emotion;
+            id = "voice_" + _voiceChar + "_" + take.Group;
+            nextVoice = Audio.FmodSfx.PlayVoiceTake(id, take.Take, pos, speaksHexkufa);
+        }
+        else
+        {
+            if (!HasVoice(id)) id = "voice_" + _voiceChar + "_" + emotion;
+            if (HasVoice(id))
+                nextVoice = speaksHexkufa ? Audio.FmodSfx.PlayHexkufaVoice(id, pos) : Audio.FmodSfx.PlayTracked(id, pos);
         }
 
-        if (HasVoice(id))
+        if (nextVoice.IsValid)
         {
-            _voiceChannel = speaksHexkufa ? Audio.FmodSfx.PlayHexkufaVoice(id, pos) : Audio.FmodSfx.PlayTracked(id, pos);
+            _voiceChannel = nextVoice;
             // §67.7: рот проговаривает реплику (.vis-таймлайн по часам канала).
             if (_voiceLipSync != null)
             {
@@ -8007,7 +8032,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         // Spec 40.13: while ragdolled (faint/corpse) the bones belong to
         // physics — no procedural pose layer may write over them.
-        if (!_dead && !_ragdollActive && !_romanceVisual)
+        if (!_dead && !_ragdollActive && !_romanceVisual && !_socialContactVisual)
         {
             // Layer the current action's arm swing over the animated pose.
             ApplyActionPose();

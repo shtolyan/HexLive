@@ -31992,6 +31992,62 @@ MonoBehaviour:
       - "\u041d\u0430\u043c\u0435\u0442\u044c\u0442\u0435 \u043c\u0435\u0441\u0442\u043e: \u0436\u0438\u0442\u0435\u043b\u044c \u043f\u0440\u0438\u043d\u0435\u0441\u0451\u0442 \u043e\u0434\u043d\u043e \u0441\u0435\u043c\u044f \u043b\u0435\u0447\u0435\u0431\u043d\u043e\u0439 \u0442\u0440\u0430\u0432\u044b \u0438 \u043f\u043e\u0441\u0430\u0434\u0438\u0442 \u0435\u0433\u043e."
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.hug'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Offer a hug'
+      - 'Предложить обняться'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.kiss'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Ask for a kiss'
+      - 'Предложить поцелуй'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'social.hug.accepted'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Yes, let’s hug.'
+      - 'Да, давай обнимемся.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'social.kiss.accepted'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Yes, I’d like that.'
+      - 'Да, я тоже хочу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'social.hug.declined'
+      TermType: 0
+      Description:
+      Languages:
+      - 'I’d rather skip the hug.'
+      - 'Давай без объятий.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'social.kiss.declined'
+      TermType: 0
+      Description:
+      Languages:
+      - 'I don’t want to kiss.'
+      - 'Я не хочу целоваться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'social.contact.unavailable'
+      TermType: 0
+      Description:
+      Languages:
+      - 'They can’t do that right now.'
+      - 'Сейчас это не получится.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'menu.ask_bathe'
       TermType: 0
       Description: 

@@ -19,6 +19,82 @@ namespace HexLive.Simulation.Tests.Behavior
 /// <summary>§127.9–12: command boundary, paired scene and authoritative outcomes.</summary>
 public sealed class RomanceInteractionTests
 {
+    [TestCase(TalkTopic.Hug, true, TalkTopic.HugAccepted)]
+    [TestCase(TalkTopic.Hug, false, TalkTopic.HugDeclined)]
+    [TestCase(TalkTopic.Kiss, true, TalkTopic.KissAccepted)]
+    [TestCase(TalkTopic.Kiss, false, TalkTopic.KissDeclined)]
+    public void SocialContactUsesTheListenersAnswerAndCreditsBothActorsOnce(
+        TalkTopic request, bool consent, TalkTopic outcome)
+    {
+        var (world, initiator, listener) = InvitationPair();
+        var a = initiator.Social.GetOrCreate(listener.Id);
+        var b = listener.Social.GetOrCreate(initiator.Id);
+        if (!consent) b.Affinity = 0f;
+        var originalA = (a.Affinity, a.Trust, a.Familiarity);
+        var originalB = (b.Affinity, b.Trust, b.Familiarity);
+        var command = ManualCommandExecutor.Apply(world, new TalkToCommand(initiator.Id, listener.Id, request));
+        Assert.That(command.Accepted, Is.True, command.Reason);
+        ArriveAtPlanTarget(world, initiator);
+        var execution = new ExecutionSystem();
+        execution.Run(world);
+        Assert.That(initiator.Execution.CurrentTalkTopic, Is.EqualTo(outcome));
+        Assert.That(listener.Execution.LastSocialCueKind, Is.EqualTo(outcome.ToString()));
+        Assert.That((a.Affinity, a.Trust, a.Familiarity), Is.EqualTo(originalA));
+        Assert.That((b.Affinity, b.Trust, b.Familiarity), Is.EqualTo(originalB));
+        world.Tick = initiator.Execution.EndTick;
+        execution.Run(world);
+        execution.Run(world);
+
+        var affinity = consent && request == TalkTopic.Kiss ? SocialContact.KissAffinityGain : 0f;
+        var friendship = consent && request == TalkTopic.Hug ? SocialContact.HugFriendshipGain : 0f;
+        Assert.Multiple(() =>
+        {
+            Assert.That(a.Affinity, Is.EqualTo(originalA.Affinity + affinity).Within(.0001f));
+            Assert.That(b.Affinity, Is.EqualTo(originalB.Affinity + affinity).Within(.0001f));
+            Assert.That(a.Trust, Is.EqualTo(originalA.Trust + friendship).Within(.0001f));
+            Assert.That(b.Trust, Is.EqualTo(originalB.Trust + friendship).Within(.0001f));
+            Assert.That(a.Familiarity, Is.EqualTo(originalA.Familiarity + friendship).Within(.0001f));
+            Assert.That(b.Familiarity, Is.EqualTo(originalB.Familiarity + friendship).Within(.0001f));
+            Assert.That(listener.Mind.PendingTalkFrom, Is.Null);
+            Assert.That(initiator.Plan.Status, Is.EqualTo(PlanStatus.Completed));
+        });
+    }
+
+    [Test]
+    public void AcceptedKissKeepsItsAnswerAndSingleRewardAfterReload()
+    {
+        var (world, initiator, listener) = InvitationPair();
+        var before = listener.Social.GetOrCreate(initiator.Id).Affinity;
+        var command = ManualCommandExecutor.Apply(world, new TalkToCommand(initiator.Id, listener.Id, TalkTopic.Kiss));
+        Assert.That(command.Accepted, Is.True, command.Reason);
+        ArriveAtPlanTarget(world, initiator);
+        var execution = new ExecutionSystem();
+        execution.Run(world);
+        Assert.That(initiator.Execution.CurrentTalkTopic, Is.EqualTo(TalkTopic.KissAccepted));
+
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true);
+        WorldSaveSerializer.Write(world, writer);
+        writer.Flush();
+        stream.Position = 0;
+        var loaded = TestWorld.CreateWorld(world.Seed);
+        using var reader = new BinaryReader(stream, System.Text.Encoding.UTF8, leaveOpen: true);
+        WorldSaveSerializer.Read(loaded, reader);
+
+        var restored = loaded.Entities.Npcs[initiator.Id];
+        var recipient = loaded.Entities.Npcs[listener.Id];
+        execution.Run(loaded);
+        Assert.That(restored.Execution.CurrentTalkTopic, Is.EqualTo(TalkTopic.KissAccepted));
+        Assert.That(recipient.Social.GetOrCreate(restored.Id).Affinity, Is.EqualTo(before));
+
+        loaded.Tick = restored.Execution.EndTick;
+        execution.Run(loaded);
+        execution.Run(loaded);
+        Assert.That(recipient.Social.GetOrCreate(restored.Id).Affinity,
+            Is.EqualTo(System.Math.Min(1f, before + SocialContact.KissAffinityGain)).Within(.0001f));
+        Assert.That(restored.Plan.Status, Is.EqualTo(PlanStatus.Completed));
+    }
+
     [TestCase(false, false)]
     [TestCase(false, true)]
     [TestCase(true, false)]

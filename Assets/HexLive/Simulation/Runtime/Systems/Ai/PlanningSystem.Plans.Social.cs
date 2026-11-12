@@ -772,6 +772,9 @@ public sealed partial class PlanningSystem
         out JunctionId approachJunction, bool allowAdjacentFallback = false)
     {
         approachJunction = default;
+        if (partner?.Mind.PendingTalkFrom is { } pending && pending != npc.Id &&
+            world.Entities.Npcs.TryGetValue(pending, out var current) &&
+            SocialContact.IsResult(current.Plan.RequestedTalkTopic)) return false;
         var reserved = TryReserveArmsLengthApproach(world, npc, partner, partnerJunction);
         // #742: приказ игрока не сдаётся, когда точки «на расстоянии вытянутой
         // руки» нет (адресат у воды, у стены, в тесном лагере). Запасной подход —

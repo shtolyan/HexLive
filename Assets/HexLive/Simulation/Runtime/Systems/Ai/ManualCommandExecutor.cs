@@ -1213,6 +1213,13 @@ internal static partial class ManualCommandExecutor
             return;
         }
 
+        if (Social.SocialContact.IsRequest(command.RequestedTopic) &&
+            partner.Mind.PendingTalkFrom is { } pending && pending != npc.Id)
+        {
+            Reject(world, npc.Id, "TalkTo", "TargetUnavailable", admission);
+            return;
+        }
+
         ClearForNewOrder(world, npc, "Приказ поговорить", keepCarriedPerson: true);
         ClearAttackOrder(world, npc);
         npc.Mind.GiftReapproachCount = 0;

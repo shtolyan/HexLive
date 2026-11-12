@@ -166,6 +166,12 @@ public sealed partial class ExecutionSystem
                     new Float2(-faceDirection.X, -faceDirection.Y));
             }
 
+            if (npc.Plan.RequestedTalkTopic is { } contact && SocialContact.IsRequest(contact))
+            {
+                StartSocialContact(world, npc, target, contact);
+                return;
+            }
+
             // §60: a listener who collapsed while the initiator was walking
             // over counts as busy — the neutral "sorry, busy" refusal, no
             // resentment (you can't be insulted by a coma).
@@ -264,6 +270,11 @@ public sealed partial class ExecutionSystem
 
         if (npc.Execution.Status == ExecutionStatus.InProgress)
         {
+            if (npc.Plan.RequestedTalkTopic is { } contact && SocialContact.IsResult(contact))
+            {
+                RunSocialContact(world, npc, target, contact);
+                return;
+            }
             var remaining = npc.Execution.EndTick - world.Tick;
             if (remaining > 0)
             {

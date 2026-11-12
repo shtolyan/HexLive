@@ -147,6 +147,8 @@ public static class SpeechCatalog
         ["ask_wood"] = new("Chop", Rank.Talk, 0f),
         ["agree_directive"] = new("Agree", Rank.Talk, 0f),
         ["refuse_directive"] = new("Fail", Rank.Talk, 0f),
+        ["happy_contact_yes"] = new("Agree", Rank.Action, 0f),
+        ["sad_contact_no"] = new("Fail", Rank.Action, 0f),
         ["happy_laugh"] = new("Joke", Rank.Talk, 6f),
         ["happy_agree"] = new("Agree", Rank.Talk, 6f),
         ["happy_bond_plus"] = new("Flirt", Rank.Action, 6f),
@@ -383,6 +385,14 @@ public static class SpeechCatalog
         ["TalkRejected"] = new("Grumble", null, Rank.Talk),
         ["TalkRefused"] = new("Grumble", null, Rank.Talk),
         ["TalkQuarrel"] = new("Grumble", null, Rank.Talk),
+        ["HugAccepted"] = new("Agree", "happy_contact_yes"),
+        ["KissAccepted"] = new("Flirt", "happy_contact_yes"),
+        ["HugDeclined"] = new("Fail", "sad_contact_no"),
+        ["KissDeclined"] = new("Fail", "sad_contact_no"),
+        ["HugUnavailable"] = new("Fail", null, Rank.Talk),
+        ["KissUnavailable"] = new("Fail", null, Rank.Talk),
+        ["HugFriendship"] = new("Agree", null, Rank.Action),
+        ["KissBond"] = new("Flirt", null, Rank.Action),
         ["RomanceRequest"] = new("Flirt", null, Rank.Talk),
         ["RomanceIncoming"] = new("Flirt", null, Rank.Talk),
         ["RomanceAccepted"] = new("Agree", null, Rank.Talk),
@@ -428,6 +438,20 @@ public static class SpeechCatalog
         // снимок ещё не сделан.
         ["GroupHuntPact"] = new("Attack", "angry_defend"),
         ["AbuseWitnessed"] = new("Warning", "angry_attack")
+    };
+
+    // Use context-safe takes in both localized banks. The order refusal
+    // group also has "go yourself" takes, which don't answer an invitation.
+    internal static (string Group, int Take)? ContactTake(string speech, string voice) => speech switch
+    {
+        "happy_contact_yes" => ("happy_agree", voice is "masha" or "molly" ? 1 : 0),
+        "sad_contact_no" => ("refuse_directive", voice switch
+        {
+            "jana" => 0,
+            "kshishtof" or "marta" => 1,
+            _ => 2
+        }),
+        _ => null
     };
 
     // Never fails: an unknown cue still draws (fallback icon, no utterance).

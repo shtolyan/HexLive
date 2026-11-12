@@ -6,6 +6,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Runtime.Blueprints;
+using HexLive.Simulation.Social;
 using HexLive.Simulation.Spatial;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Content;
@@ -346,6 +347,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // capsules remain the fallback when no actor prefab matches.
     private readonly Dictionary<int, NpcActorView> _actorViews = new();
     private readonly Dictionary<int, RomancePairView> _romancePairs = new();
+    private readonly Dictionary<int, SocialContactPairView> _socialContactPairs = new();
+    private readonly HashSet<int> _activeSocialContactPairs = new();
+    private readonly List<int> _endedSocialContactPairs = new();
     private readonly HashSet<int> _activeRomancePairs = new();
     private readonly List<int> _staleRomancePairs = new();
 
@@ -2658,6 +2662,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         SyncRomancePairs(snapshot);
+        SyncSocialContactPairs(snapshot);
 
         // Spec 40.2-B/C r2 / bug #22: a body with an open wound keeps feeding
         // the existing cosmetic blood pipeline for a finite period after the
@@ -3326,6 +3331,41 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
     }
 
+    private void SyncSocialContactPairs(WorldSnapshot snapshot)
+    {
+        _activeSocialContactPairs.Clear();
+        var speed = _runner != null && !_runner.IsPaused ? _runner.SpeedMultiplier : 0f;
+        foreach (var leader in snapshot.Npcs)
+        {
+            if (leader.CurrentInteraction != "Talk" || leader.TalkTopicPeerId is not { } partnerId ||
+                !Enum.TryParse<TalkTopic>(leader.TalkTopic, out var topic) || !SocialContact.IsResult(topic) ||
+                !_actorViews.TryGetValue(leader.Id.Value, out var first) ||
+                !_actorViews.TryGetValue(partnerId, out var second)) continue;
+
+            var partner = snapshot.Npcs.Find(npc => npc.Id.Value == partnerId);
+            if (partner == null) continue;
+            if (!_socialContactPairs.TryGetValue(leader.Id.Value, out var pair) || pair == null)
+            {
+                pair = first.GetComponent<SocialContactPairView>() ?? first.gameObject.AddComponent<SocialContactPairView>();
+                _socialContactPairs[leader.Id.Value] = pair;
+            }
+            if (pair.Sync(first, second, topic, leader.ExecutionStartTick, leader.ExecutionEndTick,
+                    snapshot.Tick + (_runner?.TickAlpha ?? 0f), snapshot.TickDeltaTime, speed,
+                    SimulationUnityMapper.ToUnityPosition(leader.Position, ActorGroundY(ActorSupportTile(leader))),
+                    SimulationUnityMapper.ToUnityPosition(partner.Position, ActorGroundY(ActorSupportTile(partner)))))
+                _activeSocialContactPairs.Add(leader.Id.Value);
+        }
+
+        _endedSocialContactPairs.Clear();
+        foreach (var existing in _socialContactPairs)
+        {
+            if (_activeSocialContactPairs.Contains(existing.Key)) continue;
+            existing.Value?.Stop();
+            _endedSocialContactPairs.Add(existing.Key);
+        }
+        foreach (var id in _endedSocialContactPairs) _socialContactPairs.Remove(id);
+    }
+
     private readonly Dictionary<int, int> _lastIntimacyGroundCueTick = new();
 
     private void SyncGroundIntimacyStain(WorldSnapshot snapshot, NpcSnapshot npc,
@@ -3606,7 +3646,24 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     }
                 }
 
-                actorView.PopSocialCue(npc.SocialCueKind, cuePicture);
+                var contactMessage = npc.SocialCueKind switch
+                {
+                    "HugAccepted" => "social.hug.accepted",
+                    "HugDeclined" => "social.hug.declined",
+                    "KissAccepted" => "social.kiss.accepted",
+                    "KissDeclined" => "social.kiss.declined",
+                    "HugUnavailable" or "KissUnavailable" => "social.contact.unavailable",
+                    _ => null
+                };
+                if (contactMessage != null)
+                {
+                    var initiator = contactMessage == "social.contact.unavailable" ? npc.Id.Value : npc.SocialCuePeerId;
+                    if (initiator is { } id && _runner != null &&
+                        _runner.CanControlNpc(new HexLive.Simulation.Common.EntityId(id)))
+                        VoiceResponsePanel.PublishNpc(Localization.Loc.Get(contactMessage), 4f);
+                }
+                actorView.PopSocialCue(npc.SocialCueKind,
+                    npc.SocialCueKind is "HugFriendship" or "KissBond" ? null : cuePicture);
                 if (!string.IsNullOrEmpty(npc.SocialCueItemId) && cuePicture == null)
                 {
                     _pendingSocialCueItemKey[npc.Id.Value] = cueKey;

@@ -969,7 +969,16 @@ namespace HexLive.UnityPresentation.Audio
             ? PlayLoadedGroup(VoiceCacheKey(id, VoiceBank.Hexkufa), position, 1f, false)
             : default;
 
-        private static Loop PlayLoadedGroup(string id, Vector3 position, float volumeGain, bool listenerRelative)
+        internal static Loop PlayVoiceTake(string id, int take, Vector3 position, bool hexkufa)
+        {
+            var bank = hexkufa ? VoiceBank.Hexkufa : CurrentVoiceBank;
+            return EnsureVoiceGroup(id, bank)
+                ? PlayLoadedGroup(VoiceCacheKey(id, bank), position, 1f, false, $"{id}_{take}")
+                : default;
+        }
+
+        private static Loop PlayLoadedGroup(string id, Vector3 position, float volumeGain, bool listenerRelative,
+            string takeStem = null)
         {
             if (!Sounds.TryGetValue(id, out var variants))
             {
@@ -977,7 +986,10 @@ namespace HexLive.UnityPresentation.Audio
             }
 
             var def = LoadedDefs[id];
-            var pick = _rng.Next(variants.Length);
+            var pick = takeStem == null ? _rng.Next(variants.Length) :
+                Paths.TryGetValue(id, out var voicePaths) ? System.Array.FindIndex(voicePaths, path =>
+                    string.Equals(Path.GetFileNameWithoutExtension(path), takeStem, System.StringComparison.Ordinal)) : -1;
+            if (pick < 0) return default;
             var sound = variants[pick];
             var core = FMODUnity.RuntimeManager.CoreSystem;
             if (core.playSound(sound, GroupFor(id), true, out var channel) != FMOD.RESULT.OK)

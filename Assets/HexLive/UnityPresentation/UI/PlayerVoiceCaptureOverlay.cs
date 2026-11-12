@@ -19,6 +19,7 @@ namespace HexLive.UnityPresentation.UI
         private readonly List<VisualElement> _bars = new();
         private readonly Func<string>? _context;
         private readonly Action _finish, _cancelCapture;
+        private bool _ready;
 
         // §174.7: on the web the page draws the card («voiceCapture»). Two
         // overlays exist (the admin microphone, a character's agent) and both
@@ -62,6 +63,7 @@ namespace HexLive.UnityPresentation.UI
 
         public void Hide()
         {
+            _ready = false;
             _overlay.RemoveFromClassList("agent-capture-visible");
             if (!ReferenceEquals(_htmlOwner, this)) return;
             _htmlOwner = null;
@@ -73,7 +75,7 @@ namespace HexLive.UnityPresentation.UI
         {
             var owner = _htmlOwner;
             if (owner == null) return;
-            if (command == "done") owner._finish();
+            if (command == "done" && owner._ready) owner._finish();
             else if (command == "cancel") owner._cancelCapture();
         }
 
@@ -84,29 +86,34 @@ namespace HexLive.UnityPresentation.UI
                 : context + " · " + Loc.Get("agent.voice.listening");
         }
 
-        private void PublishHtml(FmodMicrophoneCapture capture)
+        private void PublishHtml(string title, float level)
         {
             if (!_htmlHandled) { HtmlUi.Handle(HtmlScreen, OnHtmlCommand); _htmlHandled = true; }
             _htmlOwner = this;
             // The meter has eighteen bars: a level between two of them is no change.
-            var lit = Mathf.Clamp(Mathf.CeilToInt(capture.Level * _bars.Count), 0, _bars.Count);
-            var title = Title();
-            var json = title + "|" + lit;
+            var lit = Mathf.Clamp(Mathf.CeilToInt(level * _bars.Count), 0, _bars.Count);
+            var json = title + "|" + lit + "|" + _ready;
             if (json == _lastHtmlJson) return;
             _lastHtmlJson = json;
-            HtmlUi.Show(HtmlScreen, new JObject { ["title"] = title, ["level"] = lit / (float)_bars.Count });
+            HtmlUi.Show(HtmlScreen, new JObject { ["title"] = title, ["level"] = lit / (float)_bars.Count, ["ready"] = _ready });
         }
 
-        public void Refresh(FmodMicrophoneCapture? capture)
+        public void Refresh(FmodMicrophoneCapture? capture) =>
+            RefreshRecording(capture?.IsRecording == true, true, capture?.Level ?? 0f);
+
+        public void RefreshRecording(bool recording, bool ready, float level)
         {
-            if (capture?.IsRecording != true) { Hide(); return; }
-            if (HtmlUi.Active) { PublishHtml(capture); return; }
+            if (!recording) { Hide(); return; }
+            _ready = ready;
+            var title = ready ? Title() : Loc.Get("bugs.voice.permission");
+            if (HtmlUi.Active) { PublishHtml(title, level); return; }
             _overlay.BringToFront(); _overlay.AddToClassList("agent-capture-visible");
-            _title.text = Title();
+            _title.text = title;
+            _done.SetEnabled(ready);
             _done.text = "✓ " + Loc.Get("agent.voice.capture_done");
             _cancel.text = Loc.Get("loot.quantity_cancel");
             for (var i = 0; i < _bars.Count; i++)
-                _bars[i].EnableInClassList("agent-capture-lit", capture.Level > i / (float)_bars.Count);
+                _bars[i].EnableInClassList("agent-capture-lit", level > i / (float)_bars.Count);
         }
     }
 }

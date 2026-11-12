@@ -109,12 +109,32 @@ public sealed class MashaPresentationContractTests
             Assert.That(panel, Does.Contain("new PlayerVoiceCaptureOverlay(_root, FinishAgentCapture"));
             Assert.That(admin, Does.Contain("new PlayerVoiceCaptureOverlay(doc.rootVisualElement, FinishCapture"));
             Assert.That(overlay, Does.Contain("new Button(finish)"));
-            Assert.That(overlay, Does.Contain("capture.Level"));
+            Assert.That(overlay, Does.Contain("capture?.Level"));
             Assert.That(panel, Does.Contain("_activePlayerInput.AttachmentId"));
             Assert.That(panel, Does.Contain("token.ExpiresUtcMilliseconds"));
             Assert.That(panel, Does.Contain("_capturedPlayerInputs.Clear()"));
             Assert.That(File.Exists(Path.Combine(RepoPaths.Root,
                 "Assets/Resources/HexLive/UI/AgentCapture.uss")), Is.True);
+        });
+    }
+
+    [Test]
+    public void AdminAndReporterShareTheBrowserRecorderWithoutStoppingEachOther()
+    {
+        var admin = Read("Assets", "HexLive", "UnityPresentation", "UI", "AdminVoicePanel.cs");
+        var reporter = Read("Assets", "HexLive", "UnityPresentation", "UI", "BugReportSender.cs");
+        var capture = Read("Assets", "HexLive", "UnityPresentation", "Audio", "BugReportMicrophoneCapture.cs");
+        var overlay = Read("Assets", "HexLive", "UnityPresentation", "UI", "PlayerVoiceCaptureOverlay.cs");
+        var browser = Read("Assets", "WebGLTemplates", "HexLive", "ui", "screens", "voice.js");
+        Assert.Multiple(() =>
+        {
+            Assert.That(admin, Does.Contain("new BugReportMicrophoneCapture("));
+            Assert.That(reporter, Does.Contain("new BugReportMicrophoneCapture("));
+            Assert.That(capture, Does.Contain("HexLiveBugMicStart()"));
+            Assert.That(capture, Does.Contain("if (ReferenceEquals(_browserOwner, this))"));
+            Assert.That(admin, Does.Contain("BugReportWav.Prepare(wav)"));
+            Assert.That(overlay, Does.Contain("command == \"done\" && owner._ready"));
+            Assert.That(browser, Does.Contain("disabled=${model.ready === false}"));
         });
     }
 

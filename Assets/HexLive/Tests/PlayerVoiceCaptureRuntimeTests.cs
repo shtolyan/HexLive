@@ -86,11 +86,14 @@ public sealed class PlayerVoiceCaptureRuntimeTests
         {
             document.rootVisualElement.style.width = 800;
             document.rootVisualElement.style.height = 600;
+            overlayType.GetMethod("RefreshRecording")!.Invoke(overlay, new object[] { true, false, 0f });
+            Assert.That(document.rootVisualElement.Q<Button>(className: "agent-capture-done").enabledSelf, Is.False);
             Set(capture, "_recording", true); // Synthetic take, no recordStart.
             Invoke(capture, "AppendRecordedChunk", Pcm(.05f));
             Refresh();
             for (var i = 0; i < 6; i++) yield return null;
             var root = document.rootVisualElement;
+            Assert.That(root.Q<Button>(className: "agent-capture-done").enabledSelf, Is.True);
             var card = root.Q(className: "agent-capture-card");
             Assert.That(card.panel, Is.Not.Null);
             Assert.That(Vector2.Distance(card.worldBound.center, root.worldBound.center), Is.LessThan(2));

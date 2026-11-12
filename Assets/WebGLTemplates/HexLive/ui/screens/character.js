@@ -13,7 +13,7 @@
 //          journalUnread, goal, dream, directive: { kind, from } | null,
 //          thought: null | { thinking, text },   // §160 an attached agent's own line instead of her goal
 //          effects: [{ slug, emoji, buff, intensity 0–1 }],   // a debuff shades amber → red with intensity
-//          needs: [{ id, value 0–1 (1 = good), thermal? −1…1, deficit? }],
+//          needs: [{ id, value 0–1 (1 = good), direct? (bar fills with 1 − value), thermal? −1…1, deficit? }],
 //          nature: [{ id, value 0–10 }], compassion: 0–100 | null, perks: [key], skills: [{ id, value 0–10 }], traits: [key],
 //          relations: [{ id, name, face, tag, affinity −1…1, familiarity 0–1, trust 0–1 }] },
 //          // her bond with the player's own voice (§171) is one of them, id −159, no face
@@ -195,7 +195,14 @@ function needValue(n) {
     const v = Math.round(n.thermal * 100);
     return v > 0 ? `+${v}%` : v < 0 ? `−${-v}%` : '0%';
   }
-  return `${Math.round(n.value * 100)}%`;
+  return `${Math.round(needFill(n) * 100)}%`;
+}
+
+// Bug #751: a direct need (stress) fills with its pressure, like the UI
+// Toolkit card — calm = empty, 100% = full; the colour still follows
+// goodness (value), so a full stress bar is red and an empty one green.
+function needFill(n) {
+  return n.direct ? 1 - n.value : n.value;
 }
 
 function NeedIcon({ need }) {
@@ -227,7 +234,7 @@ function Needs({ npc }) {
               ${n.thermal != null
                 ? html`<span class="hx-bar hx-bar--bipolar"><i style=${{ left: `${50 + Math.min(0, n.thermal) * 50}%`, width: `${Math.abs(n.thermal) * 50}%`,
                     background: n.thermal < 0 ? 'rgb(71 182 230)' : 'rgb(232 116 107)' }}></i></span>`
-                : html`<span class="hx-bar"><i style=${{ width: `${n.value * 100}%`, background: good(n.value) }}></i></span>`}
+                : html`<span class="hx-bar"><i style=${{ width: `${needFill(n) * 100}%`, background: good(n.value) }}></i></span>`}
             </li>`)}
         </ul>`}
       ${tab === 'nature' && npc.perks?.length > 0 && html`

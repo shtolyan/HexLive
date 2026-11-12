@@ -281,6 +281,10 @@ namespace HexLive.UnityPresentation.UI
                 // Goodness, exactly as the UI Toolkit bar colours it: full = good.
                 var good = config.Direct ? 1f - raw : config.Pressure ? 1f - raw : raw;
                 var need = new JObject { ["id"] = config.Key.Substring("need.".Length), ["value"] = Mathf.Round(good * 100f) / 100f };
+                // Bug #751 (§174.7): stress is a Direct bar, as in UI Toolkit —
+                // it fills with the pressure (calm = empty, 100% = full red).
+                // value stays goodness for the colour; the card inverts the fill.
+                if (config.Direct) need["direct"] = true;
                 need["impacts"] = HtmlNeedImpacts(npc, (string)need["id"]); // the row's tooltip (§48.7)
                 if (config.Key == "need.blood" && npc.BloodDeficit > 0f)
                 {

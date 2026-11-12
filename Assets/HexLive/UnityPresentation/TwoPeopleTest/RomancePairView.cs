@@ -21,6 +21,7 @@ public sealed class RomancePairView : MonoBehaviour
     private bool _climax;
     private Vector3 _anchor;
     private Quaternion _rotation;
+    private float _actorScale;
     private float _simSpeed = 1f;
     private int _nextFemaleVoiceTick = int.MaxValue;
     private int _nextMaleVoiceTick = int.MaxValue;
@@ -33,7 +34,7 @@ public sealed class RomancePairView : MonoBehaviour
     public void Sync(NpcActorView female, NpcActorView male,
         RomancePoseCatalog.Entry entry, int femaleNpcId, int maleNpcId,
         int tick, int startTick, int endTick, float tickDeltaTime,
-        Vector3 anchor, Quaternion rotation, float simSpeed, bool forced)
+        Vector3 anchor, Quaternion rotation, float actorScale, float simSpeed, bool forced)
     {
         var climax = tick >= endTick - Spec127.ClimaxTicks;
         var pairChanged = _female != female || _male != male || _entry != entry;
@@ -56,6 +57,7 @@ public sealed class RomancePairView : MonoBehaviour
 
         _anchor = anchor;
         _rotation = rotation;
+        _actorScale = actorScale;
         _simSpeed = Mathf.Max(0f, simSpeed);
         female.SetRomanceVisual(true, forced);
         male.SetRomanceVisual(true, false);
@@ -102,7 +104,9 @@ public sealed class RomancePairView : MonoBehaviour
     {
         if (_female == null || _male == null || _entry == null) return;
         _female.transform.SetPositionAndRotation(_anchor, _rotation);
-        var malePosition = _anchor + _rotation * _entry.malePosition;
+        // TwoPeopleTest authors the offset at the prefab's native body size.
+        // The live renderer scales the bodies beneath these unscaled roots.
+        var malePosition = _anchor + _rotation * (_entry.malePosition * _actorScale);
         var maleRotation = _rotation * Quaternion.Euler(_entry.maleEuler);
         _male.transform.SetPositionAndRotation(malePosition, maleRotation);
     }

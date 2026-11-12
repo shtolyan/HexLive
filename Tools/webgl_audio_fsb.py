@@ -5,10 +5,9 @@
     python3 Tools/webgl_audio_fsb.py <build-dir>
     python3 Tools/webgl_audio_fsb.py <build-dir> --dry-run
 
-The encoder is hexfsb (Tools/webgl/hexfsb.c) over libfsbank from the FMOD
-Engine SDK 2.03 for macOS — that SDK has no fsbankcl. Build it once with
-Tools/webgl/build_hexfsb.sh <sdk-copy>; the default --hexfsb points at
-~/hex-girls/webgl-build/fmod-2.03.15/bin/hexfsb.
+The encoder is hexfsb (Tools/webgl/hexfsb.c) over FSBank from the FMOD
+Engine SDK 2.03.15. Build it with Tools/webgl/build_hexfsb.ps1 on Windows
+or Tools/webgl/build_hexfsb.sh on macOS. See Docs/WebGLBuild.md for setup.
 
 Why: the FMOD build Unity links for WebGL is the reduced one — it reads only
 FSB containers. Loose .mp3, .ogg and even .wav handed to createSound answer
@@ -36,6 +35,7 @@ import argparse
 import concurrent.futures
 import hashlib
 import json
+import os
 import pathlib
 import shutil
 import subprocess
@@ -43,10 +43,18 @@ import sys
 import tempfile
 
 AUDIO = {".wav", ".ogg", ".mp3"}
-DEFAULT_CACHE = pathlib.Path.home() / "hex-girls" / "webgl-build" / "fsb-cache"
-DEFAULT_HEXFSB = pathlib.Path.home() / "hex-girls" / "webgl-build" / "fmod-2.03.15" / "bin" / "hexfsb"
+if sys.platform == "win32":
+    local_app_data = pathlib.Path(os.environ.get("LOCALAPPDATA", pathlib.Path.home() / "AppData/Local"))
+    DEFAULT_CACHE = local_app_data / "HexLive" / "FMOD" / "fsb-cache"
+    DEFAULT_HEXFSB = local_app_data / "HexLive" / "FMOD" / "2.03.15" / "bin" / "hexfsb.exe"
+    ENCODER_SETUP = "Tools/webgl/build_hexfsb.ps1"
+else:
+    webgl_build = pathlib.Path.home() / "hex-girls" / "webgl-build"
+    DEFAULT_CACHE = webgl_build / "fsb-cache"
+    DEFAULT_HEXFSB = webgl_build / "fmod-2.03.15" / "bin" / "hexfsb"
+    ENCODER_SETUP = "Tools/webgl/build_hexfsb.sh <sdk-copy>"
 # Part of the cache key: a change of encoder or settings re-encodes everything.
-ENCODER_TAG = "hexfsb/fsbank-2.03.15/vorbis"
+ENCODER_TAG = "hexfsb/fsbank-2.03.15/vorbis" + ("/windows-x64" if sys.platform == "win32" else "")
 
 
 def parse_args() -> argparse.Namespace:
@@ -90,34 +98,39 @@ def cache_key(args: argparse.Namespace, src: pathlib.Path) -> str:
 
 def encode_batch(args: argparse.Namespace, jobs: list[tuple[pathlib.Path, pathlib.Path]]) -> list[str]:
     """One hexfsb process for a slice of (source, cached .fsb) pairs; returns failures."""
-    pending = {cached.with_suffix(".fsb.tmp"): cached for _, cached in jobs}
-    lines = "".join(f"{src}\t{cached.with_suffix('.fsb.tmp')}\n" for src, cached in jobs)
-    with tempfile.TemporaryDirectory(prefix="hexfsb-") as scratch:
-        result = subprocess.run([str(args.hexfsb), "--quality", str(args.quality), "--cache", scratch],
-                                input=lines, capture_output=True, text=True)
     failures = []
-    for line in result.stdout.splitlines():
-        status, _, rest = line.partition("\t")
-        out = pathlib.Path(rest.split("\t")[0])
-        if status == "ok" and out.exists():
-            out.replace(pending.pop(out))
-        else:
-            failures.append(line)
-    if pending and not failures:
-        failures.append(f"hexfsb exited {result.returncode}: {result.stderr.strip()[:500]}")
+    # Keep outputs beside the shared cache for atomic publication, with a
+    # private directory for each worker and each invocation of this script.
+    with tempfile.TemporaryDirectory(prefix="hexfsb-", dir=args.cache) as scratch:
+        outputs = [(src, pathlib.Path(scratch) / cached.name, cached) for src, cached in jobs]
+        pending = {out: cached for _, out, cached in outputs}
+        lines = "".join(f"{src}\t{out}\n" for src, out, _ in outputs)
+        result = subprocess.run([str(args.hexfsb), "--quality", str(args.quality), "--cache", "."],
+                                cwd=scratch, input=lines, capture_output=True, encoding="utf-8", errors="replace")
+        for line in result.stdout.splitlines():
+            status, _, rest = line.partition("\t")
+            out = pathlib.Path(rest.split("\t")[0])
+            if status == "ok" and out in pending and out.is_file():
+                out.replace(pending.pop(out))
+            else:
+                failures.append(line)
+        if (pending or result.returncode) and not failures:
+            failures.append(f"hexfsb exited {result.returncode}: {result.stderr.strip()[:500]}")
     return failures
 
 
 def main() -> int:
     args = parse_args()
+    args.hexfsb = args.hexfsb.resolve()
+    args.cache = args.cache.resolve()
     root = args.build.resolve() / "StreamingAssets" / "HexLive"
     manifest_path = root / "web-audio-manifest.json"
     if not manifest_path.is_file():
         sys.exit(f"{manifest_path} missing — not a HexLive WebGL build")
     if not args.dry_run and not args.hexfsb.is_file():
-        sys.exit(f"hexfsb not found: {args.hexfsb} — Tools/webgl/build_hexfsb.sh <sdk-copy>")
+        sys.exit(f"hexfsb not found: {args.hexfsb} — {ENCODER_SETUP}")
 
-    entries = json.loads(manifest_path.read_text())["files"]
+    entries = json.loads(manifest_path.read_text(encoding="utf-8"))["files"]
     dropped = {entry for entry in entries if any(entry.startswith(prefix) for prefix in args.exclude_prefix)}
     entries = [entry for entry in entries if entry not in dropped]
     print(f"[fsb] dropped {len(dropped)} entries under {args.exclude_prefix}")
@@ -152,7 +165,7 @@ def main() -> int:
     for entry in loose + dropped:
         (root / entry).unlink(missing_ok=True)
     files = sorted(kept + [f"{stem}.fsb" for stem in chosen])
-    manifest_path.write_text(json.dumps({"files": files}, ensure_ascii=False, indent=0) + "\n")
+    manifest_path.write_text(json.dumps({"files": files}, ensure_ascii=False, indent=0) + "\n", encoding="utf-8")
     print(f"[fsb] done: {len(chosen)} .fsb, manifest {len(files)} entries")
     return 0
 

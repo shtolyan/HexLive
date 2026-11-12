@@ -91,8 +91,7 @@ public static class HexLiveWebGLPlayerBuild
             // MSI may reuse an already published FSB tree only when the
             // publisher verifies unchanged audio sources and complete stems.
             var reusePublishedAudio = arguments.Contains("-webgl-reuse-published-audio");
-            var webMusic = reusePublishedAudio ? new List<string>() : WriteWebMusic();
-            WriteAudioManifest();
+            var webMusic = new List<string>();
             // §174.6: the page with the HTML interface. The template setting is
             // shared with the desktop project file, so it is set per build and
             // put back, like the stack-trace settings above.
@@ -107,6 +106,11 @@ public static class HexLiveWebGLPlayerBuild
             BuildReport report;
             try
             {
+                if (!reusePublishedAudio)
+                {
+                    WriteWebMusic(webMusic);
+                }
+                WriteAudioManifest();
                 Running = true;
                 report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
                 {
@@ -128,7 +132,10 @@ public static class HexLiveWebGLPlayerBuild
                 AssetDatabase.DeleteAsset(AudioManifest);
                 foreach (var generated in webMusic)
                 {
-                    AssetDatabase.DeleteAsset(generated);
+                    if (!AssetDatabase.DeleteAsset(generated))
+                    {
+                        File.Delete(generated);
+                    }
                 }
             }
 
@@ -379,17 +386,16 @@ public static class HexLiveWebGLPlayerBuild
 
     /// <summary>
     /// §168.6: в FMOD для браузера нет MP3-декодера (ERR_FORMAT). Каждый
-    /// mp3-трек на время веб-сборки получает Ogg-соседа (ffmpeg → oggenc -q4);
+    /// mp3-трек на время веб-сборки получает Ogg-соседа (Vorbis q4);
     /// веб играет его, десктоп по-прежнему mp3. В репозитории копий нет:
     /// «новый трек = новый mp3» остаётся правилом.
     /// </summary>
-    private static List<string> WriteWebMusic()
+    private static void WriteWebMusic(List<string> generated)
     {
-        var generated = new List<string>();
         var root = Path.Combine(AudioRoot, "Music");
         if (!Directory.Exists(root))
         {
-            return generated;
+            return;
         }
 
         foreach (var mp3 in Directory.GetFiles(root, "*.mp3"))
@@ -400,28 +406,53 @@ public static class HexLiveWebGLPlayerBuild
                 continue; // авторский Ogg главнее
             }
 
-            var command = $"/opt/homebrew/bin/ffmpeg -v error -i '{mp3}' -f wav - | " +
-                          $"/opt/homebrew/bin/oggenc -Q -q 4 -o '{ogg}' -";
-            using var process = System.Diagnostics.Process.Start(
-                new System.Diagnostics.ProcessStartInfo("/bin/sh", $"-c \"{command}\"")
-                {
-                    UseShellExecute = false,
-                    RedirectStandardError = true,
-                });
+            generated.Add(ogg.Replace('\\', '/'));
+            using var process = System.Diagnostics.Process.Start(WebMusicCommand(mp3, ogg));
             var error = process!.StandardError.ReadToEnd();
             process.WaitForExit();
-            if (process.ExitCode != 0 || !File.Exists(ogg))
+            if (process.ExitCode != 0 || !File.Exists(ogg) || new FileInfo(ogg).Length == 0)
             {
-                Debug.LogError($"[WebGLBuild] web music conversion failed for {mp3}: {error}");
-                continue;
+                throw new InvalidOperationException($"[WebGLBuild] web music conversion failed for {mp3}: {error}");
             }
 
             AssetDatabase.ImportAsset(ogg.Replace('\\', '/'));
-            generated.Add(ogg.Replace('\\', '/'));
         }
 
         Debug.Log($"[WebGLBuild] web music: {generated.Count} Ogg track(s) for the browser");
-        return generated;
+    }
+
+    private static System.Diagnostics.ProcessStartInfo WebMusicCommand(string mp3, string ogg)
+    {
+        var start = new System.Diagnostics.ProcessStartInfo
+        {
+            UseShellExecute = false,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+        };
+        if (Application.platform == RuntimePlatform.WindowsEditor)
+        {
+            var ffmpeg = Environment.GetEnvironmentVariable("HEXLIVE_FFMPEG");
+            if (string.IsNullOrWhiteSpace(ffmpeg))
+            {
+                var local = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "HexLive", "FFmpeg", "bin", "ffmpeg.exe");
+                ffmpeg = File.Exists(local) ? local : "ffmpeg.exe";
+            }
+            start.FileName = ffmpeg;
+            foreach (var argument in new[] { "-nostdin", "-v", "error", "-i", mp3,
+                         "-vn", "-c:a", "libvorbis", "-q:a", "4", ogg })
+            {
+                start.ArgumentList.Add(argument);
+            }
+        }
+        else
+        {
+            var command = $"/opt/homebrew/bin/ffmpeg -v error -i '{mp3}' -f wav - | " +
+                          $"/opt/homebrew/bin/oggenc -Q -q 4 -o '{ogg}' -";
+            start.FileName = "/bin/sh";
+            start.Arguments = $"-c \"{command}\"";
+        }
+        return start;
     }
 
     private static string Value(string[] arguments, string name)

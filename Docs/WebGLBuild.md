@@ -35,7 +35,7 @@ Settings, `BuildPipeline.BuildPlayer` из своего скрипта и «Buil
 | Стек у Log/Warning | выкл. на время сборки, потом возвращается | Каждая строка лога со стеком съедала кадр, а с ним и микшер |
 | Сжатие | Brotli без JS-фолбэка | Сервер отдаёт `Content-Encoding: br`, браузер компилирует wasm потоком |
 | `web-audio-manifest.json` | пишется на время сборки | В браузере StreamingAssets — URL, обойти папку нельзя |
-| Музыка mp3 → Ogg | на время сборки (ffmpeg + oggenc) | В веб-FMOD нет MP3-декодера |
+| Музыка mp3 → Ogg | Vorbis q4 на время сборки | В веб-FMOD нет MP3-декодера |
 | `devicePixelRatio = 1` | вписывается в `index.html` | Иначе на Retina рендер в 4 раза больше пикселей |
 | Заставка Unity | выкл. на время сборки, потом возвращается | Свой предзагрузчик страницы; минус ~2.7 МБ и секунды ожидания |
 
@@ -98,26 +98,23 @@ SHA256 `.asmdef` `19f0b8d844420f9933893d96181a484fc51c005f4649092fe50fc524c36d7a
 Не отключать проверки и не подменять служебный код заглушкой. После ремонта
 обязательны реальная компиляция Editor и проверки WebGL.
 
-- **macOS — полный путь.** FSB-кодер `hexfsb` собирается из macOS FMOD
-  Engine SDK, музыку перекодируют `/opt/homebrew/bin/ffmpeg` и `oggenc`.
-  Только на Маке звук можно закодировать заново.
-- **Windows (MSI) — плеер без перекодирования звука.** Кодера на Windows нет.
-  MSI собирает тем же `HexLiveWebGLPlayerBuild.Build`, но с флагом
-  `-webgl-reuse-published-audio` (Codex, 12.10.2026, выпуск `msi-20261012-6ea38650b`).
-  В этом режиме музыка не перекодируется, а в результат кладётся метка
+- **Полная сборка на Windows и macOS.** `hexfsb` собирается из FMOD Engine
+  SDK 2.03.15 для ОС сборщика. Музыку в Vorbis q4 перекодирует FFmpeg
+  с `libvorbis` на Windows и `ffmpeg` вместе с `oggenc` на macOS.
+  Пакеты контента на Windows собирает `Tools/build_webgl_content_windows.py`.
+- **Переиспользование опубликованного звука.** Флаг
+  `-webgl-reuse-published-audio` пропускает перекодирование музыки и создаёт
+  метку
   `audio-reuse-required.json`. Дерево FSB/`.vis` берётся из уже
   опубликованного релиза, и только после доказательства, что исходные
   `Sfx/**` и `Music` с тех пор не менялись (квитанция `audio-source-proof.json`).
   Проверка — `Tools/webgl_verify_audio_reuse.py` (команда ниже). Она проверяет
   все исходные `.ogg/.mp3/.wav/.vis` в `Sfx/**` и `Music`, включая LFS SHA-256;
   добавленные, удалённые и изменённые файлы закрывают путь переиспользования.
-  Если звук менялся, нужна сборка на Маке. Проверка работает локально,
-  не подключается к серверу, не копирует звук и не публикует архивы.
-  Для #695 первый WebGL-выпуск с островными рейдерами на хекскуфе требует
-  полного кодирования на Mac. Проверка переиспользования отклоняет
-  манифест без `Sfx/Voices/` даже при совпадении исходных файлов.
-  Пакеты контента на MSI — `Tools/build_webgl_content_windows.py`, только по
-  команде Толи.
+  При изменении звука запускайте полный путь. Проверка работает локально.
+  Первый выпуск с озвучкой рейдеров на хекскуфе (#695) требует полного
+  кодирования. Проверка переиспользования отклоняет опубликованный манифест,
+  если в нём отсутствуют FSB или `.vis` из `Sfx/Voices/`.
 - **Отдельный проект для сборки (Мак):** `~/hex-girls/webgl-build/HexLive`
   (worktree этого репо, уже импортирован под WebGL). Основной проект
   `/Volumes/ORICO/HexLive` под WebGL **не переключать**: `-buildTarget`
@@ -147,9 +144,24 @@ SHA256 `.asmdef` `19f0b8d844420f9933893d96181a484fc51c005f4649092fe50fc524c36d7a
    preprocess guard повторяет проверку. Нативный тест клика/ввода не заменяет
    браузерную проверку: после следующей разрешённой сборки кликнуть имя,
    ввести `Кшиштоф`, проверить сохранение фокуса и доступность «Далее».
-2. `brew install ffmpeg vorbis-tools`.
-3. Копия FMOD Engine SDK 2.03.x для macOS (лицензия Толи, в git не кладётся)
-   и кодер:
+2. **Windows.** Нужны Visual Studio Build Tools с компонентом
+   Desktop development with C++ и Windows SDK, [FFmpeg x64 с `libvorbis`](https://ffmpeg.org/download.html#build-windows)
+   и [FMOD Engine 2.03.15 для Windows](https://www.fmod.com/download#fmodengine).
+   Распакуйте `ffmpeg.exe` в `%LOCALAPPDATA%/HexLive/FFmpeg/bin` или добавьте
+   его в `PATH`. Для произвольного пути задайте `HEXLIVE_FFMPEG`. В корне
+   репозитория выполните:
+
+   ```powershell
+   .\Tools\webgl\build_hexfsb.ps1
+   ```
+
+   Скрипт ищет FMOD в стандартной папке установки. Для локальной копии SDK
+   укажите `-SdkRoot <папка-с-api>`.
+   Кодер и его DLL попадают в `%LOCALAPPDATA%/HexLive/FMOD/2.03.15/bin`.
+   Другой каталог задаётся `-Output`, затем передайте путь к `hexfsb.exe`
+   в `webgl_audio_fsb.py --hexfsb`. SDK и исполняемые файлы хранятся локально.
+3. **macOS.** Установите `brew install ffmpeg vorbis-tools`. Соберите кодер
+   с локальной копией FMOD Engine SDK 2.03.15:
    ```bash
    Tools/webgl/build_hexfsb.sh ~/hex-girls/webgl-build/fmod-2.03.15
    ```
@@ -188,22 +200,34 @@ SHA256 `.asmdef` `19f0b8d844420f9933893d96181a484fc51c005f4649092fe50fc524c36d7a
      -webgl-output ~/hex-girls/webgl-build/player-<label>-<sha> \
      -logFile ~/hex-girls/webgl-build/unity-build-player-<label>-<sha>.log
    ```
+
+   На Windows в PowerShell, с путями к подготовленному checkout и Unity:
+
+   ```powershell
+   & $unity -batchmode -quit -nographics -accept-apiupdate `
+     -projectPath $checkout -buildTarget WebGL `
+     -executeMethod HexLiveWebGLPlayerBuild.Build `
+     -webgl-output $player -logFile $log
+   if ($LASTEXITCODE) { throw "WebGL build failed. See $log" }
+   python Tools/webgl_audio_fsb.py $player
+   ```
+
    Флаги: `-webgl-development` — только по просьбе Толи;
    `-webgl-exceptions full|explicit` — для отладки; `-webgl-lto` — +1 час
    линковки ради нескольких процентов, только для финального выпуска по
-   решению Толи; `-webgl-reuse-published-audio` — путь MSI, см. выше. Код
+   решению Толи; `-webgl-reuse-published-audio` — режим переиспользования, см. выше. Код
    выхода 0 — успех; `DisplayDialog` скрипт не показывает. Кроме плеера в
    результат кладётся `server-directory.json` — каталог серверов меню (§168.14).
-4. **Звук в FSB — обязательно** (на MSI — проверенное переиспользование, см.
-   «Где собирать»). Веб-FMOD читает только FSB; без этого шага
+4. **Звук в FSB — обязательно.** При полной сборке запустите следующий шаг
+   сразу после сборки Player. Веб-FMOD читает только FSB. Без этого шага
    голоса, музыка, лупы и фолбэк SFX в браузере молчат (`ERR_FORMAT`):
    ```bash
    python3 Tools/webgl_audio_fsb.py ~/hex-girls/webgl-build/player-<label>-<sha>
    ```
-   Кэш кодера — `~/hex-girls/webgl-build/fsb-cache`, повторная сборка
-   перекодирует только изменённое.
+   Кэш кодера на Windows — `%LOCALAPPDATA%/HexLive/FMOD/fsb-cache`, на macOS —
+   `~/hex-girls/webgl-build/fsb-cache`. Повторная сборка перекодирует изменённые файлы.
 
-   **MSI: доказательство неизменности исходников опубликованного звука.**
+   **Проверка исходников при переиспользовании звука.**
    Нужны полный source SHA из квитанции именно аудиорелиза и его публичный
    `web-audio-manifest.json`, уже сохранённый локально. Не подставляйте
    текущий HEAD вместо этого SHA. До переноса опубликованных FSB/`.vis`:
@@ -218,6 +242,19 @@ SHA256 `.asmdef` `19f0b8d844420f9933893d96181a484fc51c005f4649092fe50fc524c36d7a
    соответствия FSB → исходник отвергаются. Квитанция содержит только SHA,
    относительные пути и хеши, без ключей и аккаунтных данных. Она доказывает
    исходники, но не заменяет проверку хешей скопированных опубликованных FSB.
+
+5. **Бандлы WebGL и сервер Linux с Windows.** Для согласованной сборки бандлов
+   передайте тот же закоммиченный SHA и отдельные выходные каталоги:
+
+   ```powershell
+   python Tools/build_webgl_content_windows.py --source-sha $sourceSha `
+     --output $contentBuild --package $contentPackage --unity $unity
+   dotnet publish Server/HexLive.Server/HexLive.Server.csproj -c Release `
+     -r linux-x64 --self-contained true -o $serverOutput
+   ```
+
+   Серверный проект нацелен на .NET 9. Выход `dotnet publish` подготовлен для
+   Linux x64. Команды создают локальные артефакты.
 
 ## Проверка: сборка правильная, только если всё ниже на месте
 
@@ -276,14 +313,14 @@ http://localhost:8090/):
   HTTP404 доходит до `FMOD.Studio.System.loadBankMemory(null)`.
   Упаковщик проверяет RIFF/FEV, размер и SHA каждой банки против точного
   закоммиченного source SHA (включая LFS), затем полный состав и SHA архива.
-  Отсутствующая/пустая/изменённая банка блокирует упаковку. Для MSI:
+  Отсутствующая/пустая/изменённая банка блокирует упаковку. Команда упаковки:
   ```powershell
   python Tools/webgl_package_player.py <existing-player-dir> `
     --source-commit <exact-player-source-sha> --protocol <wire-version> `
-    --reuse-published-audio --output <new-player.tar.gz> `
+    --output <new-player.tar.gz> `
     --receipt <player-manifest.json>
   ```
-  На Маке после FSB-кодирования флаг reuse не используется. `--verify-only`
+  Для проверенного переиспользования добавьте `--reuse-published-audio`. `--verify-only`
   проверяет готовый каталог без сборки/архива; `--check-archive <archive>`
   проверяет уже упакованный файл. Уже существующий архив не перезаписывается.
   Это не заменяет квитанции Unity, проверки совместимости, source proof FSB

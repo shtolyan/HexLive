@@ -258,6 +258,14 @@ SHA256 `.asmdef` `19f0b8d844420f9933893d96181a484fc51c005f4649092fe50fc524c36d7a
    Серверный проект нацелен на .NET 9. Выход `dotnet publish` подготовлен для
    Linux x64. Команды создают локальные артефакты.
 
+   Для объятий и поцелуев клиент, контент и сервер собираются из одного коммита.
+   Перед открытием проекта скачайте FBX через Git LFS:
+   `git lfs pull --include="Assets/HexLiveContent/SocialContact/Clips/**"`.
+   Штатная сборка контента автоматически включает `config/socialcontact`
+   из `Assets/HexLiveContent/RuntimeSource/SocialContact.asset`. В каталоге
+   восемь дорожек для четырёх исходов. Для проверки в Unity откройте
+   `Assets/HexLiveContent/SocialContact/Tests/SimsSocialTest.unity`.
+
 ## Проверка: сборка правильная, только если всё ниже на месте
 
 **Совместимость предметов (#487).** Протокол 27 передаёт точный словарь

@@ -1,6 +1,4 @@
 #nullable enable
-using System;
-using System.Collections.Generic;
 using HexLive.Simulation.Social;
 using HexLive.UnityPresentation.Content;
 using HexLive.UnityPresentation.Wearing;
@@ -14,7 +12,6 @@ namespace HexLive.UnityPresentation.TwoPeopleTest
 [DefaultExecutionOrder(150)]
 public sealed class SocialContactPairView : MonoBehaviour
 {
-    private static readonly Dictionary<string, AnimationClip> Clips = new(StringComparer.Ordinal);
     private NpcActorView? first;
     private NpcActorView? second;
     private TalkTopic result;
@@ -32,39 +29,15 @@ public sealed class SocialContactPairView : MonoBehaviour
     private SocialKissContact? firstKiss;
     private SocialKissContact? secondKiss;
 
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetClips() => Clips.Clear();
+    internal static bool CanPlayAll() => LoadCatalog()?.HasAllClips == true;
 
-    internal static bool CanPlayAll() =>
-        TryClips(TalkTopic.HugAccepted, out _, out _) && TryClips(TalkTopic.HugDeclined, out _, out _) &&
-        TryClips(TalkTopic.KissAccepted, out _, out _) && TryClips(TalkTopic.KissDeclined, out _, out _);
-
-    private static bool TryClips(TalkTopic topic, out AnimationClip? x, out AnimationClip? y)
+    private static SocialContactClipCatalog? LoadCatalog()
     {
-        var stem = topic switch
-        {
-            TalkTopic.HugAccepted => "a2a_friendly_T_hug_succeed",
-            TalkTopic.HugDeclined => "a2a_friendly_T_hug_fail",
-            TalkTopic.KissAccepted => "a2a_romantic_T_kiss_firstKiss_succeed",
-            _ => "a2a_romantic_T_kiss_shy_fail"
-        };
-        x = FindClip(stem + "_x");
-        y = FindClip(stem + "_y");
-        return x != null && y != null;
-    }
-
-    private static AnimationClip? FindClip(string name)
-    {
-        if (Clips.TryGetValue(name, out var cached) && cached != null) return cached;
 #if UNITY_EDITOR
-        foreach (var asset in UnityEditor.AssetDatabase.LoadAllAssetsAtPath(
-            $"Assets/HexLiveLocalExperiments/SimsSocial/Clips/{name}.fbx"))
-            if (asset is AnimationClip clip && clip.name == name && clip.humanMotion)
-                return Clips[name] = clip;
+        var local = UnityEditor.AssetDatabase.LoadAssetAtPath<SocialContactClipCatalog>(SocialContactClipCatalog.AssetPath);
+        if (local != null) return local;
 #endif
-        foreach (var clip in AtomicResources.LoadAll<AnimationClip>("HexLive/SocialContact"))
-            if (clip.humanMotion && clip.name == name) Clips[clip.name] = clip;
-        return Clips.TryGetValue(name, out cached) ? cached : null;
+        return AtomicResources.Load<SocialContactClipCatalog>(SocialContactClipCatalog.ResourcesPath);
     }
 
     internal bool Sync(NpcActorView a, NpcActorView b, TalkTopic topic,
@@ -79,7 +52,8 @@ public sealed class SocialContactPairView : MonoBehaviour
         if (!graph.IsValid() || first != a || second != b || result != topic || startTick != start)
         {
             Stop();
-            if (!TryClips(topic, out var x, out var y)) return false;
+            var catalog = LoadCatalog();
+            if (catalog == null || !catalog.TryGet(topic, out var x, out var y)) return false;
             first = a;
             second = b;
             result = topic;

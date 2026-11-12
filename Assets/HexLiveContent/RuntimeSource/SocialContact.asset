@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6008b98eb21f0b647a043d2fb4463eae, type: 3}
+  m_Name: SocialContact
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.TwoPeopleTest.SocialContactClipCatalog
+  hugAccepted:
+    initiator: {fileID: -623603649343465320, guid: ceb92746054f92a48a7a762777e41757, type: 3}
+    partner: {fileID: -623603649343465320, guid: 5ac09097b406fe34796874312c6018fe, type: 3}
+  hugDeclined:
+    initiator: {fileID: -623603649343465320, guid: 781d5278d0534c2499ac6c9edd6865db, type: 3}
+    partner: {fileID: -623603649343465320, guid: f31b4d896c3869444b754b768ee28eb0, type: 3}
+  kissAccepted:
+    initiator: {fileID: -623603649343465320, guid: cfbcebc27b51aab43baa7cb3ea7a064d, type: 3}
+    partner: {fileID: -623603649343465320, guid: 4c51688429b4a834a8b77300093d7146, type: 3}
+  kissDeclined:
+    initiator: {fileID: -623603649343465320, guid: 496d4bdeb5766404881805cc694c5011, type: 3}
+    partner: {fileID: -623603649343465320, guid: 5c87ceda8b1c5c040a42bfb59da79997, type: 3}

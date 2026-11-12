@@ -797,6 +797,8 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         Rendering.MobWoundPainter.Prewarm();
         _ = Rendering.BloodSplashVfx.Prefabs;
         HexLive.UnityPresentation.Content.AtomicResources.Prewarm("HexLive/NpcAnimSet");
+        HexLive.UnityPresentation.Content.AtomicResources.Prewarm(
+            HexLive.UnityPresentation.TwoPeopleTest.SocialContactClipCatalog.ResourcesPath);
         HexLive.UnityPresentation.Content.AtomicResources.Prewarm("HexLive/CarryPoses/Carrying");
         HexLive.UnityPresentation.Content.AtomicResources.Prewarm("HexLive/CarryPoses/BeingCarried");
         // Spec §67: every SFX sample loads NOW for the same reason — the FMOD

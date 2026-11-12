@@ -618,6 +618,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private readonly List<ObjectSnapshot> _rackHangScratch = new();
     private readonly Dictionary<JunctionId, int> _rackRankScratch = new();
 
+    // §176.3 / bug #736: the apartment wardrobe shows everything it stores on
+    // its own rail — container contents and garments stored at its junction.
+    // The latter keep their object (search, theft, ownership) but no ground view.
+    private readonly Dictionary<JunctionId, int> _modernWardrobeByJunction = new();
+    private readonly Dictionary<int, List<string>> _modernWardrobeStoredScratch = new();
+    private readonly HashSet<int> _modernWardrobeStoredObjects = new();
+    private readonly List<string> _modernWardrobeRailScratch = new();
+
     private float HexRadius => SimulationUnityMapper.HexRadius;
 
     private float JunctionMarkerScale => HexRadius * JunctionMarkerScaleFactor;
@@ -1839,6 +1847,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _rackYawByJunction.Clear();
         _rackHangRank.Clear();
         _collectorJunctions.Clear();
+        _modernWardrobeByJunction.Clear();
+        _modernWardrobeStoredObjects.Clear();
+        _modernWardrobeStoredScratch.Clear();
         _groundPileScratch.Clear(); _groundPileRank.Clear(); _groundPileCounts.Clear();
         _groundPileDefinitions.Clear(); _groundPileLegacy.Clear();
         foreach (var worldObject in snapshot.Objects)
@@ -1867,6 +1878,33 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (worldObject.DefinitionId == "station.water_collector" && worldObject.Junctions.Count > 0)
             {
                 _collectorJunctions.Add(worldObject.Junctions[0]);
+            }
+
+            if (worldObject.DefinitionId == ContentIds.ModernWardrobe && worldObject.Junctions.Count > 0)
+            {
+                _modernWardrobeByJunction[worldObject.Junctions[0]] = worldObject.Id.Value;
+            }
+        }
+
+        // §176.3 / bug #736: a garment stored in the apartment wardrobe is a
+        // world object at the wardrobe's junction (ContainerLootMath.
+        // GiveToContainer). Snapshot objects arrive in ascending id order, so
+        // the rail order is stable across ticks and reloads.
+        if (_modernWardrobeByJunction.Count > 0)
+        {
+            foreach (var worldObject in snapshot.Objects)
+            {
+                if (worldObject.Junctions.Count == 0 || worldObject.SurfaceObjectId.HasValue ||
+                    !_modernWardrobeByJunction.TryGetValue(worldObject.Junctions[0], out var wardrobeId) ||
+                    worldObject.Id.Value == wardrobeId || !IsModernWardrobeWear(worldObject.DefinitionId))
+                    continue;
+                if (!_modernWardrobeStoredScratch.TryGetValue(wardrobeId, out var stored))
+                {
+                    stored = new List<string>();
+                    _modernWardrobeStoredScratch[wardrobeId] = stored;
+                }
+                stored.Add(worldObject.DefinitionId);
+                _modernWardrobeStoredObjects.Add(worldObject.Id.Value);
             }
         }
 
@@ -2083,12 +2121,30 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // FOG-OF-WAR EXPERIMENT: also hide objects no colonist remembers.
             // §120.13: в режиме стройки площадку, перетаскиваемый и ещё не
             // подтверждённый сервером предмет рисует превью редактора.
+            // §176.3 / bug #736: a garment stored in the apartment wardrobe is
+            // drawn by that wardrobe's rail, not as a pile on its floor.
             var shouldHide = _wardrobeHiddenObjects.Contains(key)
+                || _modernWardrobeStoredObjects.Contains(key)
                 || (_fogActive && !_fogKnownObjects.Contains(key))
                 || HexLive.UnityPresentation.HutTest.HutLayoutDesigner.IsWorldObjectHidden(key);
             if (objectView.activeSelf == shouldHide)
             {
                 objectView.SetActive(!shouldHide);
+            }
+
+            if (worldObject.DefinitionId == ContentIds.ModernWardrobe)
+            {
+                _modernWardrobeRailScratch.Clear();
+                foreach (var cell in worldObject.Contents)
+                {
+                    if (!IsModernWardrobeWear(cell.ItemDefinitionId)) continue;
+                    for (var copy = 0; copy < Mathf.Max(1, cell.StackCount); copy++)
+                        _modernWardrobeRailScratch.Add(cell.ItemDefinitionId);
+                }
+                if (_modernWardrobeStoredScratch.TryGetValue(key, out var storedAtJunction))
+                    _modernWardrobeRailScratch.AddRange(storedAtJunction);
+                HexLive.UnityPresentation.Environment.ModernWardrobeRail.Sync(objectView, key,
+                    _modernWardrobeRailScratch, HexRadius * NpcHeightFactor * 2.4f / ActorSourceHeightMeters);
             }
 
             // §155: лежащая/висящая одежда — тяжёлый wear-комплект; её вью
@@ -5430,6 +5486,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // over the hanger slot's rail — dropped by the garment's own half-height
     // (bounds are translation-invariant, so this works before placement too),
     // clamped so a long garment on the low rail doesn't clip the ground.
+    // §176.3 / bug #736: the same garment test the object view uses, so a wear
+    // item whose payload has not arrived yet still owns its rail place.
+    private static bool IsModernWardrobeWear(string definitionId) =>
+        !string.IsNullOrEmpty(definitionId) &&
+        (GarmentDropFactory.IsGarment(definitionId) ||
+         HexLive.UnityPresentation.Content.ContentAssetService.Instance.TryGetRecord(
+             "wear", HexLive.UnityPresentation.Wearing.WearArtAliases.ArtId(definitionId), out _));
+
     private static Vector3 HangSlotOffset(Transform hung, int slot, bool inWardrobe,
         Vector3 wardrobeSocket)
     {

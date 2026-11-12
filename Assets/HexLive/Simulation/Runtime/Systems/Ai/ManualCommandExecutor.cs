@@ -2905,7 +2905,7 @@ internal static partial class ManualCommandExecutor
     private static void ApplyPlantInventorySeed(
         WorldState world,
         PlantInventorySeedCommand command,
-        AdmissionTracker admission, ObjectId? plantingSite = null)
+        AdmissionTracker admission, ObjectId? plantingSite = null, WorldObjectState groundSeed = null)
     {
         if (!TryTakeOrder(
                 world, command.Npc, "PlantSeed", requireManual: true,
@@ -2932,25 +2932,26 @@ internal static partial class ManualCommandExecutor
             return;
         }
 
-        if (command.Item.Source != InventoryItemSource.Carried ||
-            command.Item.Index < 0 || command.Item.Index >= npc.Inventory.Items.Count ||
-            npc.Inventory.Items[command.Item.Index].DefinitionId !=
-                command.Item.ExpectedDefinitionId)
+        var seedId = command.Item.ExpectedDefinitionId;
+        if (groundSeed is not null
+            ? !GardenMath.IsUsableGroundSeed(world, npc, groundSeed, command.TargetJunction, seedId)
+            : command.Item.Source != InventoryItemSource.Carried ||
+              command.Item.Index < 0 || command.Item.Index >= npc.Inventory.Items.Count ||
+              npc.Inventory.Items[command.Item.Index].DefinitionId != seedId)
         {
             Reject(world, npc.Id, "PlantSeed", "StaleItem", admission);
             return;
         }
 
-        var seed = npc.Inventory.Items[command.Item.Index];
-        if (!InventoryPlacementMath.CanPlace(seed.DefinitionId) ||
-            InventoryPlacementMath.InteractionFor(world, seed.DefinitionId) == null)
+        if (!InventoryPlacementMath.CanPlace(seedId) ||
+            InventoryPlacementMath.InteractionFor(world, seedId) == null)
         {
             Reject(world, npc.Id, "PlantSeed", "NotASeed", admission);
             return;
         }
 
-        if (!PlantGrowthSystem.CanPlantAt(
-                world, command.TargetJunction, command.TargetTile, npc.Id, plantingSite))
+        if (!PlantGrowthSystem.CanPlantAt(world, command.TargetJunction, command.TargetTile, npc.Id, plantingSite,
+                allowLooseSeeds: PlantGrowthCatalog.TryGetBySeed(seedId, out _)))
         {
             Reject(world, npc.Id, "PlantSeed", "PlantingSpotOccupied", admission);
             return;
@@ -2967,41 +2968,18 @@ internal static partial class ManualCommandExecutor
 
         ClearForNewOrder(world, npc, "Ручной приказ посадить семя");
         ClearAttackOrder(world, npc);
-        if (!SpatialMutations.TryReserveJunction(
-                world, command.TargetJunction, npc.Id, world.Tick,
-                Spec121.ManualReserveTicks))
+        if (!TryInstallPlantingPlan(world, npc, command, plantingSite, groundSeed,
+                plantingSite.HasValue ? command.TargetTile : null))
         {
             Reject(world, npc.Id, "PlantSeed", "PlantingSpotOccupied", admission);
             npc.Mind.CurrentGoal = GoalType.None;
             return;
         }
 
-        npc.Plan.Goal = GoalType.PlayerOrder;
-        npc.Plan.TargetJunctionId = command.TargetJunction;
-        npc.Plan.TargetTile = command.TargetTile;
-        npc.Plan.TargetItemDefinitionId = seed.DefinitionId;
-        npc.Plan.TargetObjectId = plantingSite;
-        npc.Plan.Steps.Add(new PlanStep
-        {
-            Type = PlanStepType.MoveToJunction,
-            TargetJunction = command.TargetJunction
-        });
-        npc.Plan.Steps.Add(new PlanStep
-        {
-            Type = PlanStepType.PlantInventorySeed,
-            TargetJunction = command.TargetJunction,
-            TimeoutEndTick = command.Item.Index,
-            Interaction = InteractionType.Plant
-        });
-        npc.Plan.CurrentStepIndex = 0;
-        npc.Plan.Status = PlanStatus.Active;
-        npc.Mind.CurrentGoal = GoalType.PlayerOrder;
-        npc.Execution.TargetInventoryItem = seed;
-
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "ManualOrderAccepted",
-                $"Order=PlantSeed Def={seed.DefinitionId} " +
+                $"Order=PlantSeed Def={seedId} " +
                 $"Junction={command.TargetJunction.Value} " +
                 $"Tile={command.TargetTile.Q},{command.TargetTile.R}");
         }
@@ -3069,14 +3047,17 @@ internal static partial class ManualCommandExecutor
         if (interactionType == InteractionType.Build && BuildSiteMath.IsPlantingSite(worldObject))
         {
             var index = npc.Inventory.Items.FindIndex(i => i.DefinitionId == worldObject.BuildProduct);
-            if (index < 0 || worldObject.Junctions.Count == 0)
+            var groundSeed = worldObject.Junctions.Count > 0
+                ? GardenMath.FindGroundSeed(world, npc, worldObject.Junctions[0], worldObject.BuildProduct)
+                : null;
+            if (index < 0 && groundSeed is null || worldObject.Junctions.Count == 0)
             {
                 Reject(world, npc.Id, verb, "NoMaterials", admission);
                 return false;
             }
             ApplyPlantInventorySeed(world, new PlantInventorySeedCommand(npc.Id,
                 new InventoryItemRef(InventoryItemSource.Carried, index, worldObject.BuildProduct),
-                worldObject.Junctions[0], worldObject.Tile), admission, worldObject.Id);
+                worldObject.Junctions[0], worldObject.Tile), admission, worldObject.Id, groundSeed);
             return npc.Plan.Status == PlanStatus.Active && npc.Plan.TargetObjectId == worldObject.Id;
         }
 
@@ -4063,7 +4044,7 @@ internal static partial class ManualCommandExecutor
 
         if (PlantGrowthCatalog.TryGetBySeed(product, out _))
         {
-            if (!PlantGrowthSystem.CanPlantAt(world, anchor, command.Tile))
+            if (!PlantGrowthSystem.CanPlantAt(world, anchor, command.Tile, allowLooseSeeds: true))
             {
                 RejectWorld("PlacementBlocked");
                 return;

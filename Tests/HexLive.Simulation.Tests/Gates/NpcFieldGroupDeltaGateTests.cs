@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Wire;
@@ -110,6 +111,26 @@ public sealed class NpcFieldGroupDeltaGateTests
 
         Assert.That(mask, Is.EqualTo(1 << WorldSnapshotCodec.NpcGroup.Transform),
             "шаг должен везти только группу Transform");
+    }
+
+    [Test]
+    public void SpeechOriginRoundTripsInIdentity()
+    {
+        var snapshot = OneNpc();
+        snapshot.Npcs[0].SpeechOrigin = NpcSpeechOrigin.Modern;
+        var encoder = new SnapshotDeltaEncoder();
+        encoder.Encode(snapshot, false);
+        var mirror = new WorldSnapshot();
+        using (var reader = new BinaryReader(new MemoryStream(Encode(w => WorldSnapshotCodec.Write(snapshot, w, false)))))
+            WorldSnapshotCodec.Read(reader, mirror);
+        Assert.That(mirror.Npcs[0].SpeechOrigin, Is.EqualTo(NpcSpeechOrigin.Modern));
+
+        snapshot.Tick++;
+        snapshot.Npcs[0].SpeechOrigin = NpcSpeechOrigin.Raider;
+        var delta = encoder.Encode(snapshot, false);
+        Assert.That(NpcMaskOf(delta), Is.EqualTo(1 << WorldSnapshotCodec.NpcGroup.Identity));
+        ApplyDelta(delta, mirror, mirror.Tick);
+        Assert.That(mirror.Npcs[0].SpeechOrigin, Is.EqualTo(NpcSpeechOrigin.Raider));
     }
 
     [Test]

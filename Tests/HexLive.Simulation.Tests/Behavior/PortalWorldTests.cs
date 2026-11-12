@@ -411,8 +411,9 @@ public sealed class PortalWorldTests
             door.Junctions[0], true), Is.True);
     }
 
-    [Test]
-    public void ActiveVisitSurvivesSaveAndReturnCarriesResidentIntoCamp()
+    [TestCase(94)]
+    [TestCase(WorldSaveSerializer.BlobVersion)]
+    public void ActiveVisitSurvivesSaveAndReturnCarriesResidentIntoCamp(int version)
     {
         var world = CreateWorld();
         world.Tick = WorldBalance.DayLengthTicks * 3 / 4;
@@ -422,7 +423,7 @@ public sealed class PortalWorldTests
         Assert.That(PortalWorld.Travel(world, visitor, exterior), Is.Null);
 
         world.Portal.Mode = PortalSpawnMode.Random;
-        var reloaded = RoundTrip(world, WorldSaveSerializer.BlobVersion);
+        var reloaded = RoundTrip(world, version);
         Assert.That(reloaded.Portal.Mode, Is.EqualTo(PortalSpawnMode.Random));
         Assert.That(reloaded.Portal.VisitSerial, Is.EqualTo(world.Portal.VisitSerial));
         Assert.That(reloaded.Portal.Visitor, Is.EqualTo(visitor.Id));
@@ -431,6 +432,7 @@ public sealed class PortalWorldTests
         var exit = reloaded.Entities.Objects[reloaded.Portal.InteriorDoor.Value];
 
         var resident = reloaded.Entities.Npcs[reloaded.Portal.Resident.Value];
+        Assert.That(resident.SpeechOrigin, Is.EqualTo(NpcSpeechOrigin.Modern));
         if (resident.CurrentJunction is { } residentPoint) SpatialMutations.FreeJunction(reloaded, residentPoint, resident.Id);
         resident.CurrentJunction = null;
         resident.CarriedByNpcId = visitor.Id;
@@ -440,11 +442,21 @@ public sealed class PortalWorldTests
         Assert.Multiple(() =>
         {
             Assert.That(resident.Faction, Is.EqualTo(visitor.Faction));
+            Assert.That(resident.SpeechOrigin, Is.EqualTo(NpcSpeechOrigin.Modern));
             Assert.That(resident.Tile, Is.EqualTo(visitor.Tile));
             Assert.That(resident.Fragment, Is.EqualTo(visitor.Fragment));
             Assert.That(reloaded.Portal.Resident, Is.Null);
             Assert.That(reloaded.Portal.ExteriorDoor, Is.Null);
         });
+        var atCamp = RoundTrip(reloaded, WorldSaveSerializer.BlobVersion);
+        Assert.That(atCamp.Entities.Npcs[resident.Id].SpeechOrigin, Is.EqualTo(NpcSpeechOrigin.Modern));
+        if (version == 94)
+        {
+            // v94 explicitly cleared the resident profile on joining the camp.
+            // Its shared runtime ID alone cannot distinguish an admin spawn.
+            var unmarked = RoundTrip(reloaded, version);
+            Assert.That(unmarked.Entities.Npcs[resident.Id].SpeechOrigin, Is.EqualTo(NpcSpeechOrigin.Island));
+        }
     }
 
     [Test]

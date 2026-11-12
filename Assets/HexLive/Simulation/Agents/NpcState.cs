@@ -399,6 +399,14 @@ public sealed class WoundState
     public int Seed { get; set; }
 }
 
+// §67.16: authored background. Faction and traits can change independently.
+public enum NpcSpeechOrigin : byte
+{
+    Island = 0,
+    Modern = 1,
+    Raider = 2
+}
+
 public sealed class NPCState
 {
     public EntityId Id { get; set; }
@@ -454,6 +462,7 @@ public sealed class NPCState
     public string Hairstyle { get; set; } = string.Empty;
 
     public string VoiceBank { get; set; } = string.Empty;
+    public NpcSpeechOrigin SpeechOrigin { get; set; }
 
     // §72: which side this body is on. The ONE thing the simulation DOES branch
     // on above — everything else (needs, GOAP, crafting, wardrobe) is identical

@@ -497,6 +497,7 @@ namespace HexLive.Simulation.Bootstrap
                 Id = 101,
                 DisplayName = "Kshishtof",
                 ActorMesh = "Kshishtof",
+                SpeechOrigin = Agents.NpcSpeechOrigin.Raider,
                 Faction = Agents.Faction.Outsiders,
                 FragmentId = 1,
                 TileQ = camp.Q,

@@ -25,6 +25,7 @@ internal static class PortalApartmentPopulation
         var landing = available[RollIndex(world.Seed, visitSerial, 0, 17661, available.Length)];
         var resident = ColonyArrivalSystem.CreateArrival(world, id, Faction.Castaway, landing);
         resident.ProfileId = PortalWorld.ResidentProfileId;
+        resident.SpeechOrigin = NpcSpeechOrigin.Modern;
         world.PlayerControlledNpcs.Remove(id.Value);
         resident.Inventory.Items.Clear();
         resident.Traits.Clear();

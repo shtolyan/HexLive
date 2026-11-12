@@ -944,6 +944,7 @@ public sealed class McpTools
                 // its local workspace; no generic turn writes these fields.
                 ["legacyAgentState"] = LegacyAgentState(npc),
                 ["stateSummary"] = context.StateSummary,
+                ["speechOrigin"] = npc.SpeechOrigin.ToString(),
                 ["bodyNeeds"] = McpPlanningObservations.Needs(npc),
                 ["restReadiness"] = McpPlanningObservations.RestReadiness(world, npc),
                 ["inOwnCamp"] = ColonyQueries.InCamp(world, npc.Tile, npc.Faction),

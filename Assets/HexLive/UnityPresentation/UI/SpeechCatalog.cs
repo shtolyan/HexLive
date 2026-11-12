@@ -244,6 +244,9 @@ public static class SpeechCatalog
         };
     }
 
+    public static bool IsAboutLeavingIsland(string speechId) =>
+        speechId is "sad_topic_escape" or "cry_topic_home" or "sleepy_dream";
+
     // ---- one-shot social cue (WorldSnapshot.SocialCueKind) ---------------
 
 

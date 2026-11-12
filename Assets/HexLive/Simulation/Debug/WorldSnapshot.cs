@@ -519,6 +519,7 @@ public sealed class NpcSnapshot
     public string Hairstyle { get; set; } = string.Empty;
 
     public string VoiceBank { get; set; } = string.Empty;
+    public Agents.NpcSpeechOrigin SpeechOrigin { get; set; }
 
     public int HexkufaExposure { get; set; }
     public float PlayerVoiceFamiliarity { get; set; }

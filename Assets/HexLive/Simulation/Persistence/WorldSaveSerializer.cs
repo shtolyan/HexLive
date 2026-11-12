@@ -193,7 +193,8 @@ public static class WorldSaveSerializer
     // v92 (§176): surface parent and slot for loose items, at the end of each object record.
     // v93 (§128.5): a carried backpack keeps the physical instances in its pockets.
     // v94 (§176): apartment visit serial and the expanded reserved grid.
-    public const int BlobVersion = 94;
+    // v95 (§67.16): authored speech origin at the tail of each NPC record.
+    public const int BlobVersion = 95;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -793,6 +794,10 @@ public static class WorldSaveSerializer
 
         if (version < 74) MigrateProduceOrigins(world);
 
+        var authoredRaiders = version < 95
+            ? world.Entities.Npcs.Values.Where(n => n.SpeechOrigin == NpcSpeechOrigin.Raider)
+                .Select(n => n.Id).ToHashSet()
+            : null;
         world.Entities.Npcs.Clear();
         var npcCount = r.ReadInt32();
         for (var i = 0; i < npcCount; i++)
@@ -1190,6 +1195,17 @@ public static class WorldSaveSerializer
         if (r.ReadInt32() != EndMarker)
         {
             throw new InvalidDataException("Save blob end marker missing — truncated or corrupt save.");
+        }
+
+        if (authoredRaiders != null)
+        {
+            foreach (var npc in world.Entities.Npcs.Values.Concat(world.Entities.Corpses.Values))
+            {
+                if (npc.ProfileId == PortalWorld.ResidentProfileId)
+                    npc.SpeechOrigin = NpcSpeechOrigin.Modern;
+                else if (authoredRaiders.Contains(npc.Id) || RaidWaveSystem.WasLegacyRaider(world, npc.Id))
+                    npc.SpeechOrigin = NpcSpeechOrigin.Raider;
+            }
         }
 
         PortalWorld.ClearClosedApartmentOnLoad(world);
@@ -2394,6 +2410,7 @@ public static class WorldSaveSerializer
             }
         }
         if (version >= 90) WriteNullableEntity(w,npc.Mind.TravelLeaderNpcId);
+        if (version >= 95) w.Write((byte)npc.SpeechOrigin);
     }
 
     private static NPCState ReadNpc(BinaryReader r, int version)
@@ -3164,6 +3181,12 @@ public static class WorldSaveSerializer
         }
 
         if (version >= 90) npc.Mind.TravelLeaderNpcId = ReadNullableEntity(r);
+        if (version >= 95)
+        {
+            npc.SpeechOrigin = (NpcSpeechOrigin)r.ReadByte();
+            if (npc.SpeechOrigin is not (NpcSpeechOrigin.Island or NpcSpeechOrigin.Modern or NpcSpeechOrigin.Raider))
+                throw new InvalidDataException("Invalid NPC speech origin.");
+        }
 
         // v66/v67 kept one global pair; v68's item state is authoritative.
         // Legacy values stay local to this reader and never become runtime state.

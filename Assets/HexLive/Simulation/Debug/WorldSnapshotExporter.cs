@@ -713,6 +713,7 @@ public static class WorldSnapshotExporter
             TargetObjectId = (npc.Execution.TargetObject ?? npc.Plan.TargetObjectId)?.Value,
             Id = npc.Id,
             ProfileId = npc.ProfileId,
+            SpeechOrigin = npc.SpeechOrigin,
             UseAuthoredAppearance = npc.UseAuthoredAppearance,
             DisplayName = npc.DisplayName,
             ActorMesh = npc.ActorMesh,

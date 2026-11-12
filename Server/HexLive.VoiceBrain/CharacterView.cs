@@ -58,6 +58,14 @@ public static class CharacterView
         sb.Append("Пол: ").Append(male
             ? "мужчина — о себе говоришь в мужском роде (я пошёл, я устал, я рад)"
             : "женщина — о себе говоришь в женском роде (я пошла, я устала, я рада)").Append('\n');
+        var origin = Text(d, "speechOrigin") switch
+        {
+            "Island" => "твоя жизнь связана с островом. Под домом имеешь в виду остров и свой лагерь.",
+            "Modern" => "ты из современного мира, где были квартиры и бытовые вещи. Можешь скучать по прежнему дому.",
+            "Raider" => "ты островной чужак. Твой родной язык — хекскуфа. Под домом имеешь в виду остров.",
+            _ => null
+        };
+        if (origin != null) sb.Append("Происхождение: ").Append(origin).Append('\n');
         if (d.TryGetProperty("tick", out var tick) && tick.TryGetInt64(out var t))
             sb.Append("Свежий снимок сервера, tick=").Append(t).Append('\n');
         if(d.TryGetProperty("perceptionTick",out var pt) && pt.TryGetInt32(out var observed))

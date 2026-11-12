@@ -68,6 +68,17 @@ Rules that are not style preferences:
   from one table. Baking size into a mesh breaks that pairing.
 - **Keep the bbox when replacing a model.** Station/furniture assemblies and any
   authored hand pose are built around the old dimensions.
+- **A held tool is not done until its mesh frame matches the shipped tool it
+  imitates AND it has a hand pose** (Spec §176.5, bugs #754/#758/#759/#761).
+  The GearConfig pose discards the FBX root rotation, so it sees the authored
+  Blender axes with X negated: grip END at the origin, handle along +Y, axe
+  bit / hammer face toward +Z, knife blade in XY with the edge toward Blender
+  +X (the palm). Then reuse the reference pose — own GearConfig with the same
+  numbers, or `HandPropVisual.GripOwner` — instead of tuning a new one. A
+  modern tool with neither landed in the WRIST joint (hand-bone origin) with
+  its handle pointing backwards. Prove it without Unity: render the model in
+  the right hand of `People/Source/Models/Marta.fbx` by the pose, next to the
+  reference tool (method in §176.5).
 - Export: `axis_forward='-Z'`, `axis_up='Y'`, `object_types={'MESH'}`,
   `path_mode='STRIP'`, `add_leaf_bones=False`, `bake_anim=False`.
 - Keep the existing `.fbx.meta` (its GUID) — overwrite the FBX in place.

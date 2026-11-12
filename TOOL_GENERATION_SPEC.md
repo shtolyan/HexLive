@@ -205,6 +205,15 @@ stays consistent):
   `ObjectFit.TargetWorldSize`; never bake size into a mesh or the config.
   The GearConfig `handLocalScale` is a per-item fine MULTIPLIER on top (default 1).
 
+⚠️ **Procedural FBX tools (Blender `-Z`/`Y` export, Unity `bakeAxisConversion: 0`)**
+keep the axis conversion on the prefab ROOT, and the GearConfig pose overwrites
+that root rotation. The pose therefore sees the AUTHORED Blender axes with X
+negated, not "Blender +Z → Unity +Y": author the handle along Blender **+Y**
+with the grip end at y = 0 and the head toward Blender **+Z**. A tool that is
+correct only after the root rotation lands sideways in the hand. The portal
+tools (#754/#758/#761) shipped with the pivot mid-handle or at the bolster and
+no pose at all; `Spec/176.md` §176.5 has the measured frames and the check.
+
 AI meshes come in **diagonal** — an AABB axis-permute does NOT straighten them.
 Method that worked:
 1. PCA on the **handle-only** verts (bottom ~45 % by height) → `Quaternion.FromToRotation(handleDir, Vector3.up)` to stand it vertical (PCA over ALL verts fails — the flat blade skews the principal axis).

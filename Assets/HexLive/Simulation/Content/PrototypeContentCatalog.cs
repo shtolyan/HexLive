@@ -1004,8 +1004,7 @@ public static class PrototypeContentCatalog
                         Type = InteractionType.PickUp,
                         DurationTicks = 4
                     },
-                    // Spec §54: chop a log into sticks in the field. Sticks scatter
-                    // on the ground around the chopping spot.
+                    // Spec §54: chop a log into sticks stacked at the worksite.
                     new InteractionDefinition
                     {
                         Id = "split.log",

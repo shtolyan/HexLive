@@ -2230,10 +2230,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
         else
         {
-        // Spec §54: a Process consumes the object and scatters its
-        // yields — a log → sticks, a palm crown → leaves.
-        // Consumption is unconditional here. Release this source only before
-        // placement; its captured spatial fields remain valid for scatter.
+        // Spec §54: processing consumes its source. Log products go into
+        // piles; other harvests retain their declared distribution.
         // Failed admission retains outputs, so completion never retries yields.
         WorldObjectMutations.DespawnObject(world, worldObject.Id);
         ApplyHarvestYields(world, npc, worldObject, completedInteraction.Yields);
@@ -2613,12 +2611,14 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
     // Spec §54 (R1): materialize a data-driven Yields list. Scatter drops land
     // as distinct ground objects at free junctions around the harvested/split
-    // spot (logs & leaves around the stump, sticks around the split log); a
+    // spot (logs & leaves around the stump). Log-processing output instead
+    // uses regular compatible piles at that worksite; a
     // non-Scatter drop falls back to the legacy inventory-first GiveOrDrop.
     internal static void ApplyHarvestYields(
         WorldState world, NPCState npc, WorldObjectState source,
         System.Collections.Generic.IReadOnlyList<HarvestDrop> yields)
     {
+        var stackGroundYields = source.DefinitionId == ContentIds.Log;
         foreach (var drop in yields)
         {
             for (var i = 0; i < drop.Count; i++)
@@ -2634,7 +2634,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 }
 
                 var item = CreateYieldItem(world, drop.DefinitionId, source);
-                if (!TryDropYieldNear(world,npc,source,item,out _, scatter:true)) GiveOrDrop(world,npc,item);
+                if (!TryDropYieldNear(world, npc, source, item, out _,
+                        scatter: !stackGroundYields, preferExistingPile: stackGroundYields))
+                {
+                    GiveOrDrop(world, npc, item);
+                }
             }
         }
     }
@@ -2688,11 +2692,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     }
 
     private static bool TryDropYieldNear(WorldState world,NPCState npc,WorldObjectState source,
-        ItemInstance item,out WorldObjectState spawned,bool scatter=false)
+        ItemInstance item,out WorldObjectState spawned,bool scatter=false,bool preferExistingPile=false)
     {
         var position = source.Junctions.Count > 0 && world.Junctions.Items.TryGetValue(source.Junctions[0],out var anchor)
             ? anchor.WorldPosition : npc.Position;
-        if (GroundItemPlacement.TryFindNear(world,npc,item,source.Tile,position,out var tile,out var junction,out _,scatter))
+        if (GroundItemPlacement.TryFindNear(world, npc, item, source.Tile, position,
+                out var tile, out var junction, out _, scatter, preferExistingPile: preferExistingPile))
         {
             spawned = SpawnDroppedItem(world,npc,item,tile,junction);
             spawned.IsHarvestScatter = scatter;

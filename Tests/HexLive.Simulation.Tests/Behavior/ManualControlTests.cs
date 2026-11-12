@@ -104,7 +104,8 @@ public sealed class ManualControlTests
     [Test]
     public void PlayerActionsWaitForTheActivePlanAndStayInArrivalOrder()
     {
-        var engine = TestWorld.CreateEngine();
+        var now = 0d;
+        var engine = TestWorld.CreateEngine(clock: new SimulationClock(() => now));
         var npc = Colonist(engine.World);
         npc.Needs.Hunger = 0f;
         npc.Needs.Thirst = 0f;
@@ -122,14 +123,29 @@ public sealed class ManualControlTests
             Is.EqualTo(new[] { ("MoveTo", true), ("SelfAction", false) }));
         Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.PlayerOrder));
 
+        now = 72d;
         for (var i = 0; i < 600 && npc.Mind.CurrentGoal != GoalType.Sit; i++)
             engine.Step();
 
+        Assert.That(npc.Mind.ManualControl, Is.True);
         Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.Sit));
         Assert.That(HexSpatialMath.HexDistance(npc.Tile, destination.Tiles[0]), Is.LessThanOrEqualTo(1));
         var after = Debug.WorldSnapshotExporter.Export(engine.World).Npcs.Single(n => n.Id == npc.Id);
         Assert.That(after.PlayerOrders.Select(order => (order.Action, order.Active)),
             Is.EqualTo(new[] { ("SelfAction", true) }));
+
+        now = 144d;
+        for (var i = 0; i < 600 && npc.Mind.PlayerOrders.Active != null; i++)
+            engine.Step();
+
+        Assert.That(npc.Mind.PlayerOrders.Active, Is.Null);
+        Assert.That(npc.Mind.ManualControl, Is.True);
+        now = 179.999d;
+        new ManualOrderSystem().Run(engine.World);
+        Assert.That(npc.Mind.ManualControl, Is.True);
+        now = 180d;
+        new ManualOrderSystem().Run(engine.World);
+        Assert.That(npc.Mind.ManualControl, Is.False);
     }
 
     [Test]

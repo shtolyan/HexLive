@@ -92,6 +92,24 @@ def box(name, x, y, z, width, length, depth, material):
                  z - depth / 2, z + depth / 2, material)
 
 
+def seat_grip(butt, turn=False):
+    """Move a held tool into the shipped tools' mesh frame (TOOL_GENERATION_SPEC §6).
+
+    The GearConfig hand pose discards the FBX root rotation, so it sees the
+    authored Blender axes with X negated: the grip END must sit at the origin
+    and the handle must run along +Y. `turn` spins the part 180 degrees about
+    the handle, which moves a -X edge to +X (Unity -X: the palm side of the
+    reference knife grip). Bugs #758/#759: pivots at the bolster/mid-handle put
+    the hand on the blade and left the handle sticking out of the fist.
+    """
+    frame = Matrix.Translation((0, -butt, 0))
+    if turn:
+        frame = Matrix.Rotation(math.pi, 4, "Y") @ frame
+    for part in bpy.context.scene.objects:
+        if part.type == "MESH":
+            part.data.transform(frame)
+
+
 def kitchen_knife():
     steel = shade("Prosthetic_Metal", "KnifeSteel", (0.73, 0.8, 0.93), 0.45)
     edge = shade("Prosthetic_Metal", "KnifeEdge", (1.1, 1.05, 1.07), 0.38)
@@ -106,6 +124,8 @@ def kitchen_knife():
     for y in (-.215, -.102, .005):
         rings("Rivet", [(0, y, -.046), (0, y, .046)], [(.012, .012)] * 2,
               [edge], [0, 0], sides=6, vertical=True)
+    # Same frame as tool.knife: handle end at the pivot, edge toward the palm.
+    seat_grip(-.285, turn=True)
 
 
 def baseball_bat():
@@ -276,7 +296,8 @@ def clothes_hanger():
 
 
 ITEMS = {
-    "tool.kitchen_knife": (kitchen_knife, 1.14, 32),
+    # 212 = the old 32-degree icon roll plus the 180 that seat_grip turned.
+    "tool.kitchen_knife": (kitchen_knife, 1.14, 212),
     "tool.baseball_bat": (baseball_bat, 1.08, 0),
     "food.apple": (apple, 1.28, 0),
     "food.banana": (banana, 1.14, 22),

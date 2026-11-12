@@ -3453,7 +3453,11 @@ public static class GroundPileCatalog
             if (definitionId == ContentIds.WindproofLighter) return .080f;
             if (definitionId == ContentIds.ClawHammer) return .34f;
             if (definitionId == ContentIds.FoldingSaw) return .46f;
-            if (definitionId == ContentIds.KitchenKnife || definitionId == ContentIds.KitchenLadle) return r * 0.22f;
+            // #758: at r*0.22 (0.33 wu) the kitchen knife was a 42 cm cleaver at
+            // character scale and 1.5x the player's expectation; 0.22 wu is a
+            // 28 cm chef's knife, still a hair shorter than the 0.324 tool.knife.
+            if (definitionId == ContentIds.KitchenKnife) return .22f;
+            if (definitionId == ContentIds.KitchenLadle) return r * 0.22f;
             if (definitionId == ContentIds.PhotoFrame) return r * 0.19f;
             if (definitionId == ContentIds.BallpointPen) return r * 0.10f;
             if (definitionId == ContentIds.AlarmClock) return r * 0.15f;

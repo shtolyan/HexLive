@@ -4171,7 +4171,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var offset = seat.DefinitionId switch
         {
             "furniture.modern_chair" => new Vector3(0f, .487f, .025f),
-            "furniture.modern_sofa" => new Vector3(.085f, .4205f, -.35f),
+            // §176.3 r2 (bug #735): two cushions at ±0.35 wu along the length;
+            // the sign is chosen below from where she stands.
+            FurnitureSeats.SofaDefinitionId => new Vector3(FurnitureSeats.SofaSeatForward,
+                FurnitureSeats.SofaSeatHeight, FurnitureSeats.SofaSeatHalfSpacing),
             _ => Vector3.zero,
         };
         if (offset == Vector3.zero && seat.DefinitionId != "stump.palm" && seat.DefinitionId != "chair.basic")
@@ -4182,8 +4185,24 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             // The shared sitting clip is authored for the .30 wu stump.
             offset.y -= HexLive.UnityPresentation.Environment.StumpFactory.Height;
-            var seatYaw = SimulationUnityMapper.ToUnityFootprintYawDegrees(seat.RotationDegrees);
-            position += Quaternion.Euler(0f, seatYaw, 0f) * offset;
+            var seatRotation = Quaternion.Euler(0f,
+                SimulationUnityMapper.ToUnityFootprintYawDegrees(seat.RotationDegrees), 0f);
+            if (FurnitureSeats.IsMultiSeat(seat.DefinitionId))
+            {
+                // The simulation parks each sitter on the stand in front of her
+                // own cushion (FurnitureSeats.TryGetSeatStand): the cushion on
+                // her side of the sofa is hers. Pure function of the snapshot,
+                // so it cannot flicker between the two.
+                var stand = SimulationUnityMapper.ToUnityPosition(npc.Position, position.y);
+                var mirrored = new Vector3(offset.x, offset.y, -offset.z);
+                var a = position + seatRotation * offset;
+                var b = position + seatRotation * mirrored;
+                position = (a - stand).sqrMagnitude <= (b - stand).sqrMagnitude ? a : b;
+            }
+            else
+            {
+                position += seatRotation * offset;
+            }
         }
         pose = new Pose(position, rotation);
         return true;

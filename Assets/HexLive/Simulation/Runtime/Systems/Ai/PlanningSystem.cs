@@ -1434,7 +1434,20 @@ public sealed partial class PlanningSystem : ISimulationSystem
             atPiece = true;
         }
 
-        if (!atPiece && targetJunction is { } anchorId &&
+        // §176.3 r2 (bug #735): a two-seat sofa is approached at the stand of
+        // a FREE seat, never at "any rim junction" — two sitters must end up
+        // in front of two different cushions.
+        if (!atPiece && FurnitureSeats.Applies(worldObject, interaction))
+        {
+            if (!FurnitureSeats.TryReserveSeat(world, npc, worldObject, 48, out var seatStand))
+            {
+                failMessage = $"Goal={npc.Mind.CurrentGoal} Obj={selected.Id.Value} no free seat";
+                return false;
+            }
+
+            targetJunction = seatStand;
+        }
+        else if (!atPiece && targetJunction is { } anchorId &&
             RequiresBesideApproach(world, anchorId, interaction))
         {
             var besideReach = SpatialQueries.BesideReach(
@@ -1780,6 +1793,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
         if (interaction == InteractionType.Build && BuildWorkPoint.HasStand(world, npc, target))
         {
             return true;
+        }
+
+        if (FurnitureSeats.Applies(target, interaction))
+        {
+            return FurnitureSeats.HasFreeSeat(world, npc, target, requireReachable: true);
         }
 
         var anchor = interaction == InteractionType.Craft &&

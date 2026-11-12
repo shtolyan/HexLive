@@ -3338,7 +3338,11 @@ internal static partial class ManualCommandExecutor
             }
         }
 
-        if (worldObject.IsOccupied && worldObject.CurrentUser is { } user && !user.Equals(npc.Id))
+        // §176.3 r2 (bug #735): a sofa with one person on it still has a seat.
+        var multiSeat = FurnitureSeats.Applies(worldObject, interactionType);
+        if (multiSeat
+                ? !FurnitureSeats.HasFreeSeat(world, npc, worldObject)
+                : worldObject.IsOccupied && worldObject.CurrentUser is { } user && !user.Equals(npc.Id))
         {
             Reject(world, npc.Id, verb, "Occupied", admission);
             return false;
@@ -3362,7 +3366,16 @@ internal static partial class ManualCommandExecutor
             world, anchor, interactionType);
 
         JunctionId target;
-        if (standBeside)
+        if (multiSeat)
+        {
+            if (!FurnitureSeats.TryReserveSeat(world, npc, worldObject, Spec121.ManualReserveTicks, out target))
+            {
+                Reject(world, npc.Id, verb, "Occupied", admission);
+                npc.Mind.CurrentGoal = GoalType.None;
+                return false;
+            }
+        }
+        else if (standBeside)
         {
             // К стволу вплотную не встать — планировщик решает это выбором
             // клетки на ободе, и приказ пользуется ТЕМ ЖЕ кодом: разойдись эти

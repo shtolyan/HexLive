@@ -468,7 +468,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
                 // Memory promised a free object; reality may disagree
                 // (spec 27.18A): never stomp another NPC's occupancy.
-                if (worldObject.IsOccupied && worldObject.CurrentUser != npc.Id)
+                // §176.3 r2 (bug #735): on a two-seat sofa she arrived at her
+                // own seat's stand; the other cushion's sitter is no rival.
+                if (worldObject.IsOccupied && worldObject.CurrentUser != npc.Id &&
+                    !(GetPlannedInteractionType(npc.Plan) == InteractionType.Sit &&
+                      FurnitureSeats.SitsOwnSeat(world, npc, worldObject)))
                 {
                     // Spec 28.15B: scarcity breeds friction — resent the occupant.
                     if (worldObject.CurrentUser is { } occupant)
@@ -877,7 +881,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     worldObject.IsOccupied = true;
                     // Spec 28.15C: a corpse's CurrentUser records whose body it
                     // is — mourning must not overwrite it.
-                    if (!CorpseMath.IsHumanDead(definition))
+                    // §176.3 r2: the second sitter on a sofa leaves the first
+                    // one's claim in place (one owner, two seat stands).
+                    if (!CorpseMath.IsHumanDead(definition) &&
+                        !(FurnitureSeats.IsMultiSeat(worldObject.DefinitionId) &&
+                          worldObject.CurrentUser is { } seated && seated != npc.Id))
                     {
                         worldObject.CurrentUser = npc.Id;
                     }
@@ -921,6 +929,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     RecipeCatalog.UsesPersistentProject(npc.Plan.Goal))
                 {
                     CraftProjectMath.UpdateCycleProgress(world, npc);
+                }
+
+                if (npc.Execution.CurrentInteraction == InteractionType.Sit)
+                {
+                    FurnitureSeats.MaintainOccupancy(worldObject, npc);
                 }
 
                 // Also repair/resynchronise a sleep restored from a save made
@@ -1692,8 +1705,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     $"{worldObject.DefinitionId} stripped -> leaves scattered");
             }
         }
-        else
+        else if (!FurnitureSeats.IsMultiSeat(worldObject.DefinitionId) ||
+                 worldObject.CurrentUser is not { } seatedOwner || seatedOwner == npc.Id)
         {
+            // §176.3 r2: the second sitter getting up does not empty the sofa
+            // under the first one.
             worldObject.IsOccupied = false;
             worldObject.CurrentUser = null;
         }

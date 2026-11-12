@@ -177,7 +177,11 @@ public sealed class PerceptionSystem : ISimulationSystem
                 perceived.Tile = obj.Tile;
                 perceived.Distance = distance;
                 perceived.IsReachable = isReachable;
-                perceived.IsOccupied = obj.IsOccupied;
+                // §176.3 r2 (bug #735): a sofa with one free cushion is not
+                // "occupied" to the next person who wants to sit.
+                perceived.IsOccupied = obj.IsOccupied &&
+                    !(FurnitureSeats.IsMultiSeat(obj.DefinitionId) &&
+                      FurnitureSeats.HasFreeSeat(world, npc, obj));
                 perceived.OccupiedBy = obj.CurrentUser;
                 perceived.StoredItems = null;
                 perceived.StorageParentId = null;

@@ -1370,6 +1370,18 @@ public static class WorldSaveSerializer
             {
                 WorldObjectMutations.SetAuthoredFurnitureBlocking(world, obj, blocked: true);
             }
+
+            // #755-757: a modern bed placed or furnished in 0.1.121 blocked
+            // nothing (or a 7-point disc after a move indoors). It now owns
+            // bed.basic's 14 points. An apartment bed is first re-seated from
+            // its old head-to-wall 30°+60°k stamp onto the current slot.
+            if (obj.DefinitionId == ContentIds.ModernBed && string.IsNullOrEmpty(obj.BuildProduct) &&
+                (obj.Variant == PortalWorld.PlacedFurnitureVariant ||
+                 PortalWorld.TryGetApartmentFurnitureVisit(obj.Variant, out _)))
+            {
+                PortalWorld.RealignApartmentBed(world, obj);
+                WorldObjectMutations.SetAuthoredFurnitureBlocking(world, obj, blocked: true);
+            }
         }
 
         // Migration is spatial too: both legacy hut cots could retain one

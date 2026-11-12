@@ -7051,10 +7051,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // §120.13: мебель с авторским следом рисуется на ЦЕНТРЕ своего следа везде,
     // а не только внутри футпринта дома по плану: та же кровать на траве и на
     // полу стоит одинаково, и превью режима стройки совпадает с миром.
+    // #755-757: квартирная кровать стоит на том же 14-точечном следе, что и
+    // поставленная игроком, поэтому и рисуется на его центре.
     private bool IsPlanFurniture(ObjectSnapshot worldObject) =>
         !worldObject.ArchitectureOwnerObjectId.HasValue &&
         (_planFootprintTiles.Contains(worldObject.Tile) ||
-         FurniturePlacement.CatalogIdOf(worldObject) != null) &&
+         FurniturePlacement.CatalogIdOf(worldObject) != null ||
+         PortalWorld.TryGetApartmentFurnitureVisit(worldObject.Variant, out _)) &&
         HexLive.Simulation.Runtime.Blueprints.BlueprintFurnitureFootprints.HasFootprint(
             PlanFurnitureDefinitionId(worldObject));
 

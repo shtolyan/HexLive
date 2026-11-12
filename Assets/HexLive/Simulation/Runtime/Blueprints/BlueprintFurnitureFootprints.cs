@@ -57,7 +57,11 @@ namespace HexLive.Simulation.Runtime.Blueprints
 
         private static JunctionKey[] Authored(string definitionId)
         {
-            if (string.Equals(definitionId, ContentIds.BedBasic, StringComparison.Ordinal)) return Bed;
+            // #755-757: современная кровать занимает РОВНО те же 14 точек, что и
+            // первобытная (два ряда по 5 через 0,65 wu и 4 в середине, 1,5 wu
+            // вдоль), — модель подогнана под этот след, а не след под модель.
+            if (string.Equals(definitionId, ContentIds.BedBasic, StringComparison.Ordinal) ||
+                string.Equals(definitionId, ContentIds.ModernBed, StringComparison.Ordinal)) return Bed;
             if (string.Equals(definitionId, "furniture.wardrobe", StringComparison.Ordinal)) return Wardrobe;
             if (string.Equals(definitionId, "furniture.hearth", StringComparison.Ordinal)) return Hearth;
             if (string.Equals(definitionId, ContentIds.HeadPike, StringComparison.Ordinal)) return Single;
@@ -68,11 +72,10 @@ namespace HexLive.Simulation.Runtime.Blueprints
             if (string.Equals(definitionId, ContentIds.WaterCollector, StringComparison.Ordinal)) return StationDisc;
             // §151.6 r2 (#732): the chest has the collector's footprint.
             if (string.Equals(definitionId, ContentIds.StorageChest, StringComparison.Ordinal)) return StationDisc;
-            // §120.13/§176: современная мебель ставится по той же сетке. Крупные
-            // предметы занимают симметричный диск из семи точек (0,75 wu в
-            // поперечнике) — ориентация модели на след не влияет; мелкие — одну.
-            if (string.Equals(definitionId, "furniture.modern_bed", StringComparison.Ordinal) ||
-                string.Equals(definitionId, "furniture.modern_sofa", StringComparison.Ordinal)) return StationDisc;
+            // §120.13/§176: современная мебель ставится по той же сетке. Диван
+            // занимает симметричный диск из семи точек (0,75 wu в поперечнике) —
+            // ориентация модели на след не влияет; мелкие предметы — одну.
+            if (string.Equals(definitionId, "furniture.modern_sofa", StringComparison.Ordinal)) return StationDisc;
             return null;
         }
 

@@ -8,6 +8,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Navigation;
+using HexLive.Simulation.Runtime.Blueprints;
 using HexLive.Simulation.Spatial;
 
 namespace HexLive.Simulation.Runtime
@@ -82,7 +83,9 @@ public static class PortalWorld
         ("furniture.modern_sofa", -2, 1, -1, 0, HexSpatialMath.HexApothem - WallClearance - .405f, 180f),
         ("furniture.modern_tv", 0, 1, 1, 0, HexSpatialMath.HexApothem - WallClearance - .216f, 180f),
         ("furniture.modern_fridge", 0, -2, 0, -1, HexSpatialMath.HexApothem - WallClearance - .326f, 180f),
-        ("furniture.modern_bed", 2, 0, 1, 0, HexSpatialMath.HexApothem - WallClearance - .904f, -90f),
+        // #755-757: like bed.basic in a hut slot — long side on the wall, the
+        // footprint's outer rail on the edge line (PortalApartmentLayout.BedAlongWall).
+        (ContentIds.ModernBed, 2, 0, 1, 0, HexSpatialMath.HexApothem - PortalApartmentLayout.BedRailInset, 0f),
         (ApartmentShelfDefinitionId, -1, 0, -1, 0, HexSpatialMath.HexApothem - WallClearance - .15f, 180f),
     };
 
@@ -804,6 +807,40 @@ public static class PortalWorld
         }
     }
 
+    /// <summary>A layout position is the piece's visible/footprint centre; its
+    /// anchor junction sits <see cref="BlueprintFurnitureFootprints.CentroidOffset"/>
+    /// away from it (0.1875 wu along a bed, zero for symmetric footprints).</summary>
+    private static Float2 AnchorPoint(string definitionId, Float2 center, float rotationDegrees) =>
+        center - BlueprintFurnitureFootprints.CentroidOffset(definitionId,
+            FurniturePlacement.YawStepOf(rotationDegrees));
+
+    /// <summary>#755-757: 0.1.121 stamped the apartment bed head-to-wall at
+    /// 30°+60°k on the junction nearest its old centre, and blocked nothing.
+    /// Re-seat it on the current layout slot (long side on the wall, legal
+    /// yaw, anchor exactly on the lattice) so the loader can stamp bed.basic's
+    /// footprint. Idempotent: a bed already on its slot is left as is.</summary>
+    internal static void RealignApartmentBed(WorldState world, WorldObjectState bed)
+    {
+        if (bed.DefinitionId != ContentIds.ModernBed || bed.IsOccupied || bed.CurrentUser.HasValue ||
+            !TryGetApartmentFurnitureVisit(bed.Variant, out var serial) ||
+            !TryGetApartmentFurniturePlacement(bed.DefinitionId, bed.Tile, world.Seed,
+                out var center, out var rotation, serial)) return;
+        var target = AnchorPoint(bed.DefinitionId, center, rotation);
+        Junction anchor = null;
+        if (world.Tiles.Items.TryGetValue(bed.Tile, out var tile))
+            foreach (var id in tile.Junctions)
+                if (world.Junctions.Items.TryGetValue(id, out var point) &&
+                    HexSpatialMath.Distance(point.WorldPosition, target) < .001f)
+                {
+                    anchor = point;
+                    break;
+                }
+        if (anchor == null) return;
+        if (bed.Junctions.Count == 0) bed.Junctions.Add(anchor.Id);
+        else bed.Junctions[0] = anchor.Id;
+        bed.RotationDegrees = rotation;
+    }
+
     private static void ClearApartment(WorldState world)
     {
         var portal = world.Portal;
@@ -842,11 +879,15 @@ public static class PortalWorld
         foreach (var furniture in GeneratedApartment(world.Seed, serial).Furniture)
         {
             if (!world.Content.ObjectDefinitions.ContainsKey(furniture.DefinitionId) ||
-                !TryTilePoint(world, furniture.Tile, out var anchor, near: furniture.Position)) continue;
+                !TryTilePoint(world, furniture.Tile, out var anchor,
+                    near: AnchorPoint(furniture.DefinitionId, furniture.Position, furniture.RotationDegrees))) continue;
             var piece = WorldObjectMutations.SpawnObject(world, furniture.DefinitionId, ApartmentFragment,
                 furniture.Tile, anchor.Junction);
             piece.Variant = ApartmentFurnitureVariant + "." + serial.ToString(System.Globalization.CultureInfo.InvariantCulture);
             piece.RotationDegrees = furniture.RotationDegrees;
+            // #755-757: the bed blocks bed.basic's 14 points here too; the
+            // apartment table keeps its pre-#745 behaviour.
+            if (furniture.DefinitionId == ContentIds.ModernBed) PortableFurniture.ApplyPlacedFootprint(world, piece);
             world.Portal.GeneratedObjects.Add(piece.Id);
             if (furniture.DefinitionId == "furniture.modern_table") table = piece;
             if (furniture.DefinitionId == ApartmentShelfDefinitionId) shelf = piece;

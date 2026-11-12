@@ -166,17 +166,41 @@ def four_feet(owner, x, y, height, width, finish):
         block(owner, f"foot_{index}", (px, py, height / 2), (width, width, height), finish, .007)
 
 
+BED_ID = "furniture.modern_bed"
+
+
+def bed_dimensions():
+    """#755-757: width, length and sleep height shared with ModernLootCatalog.
+
+    The bed stands on bed.basic's 14-point junction footprint (rails 0.6495 wu
+    apart, end rows 1.5 wu apart) and fills it nearly flush.
+    """
+    catalog = (ROOT / "Assets/HexLive/Simulation/Content/ModernLootCatalog.cs").read_text(encoding="utf-8")
+    return tuple(float(re.search(rf"const float Bed{name} = ([\d.]+)f;", catalog)[1])
+                 for name in ("Width", "Length", "SleepHeight"))
+
+
 def bed():
-    owner = model("furniture.modern_bed", "low", True)
-    four_feet(owner, .36, .75, .17, .080, "ApartmentWalnut")
-    block(owner, "frame", (0, -.015, .205), (.92, 1.82, .12), "ApartmentWalnut", .021)
-    block(owner, "headboard", (0, .862, .42), (.90, .084, .57), "ApartmentWalnutLight", .025)
-    block(owner, "mattress", (0, -.055, .328), (.87, 1.69, .155), "ApartmentCotton", .032)
-    block(owner, "quilt", (0, -.30, .421), (.89, 1.21, .078), "ApartmentSage", .025)
-    block(owner, "quilt_cuff", (0, .272, .449), (.89, .104, .041), "ApartmentSageLight", .013)
-    block(owner, "foot_drape", (0, -.884, .348), (.88, .047, .18), "ApartmentSage", .018)
-    for i, x in enumerate((-.215, .215), 1):
-        block(owner, f"pillow_{i}", (x, .581, .441), (.38, .315, .105), "ApartmentIvory", .038)
+    # Single bed, long axis Blender +Y like bed.basic, headboard at +Y, pivot
+    # at the footprint centre on the floor. Every part stays inside W x L.
+    width, length, sleep = bed_dimensions()
+    half = length / 2
+    owner = model(BED_ID, "low", True)
+    four_feet(owner, width / 2 - .045, half - .075, .12, .070, "ApartmentWalnut")
+    head = .070
+    frame_length = length - head
+    block(owner, "frame", (0, -head / 2, .17), (width - .010, frame_length, .10), "ApartmentWalnut", .018)
+    block(owner, "headboard", (0, half - head / 2, .33), (width, head, .58), "ApartmentWalnutLight", .022)
+    mattress_length = frame_length - .060
+    mattress_y = -half + .030 + mattress_length / 2
+    block(owner, "mattress", (0, mattress_y, .30), (width - .040, mattress_length, .16), "ApartmentCotton", .030)
+    quilt_length = .64 * mattress_length
+    quilt_y = -half + .020 + quilt_length / 2
+    block(owner, "quilt", (0, quilt_y, sleep - .040), (width - .030, quilt_length, .060), "ApartmentSage", .022)
+    block(owner, "quilt_cuff", (0, quilt_y + quilt_length / 2 - .035, sleep - .008),
+          (width - .030, .085, .035), "ApartmentSageLight", .012)
+    block(owner, "foot_drape", (0, -half + .020, sleep - .085), (width - .030, .040, .150), "ApartmentSage", .016)
+    block(owner, "pillow", (0, half - head - .155, sleep + .020), (width - .160, .250, .095), "ApartmentIvory", .036)
 
 
 def fridge():
@@ -663,6 +687,18 @@ def verify_export(row, radius, apothem):
             raise ValueError(f"{WARDROBE_ID} diverges from the placement dimensions")
         if row["triangles"] > 400:
             raise ValueError(f"{WARDROBE_ID} exceeded its WebGL mesh budget")
+    if row["id"] == BED_ID:
+        # #755-757: exactly W x L in plan, centred, and inside bed.basic's
+        # junction footprint (rails 0.6495 wu apart, end rows 1.5 wu apart).
+        width, length, _ = bed_dimensions()
+        # The rails are one lattice row (apothem / 4 = 0.3248 wu) either side of
+        # the centre line; the end rows are 8 half-steps (1.5 wu = R) apart.
+        footprint_width, footprint_length = apothem / 2, radius
+        if abs(x - width) > .0001 or abs(y - length) > .0001 or abs(minimum[0] + maximum[0]) > .0001 or \
+                abs(minimum[1] + maximum[1]) > .0001:
+            raise ValueError(f"{BED_ID} diverges from ModernLootCatalog.BedWidth/BedLength")
+        if width >= footprint_width or length >= footprint_length:
+            raise ValueError(f"{BED_ID} reaches past the bed.basic junction footprint")
     if "wallAperture" in row:
         width, bottom, top = row["wallAperture"]
         shell = next(mesh for mesh in meshes if mesh.name == "wall_shell")

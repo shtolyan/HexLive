@@ -142,7 +142,7 @@ public sealed class PortalApartmentLayout
                         HexSpatialMath.TileToWorld(chairTile) - normal * .18f, Facing(normal, 90f)));
                     break;
                 case PortalApartmentRoom.Bedroom:
-                    furniture.Add(AgainstWall("furniture.modern_bed", walls[0], .904f, -90f, rotation));
+                    furniture.Add(BedAlongWall(walls[0], rotation));
                     // 0.826 wide and 0.420 deep. The prefab's back points along Unity -X.
                     furniture.Add(AgainstWall("furniture.modern_wardrobe", walls[1], .210f, 180f, rotation));
                     break;
@@ -299,6 +299,28 @@ public sealed class PortalApartmentLayout
             normal * (HexSpatialMath.HexApothem - WallClearance - halfDepth);
         return new FurniturePlacement(id, tile, position, Facing(normal, backAngle));
     }
+
+    /// <summary>
+    /// #755-757: the apartment bed stands exactly like bed.basic in a hut slot
+    /// (BuiltInBuildingBlueprints, −0.974 wu, yaw 3): its long side along the
+    /// wall, the footprint's outer rail ON the edge line, the head toward a
+    /// corner. A +Y-long model at a legal 0°+60°k yaw is always parallel to an
+    /// edge, so the former head-to-wall stamp (30°+60°k) could never share the
+    /// 14 lattice points a player's bed has. <see cref="FurniturePlacement.Position"/>
+    /// is the footprint centre; PopulateApartment anchors it on the lattice.
+    /// </summary>
+    internal static FurniturePlacement BedAlongWall((TileCoord Tile, TileCoord Direction) wall, int rotation)
+    {
+        var tile = InApartment(wall.Tile, rotation);
+        var normal = WallNormal(wall.Direction, rotation);
+        var position = HexSpatialMath.TileToWorld(tile) + normal * (HexSpatialMath.HexApothem - BedRailInset);
+        return new FurniturePlacement(ContentIds.ModernBed, tile, position, Facing(normal, 0f));
+    }
+
+    /// <summary>Half the bed footprint's width: one lattice row (0.375·√3/2 =
+    /// 0.3248 wu) from its centre line to each rail.</summary>
+    internal static float BedRailInset =>
+        HexSpatialMath.HexRadius / HexPointLayout.BoundaryRadius * HexSpatialMath.Sqrt3 * .5f;
 
     private static float Facing(Float2 normal, float prefabAngle)
     {

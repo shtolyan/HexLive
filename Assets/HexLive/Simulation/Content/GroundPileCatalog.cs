@@ -3394,7 +3394,7 @@ public static class GroundPileCatalog
             // Ground drops and in-hand previews retain the same dimensions.
             float apartmentSize = definitionId switch
             {
-                "furniture.modern_bed" => 1.829f,
+                ContentIds.ModernBed => ModernLootCatalog.BedLength,
                 ContentIds.StorageChest => StorageChest.ModelLength,
                 "furniture.modern_fridge" => 1.575f,
                 "furniture.modern_table" => 1.06f,

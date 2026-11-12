@@ -29,13 +29,16 @@ public static class PortableFurniture
     /// route ran straight through them and under the tabletop.
     /// </summary>
     public static bool BlocksFootprintEverywhere(string definitionId) =>
-        definitionId is ContentIds.BedBasic or ContentIds.ModernTable;
+        definitionId is ContentIds.BedBasic or ContentIds.ModernTable or ContentIds.ModernBed;
 
     /// <summary>Stamp the authored footprint once the placement yaw is final
-    /// (spawn happens at yaw 0, and the table's 4-3-4 rows turn with it).</summary>
+    /// (spawn happens at yaw 0, and the table's 4-3-4 rows and the beds' two
+    /// rails turn with it). #755-757: the modern bed blocks the primitive
+    /// bed's 14 points; a bed set down from a backpack now gets the same
+    /// footprint the loader has always restamped, not the 1.25 wu spawn disc.</summary>
     internal static void ApplyPlacedFootprint(WorldState world, WorldObjectState placed)
     {
-        if (placed != null && placed.DefinitionId == ContentIds.ModernTable)
+        if (placed != null && BlocksFootprintEverywhere(placed.DefinitionId))
             WorldObjectMutations.SetAuthoredFurnitureBlocking(world, placed, blocked: true);
     }
 
@@ -49,10 +52,11 @@ public static class PortableFurniture
 
     public static float FootprintRadius(string definitionId) => definitionId switch
     {
-        ContentIds.BedBasic => 1.25f,
+        // #755-757: one bed footprint, one placement radius.
+        ContentIds.BedBasic or ContentIds.ModernBed => 1.25f,
         ContentIds.StorageChest => StorageChest.FootprintRadius,
         "chair.basic" => .28f,
-        "furniture.modern_bed" or "furniture.modern_sofa" => 1.04f,
+        "furniture.modern_sofa" => 1.04f,
         "furniture.modern_table" => .66f,
         "furniture.modern_tv" => .61f,
         "furniture.modern_fridge" => .49f,

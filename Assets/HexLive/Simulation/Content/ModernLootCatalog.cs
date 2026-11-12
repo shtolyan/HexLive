@@ -11,6 +11,16 @@ public static class ModernLootCatalog
     public const float WardrobeHeight = 1.360f;
     public const float WardrobeFootprintRadius = .470f;
 
+    // #755-757: the apartment bed stands on bed.basic's 14-point footprint
+    // (rails 0.6495 wu apart, rows 1.5 wu long) and fills it nearly flush:
+    // ~0.01 wu inside each rail line and 0.015 wu inside each end row.
+    // Tools/blender/author_modern_apartment.py reads these three numbers.
+    public const float BedWidth = .630f;
+    public const float BedLength = 1.470f;
+    /// <summary>Sleep-root height above the floor: the quilt top, where the
+    /// presentation's <c>point</c> marker puts a sleeper (bed.basic: 0.294).</summary>
+    public const float BedSleepHeight = .430f;
+
     public static bool IsApartmentTool(string id) => id is
         ContentIds.KitchenKnife or ContentIds.BaseballBat or ContentIds.SteelHatchet or
         ContentIds.Flashlight or ContentIds.DisposableLighter or ContentIds.WindproofLighter or
@@ -21,7 +31,7 @@ public static class ModernLootCatalog
 
     private static readonly (string Id, string Name)[] Furniture =
     {
-        ("furniture.modern_bed", "Apartment bed"),
+        (ContentIds.ModernBed, "Apartment bed"),
         ("furniture.modern_fridge", "Refrigerator"),
         ("furniture.modern_shelf", "Shelf rack"),
         (ContentIds.ModernWardrobe, "Apartment wardrobe"),

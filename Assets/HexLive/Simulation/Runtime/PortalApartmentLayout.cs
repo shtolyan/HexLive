@@ -131,7 +131,9 @@ public sealed class PortalApartmentLayout
                     furniture.Add(AgainstWall(PortalWorld.ApartmentShelfDefinitionId, walls[2], .15f, 180f, rotation));
                     break;
                 case PortalApartmentRoom.Kitchen:
-                    furniture.Add(AgainstWall(ContentIds.ModernFridge, walls[0], .326f, -90f, rotation));
+                    // #744: the fridge's back is on Unity -X like the sofa's, so its
+                    // stamped yaw is 0°+60°k and a placed fridge can stand flush too.
+                    furniture.Add(AgainstWall(ContentIds.ModernFridge, walls[0], .326f, 180f, rotation));
                     furniture.Add(AgainstWall("furniture.modern_table", walls[1], .38f, 180f, rotation));
                     var table = walls[1];
                     var normal = WallNormal(table.Direction, rotation);

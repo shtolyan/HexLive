@@ -81,7 +81,7 @@ public static class PortalWorld
         ("furniture.modern_chair", 1, -1, -1, 1, .18f, -90f),
         ("furniture.modern_sofa", -2, 1, -1, 0, HexSpatialMath.HexApothem - WallClearance - .405f, 180f),
         ("furniture.modern_tv", 0, 1, 1, 0, HexSpatialMath.HexApothem - WallClearance - .216f, 180f),
-        ("furniture.modern_fridge", 0, -2, 0, -1, HexSpatialMath.HexApothem - WallClearance - .326f, -90f),
+        ("furniture.modern_fridge", 0, -2, 0, -1, HexSpatialMath.HexApothem - WallClearance - .326f, 180f),
         ("furniture.modern_bed", 2, 0, 1, 0, HexSpatialMath.HexApothem - WallClearance - .904f, -90f),
         (ApartmentShelfDefinitionId, -1, 0, -1, 0, HexSpatialMath.HexApothem - WallClearance - .15f, 180f),
     };
@@ -784,6 +784,23 @@ public static class PortalWorld
     {
         if (!world.Portal.InteriorDoor.HasValue && world.Fragments.Items.ContainsKey(ApartmentFragment))
             ClearApartment(world);
+    }
+
+    /// <summary>#744: the fridge model now keeps its back on Unity -X, so its
+    /// apartment stamp is 0°+60°k. A fridge stamped by the old -90° rule in an
+    /// open visit (30°+60°k) turns +90° to keep the same physical pose. Placed
+    /// fridges were always 0°+60°k and need no change.</summary>
+    internal static void RealignLegacyApartmentFridges(WorldState world)
+    {
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.DefinitionId != ContentIds.ModernFridge ||
+                !TryGetApartmentFurnitureVisit(obj.Variant, out _)) continue;
+            var offset = ((obj.RotationDegrees % 60f) + 60f) % 60f;
+            if (MathF.Abs(offset - 30f) > .01f) continue;
+            var degrees = (obj.RotationDegrees + 90f) % 360f;
+            obj.RotationDegrees = degrees == 0f ? 360f : degrees;
+        }
     }
 
     private static void ClearApartment(WorldState world)

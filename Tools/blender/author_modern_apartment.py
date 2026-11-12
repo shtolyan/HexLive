@@ -36,6 +36,10 @@ OPENING_CLEAR_WIDTH = .426
 OPENING_CLEAR_HEIGHT = 1.452
 WINDOW_APERTURE = (1.048, .866, 1.946)
 WARDROBE_ID = "furniture.modern_wardrobe"
+# Single-junction pieces whose back is on Blender +X but whose depth (doors and
+# handles) exceeds their width. Their footprint is symmetric, so the "+Y is the
+# longest axis" rule does not apply; the back-on-+X wall contract does.
+DEEP_WALL_PIECES = {"furniture.modern_fridge"}
 
 # Linear colours. Timber and wall trim are derived from the authored island palette.
 PALETTE = {
@@ -176,16 +180,20 @@ def bed():
 
 
 def fridge():
+    # Bug #744: like the sofa, TV, shelf and wardrobe, the back faces Blender +X
+    # and the doors face -X. Only then does a six-way yaw (0° + 60°k) put the
+    # back flat against a pointy-top hex edge. The former +Y back stood 30° off
+    # every edge in each of the six placements.
     owner = model("furniture.modern_fridge", "standing", True)
-    four_feet(owner, .218, .24, .052, .075, "ApartmentCharcoal")
-    block(owner, "insulated_shell", (0, .021, .811), (.612, .61, 1.528), "ApartmentSteel", .024)
-    block(owner, "lower_door", (0, -.292, .565), (.606, .082, 1.01), "ApartmentPaleSteel", .020)
-    block(owner, "freezer_door", (0, -.292, 1.315), (.606, .082, .462), "ApartmentPaleSteel", .020)
-    block(owner, "lower_handle", (-.227, -.346, .873), (.034, .051, .222), "ApartmentCharcoal", .009)
-    block(owner, "upper_handle", (-.227, -.346, 1.206), (.034, .051, .147), "ApartmentCharcoal", .009)
-    block(owner, "control_panel", (.145, -.337, 1.412), (.125, .016, .049), "ApartmentScreen", .004)
-    block(owner, "control_indicator", (.158, -.347, 1.414), (.034, .005, .012), "ApartmentSageLight")
-    block(owner, "toe_vent", (0, -.289, .084), (.461, .034, .029), "ApartmentCharcoal")
+    four_feet(owner, .24, .218, .052, .075, "ApartmentCharcoal")
+    block(owner, "insulated_shell", (.021, 0, .811), (.61, .612, 1.528), "ApartmentSteel", .024)
+    block(owner, "lower_door", (-.292, 0, .565), (.082, .606, 1.01), "ApartmentPaleSteel", .020)
+    block(owner, "freezer_door", (-.292, 0, 1.315), (.082, .606, .462), "ApartmentPaleSteel", .020)
+    block(owner, "lower_handle", (-.346, .227, .873), (.051, .034, .222), "ApartmentCharcoal", .009)
+    block(owner, "upper_handle", (-.346, .227, 1.206), (.051, .034, .147), "ApartmentCharcoal", .009)
+    block(owner, "control_panel", (-.337, -.145, 1.412), (.016, .125, .049), "ApartmentScreen", .004)
+    block(owner, "control_indicator", (-.347, -.158, 1.414), (.005, .034, .012), "ApartmentSageLight")
+    block(owner, "toe_vent", (-.289, 0, .084), (.034, .461, .029), "ApartmentCharcoal")
 
 
 def table():
@@ -631,7 +639,7 @@ def verify_export(row, radius, apothem):
     x, y, z = (b - a for a, b in zip(minimum, maximum))
     shape = row["shape"]
     if shape in ("standing", "low"):
-        if abs(minimum[2]) > .0001 or y < x or abs(minimum[1] + maximum[1]) > .11:
+        if abs(minimum[2]) > .0001 or (y < x and row["id"] not in DEEP_WALL_PIECES) or                 abs(minimum[1] + maximum[1]) > .11:
             raise ValueError(f"{row['id']} violates the centered furniture pivot or local +Y footprint")
         if (shape == "standing") != (z > max(x, y)):
             raise ValueError(f"{row['id']} has the wrong height profile")
@@ -700,7 +708,8 @@ def render_icon(row, meshes):
     icon_dir.mkdir(parents=True, exist_ok=True)
     icon = icon_dir / (identifier + ".png")
     default = STYLES["tool"]
-    direction = Vector((-1, -.58, .61) if identifier in ("furniture.modern_sofa", "furniture.modern_tv", "furniture.modern_shelf", WARDROBE_ID)
+    direction = Vector((-1, -.58, .61) if identifier in ("furniture.modern_sofa", "furniture.modern_tv", "furniture.modern_shelf",
+                                                     "furniture.modern_fridge", WARDROBE_ID)
                        else (.72, -1, .54))
     STYLES["tool"] = (direction, *default[1:])
     try:

@@ -143,6 +143,15 @@ public sealed class PortalApartmentLayoutTests
             Is.EqualTo(HexSpatialMath.HexApothem - .210f - .10f).Within(.001f), context);
         Assert.That(Dot(Unit(wardrobe.RotationDegrees + 180f), HexSpatialMath.Normalize(wardrobeOffset)),
             Is.GreaterThan(.999f), context);
+        // #744: the fridge shares the wardrobe's back-on-Unity-X basis, so its
+        // stamp is one of the six hex symmetries a player can also place.
+        var fridge = Fixture(layout, ContentIds.ModernFridge);
+        var fridgeOffset = fridge.Position - HexSpatialMath.TileToWorld(fridge.Tile);
+        Assert.That(HexSpatialMath.Distance(fridgeOffset, Float2.Zero),
+            Is.EqualTo(HexSpatialMath.HexApothem - .326f - .10f).Within(.001f), context);
+        Assert.That(Dot(Unit(fridge.RotationDegrees + 180f), HexSpatialMath.Normalize(fridgeOffset)),
+            Is.GreaterThan(.999f), context);
+        Assert.That(fridge.RotationDegrees % 60f, Is.EqualTo(0f).Within(.001f), context);
     }
 
     private static void AssertFaces(PortalApartmentLayout.FurniturePlacement seat,

@@ -342,6 +342,29 @@ public sealed class PortalWorldTests
         Assert.That(visitor.Needs.Hunger, Is.LessThan(.7f));
     }
 
+    [TestCase(0)]
+    [TestCase(7)]
+    public void ApartmentFridgeStandsOnAHexSymmetryAndOldStampsAreRealignedOnLoad(int seed)
+    {
+        // #744: the back is on Unity -X like the wardrobe's, so the apartment
+        // stamp is 0°+60°k — the same six yaws a player gets with R.
+        var original = CreateWorld(seed);
+        Assert.That(PortalWorld.OpenImmediately(original, Faction.Colony), Is.Null);
+        var fridge = original.Entities.Objects.Values.Single(obj => obj.DefinitionId == ContentIds.ModernFridge);
+        var current = fridge.RotationDegrees;
+        Assert.That(current % 60f, Is.EqualTo(0f).Within(.001f));
+        Assert.That(PortalWorld.TryGetApartmentFurniturePlacement(fridge.DefinitionId, fridge.Tile, seed,
+            out var position, out _, original.Portal.VisitSerial), Is.True);
+        var wall = HexSpatialMath.AngleDegrees(position - HexSpatialMath.TileToWorld(fridge.Tile));
+        Assert.That(MathUtil.DeltaAngle(current + 180f, wall), Is.EqualTo(0f).Within(.01f));
+
+        // A 0.1.120 save stamped the old -90° basis: same pose, 270° further on.
+        fridge.RotationDegrees = (current + 270f) % 360f;
+        var restored = RoundTrip(original, WorldSaveSerializer.BlobVersion);
+        Assert.That(restored.Entities.Objects[fridge.Id].RotationDegrees % 360f,
+            Is.EqualTo(current % 360f).Within(.001f));
+    }
+
     [Test]
     public void RefrigeratorVariesAcrossVisitsAndAnEmptyOneCanStillBeMoved()
     {

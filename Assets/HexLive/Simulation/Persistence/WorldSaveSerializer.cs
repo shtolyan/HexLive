@@ -1209,6 +1209,7 @@ public static class WorldSaveSerializer
         }
 
         PortalWorld.ClearClosedApartmentOnLoad(world);
+        PortalWorld.RealignLegacyApartmentFridges(world);
         MigrateRetiredContent(world, version);
         LeafDryingMath.InitializeCarried(world);
         foreach (var obj in world.Entities.Objects.Values)

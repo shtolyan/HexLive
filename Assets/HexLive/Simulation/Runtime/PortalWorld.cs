@@ -440,6 +440,18 @@ public static class PortalWorld
                  !obj.IsArchitectureElement && world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def) &&
                  def.HasTag("Furniture") && !IsFurniture(obj.DefinitionId)))) return "HexOccupied";
 
+        return PlaceFurnitureFromStock(world, definitionId, tile, anchor,
+            StructurePlacement.QuantizeHexYaw(rotation), faction, out _);
+    }
+
+    /// <summary>§120.13/§176.3: взять один экземпляр современной мебели из запаса
+    /// лагеря (земля лагеря, затем рюкзаки его жителей) и поставить на уже
+    /// проверенную точку сетки. Место проверяет вызывающий — здесь только запас.</summary>
+    internal static string PlaceFurnitureFromStock(WorldState world, string definitionId, TileCoord tile,
+        JunctionId anchor, float stampedRotation, Faction faction, out WorldObjectState placed)
+    {
+        placed = null;
+        if (!world.FactionHomes.TryGetValue(faction, out var home) || !AtCamp(tile, home)) return "ForeignConstruction";
         bool Owns(int id) => id == 0 || world.Entities.Npcs.TryGetValue(new EntityId(id), out var owner) &&
             owner.Health > 0f && owner.Faction == faction;
 
@@ -464,10 +476,10 @@ public static class PortalWorld
             carriedItem = carried.Item;
         }
 
-        var placed = WorldObjectMutations.SpawnObject(world, definitionId, world.Junctions.Items[anchor].Fragment, tile, anchor);
+        placed = WorldObjectMutations.SpawnObject(world, definitionId, world.Junctions.Items[anchor].Fragment, tile, anchor);
         placed.Variant = PlacedFurnitureVariant;
         placed.OwnerFaction = faction;
-        placed.RotationDegrees = StructurePlacement.QuantizeHexYaw(rotation);
+        placed.RotationDegrees = stampedRotation;
         placed.Wetness = ground?.Wetness ?? carriedItem.Wetness;
         placed.Durability = ground?.Durability ?? carriedItem.Durability;
         placed.Dirtiness = ground?.Dirtiness ?? carriedItem.Dirtiness;

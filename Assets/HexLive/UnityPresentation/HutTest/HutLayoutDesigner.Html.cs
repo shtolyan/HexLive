@@ -55,7 +55,7 @@ namespace HexLive.UnityPresentation.HutTest
         private JObject HtmlModel(VisualElement root)
         {
             var builder = _runner != null ? CharacterPanel.ItemInformationBuilderFor(_runner) : null;
-            var entries = BuildCatalogDefinition.ForMode(_catalogMode).ToArray();
+            var entries = VisibleCatalogEntries().ToArray();
             var categories = new JArray();
             foreach (var categoryId in entries.Select(entry => entry.CategoryId).Distinct())
                 categories.Add(new JObject { ["id"] = categoryId, ["label"] = Loc.Get(CategoryTerm(categoryId)) });
@@ -64,15 +64,15 @@ namespace HexLive.UnityPresentation.HutTest
             {
                 cards.Add(new JObject
                 {
-                    ["id"] = entry.DefinitionId, ["name"] = Loc.Get(entry.NameTerm), ["desc"] = Loc.Get(entry.DescriptionTerm),
-                    ["icon"] = builder?.HtmlIcon(entry.DefinitionId), ["glyph"] = entry.FallbackGlyph,
+                    ["id"] = entry.DefinitionId, ["name"] = Loc.Get(entry.NameTerm), ["desc"] = CardDescription(entry),
+                    ["icon"] = builder?.HtmlIcon(CardIconId(entry)), ["glyph"] = entry.FallbackGlyph,
                 });
             }
 
             // What RefreshUiState wrote into the hidden tray.
             var chosen = _activeCatalogEntry != null || !string.IsNullOrEmpty(_selectedId) || _selectedRoomId > 0;
-            var tabs = new JArray("construction");
-            if (!DirectWorldConstruction) tabs.Add("furniture");
+            // §120.13: одна стройка — две вкладки, и в мире, и в чертеже.
+            var tabs = new JArray("furniture", "construction");
             return new JObject
             {
                 ["mode"] = _catalogMode == BuildCatalogMode.Construction ? "construction" : "furniture",
@@ -112,7 +112,7 @@ namespace HexLive.UnityPresentation.HutTest
             switch (command)
             {
                 case "mode":
-                    var mode = (string?)args["value"] == "furniture" && !DirectWorldConstruction
+                    var mode = (string?)args["value"] == "furniture"
                         ? BuildCatalogMode.Furniture : BuildCatalogMode.Construction;
                     SetCatalogMode(mode);
                     break;
@@ -120,7 +120,7 @@ namespace HexLive.UnityPresentation.HutTest
                     if ((string?)args["id"] is { Length: > 0 } category) SetCategory(category);
                     break;
                 case "card":
-                    if (BuildCatalogDefinition.TryGet((string?)args["id"] ?? string.Empty, out var entry) && entry != null &&
+                    if (TryVisibleEntry((string?)args["id"] ?? string.Empty, out var entry) &&
                         entry.Mode == _catalogMode)
                     {
                         if (_activeCatalogEntry?.DefinitionId == entry.DefinitionId) FinishSelection();

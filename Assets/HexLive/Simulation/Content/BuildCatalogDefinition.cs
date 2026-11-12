@@ -23,7 +23,11 @@ namespace HexLive.Simulation.Content
         Door,
         Support,
         Roof,
-        Furniture
+        Furniture,
+        /// <summary>§120.13: готовый набор (дом по плану) — ставится одним
+        /// кликом как обычные стены, пол, крыша и мебель; сущности «здание»
+        /// после этого не остаётся.</summary>
+        HouseStamp
     }
 
     /// <summary>
@@ -48,6 +52,7 @@ namespace HexLive.Simulation.Content
         public const string Workstations = "workstations";
         public const string Outdoor = "outdoor";
         public const string Modern = "modern";
+        public const string House = "house";
     }
 
     /// <summary>

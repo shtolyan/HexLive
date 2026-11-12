@@ -789,6 +789,70 @@ public sealed class PlaceFurnitureSiteCommand : ISimulationCommand
     public EntityId? TargetEntity => null;
 }
 
+/// <summary>§120.13: поставить предмет каталога на точку навигационной сетки.
+/// Единственный путь размещения мебели в режиме стройки: кровать, очаг, шкаф,
+/// станции, костёр, факел, грядка и современная мебель ставятся одинаково — на
+/// полу и на земле. Точка адресуется целочисленным ключом сетки (шаг 0,1875 wu
+/// по Y), поворот — шагом 0..5 по 60°.</summary>
+public sealed class PlaceFurnitureCommand : ISimulationCommand
+{
+    public PlaceFurnitureCommand(string catalogId, int xKey, int yKey, int yawStep)
+    {
+        CatalogId = catalogId ?? string.Empty;
+        XKey = xKey;
+        YKey = yKey;
+        YawStep = yawStep;
+    }
+
+    public string CatalogId { get; }
+    public int XKey { get; }
+    public int YKey { get; }
+    public int YawStep { get; }
+    public EntityId? TargetEntity => null;
+}
+
+/// <summary>§120.13: передвинуть и/или повернуть уже стоящий предмет — и
+/// площадку, и построенную мебель. Предмет адресуется строкой каталога и
+/// ключом точки, на которой стоит сейчас.</summary>
+public sealed class MoveFurnitureCommand : ISimulationCommand
+{
+    public MoveFurnitureCommand(
+        string catalogId, int fromXKey, int fromYKey, int toXKey, int toYKey, int yawStep)
+    {
+        CatalogId = catalogId ?? string.Empty;
+        FromXKey = fromXKey;
+        FromYKey = fromYKey;
+        ToXKey = toXKey;
+        ToYKey = toYKey;
+        YawStep = yawStep;
+    }
+
+    public string CatalogId { get; }
+    public int FromXKey { get; }
+    public int FromYKey { get; }
+    public int ToXKey { get; }
+    public int ToYKey { get; }
+    public int YawStep { get; }
+    public EntityId? TargetEntity => null;
+}
+
+/// <summary>§120.13: снять размеченную площадку мебели. Привезённые материалы
+/// остаются лежать на её месте; построенную мебель команда не трогает.</summary>
+public sealed class RemoveFurnitureCommand : ISimulationCommand
+{
+    public RemoveFurnitureCommand(string catalogId, int xKey, int yKey)
+    {
+        CatalogId = catalogId ?? string.Empty;
+        XKey = xKey;
+        YKey = yKey;
+    }
+
+    public string CatalogId { get; }
+    public int XKey { get; }
+    public int YKey { get; }
+    public EntityId? TargetEntity => null;
+}
+
 /// <summary>§120.8: разметить ПРОИЗВОЛЬНЫЙ чертёж игрока (свободная
 /// архитектура из конструктора). Чертёж едет своим же JSON-форматом
 /// (<c>BuildingBlueprintJson</c>) — исполнитель парсит, валидирует

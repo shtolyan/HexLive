@@ -128,37 +128,43 @@ internal static class StructurePlacement
                 continue;
             }
 
-            if (BuildSiteMath.IsSite(obj))
-            {
-                return true;
-            }
-
-            if (PortableFurniture.CanCarry(obj.DefinitionId) && (!PortalWorld.IsFurniture(obj.DefinitionId) ||
-                obj.Variant == PortalWorld.PlacedFurnitureVariant ||
-                PortalWorld.TryGetApartmentFurnitureVisit(obj.Variant, out _))) return true;
-
-            if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def))
-            {
-                continue;
-            }
-
-            var portable = false;
-            foreach (var interaction in def.Interactions)
-            {
-                if (interaction.Type == InteractionType.PickUp)
-                {
-                    portable = true;
-                    break;
-                }
-            }
-
-            if (!portable)
+            if (IsStructure(world, obj))
             {
                 return true;
             }
         }
 
         return false;
+    }
+
+    // §120.13: одна непереносимая вещь — стройплощадка, расставленная мебель,
+    // могила, всё без действия PickUp. Общее правило «место занято» для гекса
+    // (§66) и для точки сетки (FurniturePlacement).
+    public static bool IsStructure(WorldState world, WorldObjectState obj)
+    {
+        if (BuildSiteMath.IsSite(obj))
+        {
+            return true;
+        }
+
+        if (PortableFurniture.CanCarry(obj.DefinitionId) && (!PortalWorld.IsFurniture(obj.DefinitionId) ||
+            obj.Variant == PortalWorld.PlacedFurnitureVariant ||
+            PortalWorld.TryGetApartmentFurnitureVisit(obj.Variant, out _))) return true;
+
+        if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def))
+        {
+            return false;
+        }
+
+        foreach (var interaction in def.Interactions)
+        {
+            if (interaction.Type == InteractionType.PickUp)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     // §66 bed rule: the sleeper warms her SIDE at the fire, never her head or

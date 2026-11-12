@@ -61,6 +61,12 @@ namespace HexLive.Simulation.Runtime.Blueprints
             if (string.Equals(definitionId, ContentIds.DryingRack, StringComparison.Ordinal) ||
                 string.Equals(definitionId, ContentIds.Workbench, StringComparison.Ordinal)) return WideStation;
             if (string.Equals(definitionId, ContentIds.WaterCollector, StringComparison.Ordinal)) return StationDisc;
+            // §120.13/§176: современная мебель ставится по той же сетке. Крупные
+            // предметы занимают симметричный диск из семи точек (0,75 wu в
+            // поперечнике) — ориентация модели на след не влияет; мелкие — одну.
+            if (string.Equals(definitionId, "furniture.modern_bed", StringComparison.Ordinal) ||
+                string.Equals(definitionId, "furniture.modern_sofa", StringComparison.Ordinal) ||
+                string.Equals(definitionId, "furniture.modern_table", StringComparison.Ordinal)) return StationDisc;
             return null;
         }
 

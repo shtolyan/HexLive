@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 350" width="680" height="350"><title>Размещение мебели: центр гекса против точки сетки</title><desc>Слева гекс с одной кроватью, поставленной якорем в центр. Справа тот же гекс: кровать, шкаф и очаг стоят на разных точках сетки шагом 0,375 единицы мира.</desc>
+<rect width="680" height="350" fill="#FFFFFF"/>
+<text x="180" y="44" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="500" fill="#2C2C2A">Было: один предмет в центре гекса</text>
+<polygon points="180.0,80.0 102.1,125.0 102.1,215.0 180.0,260.0 257.9,215.0 257.9,125.0" fill="none" stroke="#888780" stroke-width="1"/>
+<circle cx="180.0" cy="237.5" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="199.5" cy="226.2" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="219.0" cy="215.0" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="238.5" cy="203.8" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="160.5" cy="226.2" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="180.0" cy="215.0" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="199.5" cy="203.8" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="219.0" cy="192.5" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="238.5" cy="181.2" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="141.0" cy="215.0" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="160.5" cy="203.8" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="180.0" cy="192.5" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="199.5" cy="181.2" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="219.0" cy="170.0" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="238.5" cy="158.8" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="121.5" cy="203.8" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="141.0" cy="192.5" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="160.5" cy="181.2" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="180.0" cy="170.0" r="5" fill="#D85A30" stroke="#712B13" stroke-width="0.5"/>
+<circle cx="199.5" cy="158.8" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="219.0" cy="147.5" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="238.5" cy="136.2" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="121.5" cy="181.2" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="141.0" cy="170.0" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="160.5" cy="158.8" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="180.0" cy="147.5" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="199.5" cy="136.2" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="219.0" cy="125.0" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="121.5" cy="158.8" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="141.0" cy="147.5" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="160.5" cy="136.2" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="180.0" cy="125.0" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="199.5" cy="113.8" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="121.5" cy="136.2" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="141.0" cy="125.0" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<circle cx="160.5" cy="113.8" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="180.0" cy="102.5" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<text x="500" y="44" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="500" fill="#2C2C2A">Стало: любая точка сетки</text>
+<polygon points="500.0,80.0 422.1,125.0 422.1,215.0 500.0,260.0 577.9,215.0 577.9,125.0" fill="none" stroke="#888780" stroke-width="1"/>
+<circle cx="500.0" cy="237.5" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<circle cx="519.5" cy="226.2" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<circle cx="539.0" cy="215.0" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<circle cx="558.5" cy="203.8" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<circle cx="480.5" cy="226.2" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<circle cx="500.0" cy="215.0" r="5" fill="#D85A30" stroke="#712B13" stroke-width="0.5"/>
+<circle cx="519.5" cy="203.8" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<circle cx="539.0" cy="192.5" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="558.5" cy="181.2" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<circle cx="461.0" cy="215.0" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<circle cx="480.5" cy="203.8" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="500.0" cy="192.5" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<circle cx="519.5" cy="181.2" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<circle cx="539.0" cy="170.0" r="5" fill="#D85A30" stroke="#712B13" stroke-width="0.5"/>
+<circle cx="558.5" cy="158.8" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<circle cx="441.5" cy="203.8" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="461.0" cy="192.5" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="480.5" cy="181.2" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="500.0" cy="170.0" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<circle cx="519.5" cy="158.8" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<circle cx="539.0" cy="147.5" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="558.5" cy="136.2" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<circle cx="441.5" cy="181.2" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="461.0" cy="170.0" r="5" fill="#D85A30" stroke="#712B13" stroke-width="0.5"/>
+<circle cx="480.5" cy="158.8" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="500.0" cy="147.5" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<circle cx="519.5" cy="136.2" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<circle cx="539.0" cy="125.0" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<circle cx="441.5" cy="158.8" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="461.0" cy="147.5" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="480.5" cy="136.2" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="500.0" cy="125.0" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<circle cx="519.5" cy="113.8" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<circle cx="441.5" cy="136.2" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="461.0" cy="125.0" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="480.5" cy="113.8" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<circle cx="500.0" cy="102.5" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<circle cx="441.5" cy="113.8" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<text x="180" y="292" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="400" fill="#5F5E5A">кровать 14 точек, якорь только в центре</text>
+<text x="500" y="292" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="400" fill="#5F5E5A">кровать 14, шкаф 3, очаг 1 — в одном гексе</text>
+<circle cx="70.0" cy="322.0" r="3" fill="#97C459" stroke="#3B6D11" stroke-width="0.5"/>
+<text x="80" y="326" text-anchor="start" font-family="sans-serif" font-size="12" font-weight="400" fill="#5F5E5A">свободная точка</text>
+<circle cx="220.0" cy="322.0" r="4" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/>
+<text x="230" y="326" text-anchor="start" font-family="sans-serif" font-size="12" font-weight="400" fill="#5F5E5A">след предмета</text>
+<circle cx="360.0" cy="322.0" r="5" fill="#D85A30" stroke="#712B13" stroke-width="0.5"/>
+<text x="371" y="326" text-anchor="start" font-family="sans-serif" font-size="12" font-weight="400" fill="#5F5E5A">якорь</text>
+<circle cx="450.0" cy="322.0" r="2.5" fill="#D3D1C7" stroke="#888780" stroke-width="0.5"/>
+<text x="460" y="326" text-anchor="start" font-family="sans-serif" font-size="12" font-weight="400" fill="#5F5E5A">точка без права якоря</text>
+</svg>

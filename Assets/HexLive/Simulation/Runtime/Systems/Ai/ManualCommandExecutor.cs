@@ -211,6 +211,24 @@ internal static partial class ManualCommandExecutor
             case PlaceBuildingPlanCommand placePlan:
                 ApplyPlaceBuildingPlan(world, placePlan, admission);
                 break;
+            case PlaceFurnitureCommand gridFurniture:
+                ApplyGridFurniture(world, "PlaceFurniture", admission, FurniturePlacement.Place(world,
+                    gridFurniture.CatalogId, new Blueprints.JunctionKey(gridFurniture.XKey, gridFurniture.YKey),
+                    gridFurniture.YawStep, admission.BuildFactions, out _));
+                break;
+            case MoveFurnitureCommand moveFurniture:
+                ApplyGridFurniture(world, "MoveFurniture", admission, FurniturePlacement.Move(world,
+                    moveFurniture.CatalogId,
+                    new Blueprints.JunctionKey(moveFurniture.FromXKey, moveFurniture.FromYKey),
+                    new Blueprints.JunctionKey(moveFurniture.ToXKey, moveFurniture.ToYKey),
+                    moveFurniture.YawStep, admission.BuildFactions));
+                break;
+            case RemoveFurnitureCommand removeFurniture:
+                ApplyGridFurniture(world, "RemoveFurniture", admission, FurniturePlacement.Remove(world,
+                    removeFurniture.CatalogId,
+                    new Blueprints.JunctionKey(removeFurniture.XKey, removeFurniture.YKey),
+                    admission.BuildFactions));
+                break;
             case PlaceFurnitureSiteCommand placeFurniture:
                 ApplyPlaceFurnitureSite(world, placeFurniture, admission);
                 break;
@@ -318,6 +336,9 @@ internal static partial class ManualCommandExecutor
         TransferContainerCommand => "TransferContainer",
         PlaceBuildingPlanCommand => "PlaceBuildingPlan",
         PlaceFurnitureSiteCommand => "PlaceFurnitureSite",
+        PlaceFurnitureCommand => "PlaceFurniture",
+        MoveFurnitureCommand => "MoveFurniture",
+        RemoveFurnitureCommand => "RemoveFurniture",
         PlaceInventoryFurnitureCommand => "PlaceInventoryFurniture",
         PlacePlantingSiteCommand => "PlacePlantingSite",
         PlaceBuildingBlueprintCommand => "PlaceBuildingBlueprint",
@@ -4067,6 +4088,16 @@ internal static partial class ManualCommandExecutor
             Trace.DebugSystem(world, "BuildSitePlanned",
                 $"Product={product} Tile={command.Tile} Site={site.Id.Value}");
         }
+    }
+
+    /// <summary>§120.13: общий хвост трёх команд мебели по сетке — правило
+    /// места живёт в <see cref="FurniturePlacement"/>, здесь только отказ.</summary>
+    private static void ApplyGridFurniture(
+        WorldState world, string verb, AdmissionTracker admission, string reason)
+    {
+        if (reason == null) return;
+        admission.Reject(reason);
+        Trace.EmitSystem(world, "ManualOrderRejected", $"Order={verb} Reason={reason}");
     }
 
     /// <summary>Пустая ли площадка: ни предмета в складе, ни материала или

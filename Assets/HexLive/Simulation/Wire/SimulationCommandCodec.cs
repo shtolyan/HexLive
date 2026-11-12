@@ -106,6 +106,9 @@ public static class SimulationCommandCodec
         EndGiftSession = 55,
         PlacePlantingSite = 56, // #638 append-only
         PlaceInventoryFurniture = 57, // §176 append-only
+        PlaceFurniture = 58, // §120.13 append-only
+        MoveFurniture = 59,
+        RemoveFurniture = 60,
         CraftItemAtStation = 61, // §54.14 append-only
     }
 
@@ -381,6 +384,22 @@ public static class SimulationCommandCodec
                 w.Write(c.Tile.R);
                 w.Write(c.RotationDegrees);
                 break;
+            case PlaceFurnitureCommand c:
+                w.Write((ushort)CommandType.PlaceFurniture);
+                WireIo.WriteString(w, c.CatalogId);
+                w.Write(c.XKey); w.Write(c.YKey); w.Write(c.YawStep);
+                break;
+            case MoveFurnitureCommand c:
+                w.Write((ushort)CommandType.MoveFurniture);
+                WireIo.WriteString(w, c.CatalogId);
+                w.Write(c.FromXKey); w.Write(c.FromYKey);
+                w.Write(c.ToXKey); w.Write(c.ToYKey); w.Write(c.YawStep);
+                break;
+            case RemoveFurnitureCommand c:
+                w.Write((ushort)CommandType.RemoveFurniture);
+                WireIo.WriteString(w, c.CatalogId);
+                w.Write(c.XKey); w.Write(c.YKey);
+                break;
             case PlacePlantingSiteCommand c:
                 w.Write((ushort)CommandType.PlacePlantingSite);
                 WireIo.WriteString(w, c.CatalogId);
@@ -600,6 +619,13 @@ public static class SimulationCommandCodec
             case CommandType.RotateBuildSite:
                 return new RotateBuildSiteCommand(
                     new ObjectId(r.ReadInt32()), r.ReadSingle());
+            case CommandType.PlaceFurniture:
+                return new PlaceFurnitureCommand(r.ReadString(), r.ReadInt32(), r.ReadInt32(), r.ReadInt32());
+            case CommandType.MoveFurniture:
+                return new MoveFurnitureCommand(r.ReadString(), r.ReadInt32(), r.ReadInt32(),
+                    r.ReadInt32(), r.ReadInt32(), r.ReadInt32());
+            case CommandType.RemoveFurniture:
+                return new RemoveFurnitureCommand(r.ReadString(), r.ReadInt32(), r.ReadInt32());
             case CommandType.PlacePlantingSite:
                 return new PlacePlantingSiteCommand(r.ReadString(),
                     new TileCoord(r.ReadInt32(), r.ReadInt32()), new JunctionId(r.ReadInt32()));

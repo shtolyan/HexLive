@@ -47,20 +47,10 @@ public sealed class ConstructionAccessRuntimeTests
         var panel = host.AddComponent<BuildModePanel>(); panel.SetRunner(runner);
         Set(panel, "_snapshot", runner.CreateSnapshot());
         Call(panel, "RefreshBuildPermissions");
-        Set(panel, "_selectionLabel", new Label()); Set(panel, "_selectionDescription", new Label());
-        Set(panel, "_deleteButton", new Button()); Set(panel, "_editButton", new Button());
         try
         {
-            var foreign = new ObjectSnapshot { Id = new ObjectId(100000), Tile = TileCoord.Zero,
-                BuildProduct = "bed.basic", BuildingBlueprintJson = BuildingBlueprintJson.Serialize(BuiltInBuildingBlueprints.Hut1Hex()) };
-            Call(panel, "SelectWorldObject", foreign, true, true);
-            Assert.That(Get(panel, "_selectedSiteId"), Is.Null);
-            Assert.That(((Button)Get(panel, "_deleteButton")).style.display.value, Is.EqualTo(DisplayStyle.None));
-            Assert.That(((Button)Get(panel, "_editButton")).style.display.value, Is.EqualTo(DisplayStyle.None));
-            var html = (JObject)Call(panel, "HtmlModel");
-            Assert.That((bool)html["selection"]["canDelete"], Is.False);
-            Assert.That((bool)html["selection"]["canEdit"], Is.False);
-            Assert.That((string)html["status"], Is.EqualTo("toast.order_rejected.ForeignConstruction"));
+            // §120.13: отдельного лотка с выбором площадок у входа в стройку
+            // больше нет — панель отвечает только за права (§120.12).
             var draft = BuiltInBuildingBlueprints.Hut1Hex();
             Assert.That((bool)Call(panel, "CanBuildDraft", draft, TileCoord.Zero, 0f), Is.False);
             Assert.That((bool)Call(panel, "CanBuildDraft", draft, new TileCoord(-20, 0), 0f), Is.True);
@@ -80,8 +70,6 @@ public sealed class ConstructionAccessRuntimeTests
                 .Any(e => e.Id == "rejected-preview"), Is.False, "A server refusal must restore the authoritative projection.");
             Assert.That(history.CanUndo, Is.False, "Rejected operations must not remain replayable through undo.");
             Assert.That(Get(designer, "_statusKey"), Is.EqualTo("toast.order_rejected.ForeignConstruction"));
-            var folder = "Build/Diagnostics/20261019-bug493"; Directory.CreateDirectory(folder);
-            File.WriteAllText(folder + "/foreign-build-ui-model.json", html.ToString());
         }
         finally { Object.DestroyImmediate(host); }
     }

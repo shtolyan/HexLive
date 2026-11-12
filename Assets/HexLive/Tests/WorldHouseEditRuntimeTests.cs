@@ -81,7 +81,8 @@ public sealed class WorldHouseEditRuntimeTests
             .Invoke(null, new object[] { snapshot });
         var expected = source.Elements.Select(e => ArchitectureWorldEditing.ToWorld(e, source, tile, yaw)).Select(BlueprintBuildingPlan.SlotKey).ToArray();
         Assert.That(projection.Elements.Select(BlueprintBuildingPlan.SlotKey), Is.EquivalentTo(expected));
-        Assert.That(projection.Elements.All(e => e.RoomId == 0), Is.True, "Direct tools select individual parts.");
+        // §120.13: настил живого мира — комнаты, их растягивают за стену.
+        Assert.That(projection.Elements.Where(e => e.Kind == BlueprintElementKind.FloorSector).All(e => e.RoomId > 0), Is.True);
         Assert.That(BlueprintBuildingPlan.AnchorTile(projection), Is.EqualTo(TileCoord.Zero));
     }
 }

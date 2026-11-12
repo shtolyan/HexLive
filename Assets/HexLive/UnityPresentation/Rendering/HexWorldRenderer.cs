@@ -2075,8 +2075,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // §Wardrobe-anim: hide/show the ground garment as its owner picks it
             // up / drops it (SetActive is idempotent, so this is cheap per frame).
             // FOG-OF-WAR EXPERIMENT: also hide objects no colonist remembers.
+            // §120.13: в режиме стройки площадку, перетаскиваемый и ещё не
+            // подтверждённый сервером предмет рисует превью редактора.
             var shouldHide = _wardrobeHiddenObjects.Contains(key)
-                || (_fogActive && !_fogKnownObjects.Contains(key));
+                || (_fogActive && !_fogKnownObjects.Contains(key))
+                || HexLive.UnityPresentation.HutTest.HutLayoutDesigner.IsWorldObjectHidden(key);
             if (objectView.activeSelf == shouldHide)
             {
                 objectView.SetActive(!shouldHide);
@@ -2275,7 +2278,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     // covered already; a rack, a workbench or a collector the
                     // player put in a plan were not, and neither was a piece
                     // still standing as its build-site.
-                    IsPlanFurniture(worldObject);
+                    IsPlanFurniture(worldObject) ||
+                    // §120.13: вся мебель каталога стоит в шестишаговом базисе
+                    // footprint — на полу и на земле, площадкой и готовая.
+                    // Отдельного «уличного» поворота больше нет.
+                    FurniturePlacement.CatalogIdOf(worldObject) != null;
                 var builtRot = Quaternion.Euler(
                     0f, architectureFootprint
                         ? SimulationUnityMapper.ToUnityFootprintYawDegrees(worldObject.RotationDegrees)
@@ -6815,17 +6822,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
     /// pile stands exactly where the finished piece will.
     /// </para>
     /// </summary>
+    // §120.13: мебель с авторским следом рисуется на ЦЕНТРЕ своего следа везде,
+    // а не только внутри футпринта дома по плану: та же кровать на траве и на
+    // полу стоит одинаково, и превью режима стройки совпадает с миром.
     private bool IsPlanFurniture(ObjectSnapshot worldObject) =>
-        _planFootprintTiles.Count > 0 &&
         !worldObject.ArchitectureOwnerObjectId.HasValue &&
-        _planFootprintTiles.Contains(worldObject.Tile) &&
+        (_planFootprintTiles.Contains(worldObject.Tile) ||
+         FurniturePlacement.CatalogIdOf(worldObject) != null) &&
         HexLive.Simulation.Runtime.Blueprints.BlueprintFurnitureFootprints.HasFootprint(
             PlanFurnitureDefinitionId(worldObject));
 
     private static string PlanFurnitureDefinitionId(ObjectSnapshot worldObject) =>
-        string.IsNullOrEmpty(worldObject.BuildProduct)
+        FurniturePlacement.CatalogIdOf(worldObject) ??
+        (string.IsNullOrEmpty(worldObject.BuildProduct)
             ? worldObject.DefinitionId
-            : worldObject.BuildProduct;
+            : worldObject.BuildProduct);
 
     /// <summary>
     /// §120: anchor junction -> footprint centre for the plan's own furniture,

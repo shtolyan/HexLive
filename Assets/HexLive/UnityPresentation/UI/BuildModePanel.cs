@@ -7,17 +7,13 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Runtime.Blueprints;
-using HexLive.Simulation.Spatial;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Environment;
 using HexLive.UnityPresentation.HutTest;
-using HexLive.UnityPresentation.HutTest.BlueprintEditor;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
 using HexLive.UnityPresentation.Platform;
 using HexLive.UnityPresentation.Rendering;
-using HexLive.UnityPresentation.Spatial;
-using HexLive.UnityPresentation.Wearing.Garments;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
@@ -25,123 +21,51 @@ using UnityEngine.UIElements;
 namespace HexLive.UnityPresentation.UI
 {
     /// <summary>
-    /// §120.7: игровой режим строительства — Sims-лоток Build/Buy прямо в
-    /// обычной игре и билдах. Кнопка «Строить»/клавиша B открывают тот же
-    /// UXML/USS-лоток, что у конструктора HutTest; карточка цепляет ghost
-    /// ГОТОВОГО изделия к курсору со снапом на центр гекса (§66), клик шлёт
-    /// мировую команду (<see cref="PlaceFurnitureSiteCommand"/> /
-    /// <see cref="PlaceBuildingPlanCommand"/>) через общую шину §121.9 — и
-    /// строят уже сами девушки штатным циклом доставки §120.
+    /// §120.13: вход в режим строительства. Кнопка «Строить» и клавиша B
+    /// открывают ОДИН редактор живого мира (<see cref="HutLayoutDesigner"/> в
+    /// прямом мировом режиме) с двумя вкладками — «Мебель» и «Строительство».
     ///
-    /// Пока режим открыт, симуляция стоит на паузе, а каждая размеченная
-    /// недостроенная площадка показана полностью построенным призраком —
-    /// «каким это будет». Выход возвращает штатный рендер: поэтапную сборку
-    /// по доставленному и колышки §120.1 на пустых площадках.
-    ///
-    /// Зелёный/красный ghost — клиентская ОЦЕНКА тех же правил по snapshot;
-    /// истину о месте решает исполнитель команды в симуляции.
+    /// Раньше здесь жил второй лоток со своими правилами: мебель ставилась
+    /// только в центр гекса, современная — только на готовый пол, дом — отдельной
+    /// «площадкой по плану», свой дом — отдельным «проектом», а стены —
+    /// третьим режимом «свободного строительства». Теперь сущностей «строение» и
+    /// «чертёж» у игрока нет: любая стена, пол и предмет в своём лагере
+    /// правятся на месте, одним способом.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public sealed partial class BuildModePanel : MonoBehaviour
     {
-        private const string PanelResource = "HexLive/UI/HutConstructor/HutConstructorPanel";
         private const string StyleResource = "HexLive/UI/HutConstructor/HutConstructorStyles";
-        private const string HutCardId = "building.hut_plan";
 
-        /// <summary>§120.8: карточка «Свой проект» — клик по гексу открывает
-        /// конструктор прямо в мире, «Построить» шлёт чертёж командой.</summary>
-        private const string ProjectCardId = "custom.project";
-        private const string FreeConstructionCardId = "free.architecture";
-        private const float SnapshotInterval = 0.25f;
-        private const float OverlayInterval = 1f;
+        /// <summary>Открыт ли режим стройки: колышки площадок прячутся (их
+        /// подменяет полная модель превью), HUD подсвечивает кнопку.</summary>
+        public static bool IsOpen => HutLayoutDesigner.DirectWorldEditorOpen;
 
-        /// <summary>Колышки §120.1 прячутся, пока открыт режим стройки: их
-        /// подменяет полный призрак здания (читает BuildSiteStakeRenderer).</summary>
-        public static bool IsOpen { get; private set; }
+        /// <summary>Мир готов принимать строительные команды.</summary>
+        public static bool CanOpen { get; private set; }
+
+        private static BuildModePanel? _instance;
 
         private SimulationRunnerBehaviour? _runner;
         private HexWorldRenderer? _worldRenderer;
         private UIDocument? _document;
-        private Camera? _camera;
-        private RtsCameraController? _rtsCamera;
-
-        private VisualElement? _panel;
         private Button? _openButton;
-        private Label? _statusLabel;
-        private Label? _categoryTitle;
-        private Label? _selectionLabel;
-        private Label? _selectionDescription;
-        private Label? _availabilityLabel;
-        private VisualElement? _categoryList;
-        private VisualElement? _catalogList;
-        private Button? _deleteButton;
-        private Button? _editButton;
 
-        private BuildCatalogMode _catalogMode = BuildCatalogMode.Furniture;
-        private string _activeCategoryId = BuildCatalogCategories.Comfort;
-        private string _activeCardId = string.Empty;
-
-        private bool _selectionSuppressed;
-
-        // Выбранная УЖЕ размеченная пустая площадка: повернуть / снять / Esc.
-        private int? _selectedSiteId;
-        private string _selectedSiteProduct = string.Empty;
-        private TileCoord _selectedSiteTile;
-        private float _selectedSiteRotation;
-        private bool _selectedCanRotate;
-        private bool _selectedCanCancel;
-        private string _selectedBlueprintJson = string.Empty;
-        private LineRenderer? _selectionOutline;
-
-        // Стрелки поворота — экранные кнопки, следующие за объектом в мире.
-        private Button? _rotateLeft;
-        private Button? _rotateRight;
-
-        // Сетка «можно/нельзя»: точка на каждом гексе, пока выбрана карточка.
-        private GameObject? _gridRoot;
-        private readonly List<(MeshRenderer Renderer, TileCoord Tile)> _gridDots = new();
-        private Material? _dotFree;
-        private Material? _dotBusy;
-        private Mesh? _dotMesh;
-        private bool _gridDirty;
-
-        // Ghost под курсором.
-        private GameObject? _ghostRoot;
-        private LineRenderer? _ghostOutline;
-        private int _ghostYawSteps;
-        private TileCoord? _ghostTile;
-        private JunctionSnapshot? _ghostPlantingAnchor;
-        private bool IsPlantingCard => PlantGrowthCatalog.TryGetBySeed(_activeCardId, out _);
-        private bool _ghostValid;
-
-        // «Полностью построено» поверх размеченных площадок.
-        private readonly Dictionary<int, GameObject> _siteOverlays = new();
-        private float _nextOverlayRefresh;
-
-        // Кэш snapshot для валидации и оверлеев.
         private WorldSnapshot? _snapshot;
         private readonly HashSet<Faction> _buildFactions = new();
-        private readonly Dictionary<string, int> _modernFurnitureCounts = new();
-        private float _nextSnapshotRefresh;
-        private readonly Dictionary<TileCoord, TileSnapshot> _tiles = new();
-        private readonly HashSet<TileCoord> _occupiedHexes = new();
-        private readonly Dictionary<TileCoord, List<JunctionSnapshot>> _plantingPointsByTile = new();
-        private readonly HashSet<JunctionId> _plantingOccupiedPoints = new();
-        private List<JunctionSnapshot>? _indexedPlantingJunctions;
 
-        // Проверка «площадка не появилась» → честный «здесь нельзя строить».
-        private TileCoord? _pendingTile;
-        private JunctionId? _pendingPlantingAnchor;
-        private float _pendingDeadline;
-
-        private int _worldRejectionRevision;
-        public void SetRunner(SimulationRunnerBehaviour runner)
-        {
-            _runner = runner;
-            _worldRejectionRevision = ManualOrderFeedback.WorldRevision;
-        }
+        public void SetRunner(SimulationRunnerBehaviour runner) => _runner = runner;
 
         public void SetWorldRenderer(HexWorldRenderer renderer) => _worldRenderer = renderer;
+
+        /// <summary>Кнопка HUD и клавиша B: открыть или закрыть режим.</summary>
+        public static void Toggle()
+        {
+            var panel = _instance;
+            if (panel == null) return;
+            if (IsOpen) HutLayoutDesigner.CloseWorldEditor();
+            else if (CanOpen) panel.Open();
+        }
 
         private void Awake()
         {
@@ -150,19 +74,12 @@ namespace HexLive.UnityPresentation.UI
             BuildUi();
             Loc.LanguageChanged += ApplyLanguage;
             _instance = this;
-            HtmlUi.Handle(HtmlScreen, OnHtmlCommand);
         }
 
         private void OnDestroy()
         {
-            HtmlUi.Unhandle(HtmlScreen, OnHtmlCommand);
             if (ReferenceEquals(_instance, this)) _instance = null;
             Loc.LanguageChanged -= ApplyLanguage;
-            EndBuildMode();
-            IsOpen = false;
-            if (_outlineMaterial != null) Destroy(_outlineMaterial);
-            if (_dotFree != null) Destroy(_dotFree);
-            if (_dotBusy != null) Destroy(_dotBusy);
         }
 
         private void ConfigurePanelSettings()
@@ -186,65 +103,13 @@ namespace HexLive.UnityPresentation.UI
             var root = _document.rootVisualElement;
             root.Clear();
             root.style.flexGrow = 1f;
+            // ⚠️ Корень — полноэкранный: pickable-обёртка на высоком sortingOrder
+            // молча съедает клики по ростеру и панели персонажа.
             root.pickingMode = PickingMode.Ignore;
-
-            var tree = Resources.Load<VisualTreeAsset>(PanelResource);
             var sheet = Resources.Load<StyleSheet>(StyleResource);
-            if (tree == null || sheet == null)
-            {
-                UnityEngine.Debug.LogError("[BuildMode] UI Toolkit resources are missing.", this);
-                return;
-            }
+            if (sheet != null) root.styleSheets.Add(sheet);
 
-            tree.CloneTree(root);
-            root.styleSheets.Add(sheet);
-            // ⚠️ Обёртка UXML — полноэкранный absolute-элемент с picking по
-            // умолчанию. На sortingOrder выше остального UI она молча съедала
-            // клики по ростеру и панели персонажа даже с закрытым лотком.
-            var wrapper = root.Q(className: "hut-constructor-root");
-            if (wrapper != null) wrapper.pickingMode = PickingMode.Ignore;
-            _panel = root.Q("constructor-panel");
-            if (_panel != null)
-            {
-                _panel.pickingMode = PickingMode.Position;
-                _panel.style.display = DisplayStyle.None;
-            }
-
-            _statusLabel = root.Q<Label>("status-label");
-            _categoryTitle = root.Q<Label>("category-title");
-            _selectionLabel = root.Q<Label>("selection-label");
-            _selectionDescription = root.Q<Label>("selection-description");
-            _availabilityLabel = root.Q<Label>("availability-label");
-            _categoryList = root.Q("category-list");
-            _catalogList = root.Q("catalog-list");
-
-            // Игровому режиму не нужны черновичные глаголы конструктора.
-            Hide(root, "undo");
-            Hide(root, "redo");
-            Hide(root, "save");
-            Hide(root, "export");
-            Hide(root, "shortcut-label");
-            _deleteButton = root.Q<Button>("delete-selection");
-            if (_deleteButton != null)
-            {
-                _deleteButton.style.display = DisplayStyle.None;
-                _deleteButton.clicked += CancelSelectedSite;
-            }
-            var selectionActions = root.Q(className: "selection-actions");
-            if (selectionActions != null)
-            {
-                _editButton = new Button(EditSelectedBuilding);
-                _editButton.AddToClassList("selection-button");
-                _editButton.style.display = DisplayStyle.None;
-                selectionActions.Insert(0, _editButton);
-            }
-
-            root.Q<Button>("mode-construction").clicked += () => SetMode(BuildCatalogMode.Construction);
-            root.Q<Button>("mode-furniture").clicked += () => SetMode(BuildCatalogMode.Furniture);
-            var finish = root.Q<Button>("finish-selection");
-            if (finish != null) finish.clicked += Close;
-
-            // Плавающая кнопка входа — видна, когда мир готов, а лоток закрыт.
+            // Плавающая кнопка входа — видна, когда мир готов, а режим закрыт.
             _openButton = new Button(Open);
             _openButton.AddToClassList("header-button");
             _openButton.AddToClassList("accent");
@@ -256,913 +121,46 @@ namespace HexLive.UnityPresentation.UI
             _openButton.style.fontSize = 13f;
             _openButton.style.display = DisplayStyle.None;
             root.Add(_openButton);
-
-            // Стрелки поворота — следуют за ghost'ом/выбранной площадкой в мире.
-            _rotateLeft = MakeRotateArrow(root, "↺", () => Rotate(-1));
-            _rotateRight = MakeRotateArrow(root, "↻", () => Rotate(1));
-
             ApplyLanguage();
-        }
-
-        private static Button MakeRotateArrow(
-            VisualElement root, string glyph, System.Action onClick)
-        {
-            var button = new Button(onClick) { text = glyph };
-            button.AddToClassList("icon-button");
-            button.style.position = Position.Absolute;
-            button.style.width = 36f;
-            button.style.height = 36f;
-            button.style.fontSize = 19f;
-            button.style.display = DisplayStyle.None;
-            root.Add(button);
-            return button;
-        }
-
-        private static void Hide(VisualElement root, string name)
-        {
-            var element = root.Q(name);
-            if (element != null) element.style.display = DisplayStyle.None;
         }
 
         private void ApplyLanguage()
         {
-            if (_document == null) return;
-            var root = _document.rootVisualElement;
-            var title = root.Q<Label>("title-label");
-            if (title != null) title.text = Loc.Get("blueprint.title");
-            var construction = root.Q<Button>("mode-construction");
-            if (construction != null) construction.text = Loc.Get("blueprint.mode.construction");
-            var furniture = root.Q<Button>("mode-furniture");
-            if (furniture != null) furniture.text = Loc.Get("blueprint.mode.furniture");
-            var finish = root.Q<Button>("finish-selection");
-            if (finish != null) finish.text = Loc.Get("blueprint.action.finish");
-            var deleteButton = root.Q<Button>("delete-selection");
-            if (deleteButton != null) deleteButton.text = Loc.Get("blueprint.action.delete");
-            if (_editButton != null) _editButton.text = Loc.Get("blueprint.action.edit_building");
-            var selectionTitle = root.Q<Label>("selection-title");
-            if (selectionTitle != null) selectionTitle.text = Loc.Get("blueprint.selection.title");
             if (_openButton != null) _openButton.text = Loc.Get("build.mode.button");
-            if (IsOpen) RebuildCatalogUi();
         }
-
-        // ─────────────────────────────────────────────────────────────────
-        // Открытие/закрытие режима.
-        // ─────────────────────────────────────────────────────────────────
-
-        private void Open()
-        {
-            if (IsOpen || _runner == null || !_runner.IsReady || !_runner.SupportsNpcCommands)
-            {
-                return;
-            }
-
-            IsOpen = true;
-            _camera = Camera.main;
-            // Sims-style: режим стройки — про мир, не про персонажа. Панель
-            // выбранной колонистки закрывается, чтобы не просвечивать под лотком.
-            NpcSelection.Clear();
-            SuppressSelection(true);
-            // Паузу НЕ ставим: на сервере часы операторские (§83.2), и режим
-            // обязан работать одинаково локально и по проводу. Хочет паузу —
-            // игрок ставит её сам штатной панелью скорости.
-
-            // §174.7: in the web client the page draws the tray (BuildModePanel.Html).
-            if (_panel != null) _panel.style.display = HtmlUi.Active ? DisplayStyle.None : DisplayStyle.Flex;
-            if (_openButton != null) _openButton.style.display = DisplayStyle.None;
-            _nextSnapshotRefresh = 0f;
-            RefreshSnapshotCache();
-            SetMode(BuildCatalogMode.Furniture);
-            SetStatus("build.mode.hint");
-            _nextOverlayRefresh = 0f;
-            _nextSnapshotRefresh = 0f;
-        }
-
-        private void Close()
-        {
-            if (!IsOpen) return;
-            EndBuildMode();
-        }
-
-        private void EndBuildMode()
-        {
-            IsOpen = false;
-            ClearGhost();
-            ClearOverlays();
-            DeselectSite();
-            SuppressSelection(false);
-            if (_panel != null) _panel.style.display = DisplayStyle.None;
-            // Стрелки живут в root, вне _panel, и обновляются только пока
-            // IsOpen — без явного скрытия они переживают выход из режима.
-            if (_rotateLeft != null) _rotateLeft.style.display = DisplayStyle.None;
-            if (_rotateRight != null) _rotateRight.style.display = DisplayStyle.None;
-        }
-
-        private void SuppressSelection(bool suppressed)
-        {
-            if (suppressed == _selectionSuppressed) return;
-            if (_rtsCamera == null)
-            {
-                var mainCamera = Camera.main;
-                _rtsCamera = mainCamera != null ? mainCamera.GetComponent<RtsCameraController>() : null;
-                if (_rtsCamera == null) _rtsCamera = FindAnyObjectByType<RtsCameraController>();
-            }
-
-            if (_rtsCamera == null) return;
-            _rtsCamera.SetSelectionInputSuppressed(this, suppressed);
-            _selectionSuppressed = suppressed;
-        }
-
-        // ─────────────────────────────────────────────────────────────────
-        // Каталог.
-        // ─────────────────────────────────────────────────────────────────
-
-        private void SetMode(BuildCatalogMode mode)
-        {
-            _catalogMode = mode;
-            _activeCardId = string.Empty;
-            ClearGhost();
-            _activeCategoryId = mode == BuildCatalogMode.Construction
-                ? "house"
-                : BuildCatalogDefinition.ForMode(BuildCatalogMode.Furniture)
-                    .Select(entry => entry.CategoryId).FirstOrDefault() ?? string.Empty;
-            RebuildCatalogUi();
-        }
-
-        private void SetCategory(string categoryId)
-        {
-            _activeCategoryId = categoryId;
-            RebuildCatalogUi();
-        }
-
-        /// <summary>Игровая вкладка «Строительство» разводит готовый дом,
-        /// пустой авторский чертёж и прямое поэлементное строительство в мире.
-        /// Последнее не создаёт ни проекта, ни здания-агрегата (§120.10).</summary>
-        private void RebuildCatalogUi()
-        {
-            if (_categoryList == null || _catalogList == null || _document == null) return;
-            var root = _document.rootVisualElement;
-            SetActive(root.Q("mode-construction"), _catalogMode == BuildCatalogMode.Construction);
-            SetActive(root.Q("mode-furniture"), _catalogMode == BuildCatalogMode.Furniture);
-
-            _categoryList.Clear();
-            _catalogList.Clear();
-
-            if (_catalogMode == BuildCatalogMode.Construction)
-            {
-                AddCategoryButton("house", Loc.Get("blueprint.category.house"));
-                if (_categoryTitle != null) _categoryTitle.text = Loc.Get("blueprint.category.house");
-                AddCard(HutCardId, "blueprint.catalog.hut.name", "blueprint.catalog.hut.description", "⌂");
-                AddCard(ProjectCardId, "blueprint.catalog.project.name",
-                    "blueprint.catalog.project.description", "✎");
-                AddCard(FreeConstructionCardId, "blueprint.catalog.free.name",
-                    "blueprint.catalog.free.description", "⌁");
-            }
-            else
-            {
-                var entries = AvailableFurnitureEntries().ToArray();
-                var categories = entries.Select(entry => entry.CategoryId).Distinct().ToArray();
-                if (categories.Length > 0 && !categories.Contains(_activeCategoryId))
-                    _activeCategoryId = categories[0];
-                foreach (var categoryId in categories)
-                {
-                    AddCategoryButton(categoryId, Loc.Get(CategoryTerm(categoryId)));
-                }
-
-                if (_categoryTitle != null)
-                    _categoryTitle.text = Loc.Get(CategoryTerm(_activeCategoryId));
-                foreach (var entry in entries.Where(entry => entry.CategoryId == _activeCategoryId))
-                {
-                    AddCard(entry.DefinitionId, entry.NameTerm, entry.DescriptionTerm, entry.FallbackGlyph);
-                }
-            }
-
-            RefreshSelectionCard();
-        }
-
-        private void AddCategoryButton(string categoryId, string text)
-        {
-            var captured = categoryId;
-            var button = new Button(() => SetCategory(captured)) { text = text };
-            button.AddToClassList("category-button");
-            SetActive(button, captured == _activeCategoryId);
-            _categoryList!.Add(button);
-        }
-
-        private void AddCard(string cardId, string nameTerm, string descriptionTerm, string glyph)
-        {
-            var captured = cardId;
-            var card = new Button(() => SelectCard(captured));
-            card.AddToClassList("catalog-card");
-            SetActive(card, captured == _activeCardId);
-
-            var thumb = new VisualElement();
-            thumb.AddToClassList("catalog-thumb");
-            thumb.pickingMode = PickingMode.Ignore;
-            var glyphLabel = new Label(glyph);
-            glyphLabel.AddToClassList("catalog-thumb-glyph");
-            glyphLabel.pickingMode = PickingMode.Ignore;
-            thumb.Add(glyphLabel);
-            var image = new Image { scaleMode = ScaleMode.ScaleToFit };
-            image.AddToClassList("catalog-thumb-image");
-            image.pickingMode = PickingMode.Ignore;
-            image.style.display = DisplayStyle.None;
-            thumb.Add(image);
-            var icon = ItemIcons.Load(CatalogIconId(cardId));
-            if (icon != null)
-            {
-                image.sprite = icon;
-                image.style.display = DisplayStyle.Flex;
-                glyphLabel.style.display = DisplayStyle.None;
-            }
-
-            card.Add(thumb);
-            var name = new Label(Loc.Get(nameTerm));
-            name.AddToClassList("catalog-name");
-            card.Add(name);
-            var description = new Label(FurnitureDescription(cardId, descriptionTerm));
-            description.AddToClassList("catalog-description");
-            card.Add(description);
-            _catalogList!.Add(card);
-        }
-
-        private static string CategoryTerm(string categoryId) => categoryId switch
-        {
-            BuildCatalogCategories.Comfort => "blueprint.category.comfort",
-            BuildCatalogCategories.Heating => "blueprint.category.heating",
-            BuildCatalogCategories.Storage => "blueprint.category.storage",
-            BuildCatalogCategories.Workstations => "blueprint.category.workstations",
-            BuildCatalogCategories.Outdoor => "blueprint.category.outdoor",
-            BuildCatalogCategories.Modern => "blueprint.category.modern",
-            _ => "blueprint.category.other"
-        };
-
-        private static void SetActive(VisualElement? element, bool active)
-        {
-            if (element == null) return;
-            if (active) element.AddToClassList("active");
-            else element.RemoveFromClassList("active");
-        }
-
-        private void SelectCard(string cardId)
-        {
-            if (PortalWorld.IsFurniture(cardId) && ModernFurnitureCount(cardId) == 0) return;
-            DeselectSite();
-            if (cardId == FreeConstructionCardId)
-            {
-                OpenFreeConstruction();
-                return;
-            }
-            _activeCardId = cardId;
-            _nextSnapshotRefresh = 0f;
-            _ghostYawSteps = 0;
-            BuildGhost();
-            RebuildCatalogUi();
-            SetStatus("build.mode.hint");
-        }
-
-        private void RefreshSelectionCard()
-        {
-            if (_selectionLabel == null || _selectionDescription == null) return;
-            if (_activeCardId.Length > 0)
-            {
-                var (nameTerm, descriptionTerm) = CardTerms(_activeCardId);
-                _selectionLabel.text = Loc.Get(nameTerm);
-                _selectionDescription.text = FurnitureDescription(_activeCardId, descriptionTerm);
-            }
-            else if (_selectedSiteId is not null)
-            {
-                var (nameTerm, descriptionTerm) = CardTerms(_selectedSiteProduct);
-                _selectionLabel.text = Loc.Get(nameTerm);
-                _selectionDescription.text = Loc.Get(descriptionTerm);
-            }
-            else
-            {
-                _selectionLabel.text = Loc.Get("blueprint.selection.none");
-                _selectionDescription.text = Loc.Get("blueprint.catalog.help");
-            }
-
-            if (_availabilityLabel != null)
-            {
-                var waiting = _activeCardId.Length > 0 && !_ghostValid;
-                _availabilityLabel.text = Loc.Get(waiting
-                    ? "build.mode.blocked"
-                    : "blueprint.availability.ready");
-                _availabilityLabel.EnableInClassList("waiting", waiting);
-            }
-
-            if (_deleteButton != null)
-            {
-                _deleteButton.style.display = _selectedCanCancel
-                    ? DisplayStyle.Flex
-                    : DisplayStyle.None;
-            }
-            if (_editButton != null)
-            {
-                _editButton.style.display = _selectedSiteId is not null &&
-                    !string.IsNullOrEmpty(_selectedBlueprintJson)
-                    ? DisplayStyle.Flex
-                    : DisplayStyle.None;
-            }
-        }
-
-        /// <summary>Термины карточки по id карточки ЛИБО по продукту площадки
-        /// (дом-план и furniture.hearth = campfire.spot с hearth-вариантом
-        /// сводятся к своим карточкам каталога).</summary>
-        private static (string NameTerm, string DescriptionTerm) CardTerms(string id)
-        {
-            if (id == ProjectCardId)
-            {
-                return ("blueprint.catalog.project.name", "blueprint.catalog.project.description");
-            }
-
-            if (id == FreeConstructionCardId)
-            {
-                return ("blueprint.catalog.free.name", "blueprint.catalog.free.description");
-            }
-
-            if (id == HutCardId || id == ContentIds.HutPlan || id == ContentIds.Hut1Hex)
-            {
-                return ("blueprint.catalog.hut.name", "blueprint.catalog.hut.description");
-            }
-
-            if (BuildCatalogDefinition.TryGet(id, out var entry))
-            {
-                return (entry.NameTerm, entry.DescriptionTerm);
-            }
-
-            return ("blueprint.selection.none", "blueprint.catalog.help");
-        }
-
-        private void SetStatus(string term)
-        {
-            _statusTerm = term;
-            if (_statusLabel != null) _statusLabel.text = Loc.Get(term);
-        }
-
-        // ─────────────────────────────────────────────────────────────────
-        // Кадр.
-        // ─────────────────────────────────────────────────────────────────
 
         private void Update()
         {
-            if (_worldRejectionRevision != ManualOrderFeedback.WorldRevision)
-            {
-                _worldRejectionRevision = ManualOrderFeedback.WorldRevision;
-                SetStatus(ManualOrderFeedback.WorldReasonKey);
-                _nextSnapshotRefresh = 0f;
-                _nextOverlayRefresh = 0f;
-            }
-            var ready = _runner != null && _runner.IsReady && _runner.SupportsNpcCommands &&
-                        !HutLayoutDesigner.WorldEditorOpen;
-            CanOpen = ready;
-            UpdateHtml();
+            var ready = _runner != null && _runner.IsReady && _runner.SupportsNpcCommands;
+            CanOpen = ready && !HutLayoutDesigner.WorldEditorOpen;
             if (_openButton != null)
             {
-                // §174.7: on the web the door is the HUD's «Строить» pill.
-                _openButton.style.display = ready && !IsOpen && !HtmlUi.Active ? DisplayStyle.Flex : DisplayStyle.None;
+                // §174.7: в веб-клиенте дверь в режим — кнопка «Строить» в HUD.
+                _openButton.style.display = CanOpen && !HtmlUi.Active ? DisplayStyle.Flex : DisplayStyle.None;
                 // Панель выбранного персонажа занимает весь низ — кнопка
                 // отъезжает выше её карточки, чтобы не лечь на «Отношения».
                 _openButton.style.bottom = NpcSelection.HasSelection ? 306f : 16f;
             }
 
             var keyboard = Keyboard.current;
-            if (ready && keyboard != null && keyboard.bKey.wasPressedThisFrame)
-            {
-                if (IsOpen) Close();
-                else Open();
-                return;
-            }
-
-            if (!IsOpen) return;
-            if (_runner == null || !_runner.IsReady)
-            {
-                EndBuildMode();
-                return;
-            }
-
-            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
-            {
-                if (_activeCardId.Length > 0)
-                {
-                    DropActiveCard();
-                }
-                else if (_selectedSiteId is not null)
-                {
-                    DeselectSite();
-                    RefreshSelectionCard();
-                }
-                else
-                {
-                    Close();
-                    return;
-                }
-            }
-
-            RefreshSnapshotCache();
-            HandleRotation(keyboard);
-            UpdateGhost();
-            RefreshGridDots();
-            HandlePlacement();
-            CheckPendingPlacement();
-            UpdateRotateArrows();
-            if (Time.unscaledTime >= _nextOverlayRefresh)
-            {
-                _nextOverlayRefresh = Time.unscaledTime + OverlayInterval;
-                RefreshSiteOverlays();
-            }
-        }
-
-        private void DropActiveCard()
-        {
-            _activeCardId = string.Empty;
-            ClearGhost();
-            RebuildCatalogUi();
-        }
-
-        private void HandleRotation(Keyboard? keyboard)
-        {
-            if (keyboard == null) return;
-            var delta = 0;
-            if (keyboard.qKey.wasPressedThisFrame) delta -= 1;
-            if (keyboard.eKey.wasPressedThisFrame) delta += 1;
-            if (delta == 0) return;
-            Rotate(delta);
-        }
-
-        /// <summary>Один шаг поворота ±60° — от Q/E и от мировых стрелок.
-        /// Крутится либо ghost под курсором, либо выбранная пустая площадка
-        /// (той же командой симуляции, что видит и сервер).</summary>
-        private void Rotate(int delta)
-        {
-            if (_activeCardId.Length > 0)
-            {
-                _ghostYawSteps = ((_ghostYawSteps + delta) % 6 + 6) % 6;
-                ApplyGhostTransform();
-                return;
-            }
-
-            if (_selectedCanRotate && _selectedSiteId is { } siteId && _runner != null)
-            {
-                _selectedSiteRotation = ((_selectedSiteRotation + delta * 60f) % 360f + 360f) % 360f;
-                _runner.EnqueueCommand(new RotateBuildSiteCommand(
-                    new HexLive.Simulation.Common.ObjectId(siteId), _selectedSiteRotation));
-                // Оверлей «полностью построено» перечитает поворот из snapshot.
-                _nextSnapshotRefresh = 0f;
-                InvalidateOverlay(siteId);
-            }
-        }
-
-        private void HandlePlacement()
-        {
-            var mouse = Mouse.current;
-            if (mouse == null) return;
-            var screen = mouse.position.ReadValue();
-
-            if (mouse.rightButton.wasPressedThisFrame && _activeCardId.Length > 0)
-            {
-                DropActiveCard();
-                return;
-            }
-
-            if (!mouse.leftButton.wasPressedThisFrame) return;
-            if (PointerOverPanel(screen)) return;
-
-            // Без карточки клик по миру — выбор уже размеченной площадки.
-            if (_activeCardId.Length == 0)
-            {
-                TrySelectSite(screen);
-                return;
-            }
-
-            if (_ghostTile is not { } tile) return;
-            if (!_ghostValid)
-            {
-                SetStatus("build.mode.blocked");
-                return;
-            }
-
-            // «Свой проект»: клик выбирает якорный гекс и открывает конструктор
-            // прямо в мире — команда уйдёт из его кнопки «Построить».
-            if (_activeCardId == ProjectCardId)
-            {
-                OpenBlueprintEditor(tile);
-                return;
-            }
-
-            var yaw = _ghostYawSteps * 60f;
-            if (_activeCardId == HutCardId)
-            {
-                _runner!.EnqueueCommand(new PlaceBuildingPlanCommand(tile, yaw));
-            }
-            else if (IsPlantingCard && _ghostPlantingAnchor is { } plantingAnchor)
-            {
-                _runner!.EnqueueCommand(new PlacePlantingSiteCommand(_activeCardId, tile, plantingAnchor.Id));
-            }
-            else
-            {
-                _runner!.EnqueueCommand(new PlaceFurnitureSiteCommand(_activeCardId, tile, yaw));
-            }
-
-            _pendingTile = tile;
-            _pendingPlantingAnchor = IsPlantingCard ? _ghostPlantingAnchor?.Id : null;
-            _pendingDeadline = Time.unscaledTime + 1.5f;
-            _nextSnapshotRefresh = 0f;
-            _nextOverlayRefresh = 0f;
-            SetStatus("build.mode.placed");
-            // По одному предмету за выбор: поставил — карточка отпускается,
-            // можно выбрать поставленное и крутить стрелками.
-            DropActiveCard();
-        }
-
-        /// <summary>Команда исполнилась только в симуляции; если площадка так и
-        /// не появилась — место забраковано, честно говорим об этом вместо
-        /// тихого «ничего не произошло». На паузе не проверяем: команда ждёт
-        /// первого тика, это не отказ.</summary>
-        private void CheckPendingPlacement()
-        {
-            if (_pendingTile is not { } tile || Time.unscaledTime < _pendingDeadline) return;
-            if (_runner != null && _runner.IsPaused)
-            {
-                _pendingDeadline = Time.unscaledTime + 0.5f;
-                return;
-            }
-
-            _pendingTile = null;
-            if (_snapshot == null) return;
-            foreach (var obj in _snapshot.Objects)
-            {
-                if (obj.Tile.Equals(tile) && !string.IsNullOrEmpty(obj.BuildProduct) &&
-                    (_pendingPlantingAnchor is not { } point || obj.Junctions.Contains(point))) return;
-            }
-
-            SetStatus("build.mode.blocked");
+            if (ready && keyboard != null && keyboard.bKey.wasPressedThisFrame) Toggle();
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // Выбор размеченной площадки: повернуть стрелками, снять, Esc.
+        // Права: чужой лагерь править нельзя (§120.12).
         // ─────────────────────────────────────────────────────────────────
-
-        private void TrySelectSite(Vector2 screen)
-        {
-            if (_snapshot == null || !TryPickTile(screen, out var tile)) return;
-            // Empty sites retain their rotate/cancel affordances. An
-            // architectural site with progress is still editable, but never
-            // silently rotated or deleted as a whole.
-            foreach (var obj in _snapshot.Objects)
-            {
-                if (string.IsNullOrEmpty(obj.BuildProduct) || !obj.Tile.Equals(tile)) continue;
-                var empty = DeliveredTotal(obj) == 0;
-                SelectWorldObject(obj, canRotate: empty, canCancel: empty);
-                return;
-            }
-
-            // A finished multi-hex house is selectable from any tile of its
-            // actual footprint, not only from the invisible owner's anchor.
-            foreach (var obj in _snapshot.Objects)
-            {
-                if (string.IsNullOrEmpty(obj.BuildingBlueprintJson) ||
-                    !BlueprintOccupies(obj, tile)) continue;
-                SelectWorldObject(obj, canRotate: false, canCancel: false);
-                return;
-            }
-
-            DeselectSite();
-            RefreshSelectionCard();
-        }
-
-        private void SelectWorldObject(ObjectSnapshot obj, bool canRotate, bool canCancel)
-        {
-            if (!CanEditWorldObject(obj))
-            {
-                DeselectSite();
-                RefreshSelectionCard();
-                SetStatus("toast.order_rejected.ForeignConstruction");
-                return;
-            }
-            _selectedSiteId = obj.Id.Value;
-            _selectedSiteProduct = string.IsNullOrEmpty(obj.BuildProduct)
-                ? obj.DefinitionId
-                : obj.BuildProduct;
-            _selectedSiteTile = obj.Tile;
-            _selectedSiteRotation = obj.RotationDegrees;
-            _selectedCanRotate = canRotate;
-            _selectedCanCancel = canCancel;
-            _selectedBlueprintJson = obj.BuildingBlueprintJson;
-            DrawSelectionOutline(obj);
-            RefreshSelectionCard();
-        }
-
-        private static bool BlueprintOccupies(ObjectSnapshot owner, TileCoord tile)
-        {
-            if (!BuildingBlueprintJson.TryDeserialize(
-                    owner.BuildingBlueprintJson, out var draft, out _)) return false;
-            return Simulation.Bootstrap.BuildingBootstrap.FootprintTiles(
-                draft, owner.Tile, owner.RotationDegrees).Contains(tile);
-        }
-
-        private static int DeliveredTotal(ObjectSnapshot site)
-        {
-            var delivered = site.DeliveredLogs + site.DeliveredSticks + site.DeliveredRope +
-                            site.DeliveredLeaves + site.DeliveredStones + site.DeliveredBoards;
-            foreach (var element in site.ArchitectureElements)
-            {
-                delivered += element.DeliveredTotal;
-            }
-
-            return delivered;
-        }
-
-        private void DeselectSite()
-        {
-            _selectedSiteId = null;
-            _selectedSiteProduct = string.Empty;
-            _selectedCanRotate = false;
-            _selectedCanCancel = false;
-            _selectedBlueprintJson = string.Empty;
-            if (_selectionOutline != null)
-            {
-                Destroy(_selectionOutline.gameObject);
-                _selectionOutline = null;
-            }
-        }
-
-        private void CancelSelectedSite()
-        {
-            if (!_selectedCanCancel || _selectedSiteId is not { } siteId || _runner == null) return;
-            _runner.EnqueueCommand(new CancelBuildSiteCommand(
-                new HexLive.Simulation.Common.ObjectId(siteId)));
-            InvalidateOverlay(siteId);
-            DeselectSite();
-            _nextSnapshotRefresh = 0f;
-            _nextOverlayRefresh = 0f;
-            RefreshSelectionCard();
-        }
-
-        private void EditSelectedBuilding()
-        {
-            if (_selectedSiteId is not { } ownerId || _runner == null ||
-                _worldRenderer == null ||
-                !BuildingBlueprintJson.TryDeserialize(
-                    _selectedBlueprintJson, out var draft, out _))
-            {
-                SetStatus("build.mode.blocked");
-                return;
-            }
-
-            var runner = _runner;
-            var anchorTile = _selectedSiteTile;
-            var rotation = _selectedSiteRotation;
-            var anchorWorld = SimulationUnityMapper.ToUnityTilePosition(
-                anchorTile, _worldRenderer.GroundTopY(anchorTile));
-            EndBuildMode();
-
-            HutLayoutDesigner.PendingWorldPlacement = new HutLayoutDesigner.WorldPlacementConfig
-            {
-                AnchorWorldPosition = anchorWorld,
-                AnchorTile = anchorTile,
-                RotationDegrees = rotation,
-                ExistingOwner = new ObjectId(ownerId),
-                InitialDraft = draft,
-                CanBuild = updated => CanBuildDraft(updated, anchorTile, rotation),
-                ApplyEachGesture = true,
-                IsRevisionApplied = json => runner.CreateSnapshot()?.Objects.Any(obj =>
-                    obj.Id.Value == ownerId && string.Equals(obj.BuildingBlueprintJson, json,
-                        System.StringComparison.Ordinal)) == true,
-                OnBuild = updated => runner.EnqueueCommand(
-                    new UpdateBuildingBlueprintCommand(
-                        new ObjectId(ownerId),
-                        BuildingBlueprintJson.Serialize(updated, pretty: false))),
-                OnClosed = null
-            };
-
-            var editorRoot = new GameObject("HexLive Existing Building Editor");
-            editorRoot.AddComponent<UIDocument>();
-            editorRoot.AddComponent<HutLayoutDesigner>();
-        }
-
-        private void InvalidateOverlay(int siteId)
-        {
-            if (!_siteOverlays.TryGetValue(siteId, out var overlay)) return;
-            if (overlay != null) Destroy(overlay);
-            _siteOverlays.Remove(siteId);
-        }
-
-        private void DrawSelectionOutline(ObjectSnapshot owner)
-        {
-            if (_selectionOutline == null)
-            {
-                var go = new GameObject("Build selection outline");
-                _selectionOutline = go.AddComponent<LineRenderer>();
-                _selectionOutline.useWorldSpace = true;
-                _selectionOutline.loop = false;
-                _selectionOutline.widthMultiplier = 0.06f;
-                _selectionOutline.material = OutlineMaterial();
-                _selectionOutline.shadowCastingMode =
-                    UnityEngine.Rendering.ShadowCastingMode.Off;
-            }
-
-            IReadOnlyList<TileCoord> footprint = new[] { owner.Tile };
-            if (!string.IsNullOrEmpty(owner.BuildingBlueprintJson) &&
-                BuildingBlueprintJson.TryDeserialize(
-                    owner.BuildingBlueprintJson, out var draft, out _))
-            {
-                footprint = Simulation.Bootstrap.BuildingBootstrap.FootprintTiles(
-                    draft, owner.Tile, owner.RotationDegrees);
-            }
-
-            var points = new List<Vector3>(footprint.Count * 7);
-            foreach (var tile in footprint)
-            {
-                var center = HexSpatialMath.TileToWorld(tile);
-                var y = _worldRenderer != null ? _worldRenderer.GroundTopY(tile) : 0.75f;
-                for (var corner = 0; corner <= 6; corner++)
-                {
-                    var angle = (60f * corner + 30f) * Mathf.Deg2Rad;
-                    points.Add(new Vector3(
-                        center.X + HexSpatialMath.HexRadius * 0.99f * Mathf.Cos(angle),
-                        y + 0.04f,
-                        center.Y + HexSpatialMath.HexRadius * 0.99f * Mathf.Sin(angle)));
-                }
-            }
-            _selectionOutline.positionCount = points.Count;
-            _selectionOutline.SetPositions(points.ToArray());
-            var gold = new Color(0.94f, 0.71f, 0.36f, 0.95f);
-            _selectionOutline.startColor = gold;
-            _selectionOutline.endColor = gold;
-        }
-
-        // ─────────────────────────────────────────────────────────────────
-        // Мировые стрелки поворота — экранные кнопки у объекта.
-        // ─────────────────────────────────────────────────────────────────
-
-        private void UpdateRotateArrows()
-        {
-            if (_rotateLeft == null || _rotateRight == null) return;
-            Vector3? worldAnchor = null;
-            if (_activeCardId.Length > 0 && _ghostRoot != null && _ghostRoot.activeSelf)
-            {
-                worldAnchor = _ghostRoot.transform.position;
-            }
-            else if (_selectedCanRotate && _selectedSiteId is not null && _worldRenderer != null)
-            {
-                var center = HexSpatialMath.TileToWorld(_selectedSiteTile);
-                worldAnchor = new Vector3(
-                    center.X, _worldRenderer.GroundTopY(_selectedSiteTile), center.Y);
-            }
-
-            var panel = _document?.rootVisualElement.panel;
-            _htmlArrows = null;
-            if (worldAnchor is not { } anchor || _camera == null || panel == null)
-            {
-                _rotateLeft.style.display = DisplayStyle.None;
-                _rotateRight.style.display = DisplayStyle.None;
-                return;
-            }
-
-            var screen = _camera.WorldToScreenPoint(anchor + Vector3.up * 0.6f);
-            if (screen.z <= 0f)
-            {
-                _rotateLeft.style.display = DisplayStyle.None;
-                _rotateRight.style.display = DisplayStyle.None;
-                return;
-            }
-
-            if (HtmlUi.Active)
-            {
-                // The page draws the arrows at this point (0–1 from the top left).
-                _rotateLeft.style.display = DisplayStyle.None;
-                _rotateRight.style.display = DisplayStyle.None;
-                _htmlArrows = new Vector2(
-                    Mathf.Round(screen.x / Mathf.Max(1, Screen.width) * 1000f) / 1000f,
-                    Mathf.Round((1f - screen.y / Mathf.Max(1, Screen.height)) * 1000f) / 1000f);
-                return;
-            }
-
-            var panelPoint = RuntimePanelUtils.ScreenToPanel(
-                panel, new Vector2(screen.x, Screen.height - screen.y));
-            _rotateLeft.style.display = DisplayStyle.Flex;
-            _rotateRight.style.display = DisplayStyle.Flex;
-            _rotateLeft.style.left = panelPoint.x - 64f;
-            _rotateLeft.style.top = panelPoint.y - 18f;
-            _rotateRight.style.left = panelPoint.x + 28f;
-            _rotateRight.style.top = panelPoint.y - 18f;
-        }
-
-        // ─────────────────────────────────────────────────────────────────
-        // Snapshot-кэш и клиентская валидация.
-        // ─────────────────────────────────────────────────────────────────
-
-        private void RefreshSnapshotCache()
-        {
-            if (Time.unscaledTime < _nextSnapshotRefresh) return;
-            _nextSnapshotRefresh = Time.unscaledTime + SnapshotInterval;
-            _snapshot = _runner!.CreateSnapshot();
-            RefreshBuildPermissions();
-            _tiles.Clear();
-            _occupiedHexes.Clear();
-            _plantingOccupiedPoints.Clear();
-            if (_snapshot == null) return;
-            RefreshModernFurnitureCounts(_snapshot);
-            // Topology snapshot records are reused and their flags refresh in
-            // place. Build the tile index once per topology, never per frame.
-            if (IsPlantingCard && !ReferenceEquals(_indexedPlantingJunctions, _snapshot.Junctions))
-            {
-                _indexedPlantingJunctions = _snapshot.Junctions;
-                _plantingPointsByTile.Clear();
-                foreach (var point in _snapshot.Junctions)
-                foreach (var coord in point.Tiles)
-                {
-                    if (!_plantingPointsByTile.TryGetValue(coord, out var points))
-                        _plantingPointsByTile[coord] = points = new List<JunctionSnapshot>();
-                    points.Add(point);
-                }
-            }
-            foreach (var tile in _snapshot.Tiles)
-            {
-                _tiles[tile.Coord] = tile;
-            }
-
-            foreach (var obj in _snapshot.Objects)
-            {
-                if (IsPlantingCard)
-                    foreach (var point in obj.Junctions) _plantingOccupiedPoints.Add(point);
-                // §66: гекс занят стройкой или любым объектом с физическим
-                // футпринтом (пальма, валун, станция); россыпь ресурсов гекс
-                // не запирает — правду всё равно решит HexFreeForBuild.
-                if (!string.IsNullOrEmpty(obj.BuildProduct))
-                {
-                    _occupiedHexes.Add(obj.Tile);
-                    continue;
-                }
-
-                if (_runner!.TryGetObjectDefinition(obj.DefinitionId, out var definition) &&
-                    definition != null && definition.ObstacleRadius > 0f)
-                {
-                    _occupiedHexes.Add(obj.Tile);
-                    continue;
-                }
-
-                // HexFreeForBuild требует СВОБОДНЫЙ центральный junction —
-                // кокос, лежащий точно в центре гекса, отклоняет всю площадку.
-                // Без этой проверки ghost был зелёным, сим отказывал, и клик
-                // «не срабатывал» с первого раза.
-                if (_worldRenderer == null) continue;
-                var anchor = _worldRenderer.ObjectAnchorPosition(obj);
-                var centre = HexSpatialMath.TileToWorld(obj.Tile);
-                if (Mathf.Abs(anchor.X - centre.X) < 0.3f &&
-                    Mathf.Abs(anchor.Y - centre.Y) < 0.3f)
-                {
-                    _occupiedHexes.Add(obj.Tile);
-                }
-            }
-
-            _gridDirty = true;
-        }
-
-        private bool TileBuildable(TileCoord coord) =>
-            _tiles.TryGetValue(coord, out var tile) &&
-            tile.Walkable && !tile.Water && !tile.Blocked &&
-            !_occupiedHexes.Contains(coord) && CanEditTile(coord);
-
-        private bool EvaluateGhostValidity(TileCoord tile)
-        {
-            if (IsPlantingCard)
-                return _ghostPlantingAnchor is { } anchor &&
-                    _tiles.TryGetValue(tile, out var ground) && ground.Walkable && !ground.Water && !ground.Blocked &&
-                    !anchor.Blocked && !anchor.IsSwimmable &&
-                    !PlantingPointHasLiveOccupant(anchor.WorldPosition) &&
-                    !_plantingOccupiedPoints.Contains(anchor.Id) && CanEditTile(tile);
-            if (PortalWorld.IsFurniture(_activeCardId))
-                return _snapshot != null && ModernFurnitureCount(_activeCardId) > 0 &&
-                    PortalWorld.IsFurniturePlacementCampTile(_snapshot, PlayerCampView.Of(_runner, _snapshot), tile) &&
-                    TileBuildable(tile) && _tiles[tile].HasFloor;
-            if (_activeCardId != HutCardId) return TileBuildable(tile);
-            var footprint = Simulation.Bootstrap.BuildingBootstrap.FootprintTiles(
-                ContentIds.HutPlan, tile, _ghostYawSteps * 60f);
-            return footprint.All(TileBuildable) &&
-                ConstructionAccess.PlanTiles(CommittedBuildingPlans.PlayerHut, tile,
-                    _ghostYawSteps * 60f)
-                    .All(CanEditTile);
-        }
 
         private void RefreshBuildPermissions()
         {
             _buildFactions.Clear();
             if (_snapshot == null || _runner == null) return;
             foreach (var npc in _snapshot.Npcs)
-                if (npc.Health > 0 && npc.TravelLeaderNpcId == null && _runner.IsAssignedNpc(npc.Id)) _buildFactions.Add(npc.Faction);
+                if (npc.Health > 0 && npc.TravelLeaderNpcId == null && _runner.IsAssignedNpc(npc.Id))
+                    _buildFactions.Add(npc.Faction);
         }
 
         private bool CanEditTile(TileCoord tile) => _snapshot != null &&
             ConstructionAccess.CanEditTile(_snapshot, _buildFactions, tile);
-
-        private bool CanEditWorldObject(ObjectSnapshot obj)
-        {
-            if (!CanEditTile(obj.Tile)) return false;
-            return string.IsNullOrEmpty(obj.BuildingBlueprintJson) ||
-                !BuildingBlueprintJson.TryDeserialize(obj.BuildingBlueprintJson, out var draft, out _) ||
-                ConstructionAccess.PlanTiles(draft, obj.Tile, obj.RotationDegrees).All(CanEditTile);
-        }
 
         private bool CanBuildDraft(BuildingBlueprintDraft draft, TileCoord tile, float rotation)
         {
@@ -1172,321 +170,31 @@ namespace HexLive.UnityPresentation.UI
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // Ghost.
+        // Открытие редактора живого мира.
         // ─────────────────────────────────────────────────────────────────
 
-        private void BuildGhost()
-        {
-            ClearGhost();
-            if (_activeCardId.Length == 0) return;
-            _ghostRoot = new GameObject("Build mode ghost");
-            _ghostRoot.SetActive(false);
-
-            if (_activeCardId == HutCardId)
-            {
-                BuildPlanPreview(_ghostRoot.transform, CommittedBuildingPlans.PlayerHut);
-            }
-            else if (_activeCardId != ProjectCardId)
-            {
-                var model = GhostModel(_activeCardId);
-                if (model != null) model.transform.SetParent(_ghostRoot.transform, false);
-            }
-            // «Свой проект» — только контур якорного гекса: чертить будет
-            // конструктор, показывать нечего.
-
-            var outline = new GameObject("Footprint outline");
-            outline.transform.SetParent(_ghostRoot.transform, false);
-            _ghostOutline = outline.AddComponent<LineRenderer>();
-            _ghostOutline.useWorldSpace = true;
-            _ghostOutline.loop = false;
-            _ghostOutline.widthMultiplier = 0.05f;
-            _ghostOutline.material = OutlineMaterial();
-            _ghostOutline.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            _ghostTile = null;
-        }
-
-        /// <summary>Готовый вид изделия — те же производственные фабрики, что у
-        /// рендерера мира; никакой ghost-геометрии, которой нет в игре.</summary>
-        private static GameObject? GhostModel(string catalogId)
-        {
-            if (PlantGrowthCatalog.TryGetBySeed(catalogId, out _)) return PlantingBlueprintMarker.Create();
-            if (catalogId == "furniture.hearth") return HutFurnitureFactory.BuildHearth();
-            if (catalogId == ContentIds.Wardrobe) return WardrobeAssembly.BuildFinished();
-            if (PortalWorld.IsFurniture(catalogId))
-            {
-                var prefab = ModernApartmentView.LoadPrefab(catalogId);
-                return prefab != null ? Instantiate(prefab) : null;
-            }
-            return BedAssembly.IsAssembled(catalogId) ? BedAssembly.BuildFinished(catalogId) : null;
-        }
-
-        private IEnumerable<BuildCatalogEntryDefinition> AvailableFurnitureEntries() =>
-            BuildCatalogDefinition.ForMode(BuildCatalogMode.Furniture)
-                .Where(entry => !PortalWorld.IsFurniture(entry.DefinitionId) || ModernFurnitureCount(entry.DefinitionId) > 0);
-
-        private int ModernFurnitureCount(string id) => _modernFurnitureCounts.TryGetValue(id, out var count) ? count : 0;
-
-        private string FurnitureDescription(string id, string term) => PortalWorld.IsFurniture(id)
-            ? Loc.Get(term) + " · " + string.Format(Loc.Get("portal.furniture_count"), ModernFurnitureCount(id))
-            : Loc.Get(term);
-
-        private void RefreshModernFurnitureCounts(WorldSnapshot snapshot)
-        {
-            bool changed = false;
-            var faction = PlayerCampView.Of(_runner, snapshot);
-            foreach (var entry in BuildCatalogDefinition.ForCategory(BuildCatalogMode.Furniture, BuildCatalogCategories.Modern))
-            {
-                int count = PortalWorld.AvailableFurnitureCount(snapshot, faction, entry.DefinitionId);
-                if (count == ModernFurnitureCount(entry.DefinitionId)) continue;
-                _modernFurnitureCounts[entry.DefinitionId] = count;
-                changed = true;
-            }
-
-            if (!changed || _catalogMode != BuildCatalogMode.Furniture) return;
-            if (PortalWorld.IsFurniture(_activeCardId) && ModernFurnitureCount(_activeCardId) == 0)
-                DropActiveCard();
-            else
-                RebuildCatalogUi();
-        }
-
-        /// <summary>Полная постройка плана — тем же BlueprintPreviewRenderer, что
-        /// в конструкторе. Дочерний узел смещает план так, чтобы его якорный
-        /// гекс лёг в начало координат родителя: тогда поворот корня крутит дом
-        /// вокруг гекса, на который целится игрок, — ровно как повернёт его
-        /// CreateHutPlanSite.</summary>
-        private static void BuildPlanPreview(Transform parent, BuildingBlueprintDraft plan)
-        {
-            var planAnchor = BlueprintGeometry.ToWorld(
-                BlueprintGeometry.HexCenter(BlueprintBuildingPlan.AnchorTile(plan)));
-            var space = new GameObject("Plan space");
-            space.transform.SetParent(parent, false);
-            space.transform.localPosition = new Vector3(-planAnchor.X, 0f, -planAnchor.Y);
-            var preview = space.AddComponent<BlueprintPreviewRenderer>();
-            preview.Rebuild(plan, BlueprintEditorMode.Architecture);
-            // Сеточный overlay конструктора в мире не нужен — это редакторский
-            // слой, а не вид здания.
-            var overlay = space.transform.Find("Blueprint grid overlay");
-            if (overlay != null) overlay.gameObject.SetActive(false);
-            // Architecture-режим превью прячет крышу (редакторская логика
-            // «крышу видно только в её категории»); мировой призрак обязан
-            // показывать дом ЦЕЛИКОМ — вернуть скрытые секторы.
-            var elements = space.transform.Find("Blueprint elements");
-            if (elements != null)
-            {
-                for (var index = 0; index < elements.childCount; index++)
-                {
-                    var child = elements.GetChild(index).gameObject;
-                    if (!child.activeSelf) child.SetActive(true);
-                }
-            }
-        }
-
-        private void UpdateGhost()
-        {
-            if (_ghostRoot == null || _activeCardId.Length == 0) return;
-            var mouse = Mouse.current;
-            if (mouse == null || _camera == null) return;
-            var screen = mouse.position.ReadValue();
-            if (PointerOverPanel(screen) || !TryPickTile(screen, out var tile, out var groundPoint))
-            {
-                _ghostRoot.SetActive(false);
-                _ghostTile = null;
-                _ghostPlantingAnchor = null;
-                PlantingPlacementMarker.Hide();
-                return;
-            }
-
-            _ghostPlantingAnchor = null;
-            if (IsPlantingCard && _plantingPointsByTile.TryGetValue(tile, out var candidates))
-            {
-                var nearestDistance = float.MaxValue;
-                foreach (var candidate in candidates)
-                {
-                    var dx = candidate.WorldPosition.X - groundPoint.X;
-                    var dy = candidate.WorldPosition.Y - groundPoint.Y;
-                    var distance = dx * dx + dy * dy;
-                    if (distance < nearestDistance || (distance == nearestDistance &&
-                        (_ghostPlantingAnchor == null || candidate.Id.Value < _ghostPlantingAnchor.Id.Value)))
-                    { _ghostPlantingAnchor = candidate; nearestDistance = distance; }
-                }
-            }
-            var changed = _ghostTile is not { } current || !current.Equals(tile);
-            _ghostTile = tile;
-            if (IsPlantingCard || changed || !_ghostRoot.activeSelf)
-            {
-                _ghostRoot.SetActive(true);
-                ApplyGhostTransform();
-            }
-        }
-
-        private void ApplyGhostTransform()
-        {
-            if (_ghostRoot == null || _worldRenderer == null || _ghostTile is not { } tile) return;
-            var groundY = _worldRenderer.GroundTopY(tile);
-            _ghostRoot.transform.position = IsPlantingCard && _ghostPlantingAnchor is { } anchor
-                ? SimulationUnityMapper.ToUnityPosition(anchor.WorldPosition, groundY)
-                : SimulationUnityMapper.ToUnityTilePosition(tile, groundY);
-            var yaw = _ghostYawSteps * 60f;
-            _ghostRoot.transform.rotation = Quaternion.Euler(0f, GhostUnityYaw(yaw), 0f);
-
-            _ghostValid = EvaluateGhostValidity(tile);
-            if (IsPlantingCard)
-            {
-                if (_ghostOutline != null) _ghostOutline.positionCount = 0;
-                PlantingPlacementMarker.Show(_ghostRoot.transform.position, _ghostValid);
-            }
-            else DrawFootprintOutline(tile, groundY);
-            RefreshSelectionCard();
-        }
-
-        /// <summary>Зеркало полного пайплайна рендерера (§120.2): сначала тот же
-        /// квант, каким исполнитель проштампует площадку (0 нормализуется в 360 —
-        /// НЕ «нетронутый» 0, который вид не вращает), затем архитектурный
-        /// footprint — дом, гардероб, домашний очаг — как геометрия (−yaw), а
-        /// прочая мебель — character-forward (90−yaw). Иначе ghost нулевого шага
-        /// стоит на 90° иначе, чем встанет построенное.</summary>
-        private float GhostUnityYaw(float simYaw)
-        {
-            var quantized = StampedHexYaw(simYaw);
-            var footprint = _activeCardId == HutCardId ||
-                            _activeCardId == ContentIds.Wardrobe ||
-                            _activeCardId == ContentIds.Workbench ||
-                            PortalWorld.IsFurniture(_activeCardId) ||
-                            _activeCardId == "furniture.hearth";
-            return footprint
-                ? SimulationUnityMapper.ToUnityFootprintYawDegrees(quantized)
-                : SimulationUnityMapper.ToUnityYawDegrees(quantized);
-        }
-
-        /// <summary>Зеркало internal <c>StructurePlacement.QuantizeHexYaw</c>:
-        /// шесть симметрий 0+60k, и ноль нормализуется в 360 — именно это число
-        /// исполнитель штампует в RotationDegrees площадки.</summary>
-        private static float StampedHexYaw(float degrees)
-        {
-            var d = degrees % 360f;
-            if (d < 0f) d += 360f;
-            var step = (int)Mathf.Floor((d + 30f) / 60f) % 6;
-            var stamped = step * 60f;
-            return stamped <= 0f ? 360f : stamped;
-        }
-
-        private void DrawFootprintOutline(TileCoord tile, float groundY)
-        {
-            if (_ghostOutline == null) return;
-            var tiles = _activeCardId == HutCardId
-                ? Simulation.Bootstrap.BuildingBootstrap.FootprintTiles(
-                    ContentIds.HutPlan, tile, _ghostYawSteps * 60f)
-                : new[] { tile };
-
-            // Один LineRenderer на все гексы: контуры сшиты через «подъём пера»
-            // дублированной вершиной — для превью этого достаточно.
-            var points = new List<Vector3>();
-            foreach (var footprintTile in tiles)
-            {
-                var center = HexSpatialMath.TileToWorld(footprintTile);
-                var y = _worldRenderer != null ? _worldRenderer.GroundTopY(footprintTile) : groundY;
-                for (var corner = 0; corner <= 6; corner++)
-                {
-                    var angle = (60f * corner + 30f) * Mathf.Deg2Rad;
-                    points.Add(new Vector3(
-                        center.X + HexSpatialMath.HexRadius * 0.98f * Mathf.Cos(angle),
-                        y + 0.03f,
-                        center.Y + HexSpatialMath.HexRadius * 0.98f * Mathf.Sin(angle)));
-                }
-            }
-
-            _ghostOutline.positionCount = points.Count;
-            _ghostOutline.SetPositions(points.ToArray());
-            var color = _ghostValid
-                ? new Color(0.37f, 0.77f, 0.42f, 0.9f)
-                : new Color(0.91f, 0.34f, 0.31f, 0.9f);
-            _ghostOutline.startColor = color;
-            _ghostOutline.endColor = color;
-        }
-
-        private Material? _outlineMaterial;
-
-        private Material OutlineMaterial()
-        {
-            if (_outlineMaterial != null) return _outlineMaterial;
-            var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
-            _outlineMaterial = new Material(shader) { name = "BuildGhostOutline" };
-            return _outlineMaterial;
-        }
-
-        /// <summary>§120.8: конструктор поверх выбранного гекса. Лоток
-        /// закрывается; «Построить» в конструкторе шлёт чертёж мировой
-        /// командой — тот же путь, что и на сервере.</summary>
-        private void OpenBlueprintEditor(TileCoord anchorTile)
-        {
-            var runner = _runner;
-            var worldRenderer = _worldRenderer;
-            if (runner == null || worldRenderer == null) return;
-            var anchorWorld = SimulationUnityMapper.ToUnityTilePosition(
-                anchorTile, worldRenderer.GroundTopY(anchorTile));
-            EndBuildMode();
-
-            HutLayoutDesigner.PendingWorldPlacement = new HutLayoutDesigner.WorldPlacementConfig
-            {
-                AnchorWorldPosition = anchorWorld,
-                AnchorTile = anchorTile,
-                CanBuild = draft =>
-                {
-                    var origin = BlueprintBuildingPlan.AnchorTile(draft);
-                    return CanBuildDraft(draft, new TileCoord(anchorTile.Q + origin.Q, anchorTile.R + origin.R), 0f);
-                },
-                OnBuild = draft =>
-                {
-                    // Сим кладёт AnchorTile чертежа на тайл команды; черчение
-                    // шло от выбранного гекса как (0,0) — сложить смещения.
-                    var draftAnchor = BlueprintBuildingPlan.AnchorTile(draft);
-                    var target = new TileCoord(
-                        anchorTile.Q + draftAnchor.Q, anchorTile.R + draftAnchor.R);
-                    runner.EnqueueCommand(new PlaceBuildingBlueprintCommand(
-                        BuildingBlueprintJson.Serialize(draft, pretty: false),
-                        target, rotationDegrees: 0f));
-                },
-                OnClosed = null
-            };
-
-            var editorRoot = new GameObject("HexLive Blueprint Editor");
-            editorRoot.AddComponent<UIDocument>();
-            editorRoot.AddComponent<HutLayoutDesigner>();
-        }
-
         /// <summary>
-        /// §120.10: opens the constructor as an absolute projection of the live
-        /// world. The tile under the camera only supplies terrain elevation; it
-        /// is not a building anchor and is never written into a project.
-        /// Every successful gesture is sent as direct LEGO-piece deltas.
+        /// Редактор открывается абсолютной проекцией живого мира. Гекс под
+        /// центром экрана даёт только высоту плоскости курсора для вкладки
+        /// «Строительство»; он не якорь и никуда не записывается.
         /// </summary>
-        private void OpenFreeConstruction()
+        private void Open()
         {
             var runner = _runner;
             var worldRenderer = _worldRenderer;
-            if (runner == null || worldRenderer == null) return;
+            if (IsOpen || HutLayoutDesigner.WorldEditorOpen || runner == null || worldRenderer == null ||
+                !runner.IsReady || !runner.SupportsNpcCommands) return;
 
-            _nextSnapshotRefresh = 0f;
-            RefreshSnapshotCache();
+            _snapshot = runner.CreateSnapshot();
             if (_snapshot == null) return;
+            RefreshBuildPermissions();
 
-            TileCoord referenceTile;
-            var center = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
-            if (!TryPickTile(center, out referenceTile))
-            {
-                var fallback = _snapshot.Tiles.FirstOrDefault(tile =>
-                    tile.Walkable && !tile.Water && !tile.Blocked);
-                if (fallback == null)
-                {
-                    SetStatus("build.mode.blocked");
-                    return;
-                }
-                referenceTile = fallback.Coord;
-            }
-
-            var projection = FreeWorldProjection(_snapshot);
+            var reference = ReferenceTile(_snapshot);
+            if (reference is not { } referenceTile) return;
             var elevation = worldRenderer.GroundTopY(referenceTile);
-            EndBuildMode();
+            // Sims-style: режим стройки — про мир, не про персонажа. Панель
+            // выбранной колонистки закрывается, чтобы не просвечивать под лотком.
+            NpcSelection.Clear();
 
             HutLayoutDesigner.PendingWorldPlacement = new HutLayoutDesigner.WorldPlacementConfig
             {
@@ -1495,7 +203,9 @@ namespace HexLive.UnityPresentation.UI
                 DirectWorldConstruction = true,
                 ArchitectureRenderContext = BlueprintArchitectureRenderContext.World(_snapshot,
                     tile => worldRenderer.GroundTopY(tile) - elevation),
-                InitialDraft = projection,
+                InitialDraft = FreeWorldProjection(_snapshot),
+                GroundOffset = tile => worldRenderer.GroundTopY(tile) - elevation,
+                CanEditTile = CanEditTile,
                 CanApplyDraft = (before, after) =>
                 {
                     _snapshot = runner.CreateSnapshot();
@@ -1508,11 +218,58 @@ namespace HexLive.UnityPresentation.UI
                 OnClosed = null
             };
 
-            var editorRoot = new GameObject("HexLive Free Construction");
+            var editorRoot = new GameObject("HexLive Build Mode");
             editorRoot.AddComponent<UIDocument>();
             editorRoot.AddComponent<HutLayoutDesigner>();
         }
 
+        /// <summary>Гекс под центром экрана, иначе дом своего лагеря, иначе
+        /// любой сухой гекс.</summary>
+        private TileCoord? ReferenceTile(WorldSnapshot snapshot)
+        {
+            var camera = Camera.main;
+            if (camera != null)
+            {
+                var ray = camera.ScreenPointToRay(new Vector2(Screen.width * 0.5f, Screen.height * 0.5f));
+                if (Mathf.Abs(ray.direction.y) > 0.0001f)
+                {
+                    var bestT = float.PositiveInfinity;
+                    TileCoord? best = null;
+                    foreach (var tile in snapshot.Tiles)
+                    {
+                        if (tile.Water || !tile.Walkable) continue;
+                        var topY = _worldRenderer != null
+                            ? _worldRenderer.GroundTopY(tile.Coord)
+                            : Spatial.SimulationUnityMapper.TileHeight + tile.Elevation * 0.55f;
+                        var t = (topY - ray.origin.y) / ray.direction.y;
+                        if (t <= 0f || t >= bestT) continue;
+                        var hit = ray.origin + ray.direction * t;
+                        var centre = HexLive.Simulation.Spatial.HexSpatialMath.TileToWorld(tile.Coord);
+                        var dx = Mathf.Abs(hit.x - centre.X);
+                        var dz = Mathf.Abs(hit.z - centre.Y);
+                        var radius = HexLive.Simulation.Spatial.HexSpatialMath.HexRadius;
+                        var sqrt3 = HexLive.Simulation.Spatial.HexSpatialMath.Sqrt3;
+                        if (dz > radius || sqrt3 * dx + dz > sqrt3 * radius) continue;
+                        bestT = t;
+                        best = tile.Coord;
+                    }
+
+                    if (best != null) return best;
+                }
+            }
+
+            var faction = PlayerCampView.Of(_runner, snapshot);
+            var home = snapshot.CampHomes.FirstOrDefault(candidate => candidate.Faction == faction);
+            if (home != null) return home.Tile;
+            return snapshot.Tiles.FirstOrDefault(tile => tile.Walkable && !tile.Water && !tile.Blocked)?.Coord;
+        }
+
+        /// <summary>
+        /// Архитектура живого мира одним черновиком в абсолютной сетке:
+        /// свободные детали и детали существующих домов (их собственный
+        /// якорь и поворот уже применены). Мебель добавляет сам редактор —
+        /// она сверяется с миром постоянно, а не один раз при открытии.
+        /// </summary>
         internal static BuildingBlueprintDraft FreeWorldProjection(WorldSnapshot snapshot)
         {
             var draft = new BuildingBlueprintDraft
@@ -1520,7 +277,8 @@ namespace HexLive.UnityPresentation.UI
                 BlueprintId = "free_world_projection",
                 HasAnchor = true,
                 AnchorQ = 0,
-                AnchorR = 0
+                AnchorR = 0,
+                GroundFurniture = true
             };
             foreach (var obj in snapshot.Objects.OrderBy(obj => obj.Id.Value))
             {
@@ -1548,318 +306,14 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
             draft.NextElementId = draft.Elements.Count + 1;
+            // Комнаты — чтобы пол растягивался за стену, как в Sims.
+            BlueprintEditorCommands.AssignRoomsToLooseFloors(draft);
             draft.Normalize();
             return draft;
         }
 
-        private void ClearGhost()
-        {
-            PlantingPlacementMarker.Hide();
-            _ghostPlantingAnchor = null;
-            if (_ghostRoot != null) Destroy(_ghostRoot);
-            _ghostRoot = null;
-            _ghostOutline = null;
-            _ghostTile = null;
-            _ghostValid = false;
-            ClearGridDots();
-        }
-
-        // ─────────────────────────────────────────────────────────────────
-        // Сетка «можно/нельзя»: зелёные и красные точки на центрах гексов,
-        // пока выбрана карточка, — как overlay-слой конструктора (§120.0).
-        // ─────────────────────────────────────────────────────────────────
-
-        private void RefreshGridDots()
-        {
-            if (_activeCardId.Length == 0)
-            {
-                ClearGridDots();
-                return;
-            }
-
-            if (_gridRoot == null && _tiles.Count > 0) BuildGridDots();
-            if (!_gridDirty || _gridRoot == null) return;
-            _gridDirty = false;
-            foreach (var (renderer, tile) in _gridDots)
-            {
-                if (renderer == null) continue;
-                renderer.sharedMaterial = TileBuildable(tile) ? DotFree() : DotBusy();
-            }
-        }
-
-        private void BuildGridDots()
-        {
-            ClearGridDots();
-            if (IsPlantingCard) return;
-            _gridRoot = new GameObject("Build grid dots");
-            foreach (var pair in _tiles)
-            {
-                if (pair.Value.Water || !pair.Value.Walkable) continue;
-                var centre = HexSpatialMath.TileToWorld(pair.Key);
-                var y = _worldRenderer != null ? _worldRenderer.GroundTopY(pair.Key) : 0.75f;
-                var dot = new GameObject("Dot");
-                dot.transform.SetParent(_gridRoot.transform, false);
-                dot.transform.position = new Vector3(centre.X, y + 0.025f, centre.Y);
-                dot.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
-                dot.transform.localScale = Vector3.one * 0.16f;
-                var filter = dot.AddComponent<MeshFilter>();
-                filter.sharedMesh = DotMesh();
-                var renderer = dot.AddComponent<MeshRenderer>();
-                renderer.sharedMaterial = TileBuildable(pair.Key) ? DotFree() : DotBusy();
-                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                _gridDots.Add((renderer, pair.Key));
-            }
-        }
-
-        private void ClearGridDots()
-        {
-            if (_gridRoot != null) Destroy(_gridRoot);
-            _gridRoot = null;
-            _gridDots.Clear();
-        }
-
-        private Mesh DotMesh()
-        {
-            if (_dotMesh != null) return _dotMesh;
-            var primitive = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            _dotMesh = primitive.GetComponent<MeshFilter>().sharedMesh;
-            Destroy(primitive);
-            return _dotMesh;
-        }
-
-        private Material DotFree() => _dotFree ??= DotMaterial(
-            "BuildGridDotFree", new Color(0.37f, 0.77f, 0.42f, 0.85f));
-
-        private Material DotBusy() => _dotBusy ??= DotMaterial(
-            "BuildGridDotBusy", new Color(0.91f, 0.34f, 0.31f, 0.7f));
-
-        private static Material DotMaterial(string name, Color color)
-        {
-            var shader = Shader.Find("HexLive/BlueprintOverlay")
-                         ?? Shader.Find("Universal Render Pipeline/Unlit")
-                         ?? Shader.Find("Unlit/Color");
-            var material = new Material(shader) { name = name, color = color };
-            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
-            return material;
-        }
-
-        // ─────────────────────────────────────────────────────────────────
-        // «Полностью построено» поверх размеченных площадок.
-        // ─────────────────────────────────────────────────────────────────
-
-        private void RefreshSiteOverlays()
-        {
-            if (_snapshot == null || _worldRenderer == null) return;
-            // §120.8: модульные объекты plan-площадок — источник геометрии
-            // призрака «полностью построено»: чертёж клиенту не нужен.
-            var modulesByOwner = new Dictionary<int, List<ObjectSnapshot>>();
-            foreach (var obj in _snapshot.Objects)
-            {
-                if (obj.ArchitectureOwnerObjectId is not { } ownerId ||
-                    obj.ArchitectureElements.Count != 1)
-                {
-                    continue;
-                }
-
-                if (!modulesByOwner.TryGetValue(ownerId, out var list))
-                {
-                    list = new List<ObjectSnapshot>();
-                    modulesByOwner[ownerId] = list;
-                }
-
-                list.Add(obj);
-            }
-
-            var seen = new HashSet<int>();
-            foreach (var obj in _snapshot.Objects)
-            {
-                if (string.IsNullOrEmpty(obj.BuildProduct)) continue;
-                seen.Add(obj.Id.Value);
-                if (_siteOverlays.ContainsKey(obj.Id.Value)) continue;
-                modulesByOwner.TryGetValue(obj.Id.Value, out var modules);
-                var overlay = BuildSiteOverlay(obj, modules);
-                if (overlay != null) _siteOverlays[obj.Id.Value] = overlay;
-            }
-
-            List<int>? stale = null;
-            foreach (var pair in _siteOverlays)
-            {
-                if (seen.Contains(pair.Key)) continue;
-                stale ??= new List<int>();
-                stale.Add(pair.Key);
-            }
-
-            if (stale == null) return;
-            foreach (var id in stale)
-            {
-                if (_siteOverlays[id] != null) Destroy(_siteOverlays[id]);
-                _siteOverlays.Remove(id);
-            }
-        }
-
-        private GameObject? BuildSiteOverlay(ObjectSnapshot site, List<ObjectSnapshot>? modules)
-        {
-            var anchor = _worldRenderer!.ObjectAnchorPosition(site);
-            var groundY = _worldRenderer.GroundTopY(site.Tile);
-            var root = new GameObject($"Build preview (site {site.Id.Value} {site.BuildProduct})");
-
-            if (site.BuildProduct == ContentIds.HutPlan)
-            {
-                // Дом собирается из СВОИХ модулей (произвольный чертёж §120.8
-                // приходит теми же модульными объектами, что и committed-план);
-                // каждый модуль — полная авторская модель, как её поставит
-                // ArchitectureModuleView по завершении.
-                root.transform.position = SimulationUnityMapper.ToUnityPosition(anchor, groundY);
-                if (modules == null || modules.Count == 0)
-                {
-                    Destroy(root);
-                    return null;
-                }
-
-                var frame = Quaternion.Euler(
-                    0f, SimulationUnityMapper.ToUnityFootprintYawDegrees(site.RotationDegrees), 0f);
-                foreach (var module in modules)
-                {
-                    var element = module.ArchitectureElements[0];
-                    var localPosition = frame * new Vector3(
-                        element.LocalX,
-                        BlueprintArchitectureFactory.ModuleLift(element.DefinitionId),
-                        element.LocalZ);
-                    var wrapper = BlueprintArchitectureFactory.InstantiateModel(
-                        element.DefinitionId, localPosition,
-                        frame * BlueprintArchitectureFactory.ModuleRotation(
-                            element.DefinitionId, element.LocalYaw));
-                    if (wrapper != null) wrapper.transform.SetParent(root.transform, false);
-                }
-
-                return root;
-            }
-
-            var isHearth = site.Variant == Simulation.Runtime.BuildingRules.HutHearthVariant;
-            var model = isHearth
-                ? HutFurnitureFactory.BuildHearth()
-                : GhostModel(site.BuildProduct);
-            if (model == null)
-            {
-                Destroy(root);
-                return null;
-            }
-
-            model.transform.SetParent(root.transform, false);
-            // Чуть выше площадки — доставленные детали рисуются в тех же
-            // координатах, и без сдвига готовый призрак с ними z-fight'ится.
-            root.transform.position = SimulationUnityMapper.ToUnityPosition(anchor, groundY + 0.004f);
-            if (site.RotationDegrees != 0f)
-            {
-                // Мебель плана стоит не в центре гекса — её якорь junction
-                // выдаёт архитектурную симметрию (−yaw), как у рендерера.
-                var centre = HexSpatialMath.TileToWorld(site.Tile);
-                var offCentre =
-                    Mathf.Abs(anchor.X - centre.X) > 0.05f || Mathf.Abs(anchor.Y - centre.Y) > 0.05f;
-                var footprint = offCentre || isHearth ||
-                                site.BuildProduct == ContentIds.Wardrobe ||
-                                site.BuildProduct == ContentIds.Workbench;
-                root.transform.rotation = Quaternion.Euler(0f, footprint
-                    ? SimulationUnityMapper.ToUnityFootprintYawDegrees(site.RotationDegrees)
-                    : SimulationUnityMapper.ToUnityYawDegrees(site.RotationDegrees), 0f);
-            }
-
-            return root;
-        }
-
-        private void ClearOverlays()
-        {
-            foreach (var pair in _siteOverlays)
-            {
-                if (pair.Value != null) Destroy(pair.Value);
-            }
-
-            _siteOverlays.Clear();
-        }
-
-        // ─────────────────────────────────────────────────────────────────
-        // Указатель.
-        // ─────────────────────────────────────────────────────────────────
-
-        private bool PointerOverPanel(Vector2 screen)
-        {
-            // §174.7: the HTML tray, its arrows and the HUD are the page's.
-            if (HtmlUi.Active && HtmlUi.PointerOverUi) return true;
-            if (_document?.rootVisualElement.panel == null) return false;
-            var panelPosition = RuntimePanelUtils.ScreenToPanel(
-                _document.rootVisualElement.panel, new Vector2(screen.x, Screen.height - screen.y));
-            if (_panel != null && _panel.resolvedStyle.display == DisplayStyle.Flex &&
-                _panel.worldBound.Contains(panelPosition))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>Тайл под курсором — то же «пересечение с плоскостью верха
-        /// каждого тайла», что у ручного приказа §121: коллайдеров у земли нет,
-        /// высоты у тайлов разные.</summary>
+        /// <summary>Карточка грядки показывает взрослое растение, а не семечко.</summary>
         private static string CatalogIconId(string id) =>
             PlantGrowthCatalog.TryGetBySeed(id, out var plant) ? plant.MatureDefinitionId : id;
-
-        // Occupied/Reserved junction flags are debug-only snapshots. Actual
-        // body positions are live in production; final reservations stay authoritative server-side.
-        private bool PlantingPointHasLiveOccupant(Float2 point)
-        {
-            if (_snapshot == null) return true;
-            static bool At(Float2 a, Float2 b) =>
-                (a.X-b.X)*(a.X-b.X) + (a.Y-b.Y)*(a.Y-b.Y) <= 0.04f;
-            foreach (var npc in _snapshot.Npcs)
-                if (npc.Health > 0f && At(npc.Position,point)) return true;
-            foreach (var mob in _snapshot.Mobs)
-                if (mob.Health > 0f && At(mob.Position,point)) return true;
-            return false;
-        }
-
-        private bool TryPickTile(Vector2 screen, out TileCoord tile) => TryPickTile(screen, out tile, out _);
-
-        private bool TryPickTile(Vector2 screen, out TileCoord tile, out Float2 groundPoint)
-        {
-            tile = default;
-            groundPoint = default;
-            if (_camera == null || _tiles.Count == 0) return false;
-            var ray = _camera.ScreenPointToRay(screen);
-            if (Mathf.Abs(ray.direction.y) < 0.0001f) return false;
-
-            var bestT = float.PositiveInfinity;
-            var found = false;
-            foreach (var pair in _tiles)
-            {
-                var topY = SimulationUnityMapper.TileHeight + pair.Value.Elevation * 0.55f;
-                var t = (topY - ray.origin.y) / ray.direction.y;
-                if (t <= 0f || t >= bestT) continue;
-                var hit = ray.origin + ray.direction * t;
-                if (!PointInsideHex(hit.x, hit.z, pair.Key)) continue;
-                bestT = t;
-                tile = pair.Key;
-                groundPoint = new Float2(hit.x, hit.z);
-                found = true;
-            }
-
-            return found;
-        }
-
-        private static bool PointInsideHex(float x, float z, TileCoord coord)
-        {
-            var center = HexSpatialMath.TileToWorld(coord);
-            var dx = Mathf.Abs(x - center.X);
-            var dz = Mathf.Abs(z - center.Y);
-            var radius = HexSpatialMath.HexRadius;
-            return dz <= radius &&
-                   HexSpatialMath.Sqrt3 * dx + dz <= HexSpatialMath.Sqrt3 * radius;
-        }
-
-        private void LateUpdate()
-        {
-            // Стройка держит мировой указатель: пока лоток открыт, клик по
-            // миру не должен выбирать NPC даже при неудачном подавлении.
-            if (IsOpen) NpcSelection.PointerOverUi = true;
-        }
     }
 }

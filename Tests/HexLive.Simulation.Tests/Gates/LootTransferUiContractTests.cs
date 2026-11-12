@@ -232,6 +232,49 @@ public sealed class LootTransferUiContractTests
             Assert.That(adapter, Does.Contain("LootTransferPanel.OpenContainer(actorId, containerId)"));
         });
     }
+
+    [Test]
+    // §128.6 / bug #734: «Выбросить» прямо из обмена (кнопка и drag за окно) и
+    // drag за окно в инвентаре — штатным ManageInventory Drop, без нового приказа.
+    public void OwnItemsCanBeThrownAwayFromTheExchangeAndByDraggingOutOfWindows()
+    {
+        var panel = RepoPaths.ReadText(Presentation("UI", "LootTransferPanel.cs"));
+        var info = RepoPaths.ReadText(Presentation("UI", "LootTransferPanel.ItemInformation.cs"));
+        var bridge = RepoPaths.ReadText(Presentation("UI", "LootTransferPanel.Html.cs"));
+        var character = RepoPaths.ReadText(Presentation("UI", "CharacterPanel.cs"));
+        string Page(string screen) => RepoPaths.ReadText(Path.Combine(
+            RepoPaths.Root, "Assets", "WebGLTemplates", "HexLive", "ui", "screens", screen));
+        var loot = Page("loot.js");
+        var inventory = Page("inventory.js");
+        var localization = ReadLocalization();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(panel, Does.Contain("InventoryAction.Drop, count"),
+                "The exchange throws away through the inventory's own ManageInventory Drop.");
+            Assert.That(panel, Does.Contain("item.OwnerId == _looterId"),
+                "Only her own (left) things are thrown away; the other side is taken first.");
+            Assert.That(panel, Does.Contain("!PortableFurniture.CanCarry(item.DefinitionId)"));
+            Assert.That(panel, Does.Contain("!_frame.worldBound.Contains(position) && CanDropOwn(item)"),
+                "Released outside the exchange window = thrown away.");
+            Assert.That(info, Does.Contain("loot-item-information-drop"));
+            Assert.That(bridge, Does.Contain("case \"drop\":"));
+            Assert.That(bridge, Does.Contain("item[\"drop\"] = true"));
+            Assert.That(loot, Does.Contain("send('drop', { uid: item.uid, count: 1 })"));
+            Assert.That(loot, Does.Contain("e.target === e.currentTarget && findItem(model, dragging)?.drop"),
+                "The page accepts a drop on its own dim, never through the window.");
+            Assert.That(inventory, Does.Contain("onDragOver=${(e) => { if (canThrow(dragged.current))"));
+            Assert.That(inventory, Does.Contain("kind: 'drop'"));
+            Assert.That(character, Does.Contain("!_inventoryWindow.worldBound.Contains(evt.position)"));
+            Assert.That(character, Does.Contain("RequestInventoryDrop();"));
+            foreach (var term in new[] { "loot.drop_hint_own", "loot.dropping", "inv.action.drop",
+                         "inv.drop_quantity_title", "inv.drop_quantity_confirm" })
+            {
+                Assert.That(localization, Does.Contain("- Term: " + term + "\n"),
+                    $"Строка {term} не заведена в I2 — окно покажет сырой ключ.");
+            }
+        });
+    }
 }
 
 }

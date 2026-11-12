@@ -143,8 +143,11 @@ public sealed partial class CharacterPanel
         _inventoryDropQuantityDefinitionId = _invSelectedId;
         _inventoryDropQuantitySourceIndex = _invSelectedSourceIndex;
         _inventoryDropQuantityWorn = _invSelectedWorn;
+        // The title names the item itself: a drag out of the window (#734)
+        // reaches here with no detail card open.
+        var definition = ResolveDef(_invSelectedId);
         _inventoryDropQuantityTitle.text = string.Format(
-            Loc.Get("inv.drop_quantity_title"), _invDetailName.text);
+            Loc.Get("inv.drop_quantity_title"), ItemName(definition, ResolveItemInfo(_invSelectedId, definition)));
         _inventoryDropQuantityChoice.Configure(count);
         _inventoryDropQuantityConfirm.text = Loc.Get("inv.drop_quantity_confirm");
         _inventoryDropQuantityModal?.Show(true);

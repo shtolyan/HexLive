@@ -4238,6 +4238,22 @@ MonoBehaviour:
         \u043E\u043A\u043D\u0435"
       Flags: 0101
       Languages_Touch: []
+    - Term: loot.drop_hint_own
+      TermType: 0
+      Description: 
+      Languages:
+      - "Drop it into the other window, or outside the window to throw it away"
+      - "\u041E\u0442\u043F\u0443\u0441\u0442\u0438\u0442\u0435 \u0432 \u0434\u0440\u0443\u0433\u043E\u043C \u043E\u043A\u043D\u0435, \u0430 \u0437\u0430 \u043E\u043A\u043D\u043E\u043C \u2014 \u0447\u0442\u043E\u0431\u044B \u0432\u044B\u0431\u0440\u043E\u0441\u0438\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: loot.dropping
+      TermType: 0
+      Description: 
+      Languages:
+      - "Throwing it away\u2026"
+      - "\u0412\u044B\u0431\u0440\u0430\u0441\u044B\u0432\u0430\u0435\u0442\u2026"
+      Flags: 0101
+      Languages_Touch: []
     - Term: loot.quantity_title
       TermType: 0
       Description:

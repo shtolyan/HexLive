@@ -1090,7 +1090,8 @@ public sealed partial class LootTransferPanel : MonoBehaviour
                 SetBorder(_dragCell, Gold, 2f);
             }
             ShowGhost(_drag.DefinitionId);
-            _status.text = Loc.Get("loot.drop_hint");
+            // §128.6 / #734: своя вещь ещё и выбрасывается, если отпустить её за окном.
+            _status.text = Loc.Get(CanDropOwn(_drag) ? "loot.drop_hint_own" : "loot.drop_hint");
         }
 
         MoveGhost(position);
@@ -1116,6 +1117,10 @@ public sealed partial class LootTransferPanel : MonoBehaviour
         {
             if (_leftPane.worldBound.Contains(position)) DropOn(_looterId, item);
             else if (_rightPane.worldBound.Contains(position)) DropOn(_otherId, item);
+            // §128.6 / #734: отпущено ЗА окном — своя вещь падает на землю.
+            // Рамка держит захват указателя, поэтому отпускание над миром
+            // приходит сюда же.
+            else if (!_frame.worldBound.Contains(position) && CanDropOwn(item)) RequestDropOwn(item);
         }
         else if (doubleClick)
         {
@@ -1176,10 +1181,11 @@ public sealed partial class LootTransferPanel : MonoBehaviour
         _quantityOpen = true;
         _quantityDestinationId = destinationId;
         _quantityItem = item;
+        var drop = destinationId == DropToGround;
         _quantityTitle.text = string.Format(
-            Loc.Get("loot.quantity_title"), ItemName(item.DefinitionId));
+            Loc.Get(drop ? "inv.drop_quantity_title" : "loot.quantity_title"), ItemName(item.DefinitionId));
         _quantityChoice.Configure(item.Count);
-        _quantityConfirm.text = Loc.Get("loot.quantity_confirm");
+        _quantityConfirm.text = Loc.Get(drop ? "inv.drop_quantity_confirm" : "loot.quantity_confirm");
         _quantityCancel.text = Loc.Get("loot.quantity_cancel");
         _quantityModal?.Show(true);
         _quantityOverlay.BringToFront();
@@ -1194,7 +1200,8 @@ public sealed partial class LootTransferPanel : MonoBehaviour
         var item = _quantityItem;
         var count = _quantityChoice.Value;
         HideQuantityPicker();
-        ExecuteTransfer(destinationId, item, count);
+        if (destinationId == DropToGround) DropOwn(item, count);
+        else ExecuteTransfer(destinationId, item, count);
     }
 
     private void CancelQuantity()
@@ -1300,6 +1307,47 @@ public sealed partial class LootTransferPanel : MonoBehaviour
                 _status.text = Loc.Get("loot.no_quick_action");
                 break;
         }
+    }
+
+    // §128.6 / #734: «Выбросить» в окне обмена. Только СВОИ вещи (левая панель)
+    // и тем же приказом, что кнопка инвентаря (§123.5 ManageInventory Drop):
+    // у вещи в мешке или у чужого человека выбрасывать нечем — сначала забрать.
+    // Мебель в руках кладётся «Поставить», а не выбрасывается, как и в инвентаре.
+    private const int DropToGround = int.MinValue;
+
+    private bool CanDropOwn(DragItem item) =>
+        !_gift && _looterId >= 0 && item.OwnerId == _looterId && item.Index >= 0 &&
+        !string.IsNullOrEmpty(item.DefinitionId) && !PortableFurniture.CanCarry(item.DefinitionId);
+
+    private static bool DropTakesCount(DragItem item) =>
+        item.Source == InventoryItemSource.Carried && item.Count > 1 &&
+        InventoryState.IsStackable(item.DefinitionId);
+
+    /// <summary>Стопка спрашивает, сколько выбросить; одиночная вещь — сразу.</summary>
+    private void RequestDropOwn(DragItem item)
+    {
+        if (_runner == null || _pending || _quantityOpen || !CanDropOwn(item)) return;
+        _statusHeld = false;
+        if (DropTakesCount(item) && !HtmlUi.Active)
+        {
+            ShowQuantityPicker(DropToGround, item);
+            return;
+        }
+
+        DropOwn(item, 1);
+    }
+
+    private void DropOwn(DragItem item, int count)
+    {
+        if (_runner == null || _pending || !CanDropOwn(item)) return;
+        count = DropTakesCount(item) ? Mathf.Clamp(count, 1, item.Count) : 1;
+        HideItemInformation();
+        _runner.EnqueueCommand(new ManageInventoryCommand(
+            new HexLive.Simulation.Common.EntityId(_looterId),
+            new InventoryItemRef(item.Source, item.Index, item.DefinitionId),
+            InventoryAction.Drop, count));
+        MarkPending();
+        _status.text = Loc.Get("loot.dropping");
     }
 
     private void EnqueueManage(DragItem item, InventoryAction action, string statusTerm)

@@ -136,8 +136,8 @@ public sealed partial class LootTransferPanel
         for (var i = 0; i < npc.WornItems.Count; i++)
         {
             if (representedWorn.Contains(i)) continue;
-            worn.Add(builder.HtmlItem(Uid(new DragItem(owner, InventoryItemSource.Worn, i, 1, npc.WornItems[i])),
-                npc.WornItems[i], 1));
+            worn.Add(Droppable(builder.HtmlItem(Uid(new DragItem(owner, InventoryItemSource.Worn, i, 1, npc.WornItems[i])),
+                npc.WornItems[i], 1), new DragItem(owner, InventoryItemSource.Worn, i, 1, npc.WornItems[i])));
         }
 
         return new JObject
@@ -182,8 +182,9 @@ public sealed partial class LootTransferPanel
             representedWorn.Add(container.OwnerSourceIndex);
             if (container.OwnerSourceIndex >= 0)
             {
-                bag = builder.HtmlItem(Uid(new DragItem(owner, InventoryItemSource.Worn, container.OwnerSourceIndex, 1,
-                    container.OwnerItemDefinitionId)), container.OwnerItemDefinitionId, 1);
+                var bagItem = new DragItem(owner, InventoryItemSource.Worn, container.OwnerSourceIndex, 1,
+                    container.OwnerItemDefinitionId);
+                bag = Droppable(builder.HtmlItem(Uid(bagItem), container.OwnerItemDefinitionId, 1), bagItem);
             }
         }
 
@@ -202,8 +203,8 @@ public sealed partial class LootTransferPanel
         if (!string.IsNullOrEmpty(slot.ItemDefinitionId) && index >= 0)
         {
             var count = Mathf.Max(1, slot.StackCount);
-            item = builder.HtmlItem(Uid(new DragItem(owner, InventoryItemSource.Carried, index, count, slot.ItemDefinitionId)),
-                slot.ItemDefinitionId, count);
+            var drag = new DragItem(owner, InventoryItemSource.Carried, index, count, slot.ItemDefinitionId);
+            item = Droppable(builder.HtmlItem(Uid(drag), slot.ItemDefinitionId, count), drag);
         }
         var slotModel = new JObject { ["item"] = item, ["hand"] = hand };
         // A typed slot (a place kept for one thing): the page says which, as the
@@ -211,6 +212,14 @@ public sealed partial class LootTransferPanel
         if (item == null && !string.IsNullOrEmpty(slot.AcceptedItemDefinitionId))
             slotModel["accepts"] = ItemName(slot.AcceptedItemDefinitionId);
         return slotModel;
+    }
+
+    /// <summary>§128.6 / #734: the page offers «Выбросить» (button and drag out of
+    /// the window) exactly where <see cref="CanDropOwn"/> allows it.</summary>
+    private JObject Droppable(JObject item, DragItem drag)
+    {
+        if (CanDropOwn(drag)) item["drop"] = true;
+        return item;
     }
 
     /// <summary>§128.5: a thing that holds things — one flat group, no anatomy.</summary>
@@ -294,6 +303,11 @@ public sealed partial class LootTransferPanel
                 return;
             case "info":
                 _htmlInfoUid = (string?)args["uid"];
+                return;
+            case "drop":
+                // §128.6 / #734: the page already asked how many.
+                if (TryParseUid((string?)args["uid"], out var dropped))
+                    DropOwn(dropped, Mathf.Max(1, (int?)args["count"] ?? 1));
                 return;
             case "quick":
                 if (TryParseUid((string?)args["uid"], out var quick))

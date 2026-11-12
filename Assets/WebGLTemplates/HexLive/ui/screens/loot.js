@@ -18,13 +18,13 @@
 //   },
 //   info: null | { uid, detail: { category, desc, stats: [[label, value, color, fill|null]] } },  // the card asked for
 // }
-// item: { uid, def, icon, emoji, name, count }
-// Commands: move { uid, to: 'left'|'right', count }, quick { uid }, info { uid|null }, close.
+// item: { uid, def, icon, emoji, name, count, drop? }      // drop: her own item that can be thrown away (§128.6)
+// Commands: move { uid, to: 'left'|'right', count }, drop { uid, count }, quick { uid }, info { uid|null }, close.
 import { html, useState, useRef } from '../html.js';
 import { t } from '../i18n.js';
 import { asset } from '../bridge.js';
 import { icons } from '../icons.js';
-import { Pic, Quantity, ItemStats } from '../components.js';
+import { Button, Pic, Quantity, ItemStats } from '../components.js';
 
 const sideOf = (model, uid) => {
   for (const side of ['left', 'right']) {
@@ -83,7 +83,7 @@ function Chip({ item, ctx, as = 'li' }) {
   return as === 'li' ? html`<li>${body}</li>` : body;
 }
 
-function Info({ item, detail, onClose }) {
+function Info({ item, detail, onClose, onDrop }) {
   const d = detail || {};
   return html`<section class="hx-loot__info" aria-label=${item.name}>
     <header class="hx-inv__detail-head">
@@ -93,6 +93,8 @@ function Info({ item, detail, onClose }) {
     </header>
     ${d.desc && html`<p class="hx-text">${d.desc}</p>`}
     <${ItemStats} rows=${d.stats} />
+    ${item.drop && html`<div class="hx-actions hx-actions--left">
+      <${Button} variant="danger" onClick=${() => onDrop(item)}>${t('inv.action.drop')}<//></div>`}
   </section>`;
 }
 
@@ -129,7 +131,7 @@ function Pane({ side, pane, ctx, accepts }) {
         </div>`}
       ${!(pane.groups?.length || pane.worn?.length) && html`<p class="hx-muted hx-loot__empty">${pane.hint ?? t('loot.empty')}</p>`}
     </div>
-    ${info && html`<${Info} item=${info} detail=${detail} onClose=${() => ctx.select(null)} />`}
+    ${info && html`<${Info} item=${info} detail=${detail} onClose=${() => ctx.select(null)} onDrop=${ctx.throwAway} />`}
   </section>`;
 }
 
@@ -137,6 +139,7 @@ export function Loot({ model, send }) {
   const [selected, setSelected] = useState(null);
   const [dragging, setDragging] = useState(null);
   const [asking, setAsking] = useState(null); // { item, to }
+  const [dropping, setDropping] = useState(null); // her own stack: how many to throw away
   const gift = model.mode === 'gift';
   const ctx = {
     model, selected, dragging, pending: model.pending,
@@ -147,6 +150,14 @@ export function Loot({ model, send }) {
     },
     drag: setDragging,
     quick: (uid) => { setSelected(null); send('quick', { uid }); },
+    // §128.6 / #734: «Выбросить» — her own things only (C# marks them), a stack asks how many.
+    throwAway: (item) => {
+      setDragging(null);
+      if (selected) { setSelected(null); send('info', { uid: null }); }
+      if (!item?.drop || model.pending) return;
+      if (item.count > 1) setDropping(item);
+      else send('drop', { uid: item.uid, count: 1 });
+    },
     drop: (uid, to) => {
       setDragging(null);
       const item = findItem(model, uid);
@@ -159,10 +170,12 @@ export function Loot({ model, send }) {
   // A gift goes one way: dragging her things back says so before the drop.
   const takingBack = gift && dragging && sideOf(model, dragging) === 'right';
   const status = takingBack ? { key: 'gift.take_forbidden', tone: 'error' }
-    : dragging ? { key: 'loot.drop_hint', tone: 'hint' }
+    : dragging ? { key: findItem(model, dragging)?.drop ? 'loot.drop_hint_own' : 'loot.drop_hint', tone: 'hint' }
     : model.status || { key: gift ? 'gift.drag_hint' : 'loot.drag_hint', tone: 'hint' };
   return html`
-    <div class="hx-backdrop hx-surface" onPointerDown=${(e) => { if (e.target === e.currentTarget) send('close'); }}>
+    <div class="hx-backdrop hx-surface" onPointerDown=${(e) => { if (e.target === e.currentTarget) send('close'); }}
+      onDragOver=${(e) => { if (e.target === e.currentTarget && findItem(model, dragging)?.drop) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; } }}
+      onDrop=${(e) => { if (e.target !== e.currentTarget) return; e.preventDefault(); ctx.throwAway(findItem(model, e.dataTransfer.getData('text/plain'))); }}>
       <section class=${`hx-loot${model.pending ? ' is-pending' : ''}`} role="dialog" aria-modal="true" aria-labelledby="loot-title">
         <header class="hx-inv__head">
           <h2 class="hx-title" id="loot-title">${t(gift ? 'gift.title' : 'loot.title')}</h2>
@@ -181,5 +194,8 @@ export function Loot({ model, send }) {
       ${asking && html`<${Quantity} title=${t('loot.quantity_title', { 0: asking.item.name })} max=${asking.item.count}
         initial=${asking.item.count} confirm=${t('loot.quantity_confirm')} onClose=${() => setAsking(null)}
         onConfirm=${(count) => { send('move', { uid: asking.item.uid, to: asking.to, count }); setAsking(null); }} />`}
+      ${dropping && html`<${Quantity} title=${t('inv.drop_quantity_title', { 0: dropping.name })} max=${dropping.count}
+        initial=${dropping.count} confirm=${t('inv.drop_quantity_confirm')} danger onClose=${() => setDropping(null)}
+        onConfirm=${(count) => { send('drop', { uid: dropping.uid, count }); setDropping(null); }} />`}
     </div>`;
 }

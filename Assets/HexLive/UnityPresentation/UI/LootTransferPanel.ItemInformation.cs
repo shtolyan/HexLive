@@ -1,6 +1,7 @@
 #nullable enable
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
+using HexLive.UnityPresentation.Localization;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -71,6 +72,17 @@ namespace HexLive.UnityPresentation.UI
             scroll.Add(builder.CreateReadOnlyItemInformation(item.DefinitionId, owner!, worn, item.Index,
                 slot?.StackCount ?? 1, item.OwnerId < 0 ? slot : null));
             _informationCard.Add(scroll);
+            if (CanDropOwn(item))
+            {
+                // §128.6 / #734: своя вещь выбрасывается прямо из обмена — тем же
+                // приказом, что кнопка «Выбросить» в инвентаре.
+                var drop = new Button(() => RequestDropOwn(item))
+                    { name = "loot-item-information-drop", text = Loc.Get("inv.action.drop") };
+                drop.AddToClassList("item-info-drop");
+                drop.style.alignSelf = Align.FlexStart;
+                drop.style.marginTop = 8f;
+                _informationCard.Add(drop);
+            }
             var overlay = new VisualElement { name = "loot-item-information-backdrop" };
             overlay.AddToClassList("item-info-overlay");
             overlay.Add(_informationCard); _root.Add(overlay);

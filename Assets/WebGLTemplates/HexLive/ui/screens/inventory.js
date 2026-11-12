@@ -142,9 +142,20 @@ export function Inventory({ model, send }) {
   const item = items.find((i) => i.uid === selected);
   const quick = (it) => !model.readonly && it.detail?.actions?.some((a) => a === 'wear' || a === 'stow') &&
     send('action', { uid: it.uid, kind: it.worn ? 'stow' : 'wear', count: 1 });
+  // §128.6 / #734: a thing dragged out of the window and let go is thrown away —
+  // the very «Выбросить» of the card (C# lists 'drop' where it is allowed).
+  const canThrow = (it) => !!it && !model.readonly && (it.detail?.actions || []).includes('drop');
+  const throwAway = (it) => {
+    if (!canThrow(it)) return;
+    setSelected(null);
+    if (it.count > 1) setDropping(it);
+    else send('action', { uid: it.uid, kind: 'drop', count: 1 });
+  };
   return html`
     <div class="hx-inv-layer">
-      <div class="hx-inv-catch hx-surface" onPointerDown=${() => send('close')}></div>
+      <div class="hx-inv-catch hx-surface" onPointerDown=${() => send('close')}
+        onDragOver=${(e) => { if (canThrow(dragged.current)) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; } }}
+        onDrop=${(e) => { e.preventDefault(); const it = dragged.current; dragged.current = null; throwAway(it); }}></div>
       <section class=${`hx-inv hx-surface${tab !== 'craft' && !item ? ' has-hole' : ''}`} role="dialog" aria-modal="true" aria-labelledby="inv-title">
         <header class="hx-inv__head">
           <h2 class="hx-title" id="inv-title">${t('panel.inventory')} · ${model.name}</h2>

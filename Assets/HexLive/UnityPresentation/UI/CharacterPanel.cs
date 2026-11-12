@@ -1956,7 +1956,23 @@ namespace HexLive.UnityPresentation.UI
                 evt.StopPropagation();
             });
             _root.RegisterCallback<PointerMoveEvent>(UpdateInventoryPointerGesture);
-            _root.RegisterCallback<PointerUpEvent>(_ => ClearInventoryDrag());
+            _root.RegisterCallback<PointerUpEvent>(evt =>
+            {
+                // §128.6 / #734: a carried or worn thing dragged out of the
+                // window and let go over the world is thrown away — the card's
+                // own «Выбросить» (a stack still asks how many).
+                if (_invDraggedId != null && _inventoryOpen && _inventoryWindow != null &&
+                    !_inventoryWindow.worldBound.Contains(evt.position))
+                {
+                    _invSelectedId = _invDraggedId;
+                    _invSelectedWorn = _invDraggedWorn;
+                    _invSelectedSourceIndex = _invDraggedSourceIndex;
+                    ClearInventoryDrag();
+                    RequestInventoryDrop();
+                    return;
+                }
+                ClearInventoryDrag();
+            });
 
             _invItemsPane.RegisterCallback<GeometryChangedEvent>(evt =>
             {

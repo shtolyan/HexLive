@@ -24,6 +24,8 @@ namespace HexLive.UnityPresentation.UI
             _playerOrdersRow.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
             _playerOrdersRow.verticalScrollerVisibility = ScrollerVisibility.Hidden;
             _playerOrdersRow.contentContainer.style.flexDirection = FlexDirection.Row;
+            _playerOrdersRow.style.height = 34;
+            _playerOrdersRow.style.flexShrink = 0;
             _playerOrdersRow.style.marginBottom = 6;
             _playerOrdersRow.style.display = DisplayStyle.None;
             return _playerOrdersRow;

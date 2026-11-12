@@ -301,16 +301,23 @@ public sealed class RescueSystem : ISimulationSystem
     internal static bool TryInstallLimbCarePlan(
         WorldState world, NPCState helper, NPCState patient, GoalType goal)
     {
-        if (!KenshiRescueMath.TryFindApproach(world, helper, patient, out var approach))
+        JunctionId approach;
+        if (BedSleep.TryGetOccupiedBed(world, patient, out var supportBed))
+        {
+            if (PlanningSystem.TryReserveBedsideApproach(
+                    world, helper, patient, supportBed) is not { } bedside)
+            {
+                return false;
+            }
+
+            approach = bedside;
+        }
+        else if (!KenshiRescueMath.TryFindApproach(world, helper, patient, out approach))
         {
             return false;
         }
-
-        // §111.13: a reactive limb-care route is not real until the helper
-        // owns one of the exact stations around a lying patient. Waiting until
-        // execution meant she could arrive, discover all stations blocked,
-        // abort, and be assigned the same Splint plan on every Medium tick.
-        if (patient.IsLyingDown(world.Tick) &&
+        // §111.13: Reserve a ground station before sending the helper there.
+        else if (patient.IsLyingDown(world.Tick) &&
             !LyingStations.TryClaim(world, helper, patient, out _))
         {
             SpatialMutations.ReleaseJunctionReservation(

@@ -3306,6 +3306,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return;
         }
 
+        actorView.SetSpeechRomance(npc.CurrentInteraction == "Romance");
         // Fast-forward: animations play at the sim's speed multiplier, so 2× /
         // 4× / 50× worlds move bodies 2× / 4× / 50× faster too (1× on pause).
         actorView.SetSimSpeed(_runner != null && !_runner.IsPaused ? _runner.SpeedMultiplier : 1f);

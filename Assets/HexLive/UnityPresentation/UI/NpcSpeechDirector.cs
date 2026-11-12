@@ -92,20 +92,38 @@ public sealed class NpcSpeechDirector
     private string _lastInteraction = string.Empty;
     private float _ambientDue;
     private bool _phoneVoice;
+    private bool _romanceScene;
 
     /// <summary>§171.17: WebRTC reserves this same mouth, including listening.</summary>
     public void SetPhoneVoice(bool active)
     {
         if (_phoneVoice == active) return;
         _phoneVoice = active;
+        ResetActiveSpeech();
+        _lastAny = _clock();
+    }
+
+    /// <summary>§67.13: active pair participants only play the scene's own voice cues.</summary>
+    public void SetRomanceScene(bool active)
+    {
+        if (_romanceScene == active) return;
+        _romanceScene = active;
+        ResetActiveSpeech();
+        _conversationLine = null;
+        _conversationFace = null;
+        if (active) _lastAny = float.NegativeInfinity;
+    }
+
+    private void ResetActiveSpeech()
+    {
         _stage.StopVoiceLine();
         _activeUntil = -1f;
         _activePlayerReply = false;
+        _activeCueKind = null;
         _heldIcon = null;
         _heldFace = null;
         _stage.HideSpeechIcon();
         // Resume current state after a gap; do not replay accumulated old cues.
-        _lastAny = _clock();
         _ambientDue = _clock() + AmbientGap;
     }
 
@@ -127,6 +145,7 @@ public sealed class NpcSpeechDirector
     /// голос и уход пузыря остаются прежними, меняется одна картинка.</summary>
     public void SetConversationTopic(string topicName, Sprite subjectFace)
     {
+        if (_romanceScene) return;
         var line = TalkTopicVisuals.IsKnown(topicName) ? SpeechCatalog.ForTopic(topicName) : null;
         var faceChanged = !ReferenceEquals(subjectFace, _conversationFace);
         _conversationFace = subjectFace;
@@ -174,6 +193,7 @@ public sealed class NpcSpeechDirector
     /// значок тревоги уезжает маленьким в угол пузыря.</summary>
     public void OnCue(string cueKind, Sprite peerFace = null)
     {
+        if (_romanceScene) return;
         var cue = SpeechCatalog.ForCue(cueKind);
         if (!string.IsNullOrEmpty(cue.SpeechId))
         {
@@ -280,7 +300,7 @@ public sealed class NpcSpeechDirector
     /// угол пузыря маленьким треугольником.</summary>
     public bool Say(string speechId, Sprite subjectFace)
     {
-        if (_phoneVoice) return false;
+        if (_phoneVoice || (_romanceScene && speechId is not ("happy_romance" or "cry_romance_forced"))) return false;
         if (string.IsNullOrEmpty(speechId))
         {
             return false;
@@ -363,7 +383,7 @@ public sealed class NpcSpeechDirector
         string wavPath, string visemePath, string emotion, SpeechCatalog.Rank rank,
         float playbackGain = 1f)
     {
-        if (_phoneVoice) return false;
+        if (_phoneVoice || _romanceScene) return false;
         if (string.IsNullOrEmpty(wavPath)) return false;
         var alarm = rank == SpeechCatalog.Rank.Alarm;
         if (!_stage.CanSpeakExternal(rank == SpeechCatalog.Rank.Talk)) return false;
@@ -404,7 +424,7 @@ public sealed class NpcSpeechDirector
     /// timed line has faded, and schedule the ambient layer.</summary>
     public void Tick()
     {
-        if (_phoneVoice) return;
+        if (_phoneVoice || _romanceScene) return;
         var now = _clock();
         if (now < _activeUntil)
         {

@@ -57,6 +57,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
             if (string.Equals(definitionId, ContentIds.BedBasic, StringComparison.Ordinal)) return Bed;
             if (string.Equals(definitionId, "furniture.wardrobe", StringComparison.Ordinal)) return Wardrobe;
             if (string.Equals(definitionId, "furniture.hearth", StringComparison.Ordinal)) return Hearth;
+            if (string.Equals(definitionId, ContentIds.HeadPike, StringComparison.Ordinal)) return Single;
             if (string.Equals(definitionId, ContentIds.Campfire, StringComparison.Ordinal)) return OutdoorCampfire;
             if (string.Equals(definitionId, ContentIds.DryingRack, StringComparison.Ordinal) ||
                 string.Equals(definitionId, ContentIds.Workbench, StringComparison.Ordinal)) return WideStation;

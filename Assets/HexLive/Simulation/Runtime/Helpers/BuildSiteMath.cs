@@ -36,11 +36,17 @@ internal static class BuildSiteMath
     {
         MaterialLogs, MaterialStones, MaterialLeaves, MaterialSticks, MaterialRope, MaterialBoards, ContentIds.Cloth
     };
+    private static readonly string[] HeadPikeMaterials = { ContentIds.Spear, HumanMeatCatalog.Head };
 
     // The six installed-work counters remain save-compatible. Torch cloth is
     // a binding consumed by the final raise, not a seventh structural stage.
     public static System.Collections.Generic.IReadOnlyList<string> MaterialsFor(WorldObjectState site) =>
-        site.BuildProduct == ContentIds.Torch ? TorchMaterials : AllMaterials;
+        site.BuildProduct switch
+        {
+            ContentIds.Torch => TorchMaterials,
+            ContentIds.HeadPike => HeadPikeMaterials,
+            _ => AllMaterials
+        };
 
     /// <summary>
     /// §120: a site whose product is raised as INDEPENDENT MODULES (the
@@ -288,6 +294,7 @@ internal static class BuildSiteMath
         MaterialRope => site.BillRope,
         MaterialBoards => site.BillBoards,
         ContentIds.Cloth when site.BuildProduct == ContentIds.Torch => TorchClothBill(),
+        ContentIds.Spear or HumanMeatCatalog.Head when site.BuildProduct == ContentIds.HeadPike => 1,
         _ => 0
     };
 

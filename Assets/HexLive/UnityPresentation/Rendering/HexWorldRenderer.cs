@@ -5078,6 +5078,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return null;
         }
 
+        if (worldObject.DefinitionId == ContentIds.HeadPike)
+        {
+            var pikeRoot = HexLive.UnityPresentation.Environment.BuildCatalogFurnitureFactory.Build(ContentIds.HeadPike);
+            if (pikeRoot == null) return null;
+            pikeRoot.transform.SetParent(_objectsRoot, false);
+            var anchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
+            pikeRoot.transform.position = SimulationUnityMapper.ToUnityPosition(anchor, ObjectGroundY(worldObject));
+            return pikeRoot;
+        }
+
         // One logical owner, one request. Garment discovery itself is async;
         // consult the live record too so a not-yet-loaded wear definition can
         // never be misrouted to object/<wear-id> and terminally cached missing.

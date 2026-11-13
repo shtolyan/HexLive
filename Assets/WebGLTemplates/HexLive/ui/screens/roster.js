@@ -32,6 +32,22 @@ function Card({ card, send }) {
             <i aria-hidden="true"></i>${t(card.fighting ? 'badge.fighting' : `state.${card.status}`)}
           </span>
         </span>
+        ${card.relation && html`
+          <span class="hx-roster__relations">
+            ${[
+              ['affinity', card.relation.affinity, '♥', card.relation.affinity < 0 ? 'negative' : 'affinity'],
+              ['familiarity', card.relation.familiarity, '●', 'familiarity'],
+              ['trust', card.relation.trust, '◆', 'trust'],
+            ].map(([id, value, glyph, tone]) => {
+              const score = Math.round(value * 100);
+              const description = `${t(`rel.${id}`)} ${score}`;
+              return html`<span class="hx-roster__relation" key=${id} data-tone=${tone}
+                title=${description} aria-label=${description}>
+                <span aria-hidden="true">${glyph} ${score}</span>
+                <i aria-hidden="true" style=${{ '--relation-fill': `${Math.abs(score)}%` }}></i>
+              </span>`;
+            })}
+          </span>`}
       </button>
     </li>`;
 }

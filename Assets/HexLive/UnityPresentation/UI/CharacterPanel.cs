@@ -61,6 +61,7 @@ namespace HexLive.UnityPresentation.UI
         private int _visibleClanRosterCount;
         private int _totalClanRosterCount;
         private int _rosterTick = int.MinValue;
+        private int _rosterRelationSourceId = -1;
         private bool _rosterVisibilityReady;
         private readonly List<RosterBinding> _rosterBindings = new();
 
@@ -6430,9 +6431,12 @@ namespace HexLive.UnityPresentation.UI
             _worldRenderer ??= FindAnyObjectByType<HexWorldRenderer>();
             var visibilityReady = _worldRenderer != null &&
                 _worldRenderer.PlayerVisibilityReady;
+            var relationSource = RosterRelationSource(snapshot);
+            var relationSourceId = relationSource?.Id.Value ?? -1;
             if (snapshot.Tick == _rosterTick &&
-                visibilityReady == _rosterVisibilityReady) return;
+                visibilityReady == _rosterVisibilityReady && relationSourceId == _rosterRelationSourceId) return;
             _rosterTick = snapshot.Tick;
+            _rosterRelationSourceId = relationSourceId;
             _rosterVisibilityReady = visibilityReady;
             _rosterBindings.Clear();
             _clanRosterList.Clear();
@@ -6471,7 +6475,7 @@ namespace HexLive.UnityPresentation.UI
                     continue;
                 }
 
-                var card = BuildRosterCard(npc);
+                var card = BuildRosterCard(npc, clan ? relationSource : null);
                 // §149 r2 (#232): «свой» — это мой персонаж И ВЕСЬ ЕГО ЛАГЕРЬ.
                 // §149 спас только выданную девушку, а вторым слагаемым
                 // осталась буквальная Faction.Colony — у игрока лагеря
@@ -6513,7 +6517,32 @@ namespace HexLive.UnityPresentation.UI
 
         private bool _selectiveControl;
 
-        private VisualElement BuildRosterCard(NpcSnapshot npc)
+        private NpcSnapshot RosterRelationSource(WorldSnapshot snapshot)
+        {
+            if (NpcSelection.Count != 1) return null;
+            var selected = snapshot.Npcs.Find(npc => npc.Id.Value == NpcSelection.PrimaryId && npc.Health > 0f);
+            return selected != null && PlayerCampView.IsMine(_runner, snapshot, selected) ? selected : null;
+        }
+
+        private static VisualElement RosterRelationshipMeter(string glyph, string labelKey, float value, Color color)
+        {
+            var meter = new VisualElement { pickingMode = PickingMode.Ignore };
+            meter.style.width = 27f;
+            var number = Mathf.RoundToInt(value * 100f);
+            meter.tooltip = $"{Loc.Get(labelKey)} {number}";
+            var label = new Label($"{glyph} {number}") { pickingMode = PickingMode.Ignore };
+            label.style.color = color;
+            label.style.fontSize = 9f;
+            var track = MakeTrack(2f);
+            var fill = MakeFill(color);
+            fill.style.width = Length.Percent(Mathf.Abs(value) * 100f);
+            track.Add(fill);
+            meter.Add(label);
+            meter.Add(track);
+            return meter;
+        }
+
+        private VisualElement BuildRosterCard(NpcSnapshot npc, NpcSnapshot relationSource)
         {
             var card = new VisualElement();
             card.style.height = 53f;
@@ -6588,6 +6617,19 @@ namespace HexLive.UnityPresentation.UI
             status.pickingMode = PickingMode.Ignore;
             text.Add(status);
             card.Add(text);
+
+            if (relationSource != null && relationSource.Id != npc.Id)
+            {
+                var relation = relationSource.RelationshipDetails.Find(row => row.OtherId == npc.Id.Value);
+                var affinity = Mathf.Clamp(relation?.Affinity ?? 0f, -1f, 1f);
+                var metrics = new VisualElement { pickingMode = PickingMode.Ignore };
+                metrics.style.flexDirection = FlexDirection.Row;
+                metrics.style.flexShrink = 0f;
+                metrics.Add(RosterRelationshipMeter("♥", "rel.affinity", affinity, RelationColor(affinity)));
+                metrics.Add(RosterRelationshipMeter("●", "rel.familiarity", Mathf.Clamp01(relation?.Familiarity ?? 0f), Social));
+                metrics.Add(RosterRelationshipMeter("◆", "rel.trust", Mathf.Clamp01(relation?.Trust ?? 0f), Good));
+                card.Add(metrics);
+            }
 
             if (npc.IsFighting)
             {

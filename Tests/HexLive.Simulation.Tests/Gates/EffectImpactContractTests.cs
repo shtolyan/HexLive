@@ -387,7 +387,8 @@ public sealed class EffectImpactContractTests
 
             Assert.That(panel, Does.Contain("ShowNeedTooltip(NeedKind.Temperature"));
             Assert.That(panel, Does.Contain("EffectCatalog.Get(impact.Kind)"));
-            Assert.That(panel, Does.Contain("positive ? \"↑\" : \"↓\""));
+            Assert.That(panel, Does.Contain("BuildNeedImpactRow(impact, need == NeedKind.Stress)"));
+            Assert.That(panel, Does.Contain("positive != isPressure ? \"↑\" : \"↓\""));
             Assert.That(panel, Does.Contain("HasVisibleImpact(parsed, kind, direction)"),
                 "Malformed or legacy duplicate wire rows must not become duplicate visuals.");
             Assert.That(panel, Does.Contain("effect.impacts.current"));

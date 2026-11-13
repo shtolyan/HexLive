@@ -1251,7 +1251,7 @@ public sealed partial class PlanningSystem
                 remembered.Age > Spec53.AidMemoryMaxAgeTicks ||
                 remembered.Suffering < Spec53.SufferingThreshold ||
                 remembered.Junction is null ||
-                !AidSupply.Has(world, npc, remembered.AidKind))
+                !AidSupply.CanProvide(world, npc, remembered.AidKind))
             {
                 continue;
             }
@@ -1310,6 +1310,26 @@ public sealed partial class PlanningSystem
         return false;
     }
 
+    /// <summary>§54.14A: a caretaker's food that needs one in-place step
+    /// first. A blank is served at a surface within two hexes, else on the
+    /// ground (never a palm felled for a ward); a whole or pierced coconut is
+    /// split with her opener into halves, exactly like her own coconut meal.</summary>
+    internal const int AidServingSurfaceTiles = 2;
+
+    private static bool TryBuildFeedPreparationPlan(WorldState world, NPCState npc)
+    {
+        if (TryBuildServingPlan(world, npc, allowWalk: true, allowChop: false, AidServingSurfaceTiles))
+            return true;
+        if (!HasCoconutBlade(npc)) return false;
+        if (TryFindInventoryItem(npc, ContentIds.CoconutPierced, requireWater: false, out var pierced))
+            return BuildCoconutInventoryPlan(world, npc, GoalType.Aid, pierced,
+                InteractionType.Process, InteractionType.PickUp);
+        if (TryFindInventoryItem(npc, ContentIds.Coconut, out var whole))
+            return BuildCoconutInventoryPlan(world, npc, GoalType.Aid, whole,
+                InteractionType.Process, InteractionType.Process, InteractionType.PickUp);
+        return false;
+    }
+
     private void BuildAidPlan(WorldState world, NPCState npc)
     {
         // If someone is already coming to help US, don't set off ourselves.
@@ -1359,7 +1379,7 @@ public sealed partial class PlanningSystem
             // we cannot pay for. The decision layer turns that case into a
             // fetch errand instead; walking over empty-handed would only abort
             // on arrival and freeze her in the wait.
-            if (!AidSupply.Has(world, npc, agent.AidKind))
+            if (!AidSupply.CanProvide(world, npc, agent.AidKind))
             {
                 continue;
             }
@@ -1434,6 +1454,15 @@ public sealed partial class PlanningSystem
                 Trace.Debug(world, npc.Id, "PlanFailed", "Goal=Aid NoReachableSufferer");
 
             }
+            return;
+        }
+
+        // §54.14A/§53.7: she holds food she must first make edible (a blank, a
+        // whole coconut). Prepare it right here — this plan ends with a portion
+        // or a half in her pack, and the next Aid pass feeds the ward with it.
+        if (targetKind == AidKind.Feed && !AidSupply.Has(world, npc, AidKind.Feed) &&
+            TryBuildFeedPreparationPlan(world, npc))
+        {
             return;
         }
 

@@ -183,14 +183,25 @@ public sealed class InventoryState
 
     public static bool IsStackable(string definitionId) =>
         !string.IsNullOrEmpty(definitionId) &&
-        (definitionId.StartsWith("resource.", System.StringComparison.Ordinal) ||
+        (definitionId.StartsWith("resource.", System.StringComparison.Ordinal) && !IsWholeCarcass(definitionId) ||
          IsMeatStack(definitionId) ||
          IsFoodPortionStack(definitionId) ||
          IsMedicineStack(definitionId));
 
+    // §54.14A: roasted blanks stack exactly like the cooked meat they replaced
+    // (a v95 pack slot of eight cooked chunks stays one slot after migration).
+    // Pieces stack by definition only — a started portion shares the cell with
+    // full ones; its own grams stay on its instance.
     private static bool IsMeatStack(string definitionId) =>
         definitionId == ContentIds.MeatRaw ||
-        definitionId == ContentIds.MeatCooked;
+        definitionId == ContentIds.MeatCooked ||
+        definitionId == ContentIds.MeatRoasted ||
+        definitionId == ContentIds.CrabRoasted;
+
+    // §54.14A: a whole wolf is one body per slot, not a 20-deep bulk resource,
+    // even though its id carries the resource. prefix.
+    private static bool IsWholeCarcass(string definitionId) =>
+        definitionId is ContentIds.WolfCarcassRaw or ContentIds.WolfCarcassCooked;
 
     // §55.4 (bug #317): одинаковые половинки кокоса — порции еды БЕЗ
     // инстансного состояния (вода живёт в pierced-кокосе, не в половинке),

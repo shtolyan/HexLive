@@ -89,7 +89,7 @@ MonoBehaviour:
   comaBloodEnterThreshold: 0.25
   comaBloodWakeThreshold: 0.35
   drownDeathTicks: 1000
-  coconutHunger: 0.675
+  coconutHunger: 0.225
   coconutThirst: 0.338
   cookedMeatHunger: 0.9
   coldBandTemp: 14

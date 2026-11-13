@@ -171,6 +171,7 @@ public sealed class CampfireStageTests
         Deliver(usable, BuildSiteMath.MaterialSticks, SimBalance.CampfireBillSticks);
         Deliver(usable, BuildSiteMath.MaterialRope, SimBalance.CampfireBillRope);
 
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.MeatRaw));
         npc.Perception.Objects.Clear();
         npc.Perception.Objects.Add(SeenFire(incomplete)); // dictionary/order trap from #93
         npc.Perception.Objects.Add(SeenFire(usable));

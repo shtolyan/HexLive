@@ -38,7 +38,7 @@ namespace HexLive.UnityPresentation.Environment
             if (contents != null)
             {
                 foreach (var cell in contents)
-                    if (HumanMeatCatalog.IsRaw(cell.ItemDefinitionId) || HumanMeatCatalog.IsCooked(cell.ItemDefinitionId))
+                    if (IsHangingMeat(cell.ItemDefinitionId))
                         for (var n = 0; n < cell.StackCount; n++) _items.Add(cell.ItemDefinitionId);
             }
             else
@@ -102,7 +102,13 @@ namespace HexLive.UnityPresentation.Environment
                 // each slot at its own yaw so the bones fan out along the row.
                 var slot = FillOrder[i % SlotAlongBar.Length];
                 var overflow = i >= SlotAlongBar.Length ? 0.06f : 0f;
-                var pose = Quaternion.Euler(0f, 90f + slot * 25f, 0f) * authoredRotation;
+                var isWolf = id is ContentIds.WolfCarcassRaw or ContentIds.WolfCarcassCooked;
+                var bar = FindLogicalPiece(transform, "stick_bar");
+                var barAlongZ = bar != null &&
+                    TryBounds(bar, transform.worldToLocalMatrix, out var barBounds) &&
+                    barBounds.size.z > barBounds.size.x;
+                var yaw = isWolf ? (barAlongZ ? 90f : 0f) : 90f + slot * 25f;
+                var pose = Quaternion.Euler(0f, yaw, 0f) * authoredRotation;
                 piece.transform.rotation = pose;
                 // The prefab pivot is off-centre (shifted toward the bone), so
                 // centre the MESH on the skewer point: measure the rotated
@@ -112,11 +118,17 @@ namespace HexLive.UnityPresentation.Environment
 
                 piece.transform.SetParent(_meatRoot, false);
                 piece.transform.localRotation = pose;
-                piece.transform.localPosition = SpitSlot(slot, overflow) - pivotShift;
+                piece.transform.localPosition = SpitSlot(slot, overflow, isWolf) - pivotShift;
             }
         }
 
-        private Vector3 SpitSlot(int slot, float overflow)
+        private static bool IsHangingMeat(string id) =>
+            id is ContentIds.MeatRaw or ContentIds.MeatRoasted or ContentIds.MeatCooked or
+                ContentIds.CrabRaw or ContentIds.CrabRoasted or ContentIds.CrabCooked or
+                ContentIds.WolfCarcassRaw or ContentIds.WolfCarcassCooked ||
+            HumanMeatCatalog.IsRaw(id) || HumanMeatCatalog.IsCooked(id);
+
+        private Vector3 SpitSlot(int slot, float overflow, bool centered)
         {
             var bar = FindLogicalPiece(transform, "stick_bar");
             if (bar == null || !TryBounds(bar, transform.worldToLocalMatrix, out var bounds))
@@ -124,12 +136,13 @@ namespace HexLive.UnityPresentation.Environment
                 // Legacy authored dimensions remain a safe last resort for an
                 // incomplete custom prefab; the build-safe fallback has a real
                 // stick_bar and normally never takes this branch.
-                return new Vector3(SlotAlongBar[slot] * 0.75f, 0.673f, overflow);
+                return new Vector3(centered ? 0f : SlotAlongBar[slot] * 0.75f, 0.673f, overflow);
             }
 
             var alongX = bounds.size.x >= bounds.size.z;
             var halfSpan = (alongX ? bounds.extents.x : bounds.extents.z);
             var point = bounds.center;
+            if (centered) return point;
             if (alongX) point.x += SlotAlongBar[slot] * halfSpan;
             else point.z += SlotAlongBar[slot] * halfSpan;
             // Stack only overflow pieces behind the bar, never along it.

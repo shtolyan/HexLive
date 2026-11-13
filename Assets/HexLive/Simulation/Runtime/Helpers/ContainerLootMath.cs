@@ -294,7 +294,7 @@ internal static class ContainerLootMath
     public static bool IsSpitMeat(ItemInstance item) =>
         item is not null && !IsDiscard(item) &&
         (HumanMeatCatalog.IsRaw(item.DefinitionId) ||
-         HumanMeatCatalog.IsCooked(item.DefinitionId));
+         MealServing.IsReadyToServe(item.DefinitionId));
 
     public static bool IsQueuedCampfireFuel(
         WorldObjectState container, ItemInstance item) =>
@@ -754,9 +754,7 @@ internal static class ContainerLootMath
             }
         }
 
-        var hooksUsed = BuildSiteMath.HangingMeat(fire, ContentIds.MeatRaw) +
-                        BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked);
-        var spitReady = BuildSiteMath.CampfireSpitComplete(fire);
+        var hooksUsed = BuildSiteMath.UsedSpitHooks(fire);
         foreach (var item in moving)
         {
             if (item.Contents is { Count: > 0 }) return false;
@@ -764,8 +762,9 @@ internal static class ContainerLootMath
             // второй круг над огнём для него ничего не значит.
             if (HumanMeatCatalog.IsRaw(item.DefinitionId))
             {
-                hooksUsed++;
-                if (!spitReady || hooksUsed > SimBalance.CampfireSpitCapacity)
+                hooksUsed += BuildSiteMath.SpitHooksRequired(item.DefinitionId);
+                if (!BuildSiteMath.CanHangMeat(world, fire, item.DefinitionId) ||
+                    hooksUsed > SimBalance.CampfireSpitCapacity)
                 {
                     return false;
                 }
@@ -801,7 +800,7 @@ internal static class ContainerLootMath
             // очереди, у мяса — прогресс прожарки (§151.3). В кармане ни то,
             // ни другое смысла не имеет.
             if (item.ResourceAmount == QueuedFuelMarker ||
-                item.CampfireFuelRole == CampfireFuelRole.None && IsSpitMeat(item))
+                IsCampfire(world, obj) && HumanMeatCatalog.IsRaw(item.DefinitionId))
                 item.ResourceAmount = 0f;
             item.CampfireFuelRole = CampfireFuelRole.None;
 

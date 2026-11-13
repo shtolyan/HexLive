@@ -38,9 +38,7 @@ internal static class AidSupply
 
         return kind switch
         {
-            // A ready meal, or a coconut she can open with the blade she carries.
-            AidKind.Feed => npc.Inventory.FindFirstFood(world.Content) is not null ||
-                DecisionSystem.HasInventoryCoconutMeal(npc),
+            AidKind.Feed => npc.Inventory.FindFirstFood(world.Content) is not null,
             // Bottle water, a watered pierced coconut, or a whole nut + blade.
             AidKind.Hydrate => DecisionSystem.HasInventoryCoconutWater(npc),
             AidKind.Treat => MedicalSupplyMath.BandageCount(npc) > 0,
@@ -51,6 +49,20 @@ internal static class AidSupply
             _ => true
         };
     }
+
+    // §54.14A: food she cannot hand over yet but can MAKE edible on the spot —
+    // a blank plus a Butcher blade (serve it), or a whole/pierced coconut plus
+    // an opener (split it into halves). Not a payable supply (Has stays false,
+    // so the feed interaction never starts on it); the aid planner first turns
+    // it into a portion/half, then the ordinary feed runs.
+    internal static bool CanPrepareFeed(NPCState npc) =>
+        MealServing.CanServe(npc) || DecisionSystem.HasInventoryCoconutMeal(npc);
+
+    // Payable now, or payable after an in-place preparation. This is what the
+    // aid bid and the ward choice read, so a helper holding only a blank goes
+    // to prepare it instead of fetching more food (§53.7 errand loop).
+    internal static bool CanProvide(WorldState world, NPCState npc, AidKind kind) =>
+        Has(world, npc, kind) || kind == AidKind.Feed && CanPrepareFeed(npc);
 
     // What a completed aid actually took out of the helper's stores, and how
     // much relief that particular item is worth.
@@ -110,9 +122,8 @@ internal static class AidSupply
         {
             case AidKind.Feed:
                 var food = FoodMath.BestFoodInInventory(world, npc);
-                return (food is null ? null : Find(food)) ?? Find(ContentIds.CoconutOpen) ??
-                    (DecisionSystem.HasCoconutBlade(npc)
-                        ? Find(ContentIds.CoconutPierced) ?? Find(ContentIds.Coconut) : null);
+                // §54.14A: the started piece goes first, like her own meal.
+                return food is null ? null : FoodMath.NextBite(npc, food) ?? Find(food);
             case AidKind.Hydrate:
                 return BottleInventoryMath.FirstDrinkable(npc) ??
                     npc.Inventory.Items.Find(item => item.DefinitionId == ContentIds.CoconutPierced && item.ResourceAmount > 0f) ??
@@ -144,12 +155,12 @@ internal static class AidSupply
     {
         spend = new Spend(string.Empty, Spec53.FeedRelief, false);
         var item = Selected(world, npc, AidKind.Feed);
-        if (item is null) return false;
+        if (item is null ||
+            !world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition) ||
+            !FoodMath.CanEat(definition)) return false;
         var id = item.DefinitionId;
-        var needsBlade = id == ContentIds.Coconut || id == ContentIds.CoconutPierced;
-        if (needsBlade && !DecisionSystem.HasCoconutBlade(npc)) return false;
-        FoodMath.SpendInventoryBite(npc, item);
-        spend = new Spend(id, needsBlade ? Spec53.FeedRelief : NutritionOf(world, id), false);
+        var fraction = FoodMath.SpendInventoryBite(npc, item);
+        spend = new Spend(id, NutritionOf(world, id) * fraction, false);
         return true;
     }
 

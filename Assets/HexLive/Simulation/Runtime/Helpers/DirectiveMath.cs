@@ -382,7 +382,8 @@ public static class DirectiveMath
 
         return kind switch
         {
-            DirectiveKind.StockFood => def.HasTag("Food"),
+            // §54.14A: roasted blanks are camp food too — they are served, then eaten.
+            DirectiveKind.StockFood => def.HasTag("Food") || MealServing.IsReadyToServe(definitionId),
             DirectiveKind.StockWater => definitionId == ContentIds.Coconut ||
                 definitionId == ContentIds.CoconutPierced ||
                 definitionId == ContentIds.CoconutOpen,

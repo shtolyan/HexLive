@@ -285,6 +285,7 @@ namespace HexLive.UnityPresentation.UI
                 // it fills with the pressure (calm = empty, 100% = full red).
                 // value stays goodness for the colour; the card inverts the fill.
                 if (config.Direct) need["direct"] = true;
+                if (ConsumptionIncreasing(npc, config.Key, good)) need["increasing"] = true;
                 need["impacts"] = HtmlNeedImpacts(npc, (string)need["id"]); // the row's tooltip (§48.7)
                 if (config.Key == "need.blood" && npc.BloodDeficit > 0f)
                 {

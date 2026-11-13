@@ -84,7 +84,7 @@ public static class PrototypeContentCatalog
                     {
                         Id = "eat.coconut_open",
                         Type = InteractionType.Eat,
-                        DurationTicks = 20,
+                        DurationTicks = FoodMath.EatTicks(ContentIds.CoconutOpen, 0f),
                         Effects = { HungerDelta = -SimBalance.CoconutHunger, ComfortDelta = 0.05f }
                     },
                     new InteractionDefinition
@@ -868,8 +868,8 @@ public static class PrototypeContentCatalog
                         Id = "eat.meat",
                         Type = InteractionType.Eat,
 
-                        DurationTicks = 8,
-                        Effects = { HungerDelta = -SimBalance.CookedMeatHunger, ComfortDelta = 0.1f }
+                        DurationTicks = FoodMath.EatTicks(ContentIds.MeatCooked, 0f),
+                        Effects = { HungerDelta = -SimBalance.CookedMeatHunger / 3f, ComfortDelta = 0.1f / 3f }
                     },
                     new InteractionDefinition
                     {
@@ -1415,6 +1415,8 @@ public static class PrototypeContentCatalog
         HumanMeatCatalog.AppendDefinitions(defs);
         ModernLootCatalog.AppendDefinitions(defs);
         defs[ContentIds.StorageChest] = StorageChest.CreateDefinition();
+        MealServing.AppendDefinitions(defs);
+        MealServing.ApplyActionRules(defs);
         return defs;
     }
 

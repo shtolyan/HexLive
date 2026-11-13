@@ -447,6 +447,28 @@ internal static class BuildSiteMath
     // §54.14 (r2): meat hanging on the spit (raw still roasting, or cooked
     // waiting to be taken). Hanging items live in the fire's Contents next to
     // the delivered build materials; food.* never collides with resource.*.
+    public static int SpitHooksRequired(string definitionId) =>
+        definitionId is ContentIds.WolfCarcassRaw or ContentIds.WolfCarcassCooked
+            ? SimBalance.CampfireSpitCapacity : 1;
+
+    public static int UsedSpitHooks(WorldObjectState fire)
+    {
+        var used = 0;
+        foreach (var item in fire.Contents)
+        {
+            if (ContainerLootMath.IsSpitMeat(item) && !ContainerLootMath.IsQueuedCampfireFuel(fire, item))
+                used += SpitHooksRequired(item.DefinitionId);
+        }
+        return used;
+    }
+
+    public static bool CanHangMeat(WorldState world, WorldObjectState fire, string definitionId) =>
+        HumanMeatCatalog.IsRaw(definitionId) && CampfireSpitComplete(fire) &&
+        (definitionId != ContentIds.WolfCarcassRaw ||
+            fire.DefinitionId == ContentIds.Campfire && fire.Variant != BuildingRules.HutHearthVariant &&
+            !ShelterMath.IsIndoor(world, fire.Tile)) &&
+        UsedSpitHooks(fire) + SpitHooksRequired(definitionId) <= SimBalance.CampfireSpitCapacity;
+
     public static int HangingMeat(WorldObjectState fire, string definitionId)
     {
         var n = 0;
@@ -455,7 +477,7 @@ internal static class BuildSiteMath
             if (ContainerLootMath.IsQueuedCampfireFuel(fire,item)) continue;
             if (item.DefinitionId == definitionId ||
                 (definitionId == ContentIds.MeatRaw && HumanMeatCatalog.IsRaw(item.DefinitionId)) ||
-                (definitionId == ContentIds.MeatCooked && HumanMeatCatalog.IsCooked(item.DefinitionId)))
+                (definitionId == ContentIds.MeatCooked && MealServing.IsReadyToServe(item.DefinitionId)))
             {
                 n++;
             }

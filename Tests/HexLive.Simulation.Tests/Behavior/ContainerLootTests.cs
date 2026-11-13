@@ -660,20 +660,20 @@ public sealed class ContainerLootTests
         }
 
         ContainerLootMath.BuildCells(world, fire, cells);
-        var cooked = cells.FindIndex(cell => cell.ItemId == ContentIds.MeatCooked);
+        var cooked = cells.FindIndex(cell => cell.ItemId == ContentIds.MeatRoasted);
         Assert.That(cooked, Is.GreaterThanOrEqualTo(0),
             "Готовый кусок обязан быть видимой ячейкой станции.");
         Assert.That(ContainerLootMath.TryResolve(
-            world, fire, cooked, ContentIds.MeatCooked, 1,
+            world, fire, cooked, ContentIds.MeatRoasted, 1,
             out var moving, out var groundSources), Is.True);
         ContainerLootMath.TakeFromContainer(world, fire, npc, moving, groundSources);
 
         Assert.Multiple(() =>
         {
-            Assert.That(npc.Inventory.Items.Contains(ContentIds.MeatCooked), Is.True);
+            Assert.That(npc.Inventory.Items.Contains(ContentIds.MeatRoasted), Is.True);
             Assert.That(BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked), Is.Zero);
             Assert.That(npc.Inventory.Items
-                .Single(item => item.DefinitionId == ContentIds.MeatCooked).ResourceAmount,
+                .Single(item => item.DefinitionId == ContentIds.MeatRoasted).ResourceAmount,
                 Is.Zero, "Служебное число снимается вместе с вещью.");
         });
     }

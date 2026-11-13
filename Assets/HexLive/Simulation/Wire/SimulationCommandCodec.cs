@@ -44,7 +44,8 @@ public static class SimulationCommandCodec
     // 15: §120.13 r2 construction hold until «Готово» (64).
     // 16: §121.13 drag-to-reorder of the player's action queue (65) and the
     //     plain-click «go, replacing only walking» order (66).
-    public const int WireVersion = 16;
+    // 17: §54.14A ManageInventory may carry InventoryAction.Serve.
+    public const int WireVersion = 17;
 
     // Защита от мусора в потоке: злонамеренный клиент не должен уметь
     // заказать аллокацию на гигабайт одним ushort'ом.

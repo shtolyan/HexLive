@@ -180,7 +180,8 @@ public sealed class Handshake
     // 35: §121.13 — command v16 reorders the action queue (opcode 65) and
     //     replaces only walking on a plain click (66); snapshot
     //     v51 carries each queued order's target person/object.
-    public const int ProtocolVersion = 35; // matched client/server required
+    // 36: §54.14A — snapshot v52 (cell grams, ground serving), command v17 (Serve).
+    public const int ProtocolVersion = 36; // matched client/server required
 
     public string WorldId { get; set; } = string.Empty;
     public string CreationConfig { get; set; } = string.Empty;

@@ -269,6 +269,7 @@ public static class WorldSnapshotExporter
                         ItemDefinitionId = itemId,
                         StackCount = count,
                         ResourceAmount = physical?.ResourceAmount ?? 0f,
+                        Grams = Runtime.FoodMath.CellGrams(physicalItems, 0, count),
                         WaterKind = physical?.WaterKind ?? WaterKind.None,
                         LastAddedWaterKind = physical?.LastAddedWaterKind ?? WaterKind.None,
                         LeafDryness=physical is not null && Runtime.LeafDryingMath.HasLeaves(physical.DefinitionId)
@@ -711,6 +712,8 @@ public static class WorldSnapshotExporter
             // рендер интерполирует кадры, и производная станция мигала бы на
             // границах (тот же урок, что §111.9 r2/r3: позицией владеет симуляция).
             LyingStationSlot = npc.Execution.LyingStationSlot,
+            ServingOnGround = npc.Execution.Status == ExecutionStatus.InProgress &&
+                npc.Execution.CurrentInteraction == InteractionType.Serve && npc.Execution.TargetObject == null,
             HeldGarmentId = heldGarmentId,
             // §40.6 r2: live condition of the held piece — the hand prop shows
             // the dirt actually washing out during the scrub.
@@ -877,6 +880,7 @@ public static class WorldSnapshotExporter
                     ItemDefinitionId = sourceSlot.ItemDefinitionId,
                     StackCount = sourceSlot.StackCount,
                     ResourceAmount = sourceSlot.ResourceAmount,
+                    Grams = Runtime.FoodMath.CellGrams(npc.Inventory.Items, sourceSlot.SourceIndex, sourceSlot.StackCount),
                     WaterKind = sourceSlot.WaterKind,
                     LastAddedWaterKind = sourceSlot.LastAddedWaterKind,
                     LeafDryness=sourceSlot.SourceIndex >= 0 && sourceSlot.SourceIndex < npc.Inventory.Items.Count &&

@@ -243,14 +243,15 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // §54.17 r2: a roast on a perceived spit outranks the pack —
                 // otherwise "coconut in hand" wins forever and the cooked
                 // meat hangs untouched until it burns through colony turnover.
-                // Bug #323: и РУЧНАЯ тоже — но только у близкого костра
-                // (шаг к огню рядом — не «ушла сама»); дальний вертел для неё
-                // по-прежнему закрыт §121.6.
-                if (TryBuildSpitTakePlan(world, npc, foodDefinitionId,
-                        inventoryOnly ? ManualSpitTakeRadiusTiles : int.MaxValue))
+                // §121.6: the manual character never walks to a spit by herself.
+                if (!inventoryOnly && TryBuildSpitTakePlan(world, npc, foodDefinitionId))
                 {
                     continue;
                 }
+
+                // §54.14A (I): whatever is ready in the pack is eaten before a
+                // blank is served — she never walks off to a stump holding a
+                // coconut half. The blank waits for the next meal.
 
                 if (foodDefinitionId is not null)
                 {
@@ -267,6 +268,13 @@ public sealed partial class PlanningSystem : ISimulationSystem
                         Trace.Debug(world, npc.Id, "PlanBuilt",
                             $"Goal=Eat Item={foodDefinitionId} Steps=[ConsumeInventoryItem]");
                     }
+                    continue;
+                }
+
+                // §54.14A: a blank + blade is always a meal — surface, stump
+                // from a felled palm, or the ground (never a dead end).
+                if (TryBuildServingPlan(world, npc, allowWalk: !inventoryOnly, allowChop: !inventoryOnly))
+                {
                     continue;
                 }
 
@@ -1649,7 +1657,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
     internal static bool RequiresBesideApproach(
         WorldState world, JunctionId anchor, InteractionType interaction)
     {
-        if (interaction is InteractionType.Sit or InteractionType.Sleep or InteractionType.PickUp)
+        if (interaction is InteractionType.Sit or InteractionType.Sleep or InteractionType.PickUp or InteractionType.Serve)
         {
             return true;
         }
@@ -1726,7 +1734,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
     /// hammer boxed in by bodies/furniture is not selected and failed every
     /// four ticks.  Geometry, route and live reservations deliberately mirror
     /// the real planner.</summary>
-    private static bool HasUsableBesideJunction(
+    internal static bool HasUsableBesideJunction(
         WorldState world,
         NPCState npc,
         JunctionId anchorId,
@@ -2042,7 +2050,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
     }
 
     private static bool IsAnimalMeat(string id) =>
-        id is ContentIds.MeatRaw or ContentIds.MeatCooked or ContentIds.CrabRaw or ContentIds.CrabCooked;
+        (HumanMeatCatalog.IsRaw(id) || HumanMeatCatalog.IsCooked(id)) && !HumanMeatCatalog.IsHumanPart(id);
 
     // Spec 23.10: a failed plan puts its goal on cooldown so the NPC does
     // something else instead of hammering the same target.
@@ -2216,7 +2224,9 @@ public sealed partial class PlanningSystem : ISimulationSystem
             GoalType.GatherStone => definition.HasTag("Stone"),
             GoalType.GatherHerb => definition.HasTag("Herb"),
             GoalType.GatherFiber => definition.HasTag("Fiber"),
-            GoalType.GetFood => definition.HasTag("Food") &&
+            // §54.14A: a stored blank (roast, cooked part, wolf) is food for
+            // anyone carrying a Butcher blade — she can always serve it.
+            GoalType.GetFood => (definition.HasTag("Food") || MealServing.IsReadyToServe(id) && MealServing.HasKnife(npc)) &&
                 (!definition.HasTag("Coconut") || HasCoconutBlade(npc)) &&
                 !(DirectiveMath.Current(npc) == DirectiveKind.StockFood &&
                   npc.Needs.Hunger < SimBalance.GetFoodHungerThreshold && DirectiveMath.InCampStock(world, npc, tile)),
@@ -2418,7 +2428,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // the campfire itself becomes a GetFood target while any hangs.
                 if (definition.HasTag("Campfire"))
                 {
-                    return world.Entities.Objects.TryGetValue(perceived.Id, out var spitSource) &&
+                    return MealServing.HasKnife(npc) &&
+                        world.Entities.Objects.TryGetValue(perceived.Id, out var spitSource) &&
                         BuildSiteMath.HangingMeat(spitSource, ContentIds.MeatCooked) > 0;
                 }
 
@@ -2431,6 +2442,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     return false;
                 }
 
+                if (MealServing.IsReadyToServe(definition.Id))
+                    return MealServing.HasKnife(npc);
+                if (HumanMeatCatalog.IsRaw(definition.Id))
+                    return MealServing.HasKnife(npc) &&
+                        DecisionSystem.FindCookingFire(npc, world, definition.Id) != null;
                 return definition.HasTag("Food") &&
                     (!definition.HasTag("Coconut") || HasCoconutBlade(npc));
             case GoalType.GatherWood:
@@ -2487,10 +2503,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 return definition.HasTag("Campfire") &&
                     world.Entities.Objects.TryGetValue(perceived.Id, out var spitFire) &&
                     spitFire.ResourceAmount > 0f &&
-                    BuildSiteMath.CampfireSpitComplete(spitFire) &&
-                    BuildSiteMath.HangingMeat(spitFire, ContentIds.MeatRaw) +
-                    BuildSiteMath.HangingMeat(spitFire, ContentIds.MeatCooked) <
-                    SimBalance.CampfireSpitCapacity;
+                    npc.Inventory.Items.Exists(item => BuildSiteMath.CanHangMeat(world, spitFire, item.DefinitionId));
             case GoalType.CraftRope:
             case GoalType.CraftCloth:
             case GoalType.CraftSharpStone:

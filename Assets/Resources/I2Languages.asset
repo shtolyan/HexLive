@@ -33440,6 +33440,158 @@ MonoBehaviour:
       - 'Сначала действия из списка. Shift+клик добавит точку пути'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'toast.order_rejected.NothingToServe'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Nothing to serve'
+      - 'Нечего сервировать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.stack_grams_format'
+      TermType: 0
+      Description: 
+      Languages:
+      - '×{0} · {1} g'
+      - '×{0} · {1} г'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.stack_food_mass'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stack weight'
+      - 'Масса стопки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.resource_wolf_carcass_raw.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Raw wolf carcass"
+      - "Сырая тушка волка"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.resource_wolf_carcass_raw.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "A whole skinned wolf. Roast it on an outdoor spit."
+      - "Освежёванная тушка волка. Жарится целиком на уличном вертеле."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.resource_wolf_carcass_cooked.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Roasted wolf carcass"
+      - "Жареная тушка волка"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.resource_wolf_carcass_cooked.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "Serve with a knife to prepare three portions of cooked meat."
+      - "Разделайте ножом при сервировке, чтобы получить три порции жареного мяса."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_meat_roasted.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Unserved roasted meat"
+      - "Жареное мясо для сервировки"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_meat_roasted.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "Serve with a knife before eating."
+      - "Перед едой сервируйте с помощью ножа."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_crab_roasted.name
+      TermType: 0
+      Description:
+      Languages:
+      - "Unserved roasted crab"
+      - "Жареный краб для сервировки"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.food_crab_roasted.desc
+      TermType: 0
+      Description:
+      Languages:
+      - "Serve with a knife before eating."
+      - "Перед едой сервируйте с помощью ножа."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: inv.action.serve
+      TermType: 0
+      Description:
+      Languages:
+      - "Serve"
+      - "Сервировать"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: interaction.Serve.verb
+      TermType: 0
+      Description:
+      Languages:
+      - "Serve"
+      - "Сервировать"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.serve_meal
+      TermType: 0
+      Description:
+      Languages:
+      - "Serve food"
+      - "Сервировать еду"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.serve_meal.no_food
+      TermType: 0
+      Description:
+      Languages:
+      - "Carry food to serve"
+      - "Возьмите еду для сервировки"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: obj.resource.wolf_carcass_raw
+      TermType: 0
+      Description:
+      Languages:
+      - "Raw wolf carcass"
+      - "Сырая тушка волка"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: obj.resource.wolf_carcass_cooked
+      TermType: 0
+      Description:
+      Languages:
+      - "Roasted wolf carcass"
+      - "Жареная тушка волка"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: obj.food.meat_roasted
+      TermType: 0
+      Description:
+      Languages:
+      - "Unserved roasted meat"
+      - "Жареное мясо для сервировки"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: obj.food.crab_roasted
+      TermType: 0
+      Description:
+      Languages:
+      - "Unserved roasted crab"
+      - "Жареный краб для сервировки"
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

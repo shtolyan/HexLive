@@ -275,7 +275,8 @@ public enum InteractionType
     // §176: switch a flashlight after approaching it. The interaction ID gives the desired state.
     SwitchFlashlight,
     // §151.6: the interaction id sets the authored chest lid pose after approach.
-    SwitchChestLid
+    SwitchChestLid,
+    Serve
 }
 
 }

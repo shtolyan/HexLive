@@ -153,7 +153,7 @@ public sealed class QueuePlayerOrderCommand : ISimulationCommand
         TreatLimbsCommand or MedicalAidCommand or SelfActionCommand or
         ButcherPersonCommand or PreyPersonCommand or AbusePersonCommand or
         KnockDoorCommand or BreakDoorCommand or FillVesselCommand or
-        ManageInventoryCommand { Action: InventoryAction.Eat or InventoryAction.Cook };
+        ManageInventoryCommand { Action: InventoryAction.Eat or InventoryAction.Cook or InventoryAction.Serve };
 }
 
 public sealed class CancelPlayerOrderCommand : ISimulationCommand
@@ -1182,7 +1182,8 @@ public enum InventoryAction
     Drop,
     ToggleFlashlight,
     Eat,
-    Cook
+    Cook,
+    Serve
 }
 
 public sealed class ManageInventoryCommand : ISimulationCommand

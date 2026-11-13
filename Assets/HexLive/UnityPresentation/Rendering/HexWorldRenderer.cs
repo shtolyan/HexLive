@@ -3529,11 +3529,18 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var heldItemId = npc.HeldItemId;
         // §77.5: the interaction window goes with the verb — the view fits one
         // playthrough of the work clip into it.
-        actorView.SetInteraction(npc.CurrentInteraction, heldItemId, npc.AidTargetLyingDown,
-            npc.InteractionSeconds, npc.LyingStationSlot,
-            standingCraft: npc.CurrentInteraction == "Craft" && snapshot.Objects.Exists(item =>
-                item.CraftStationObjectId.HasValue && item.CraftActive &&
-                item.CraftCurrentWorkerId == npc.Id.Value));
+        // §54.14A: serving on the ground has no clip of its own yet — the
+        // planting kneel stands in for it (placeholder until real art).
+        actorView.SetInteraction(npc.ServingOnGround ? "Plant" : npc.CurrentInteraction, heldItemId,
+            npc.AidTargetLyingDown, npc.InteractionSeconds, npc.LyingStationSlot,
+            standingCraft: npc.CurrentInteraction switch
+            {
+                "Serve" => snapshot.Objects.Exists(item => item.Id.Value == npc.TargetObjectId &&
+                    item.DefinitionId != ContentIds.PalmStump),
+                "Craft" => snapshot.Objects.Exists(item => item.CraftStationObjectId.HasValue &&
+                    item.CraftActive && item.CraftCurrentWorkerId == npc.Id.Value),
+                _ => false
+            });
         actorView.SetOffhandItem(npc.OffhandItemId);
         actorView.SyncBottleLiquid(npc.HeldBottleFill, npc.HeldBottleAppearance);
         actorView.SyncHeldLeafDryness(npc.HeldLeafDryness);
@@ -3862,6 +3869,17 @@ public sealed class HexWorldRenderer : MonoBehaviour
             npc.CurrentInteraction == "Rest" && npc.ExecutionStatus == "InProgress");
 
         var hasTargetObject = TryGetTargetObject(snapshot, npc, out var targetObject);
+        if (hasTargetObject && npc.CurrentInteraction == "Serve" &&
+            npc.ExecutionStatus == "InProgress" && targetObject.DefinitionId == ContentIds.PalmStump)
+        {
+            var top = GetObjectAnchorPosition(snapshot, targetObject);
+            top.y += HexLive.UnityPresentation.Environment.StumpFactory.Height;
+            actorView.SetStumpServingTarget(top, npc.ProgressAt(snapshot.Tick));
+        }
+        else
+        {
+            actorView.ClearStumpServingTarget();
+        }
         var hasActionTarget = TryGetActionTargetPoint(snapshot, npc, hasTargetObject, targetObject, out var actionTarget);
         if (hasActionTarget)
         {

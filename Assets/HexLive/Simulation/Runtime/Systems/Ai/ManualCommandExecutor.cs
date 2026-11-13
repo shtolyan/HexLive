@@ -2432,7 +2432,7 @@ internal static partial class ManualCommandExecutor
             return;
         }
 
-        if (command.Action is InventoryAction.Eat or InventoryAction.Cook)
+        if (command.Action is InventoryAction.Eat or InventoryAction.Cook or InventoryAction.Serve)
         {
             ApplyInventoryUse(world, npc, command, admission);
             return;
@@ -2497,6 +2497,43 @@ internal static partial class ManualCommandExecutor
         }
 
         var selected = npc.Inventory.Items[reference.Index];
+        if (command.Action == InventoryAction.Serve)
+        {
+            if (!MealServing.IsReadyToServe(selected.DefinitionId))
+            {
+                Reject(world, npc.Id, "Inventory", "NothingToServe", admission);
+                return;
+            }
+            if (!MealServing.HasKnife(npc))
+            {
+                Reject(world, npc.Id, "Inventory", "MissingTool", admission);
+                return;
+            }
+            // §54.14A: a near free surface if there is one; otherwise she
+            // serves right where she stands — the order is never refused for
+            // want of a stump.
+            if (MealServing.FindSurface(world, npc) is { } surface)
+            {
+                if (TryStartInteractOrder(world, npc, surface.Id, InteractionType.Serve,
+                        MealServing.InteractionId, "Inventory", admission))
+                {
+                    npc.Plan.TargetItemDefinitionId = selected.DefinitionId;
+                    npc.Execution.TargetInventoryItem = selected;
+                }
+                return;
+            }
+
+            ClearForNewOrder(world, npc, "Сервировать на земле", keepCarriedPerson: true);
+            ClearAttackOrder(world, npc);
+            npc.Plan.Goal = GoalType.PlayerOrder;
+            npc.Plan.TargetItemDefinitionId = selected.DefinitionId;
+            npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.ConsumeInventoryItem, Interaction = InteractionType.Serve });
+            npc.Plan.CurrentStepIndex = 0;
+            npc.Plan.Status = PlanStatus.Active;
+            npc.Execution.TargetInventoryItem = selected;
+            npc.Mind.CurrentGoal = GoalType.PlayerOrder;
+            return;
+        }
         if (command.Action == InventoryAction.Cook)
         {
             if (!HumanMeatCatalog.IsRaw(selected.DefinitionId))
@@ -2504,7 +2541,8 @@ internal static partial class ManualCommandExecutor
                 Reject(world, npc.Id, "Inventory", "InvalidAction", admission);
                 return;
             }
-            var option = CraftingOptions.Resolve(world, npc, GoalType.CookMeat);
+            var option = CraftingOptions.Resolve(world, npc, GoalType.CookMeat,
+                selectedRawMeat: selected.DefinitionId);
             ApplyCraftOption(world, npc, option, admission, selectedIngredient: selected);
             return;
         }
@@ -3245,6 +3283,13 @@ internal static partial class ManualCommandExecutor
             return false;
         }
 
+        if (interactionType == InteractionType.Serve &&
+            (!MealServing.IsUsableSurface(world, npc, worldObject) || MealServing.FirstPreparation(npc) == null))
+        {
+            Reject(world, npc.Id, verb, "NothingToServe", admission);
+            return false;
+        }
+
         if (interactionType == InteractionType.SwitchChestLid && !npc.Body.HasUsableHand)
         {
             Reject(world, npc.Id, verb, "NeedsHand", admission);
@@ -3290,7 +3335,7 @@ internal static partial class ManualCommandExecutor
         if (npc.Needs.Stamina <= SimBalance.StaminaExhaustedThreshold &&
             interactionType is InteractionType.Harvest or InteractionType.Process or InteractionType.Plant
                 or InteractionType.Build or InteractionType.BuildRaft
-                or InteractionType.Craft or InteractionType.Butcher)
+                or InteractionType.Craft or InteractionType.Butcher or InteractionType.Serve)
         {
             Reject(world, npc.Id, verb, "Exhausted", admission);
             ClearForNewOrder(world, npc, "Выдохлась — отдых вместо работы");

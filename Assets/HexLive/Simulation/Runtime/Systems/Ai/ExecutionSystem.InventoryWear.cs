@@ -709,7 +709,12 @@ public sealed partial class ExecutionSystem
         var verb = npc.Plan.Steps.Count > 0 && npc.Plan.Steps[0].Interaction.HasValue
             ? npc.Plan.Steps[0].Interaction.Value
             : InteractionType.Eat;
-        var interaction = ResolveInteraction(world, npc, itemDefinition, verb);
+        // §54.14A: serving on the ground is an in-place pack action with its
+        // own fixed definition — the blank itself never advertises it.
+        var serving = verb == InteractionType.Serve;
+        var interaction = serving
+            ? (MealServing.IsReadyToServe(itemId) ? MealServing.GroundInteraction : null)
+            : ResolveInteraction(world, npc, itemDefinition, verb);
         if (interaction is null)
         {
             npc.Plan.Status = PlanStatus.Failed;
@@ -723,11 +728,14 @@ public sealed partial class ExecutionSystem
         }
 
         var starting = npc.Execution.Status == ExecutionStatus.None;
-        var item = starting && npc.Plan.Goal != GoalType.PlayerOrder
+        var preselected = serving && npc.Execution.TargetInventoryItem is { } chosen &&
+            chosen.DefinitionId == itemId && InventoryMath.ContainsReference(npc.Inventory.Items, chosen);
+        var item = starting && npc.Plan.Goal != GoalType.PlayerOrder && !preselected
             ? FindConsumableInventoryItem(npc, itemId, verb, itemDefinition)
             : npc.Execution.TargetInventoryItem;
         if (item is null || item.DefinitionId != itemId ||
             !InventoryMath.ContainsReference(npc.Inventory.Items, item) ||
+            (serving && !MealServing.HasKnife(npc)) ||
             (IsPortableCoconutDrink(itemDefinition, verb) && item.ResourceAmount <= 0f))
         {
             npc.Plan.Status = PlanStatus.Failed;
@@ -751,7 +759,11 @@ public sealed partial class ExecutionSystem
             // another equal item with different ResourceAmount.
             npc.Execution.TargetInventoryItem = item;
             npc.Execution.StartTick = world.Tick;
-            npc.Execution.EndTick = world.Tick + interaction.DurationTicks;
+            var duration = verb == InteractionType.Eat
+                ? FoodMath.EatTicks(item.DefinitionId, item.ResourceAmount)
+                : serving ? MealServing.ServeTicks(npc, npc.Plan.Goal)
+                : interaction.DurationTicks;
+            npc.Execution.EndTick = world.Tick + duration;
 
             if (SimTrace.Enabled)
             {
@@ -770,14 +782,19 @@ public sealed partial class ExecutionSystem
         {
             var remaining = npc.Execution.EndTick - world.Tick;
             var total = npc.Execution.EndTick - npc.Execution.StartTick;
-            if (remaining > 0)
+            var needsBefore = remaining > 0 ? null : Trace.FormatNeeds(npc.Needs);
+            var share = total > 0 ? 1f / total : 1f;
+            if (verb == InteractionType.Eat)
+            {
+                var amount = item.ResourceAmount;
+                share = FoodMath.EatTick(itemId, ref amount);
+                item.ResourceAmount = amount;
+            }
+            ApplyEffectsScaled(npc, interaction.Effects, share);
+
+            if (remaining > 0 && (verb != InteractionType.Eat || item.ResourceAmount != 0f))
             {
                 var progress = total > 0 ? 1f - (float)remaining / total : 1f;
-                // Spec 29C.9: hunger drops mouthful by mouthful, not in a jump.
-                if (total > 0)
-                {
-                    ApplyEffectsScaled(npc, interaction.Effects, 1f / total);
-                }
 
                 if (SimTrace.Enabled)
                 {
@@ -792,8 +809,6 @@ public sealed partial class ExecutionSystem
                 return;
             }
 
-            var needsBefore = Trace.FormatNeeds(npc.Needs);
-            ApplyEffectsScaled(npc, interaction.Effects, total > 0 ? 1f / total : 1f);
             if (IsPortableCoconutDrink(itemDefinition, verb))
             {
                 item.ResourceAmount = System.MathF.Max(0f, item.ResourceAmount - 1f);
@@ -824,10 +839,28 @@ public sealed partial class ExecutionSystem
                     return;
                 }
             }
+            else if (serving)
+            {
+                // §54.14A: the blank becomes its portions right here; a blade
+                // or blank lost mid-way fails the plan and leaves everything.
+                if (!MealServing.TryServe(world, npc, item, out var served))
+                {
+                    npc.Plan.Status = PlanStatus.Failed;
+                    npc.Execution.Status = ExecutionStatus.None;
+                    npc.Execution.CurrentInteraction = null;
+                    npc.Execution.TargetInventoryItem = null;
+                    if (SimTrace.Enabled)
+                        Trace.Debug(world, npc.Id, "ExecFailed", $"ConsumeInventoryItem: cannot serve '{itemId}'");
+                    return;
+                }
+                if (SimTrace.Enabled)
+                    Trace.Debug(world, npc.Id, "MealServed",
+                        $"{itemId} -> {served} g of {MealServing.OutputFor(itemId)} on the ground");
+            }
             else
             {
-                if (verb == InteractionType.Eat) FoodMath.SpendInventoryBite(npc, item);
-                else InventoryMath.RemoveReference(npc.Inventory.Items, item);
+                if (verb != InteractionType.Eat || item.ResourceAmount == 0f)
+                    InventoryMath.RemoveReference(npc.Inventory.Items, item);
                 // §55: a consumed item may transform rather than vanish — cracking a
                 // coconut (Drink) yields the opened husk straight into the hand.
                 foreach (var yield in interaction.Yields)
@@ -887,6 +920,9 @@ public sealed partial class ExecutionSystem
         InteractionType verb,
         ObjectDefinition definition)
     {
+        // §54.14A: a stack keeps at most one started piece — eating always
+        // continues the most-bitten one.
+        if (verb == InteractionType.Eat) return FoodMath.NextBite(npc, definitionId);
         foreach (var item in npc.Inventory.Items)
         {
             if (item.DefinitionId != definitionId)

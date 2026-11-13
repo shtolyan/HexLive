@@ -33,7 +33,11 @@ function Slot({ item, selected, onSelect, onQuick, onDragItem }) {
         onClick=${() => onSelect(item.uid)} onDblClick=${() => onQuick(item)}
         onDragStart=${(e) => { e.dataTransfer.setData('text/plain', item.uid); onDragItem(item); }}>
         <${Pic} of=${item} fallback=${html`<span class="hx-slot__name">${item.name}</span>`} />
-        ${item.count > 1 && html`<b class="hx-slot__count">×${item.count}</b>`}
+        ${item.grams > 0
+          ? html`<b class="hx-slot__count">${item.count > 1
+            ? t('inv.stack_grams_format', { 0: item.count, 1: item.grams })
+            : t('inv.grams_format', { 0: item.grams })}</b>`
+          : item.count > 1 && html`<b class="hx-slot__count">×${item.count}</b>`}
         ${item.favorite && html`<span class="hx-slot__fav" aria-hidden="true">★</span>`}
         ${item.inUse && html`<span class="hx-slot__tag">${t('inv.in_use')}</span>`}
         ${item.worn && html`<span class="hx-slot__tag hx-slot__tag--worn">${t('inv.worn')}</span>`}

@@ -240,7 +240,7 @@ function Needs({ npc }) {
               rows: (n.impacts || []).map((i) => ({ icon: i.emoji, title: t(i.title), up: i.up })),
             }))}>
               <span class="hx-needs__label"><${NeedIcon} need=${n} />${t(`need.${n.id}`)}</span>
-              <span class="hx-needs__value" data-tone=${n.thermal != null ? (n.thermal < -0.05 ? 'cold' : n.thermal > 0.05 ? 'hot' : '') : ''}>${needValue(n)}</span>
+              <span class="hx-needs__value"><span class="hx-needs__increase" data-active=${n.increasing === true} aria-hidden="true">↑</span><span data-tone=${n.thermal != null ? (n.thermal < -0.05 ? 'cold' : n.thermal > 0.05 ? 'hot' : '') : ''}>${needValue(n)}</span></span>
               ${n.thermal != null
                 ? html`<span class="hx-bar hx-bar--bipolar"><i style=${{ left: `${50 + Math.min(0, n.thermal) * 50}%`, width: `${Math.abs(n.thermal) * 50}%`,
                     background: n.thermal < 0 ? 'rgb(71 182 230)' : 'rgb(232 116 107)' }}></i></span>`

@@ -483,6 +483,10 @@ public sealed class InventorySlotSnapshot
     public float Bloodiness { get; set; }
 
     public int OwnerId { get; set; }
+
+    // §54.14A: total edible grams of every piece in this cell (portions and
+    // blanks); 0 for anything else. The cell shows count and grams together.
+    public int Grams { get; set; }
 }
 
 public sealed class InventoryContainerSnapshot
@@ -782,6 +786,10 @@ public sealed class NpcSnapshot
     // рендер интерполирует кадры, и производная станция мигала бы на границах.
     // Клип берёт отсюда сторону и «у головы ли она».
     public int LyingStationSlot { get; set; } = -1;
+
+    // §54.14A: she is serving a blank on the ground (no surface). The view has
+    // no clip of its own for it yet and plays the planting kneel instead.
+    public bool ServingOnGround { get; set; }
 
     // Iter 28: sitting at a one-step ledge junction — the presentation
     // lifts the body so the butt rests on the upper step. Export-only.

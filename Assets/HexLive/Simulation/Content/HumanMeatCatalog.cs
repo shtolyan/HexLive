@@ -27,8 +27,9 @@ public static class HumanMeatCatalog
     public static bool IsArm(string id) => id is ArmRaw or ArmCooked or MaleArmRaw or MaleArmCooked;
     public static bool IsLeg(string id) => id is LegRaw or LegCooked or MaleLegRaw or MaleLegCooked;
     public static bool IsTorso(string id) => id is TorsoRaw or TorsoCooked or MaleTorsoRaw or MaleTorsoCooked;
-    public static bool IsRaw(string id) => id is ContentIds.MeatRaw or ContentIds.CrabRaw or ArmRaw or LegRaw or TorsoRaw or MaleArmRaw or MaleLegRaw or MaleTorsoRaw;
-    public static bool IsCooked(string id) => id is ContentIds.MeatCooked or ContentIds.CrabCooked or ArmCooked or LegCooked or TorsoCooked or MaleArmCooked or MaleLegCooked or MaleTorsoCooked;
+    public static bool IsRaw(string id) => id is ContentIds.MeatRaw or ContentIds.CrabRaw or ContentIds.WolfCarcassRaw or ArmRaw or LegRaw or TorsoRaw or MaleArmRaw or MaleLegRaw or MaleTorsoRaw;
+    public static bool IsCooked(string id) => id is ContentIds.MeatCooked or ContentIds.CrabCooked ||
+        MealServing.IsReadyToServe(id);
     public static string RawPart(BodyPart part, GarmentSex sex) => (part, sex) switch
     {
         (BodyPart.ArmL or BodyPart.ArmR, GarmentSex.Male) => MaleArmRaw,
@@ -49,8 +50,9 @@ public static class HumanMeatCatalog
     {
         ArmRaw => ArmCooked, LegRaw => LegCooked, TorsoRaw => TorsoCooked,
         MaleArmRaw => MaleArmCooked, MaleLegRaw => MaleLegCooked, MaleTorsoRaw => MaleTorsoCooked,
-        ContentIds.MeatRaw => ContentIds.MeatCooked,
-        ContentIds.CrabRaw => ContentIds.CrabCooked,
+        ContentIds.MeatRaw => ContentIds.MeatRoasted,
+        ContentIds.CrabRaw => ContentIds.CrabRoasted,
+        ContentIds.WolfCarcassRaw => ContentIds.WolfCarcassCooked,
         _ => id
     };
     public static string FromLimb(string variant) => variant is "ArmL" or "ArmR" ? ArmRaw : LegRaw;
@@ -61,13 +63,10 @@ public static class HumanMeatCatalog
             foreach (var id in new[] { raw, Cooked(raw) })
             {
                 var def = new ObjectDefinition { Id = id, DisplayName = id };
-                def.Tags.Add(ObjectTags.Food);
+                def.Tags.Add(ObjectTags.Resource);
                 if (IsRaw(id)) def.Tags.Add(ObjectTags.RawMeat);
                 def.Interactions.Add(new InteractionDefinition { Id = "pickup." + id,
                     Type = InteractionType.PickUp, DurationTicks = 4 });
-                if (IsCooked(id)) def.Interactions.Add(new InteractionDefinition {
-                    Id = "eat." + id, Type = InteractionType.Eat, DurationTicks = 8,
-                    Effects = { HungerDelta = -SimBalance.CookedMeatHunger, ComfortDelta = -0.1f } });
                 defs[id] = def;
             }
         }

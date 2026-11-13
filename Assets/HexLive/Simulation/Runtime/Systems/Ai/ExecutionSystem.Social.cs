@@ -818,6 +818,12 @@ public sealed partial class ExecutionSystem
             var aidDuration = Spec118.Enabled && kindNow == AidKind.Treat
                 ? WoundMath.BandageTicks(npc)
                 : Spec53.AidDuration;
+            if (!target.IsLyingDown(world.Tick) && kindNow is AidKind.Feed or AidKind.Hydrate)
+            {
+                // The meal and handoff are single synchronized pair takes.
+                var seconds = kindNow == AidKind.Feed ? 174f / 30f : 35f / 30f;
+                aidDuration = System.Math.Max(1, (int)System.Math.Ceiling(seconds / world.TickDeltaTime));
+            }
             npc.Execution.EndTick = world.Tick + aidDuration;
             HoldSceneJunction(world, npc);
 

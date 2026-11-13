@@ -26,6 +26,8 @@ namespace HexLive.UnityPresentation.Wearing
         private float _everydayPhase;
         private float _everydaySampledAt;
         private float _everydayRate;
+        private float _everydayDuration;
+        private float _servingCutSeconds;
         private float _everydayWeight;
         private bool _everydayServing;
         private EverydayActionClips _servingClips;
@@ -46,11 +48,11 @@ namespace HexLive.UnityPresentation.Wearing
         private Transform _upperLip;
         private Transform _lowerLip;
 
-        internal void SetEverydayServing(EverydayActionClips clips, float phase, float rate)
+        internal void SetEverydayServing(EverydayActionClips clips, float phase, float rate, float duration)
         {
             _everydayServing = true;
             _servingClips = clips;
-            SetEverydayClock(phase, rate, 1f);
+            SetEverydayClock(phase, rate, duration, 1f);
         }
 
         private void RefreshBedSleepClip(bool onBed)
@@ -102,7 +104,7 @@ namespace HexLive.UnityPresentation.Wearing
                 OverrideClip(baseName, clip != null ? clip : authored);
         }
 
-        internal void SetEverydayAction(AnimationClip clip, float phase, float rate, float weight = 1f)
+        internal void SetEverydayAction(AnimationClip clip, float phase, float rate, float duration, float weight = 1f)
         {
             _everydayServing = false;
             _feedingRecipient = null;
@@ -111,28 +113,28 @@ namespace HexLive.UnityPresentation.Wearing
             _seatedEveryday = false;
             _bandagePart = null;
             _requestedEverydayClip = clip;
-            SetEverydayClock(phase, rate, weight);
+            SetEverydayClock(phase, rate, duration, weight);
         }
 
-        internal void SetEverydayDrinking(AnimationClip clip, float phase, float rate)
+        internal void SetEverydayDrinking(AnimationClip clip, float phase, float rate, float duration)
         {
-            SetEverydayAction(clip, phase, rate);
+            SetEverydayAction(clip, phase, rate, duration);
             _everydayDrinking = clip != null;
         }
 
         internal void SetEverydaySeat(bool seated) => _seatedEveryday = seated;
 
-        internal void SetFeedingAction(AnimationClip clip, NpcActorView recipient, float phase, float rate,
+        internal void SetFeedingAction(AnimationClip clip, NpcActorView recipient, float phase, float rate, float duration,
             bool supportDrinker = false)
         {
-            SetEverydayAction(clip, phase, rate);
+            SetEverydayAction(clip, phase, rate, duration);
             _feedingRecipient = recipient;
             _supportDrinker = supportDrinker;
         }
 
-        internal void SetBandagingAction(NpcActorView recipient, BodyPart part, float phase, float rate)
+        internal void SetBandagingAction(NpcActorView recipient, BodyPart part, float phase, float rate, float duration)
         {
-            SetFeedingAction(null, recipient, phase, rate);
+            SetFeedingAction(null, recipient, phase, rate, duration);
             _bandagePart = part;
         }
 
@@ -290,8 +292,8 @@ namespace HexLive.UnityPresentation.Wearing
                 _shoreHopTick = 0;
                 return false;
             }
-            var duration = HexLive.Simulation.Navigation.HexHopTuning.HopSeconds;
-            SetEverydayAction(clip, age / duration, simRate / duration);
+            var duration = HexLive.Simulation.Navigation.HexHopTuning.ShoreClimbSeconds;
+            SetEverydayAction(clip, age / duration, simRate / duration, duration);
             return true;
         }
 
@@ -311,11 +313,12 @@ namespace HexLive.UnityPresentation.Wearing
             _everydayGraph.Play();
         }
 
-        private void SetEverydayClock(float phase, float rate, float weight)
+        private void SetEverydayClock(float phase, float rate, float duration, float weight)
         {
             _everydayPhase = phase;
             _everydaySampledAt = Time.unscaledTime;
             _everydayRate = rate;
+            _everydayDuration = duration;
             _everydayWeight = weight;
         }
 
@@ -323,6 +326,7 @@ namespace HexLive.UnityPresentation.Wearing
         {
             _feedingContact = 0f;
             _eatingContact = 0f;
+            _servingCutSeconds = 0f;
             if (_animator == null || !_animator.isActiveAndEnabled || _dead || _laying || _ragdollActive ||
                 _romanceVisual || _socialContactVisual)
             {
@@ -332,30 +336,56 @@ namespace HexLive.UnityPresentation.Wearing
 
             var phase = Mathf.Clamp01(_everydayPhase +
                 Mathf.Min(.25f, Time.unscaledTime - _everydaySampledAt) * _everydayRate);
-            var weight = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, .12f, phase)) *
-                Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(1f, .88f, phase)) * _everydayWeight;
+            var elapsed = phase * _everydayDuration;
+            var weight = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, .28f, elapsed)) *
+                Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, .28f, _everydayDuration - elapsed)) * _everydayWeight;
             if (_seatedEveryday) weight = _everydayWeight;
+
+            var sampleTime = elapsed;
             if (_everydayServing)
             {
-                // The three takes meet at the kneeling pose. The work clip
-                // starts with the same posture and leans into the cut.
-                const float workStart = .23f;
-                const float riseStart = .79f;
-                var clip = phase < workStart ? _servingClips.serveKneel
-                    : phase < riseStart ? _servingClips.serveWork : _servingClips.serveRise;
-                BindEverydayClip(clip);
-                phase = phase < workStart ? phase / workStart
-                    : phase < riseStart ? Mathf.InverseLerp(workStart, riseStart, phase)
-                    : Mathf.InverseLerp(riseStart, 1f, phase);
+                // Use the authored approach and rise once. Repeat the short
+                // cut while the server's serving window is still running.
+                var kneel = _servingClips.serveKneel;
+                var cut = _servingClips.serveWork;
+                var rise = _servingClips.serveRise;
+                var riseAt = Mathf.Max(kneel.length, _everydayDuration - rise.length);
+                if (elapsed < kneel.length) BindEverydayClip(kneel);
+                else if (elapsed < riseAt)
+                {
+                    BindEverydayClip(cut);
+                    _servingCutSeconds = elapsed - kneel.length;
+                    sampleTime = Mathf.PingPong(_servingCutSeconds, cut.length);
+                }
+                else
+                {
+                    BindEverydayClip(rise);
+                    sampleTime = elapsed - riseAt;
+                }
             }
-            else BindEverydayClip(_requestedEverydayClip);
+            else
+            {
+                BindEverydayClip(_requestedEverydayClip);
+                // Eating and drinking retain their gradual simulation
+                // consumption window. Each full gesture uses its native pace.
+                if (_everydayClip != null && (_action == ActionKind.RaiseToMouth || _everydayDrinking))
+                {
+                    var repetitions = Mathf.Max(1, Mathf.FloorToInt(_everydayDuration / _everydayClip.length));
+                    var available = repetitions * _everydayClip.length;
+                    sampleTime = elapsed < available
+                        ? Mathf.Repeat(elapsed, _everydayClip.length) : _everydayClip.length;
+                }
+            }
+
+            var contactPhase = _everydayClip == null ? phase :
+                Mathf.Clamp01(sampleTime / Mathf.Max(.01f, _everydayClip.length));
             if (_feedingRecipient != null)
-                _feedingContact = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.3f, .48f, phase)) *
-                    Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.75f, .56f, phase)) * weight;
+                _feedingContact = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.3f, .48f, contactPhase)) *
+                    Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.75f, .56f, contactPhase)) * weight;
             if (!_everydayGraph.IsValid()) return false;
+            var time = Mathf.Clamp(sampleTime, 0f, _everydayClip.length);
             if (_action == ActionKind.RaiseToMouth || _everydayDrinking)
             {
-                var time = phase * _everydayClip.length;
                 _eatingContact = _everydayDrinking
                     ? Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.44f, .77f, time)) *
                       Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(
@@ -383,7 +413,7 @@ namespace HexLive.UnityPresentation.Wearing
                 _everydayPositions[i] = _everydayBones[i].localPosition;
                 _everydayRotations[i] = _everydayBones[i].localRotation;
             }
-            _everydayPlayable.SetTime(phase * _everydayClip.length);
+            _everydayPlayable.SetTime(time);
             var position = _animator.transform.position;
             var rotation = _animator.transform.rotation;
             _everydayGraph.Evaluate(0f);

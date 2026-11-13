@@ -4303,7 +4303,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             (npc.ServingOnGround || TryGetTargetObject(snapshot, npc, out var surface) &&
                 surface.DefinitionId == ContentIds.PalmStump))
         {
-            actorView.SetEverydayServing(clips, progress, rate);
+            actorView.SetEverydayServing(clips, progress, rate, npc.InteractionSeconds);
             return;
         }
         var seated = HasObjectSitTarget(snapshot, npc);
@@ -4314,8 +4314,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             "Serve" => clips?.serveStanding,
             _ => null
         };
-        if (npc.CurrentInteraction == "Drink") actorView.SetEverydayDrinking(clip, progress, rate);
-        else actorView.SetEverydayAction(clip, progress, rate);
+        if (npc.CurrentInteraction == "Drink") actorView.SetEverydayDrinking(clip, progress, rate, npc.InteractionSeconds);
+        else actorView.SetEverydayAction(clip, progress, rate, npc.InteractionSeconds);
         actorView.SetEverydaySeat(seated);
     }
 
@@ -4342,7 +4342,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (helper.CurrentInteraction == "TreatOther")
             {
                 if (helper.AidBandageZone is { } zone)
-                    feeder.SetBandagingAction(recipient, (BodyPart)zone, phase, rate);
+                    feeder.SetBandagingAction(recipient, (BodyPart)zone, phase, rate, helper.InteractionSeconds);
                 continue;
             }
             var (give, receive) = helper.CurrentInteraction switch
@@ -4352,10 +4352,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 _ => (clips.feedStanding, clips.receiveStanding)
             };
             if (give == null || receive == null) continue;
-            if (helper.CurrentInteraction == "GiveGift") feeder.SetEverydayAction(give, phase, rate);
-            else feeder.SetFeedingAction(helper.AidTargetLyingDown ? null : give, recipient, phase, rate,
+            if (helper.CurrentInteraction == "GiveGift") feeder.SetEverydayAction(give, phase, rate, helper.InteractionSeconds);
+            else feeder.SetFeedingAction(helper.AidTargetLyingDown ? null : give, recipient, phase, rate, helper.InteractionSeconds,
                 supportDrinker: helper.AidTargetLyingDown && helper.CurrentInteraction == "HydrateOther");
-            if (!helper.AidTargetLyingDown) recipient.SetEverydayAction(receive, phase, rate);
+            if (!helper.AidTargetLyingDown) recipient.SetEverydayAction(receive, phase, rate, helper.InteractionSeconds);
         }
     }
 

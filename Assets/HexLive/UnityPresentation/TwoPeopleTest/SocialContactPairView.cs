@@ -18,8 +18,8 @@ public sealed class SocialContactPairView : MonoBehaviour
     private int startTick;
     private Vector3 firstPosition;
     private Vector3 secondPosition;
-    private float phase;
-    private float phaseSpeed;
+    private float elapsedSeconds;
+    private float playbackSpeed;
     private float phaseAt;
     private PlayableGraph graph;
     private AnimationClipPlayable firstTrack;
@@ -81,9 +81,8 @@ public sealed class SocialContactPairView : MonoBehaviour
 
         firstPosition = positionA;
         secondPosition = positionB;
-        var ticks = Mathf.Max(1, end - start);
-        phase = Mathf.Clamp01((tick - start) / ticks);
-        phaseSpeed = simSpeed / Mathf.Max(0.001f, ticks * tickSeconds);
+        elapsedSeconds = Mathf.Clamp(tick - start, 0f, end - start) * tickSeconds;
+        playbackSpeed = simSpeed;
         phaseAt = Time.unscaledTime;
         return true;
     }
@@ -104,7 +103,10 @@ public sealed class SocialContactPairView : MonoBehaviour
     private void LateUpdate()
     {
         if (!graph.IsValid() || first == null || second == null) return;
-        var progress = Mathf.Clamp01(phase + (Time.unscaledTime - phaseAt) * phaseSpeed);
+        var elapsed = elapsedSeconds + (Time.unscaledTime - phaseAt) * playbackSpeed;
+        var firstLength = firstTrack.GetAnimationClip().length;
+        var secondLength = secondTrack.GetAnimationClip().length;
+        var progress = Mathf.Clamp01(elapsed / Mathf.Max(firstLength, secondLength));
         var axis = secondPosition - firstPosition;
         axis.y = 0f;
         if (axis.sqrMagnitude < 0.0001f) axis = first.transform.forward;
@@ -126,8 +128,8 @@ public sealed class SocialContactPairView : MonoBehaviour
 
         firstHug?.RestoreFingerPose();
         secondHug?.RestoreFingerPose();
-        firstTrack.SetTime(progress * firstTrack.GetAnimationClip().length);
-        secondTrack.SetTime(progress * secondTrack.GetAnimationClip().length);
+        firstTrack.SetTime(Mathf.Min(elapsed, firstLength));
+        secondTrack.SetTime(Mathf.Min(elapsed, secondLength));
         graph.Evaluate(0f);
 
         var hugWeight = SocialHugContact.Weight(progress);

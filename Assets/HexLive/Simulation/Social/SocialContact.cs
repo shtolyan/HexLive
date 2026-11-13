@@ -33,6 +33,8 @@ public static class SocialContact
         TalkTopic.DanceAccepted => 2.567f,
         TalkTopic.PassionateKissAccepted => 5f,
         TalkTopic.PassionateKissDeclined => 2.833f,
+        TalkTopic.FlirtAccepted => 4.033333f,
+        TalkTopic.FlirtDeclined or TalkTopic.DanceDeclined => 3.466667f,
         _ => 4f
     };
 }

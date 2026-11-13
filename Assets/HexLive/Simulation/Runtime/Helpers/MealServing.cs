@@ -15,7 +15,8 @@ public static class MealServing
 {
     public const string InteractionId = "serve.meal";
     public const string GroundInteractionId = "serve.ground";
-    public const int ServeDurationTicks = 24;
+    public const int ServeDurationTicks = 36;
+    private const int MinimumServeTicks = 30;
 
     /// <summary>§54.14A: how far she looks for a stump/workbench/table or a
     /// palm to fell before serving on the ground (six hexes ≈ 13.5 wu).</summary>
@@ -156,14 +157,14 @@ public static class MealServing
         return best;
     }
 
-    /// <summary>§54.14A: work time of one serving — the same authored 24 ticks
+    /// <summary>§54.14A: work time of one serving — the same base 36 ticks
     /// scaled by the blade and her hands, on a surface or on the ground.</summary>
     internal static int ServeTicks(NPCState npc, GoalType goal)
     {
         var tool = GearCatalog.BestToolFor(npc.Inventory.Items, GearCapability.Butcher, npc.Body.IntactHands);
         var speed = tool is null ? 1f : GearCatalog.For(tool.DefinitionId).HarvestSpeedMult;
-        return AttributeMath.WorkTicks(npc, GearCatalog.ScaleTicks(ServeDurationTicks, speed),
-            InteractionType.Serve, goal);
+        return Math.Max(MinimumServeTicks, AttributeMath.WorkTicks(npc, GearCatalog.ScaleTicks(ServeDurationTicks, speed),
+            InteractionType.Serve, goal));
     }
 
     /// <summary>§54.14A: replace the blank by its portions. Nothing is removed

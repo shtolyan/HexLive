@@ -157,6 +157,13 @@ public sealed class MovementSystem : ISimulationSystem
     // «прыгнула в воду без плюха и отшвырнуло обратно на берег».
     // Прыжок — атомарное действие: раз оторвалась, обязана приземлиться.
     // Возвращает true, если тик принадлежит прыжку (шагать в этом тике нельзя).
+    private static bool IsShoreClimb(WorldState world, MovementState movement) =>
+        movement.HopUp &&
+        world.Tiles.Items.TryGetValue(movement.HopFromTile, out var from) &&
+        SpatialQueries.IsSwimTile(from) &&
+        world.Tiles.Items.TryGetValue(movement.HopTargetTile, out var to) &&
+        (to.Flags & TileFlags.Water) == 0;
+
     private static bool RunHopWindow(WorldState world, NPCState npc)
     {
         if (npc.Movement.HopTimer <= 0f)
@@ -166,9 +173,10 @@ public sealed class MovementSystem : ISimulationSystem
 
         npc.Movement.HopTimer -= world.TickDeltaTime;
             // §21.21B v23: ONE window, one set of beats, both directions.
-            var hopWindow = HexHopTuning.HopSeconds;
-            var hopTakeoff = HexHopTuning.TakeoffSeconds;
-            var hopLanding = HexHopTuning.LandingSeconds;
+            var shoreClimb = IsShoreClimb(world, npc.Movement);
+            var hopWindow = shoreClimb ? HexHopTuning.ShoreClimbSeconds : HexHopTuning.HopSeconds;
+            var hopTakeoff = shoreClimb ? HexHopTuning.ShoreClimbCrossStart : HexHopTuning.TakeoffSeconds;
+            var hopLanding = shoreClimb ? hopWindow - HexHopTuning.ShoreClimbCrossEnd : HexHopTuning.LandingSeconds;
             var hopElapsed = hopWindow - npc.Movement.HopTimer;
             var flightSpan = System.MathF.Max(0.05f, hopWindow - hopTakeoff - hopLanding);
 
@@ -348,7 +356,7 @@ public sealed class MovementSystem : ISimulationSystem
                     // The path ends on this landing — close the hop window
                     // too, or the (now skipped) movement loop would leave
                     // it dangling and HopKind stuck for the view.
-                    npc.Movement.HopTimer = 0f;
+                    if (!shoreClimb) npc.Movement.HopTimer = 0f;
                     npc.Movement.ClimbPauseTimer = System.MathF.Max(
                         npc.Movement.ClimbPauseTimer, HexHopTuning.LandingSeconds);
                     npc.Movement.IsMoving = false;
@@ -1199,7 +1207,8 @@ public sealed class MovementSystem : ISimulationSystem
                 npc.Movement.HopArmed = false;
                 npc.Movement.HopPathIndex = npc.Movement.PathIndex;
                 npc.Movement.HopCrossed = false;
-                npc.Movement.HopTimer = HexHopTuning.HopSeconds;
+                npc.Movement.HopTimer = IsShoreClimb(world, npc.Movement)
+                    ? HexHopTuning.ShoreClimbSeconds : HexHopTuning.HopSeconds;
                 npc.Movement.HopStartTick = world.Tick;
                 npc.Movement.SetStatus(MovementStatus.Waiting);
                 if (SimTrace.Enabled)

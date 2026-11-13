@@ -37,6 +37,12 @@ public static class HexHopTuning
     public static float TakeoffSeconds = 0.25f;
     public static float LandingSeconds = 0.35f;
 
+    // §21.21B: the authored swim-to-stand take is 122 frames at 30 fps.
+    // Hold the swimmer at the lip during the pull-up, then cross onto land.
+    public const float ShoreClimbSeconds = 122f / 30f;
+    public const float ShoreClimbCrossStart = 2.35f;
+    public const float ShoreClimbCrossEnd = 3.8f;
+
     // §57.11: спуск-падение раненой (HopKind="Fall") — НЕ шестая ручка прыжка,
     // а отдельный ход: без отталкивания, клип падения в полёте, и после
     // приземления она ПОДНИМАЕТСЯ — эту паузу и задаёт ручка. Сим держит

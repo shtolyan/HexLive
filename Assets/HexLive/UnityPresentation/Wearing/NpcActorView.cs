@@ -7792,7 +7792,11 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var weight = blendIn * blendOut;
         if (weight <= .001f) return false;
 
-        var stroke = Mathf.Sin(_servingProgress * Mathf.PI * 9f);
+        // Follow the physical cut beat even when a better knife shortens the
+        // work window. The blade keeps the authored hand attachment.
+        var stroke = _everydayServing
+            ? Mathf.Sin(_servingCutSeconds * Mathf.PI * 2f * 2.28f)
+            : Mathf.Sin(_servingProgress * Mathf.PI * 9f);
         var work = _servingSurface - toward * .065f;
         var cut = work + across * (.035f + .025f * stroke) +
             Vector3.up * (.06f + .055f * (1f + stroke));

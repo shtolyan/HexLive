@@ -143,7 +143,7 @@ public sealed partial class ExecutionSystem
                 looter.Execution.Status = ExecutionStatus.InProgress;
                 looter.Execution.StartTick = world.Tick;
                 looter.Execution.EndTick = world.Tick + System.Math.Max(1,
-                    (int)System.Math.Ceiling(2.25f / world.TickDeltaTime));
+                    (int)System.Math.Ceiling((109f / 30f) / world.TickDeltaTime));
                 SocialCueSignals.Stamp(world, looter, "GiftOffering", other.Id);
                 return;
             }

@@ -199,6 +199,7 @@ namespace HexLive.UnityPresentation.UI
 
         private JObject RosterModel(WorldSnapshot snapshot)
         {
+            var relationSource = RosterRelationSource(snapshot);
             var clan = new JArray();
             var outsiders = new JArray();
             var total = 0;
@@ -239,6 +240,16 @@ namespace HexLive.UnityPresentation.UI
                     ["mine"] = selective && owned,
                     ["selected"] = NpcSelection.Contains(npc.Id.Value),
                 };
+                if (mine && relationSource != null && relationSource.Id != npc.Id)
+                {
+                    var relation = relationSource.RelationshipDetails.Find(row => row.OtherId == npc.Id.Value);
+                    card["relation"] = new JObject
+                    {
+                        ["affinity"] = Mathf.Clamp(relation?.Affinity ?? 0f, -1f, 1f),
+                        ["familiarity"] = Mathf.Clamp01(relation?.Familiarity ?? 0f),
+                        ["trust"] = Mathf.Clamp01(relation?.Trust ?? 0f),
+                    };
+                }
                 (mine ? clan : outsiders).Add(card);
             }
 

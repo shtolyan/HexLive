@@ -1166,7 +1166,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // senses for a beat before the next errand.
                 if (completedInteraction.Type == InteractionType.Sleep)
                 {
-                    npc.Mind.WakeGraceUntilTick = world.Tick + StandUpMath.GraceTicks;
+                    npc.Mind.WakeGraceUntilTick = world.Tick + (ContentIds.IsBed(worldObject.DefinitionId)
+                        ? StandUpMath.BedGraceTicks(world.TickDeltaTime) : StandUpMath.GraceTicks);
                 }
 
                 npc.Plan.Status = PlanStatus.Completed;

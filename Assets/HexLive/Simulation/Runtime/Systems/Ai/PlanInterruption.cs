@@ -197,6 +197,7 @@ public static class PlanInterruption
         WorldState world, NPCState npc, InterruptionCause cause, string reason, bool keepCarriedPerson)
     {
         var previousInteraction = npc.Execution.CurrentInteraction;
+        var wasBedSleeping = BedSleep.TryGetOccupiedBed(world, npc, out _);
         var wasKneeling = previousInteraction == InteractionType.ConsoleOther &&
             npc.Plan.TargetAgentId is { } comfortTarget && world.Entities.Npcs.TryGetValue(comfortTarget, out var patient) &&
             patient.IsLyingDown(world.Tick);
@@ -378,8 +379,8 @@ public static class PlanInterruption
 
         if (wasLowPose && !npc.IsLyingDown(world.Tick) && !npc.Body.IsCrawling)
         {
-            var ticks = wasKneeling
-                ? StandUpMath.KneelingGraceTicks : StandUpMath.GraceTicks;
+            var ticks = wasKneeling ? StandUpMath.KneelingGraceTicks :
+                wasBedSleeping ? StandUpMath.BedGraceTicks(world.TickDeltaTime) : StandUpMath.GraceTicks;
             npc.Mind.WakeGraceUntilTick = System.Math.Max(npc.Mind.WakeGraceUntilTick, world.Tick + ticks);
         }
 

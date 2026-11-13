@@ -34,6 +34,34 @@ public sealed class BuildSiteSelectionUiContractTests
         Assert.That(view, Does.Contain("public void SetContextProxy"));
     }
 
+    // #766: a half-built chest (4 sticks delivered) and a torch (rope, cloth)
+    // were invisible outside build mode: the pile drew only stones, logs and
+    // leaves, and the stakes had left with the first delivery.
+    [Test]
+    public void ASiteWithoutAGrowingModelKeepsItsOutlineAndPilesEveryMaterial()
+    {
+        var renderer = Read("Environment", "BuildSiteStakeRenderer.cs");
+        var pile = Read("Environment", "BuildSitePile.cs");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(renderer, Does.Contain(
+                "if (!BuildSitePile.GrowsInPlace(site.BuildProduct)) return true;"),
+                "Изделие без собственной растущей модели держит колышки до постройки.");
+            Assert.That(renderer.IndexOf("BuildSitePile.GrowsInPlace", System.StringComparison.Ordinal),
+                Is.LessThan(renderer.IndexOf("return !BuildSiteStakeVisibility.HasPhysicalProgress(site, modules)",
+                    System.StringComparison.Ordinal)),
+                "Проверка стоит ДО правила «первый материал убирает колышки».");
+            Assert.That(pile, Does.Contain("public static bool GrowsInPlace(string product)"));
+            Assert.That(pile, Does.Contain("BedAssembly.IsAssembled(product)"),
+                "Видимым «по умолчанию» изделие делает отсутствие в этом списке, а не присутствие.");
+            foreach (var material in new[] { "DeliveredStones", "DeliveredLogs", "DeliveredLeaves",
+                         "DeliveredSticks", "DeliveredBoards" })
+                Assert.That(pile, Does.Contain("site." + material + ", placed)"),
+                    material + " не рисуется в куче площадки.");
+        });
+    }
+
     [Test]
     public void ConstructionStakesDisappearAfterTheFirstPhysicalProgress()
     {

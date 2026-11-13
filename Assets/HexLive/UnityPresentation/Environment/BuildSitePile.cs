@@ -78,10 +78,28 @@ namespace HexLive.UnityPresentation.Environment
             placed = Pile("resource.stone", site.DeliveredStones, placed);
             placed = Pile("resource.log", site.DeliveredLogs, placed);
             placed = Pile("resource.palm_leaf", site.DeliveredLeaves, placed);
-
-            // Nothing hauled in yet → nothing to show. The intent stake is
-            // retired (§54.14) — an empty site is a sim-side marker only.
+            // #766: every billed material is piled, not only the three the first
+            // sites used. A chest site holding 4 sticks and a torch site holding
+            // rope drew NOTHING — and the stakes had already left with the first
+            // delivery, so a half-built piece was invisible outside build mode.
+            placed = Pile("resource.stick", site.DeliveredSticks, placed);
+            placed = Pile("resource.board", site.DeliveredBoards, placed);
+            // Rope and cloth have no world prop of their own; the outline that
+            // stays until the piece is built (GrowsInPlace) covers them.
         }
+
+        /// <summary>
+        /// Does a site of this product SHOW ITSELF GROWING — an assembled prefab
+        /// lighting up piece by piece, or a house raised by its own modules?
+        /// Everything else has only the generic pile, which may hold nothing a
+        /// player can read (a torch's cloth), so its stakes must stay until the
+        /// piece is built (<see cref="BuildSiteStakeRenderer"/>). A new buildable
+        /// product is therefore visible by default; it opts OUT of the outline
+        /// only by owning a real growing visual here.
+        /// </summary>
+        public static bool GrowsInPlace(string product) =>
+            product == ContentIds.HutPlan || product == ContentIds.Hut1Hex ||
+            BedAssembly.IsAssembled(product);
 
         private int Pile(string definitionId, int count, int placed)
         {

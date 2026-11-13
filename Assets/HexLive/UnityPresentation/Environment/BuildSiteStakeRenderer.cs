@@ -154,6 +154,10 @@ namespace HexLive.UnityPresentation.Environment
             if (FreeArchitectureRules.IsDemolitionSite(site)) return true;
             if (FreeArchitectureRules.IsFreePiece(site))
                 return !BuildSiteStakeVisibility.HasElementProgress(site);
+            // #766: a product with no growing model of its own (chest, torch,
+            // any new piece) keeps its outline until it is built — the pile of
+            // hauled materials alone does not say what stands here, or where.
+            if (!BuildSitePile.GrowsInPlace(site.BuildProduct)) return true;
             return !BuildSiteStakeVisibility.HasPhysicalProgress(site, modules);
         }
 

@@ -4775,6 +4775,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private static bool OwnsRaisedFloorGeometry(ObjectSnapshot worldObject) =>
         worldObject.DefinitionId == ContentIds.Hut1Hex ||
+        worldObject.BuildProduct == ContentIds.Hut1Hex ||
         worldObject.ArchitectureOwnerObjectId.HasValue;
 
     private TileCoord ActorSupportTile(NpcSnapshot npc) =>

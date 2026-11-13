@@ -60,7 +60,7 @@ export function TooltipLayer() {
   const c = current.content;
   const interactive = c.rows?.some((row) => row.action) === true;
   return html`
-    <div class="hx-tip" ref=${card} role=${interactive ? 'group' : 'tooltip'} data-tone=${c.tone || ''}
+    <div class=${interactive ? 'hx-tip hx-surface' : 'hx-tip'} ref=${card} role=${interactive ? 'group' : 'tooltip'} data-tone=${c.tone || ''}
       data-interactive=${interactive} onPointerEnter=${interactive ? cancelDismiss : undefined}
       onPointerLeave=${interactive ? dismissSoon : undefined}
       style=${pos ? { left: `${pos.left}px`, top: `${pos.top}px` } : { visibility: 'hidden', left: 0, top: 0 }}>

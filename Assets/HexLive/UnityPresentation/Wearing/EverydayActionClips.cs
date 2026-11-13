@@ -49,7 +49,10 @@ namespace HexLive.UnityPresentation.Wearing
 
         internal AnimationClip Eating(string itemId, bool seated) => itemId switch
         {
-            ContentIds.MeatCooked => seated ? eatMeatSeated : eatMeat,
+            ContentIds.MeatCooked or ContentIds.MeatRoasted or ContentIds.CrabCooked or
+            ContentIds.CrabRoasted or ContentIds.Apple or ContentIds.Banana or
+            ContentIds.CheeseWedge or ContentIds.ChocolateBar or ContentIds.HamSandwich or
+            ContentIds.Orange => seated ? eatMeatSeated : eatMeat,
             ContentIds.CoconutOpen => seated ? eatCoconutSeated : eatCoconut,
             _ => null
         };

@@ -322,6 +322,14 @@ public sealed class PlayerCharacterAssignmentsTests
         Assert.That(PlayerCommandAuthorization.TryAuthorize(new MovePlayerOrderCommand(new EntityId(1), 3, 0),
             assigned, leases, "ws:two", out refusal), Is.False);
         Assert.That(refusal, Is.EqualTo("ControlledByOther"));
+        // §121.13 r2: the plain-click «go» travels the same path.
+        Assert.That(PlayerCommandAuthorization.TryAuthorize(new ReplaceMovementOrderCommand(
+                new MoveToCommand(new EntityId(2), new Float2(1f, 2f))), assigned, leases, "ws:one", out refusal),
+            Is.False);
+        Assert.That(refusal, Is.EqualTo("NotAssigned"));
+        Assert.That(PlayerCommandAuthorization.TryAuthorize(new ReplaceMovementOrderCommand(
+                new MoveToCommand(new EntityId(1), new Float2(1f, 2f))), assigned, leases, "ws:one", out _),
+            Is.True);
     }
 
     // §149.2: в HugeIsland/Maniac в каждом из шести лагерей ОДНА девушка.

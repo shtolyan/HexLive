@@ -192,6 +192,66 @@ internal static partial class ManualCommandExecutor
         _ => (null, null)
     };
 
+    /// <summary>§121.13: «only walking» — the queue holds nothing but go orders.</summary>
+    internal static bool HoldsOnlyMovement(PlayerOrderQueue queue)
+    {
+        if (queue.Active != null && queue.Active.Command is not MoveToCommand)
+            return false;
+        foreach (var entry in queue.Pending)
+            if (entry.Command is not MoveToCommand)
+                return false;
+        return true;
+    }
+
+    // §121.13 r2: a plain ground click. With only walking in the queue it
+    // REPLACES all of it at once (Diablo/RTS: the new point wins, nothing
+    // accumulates). Any other action in the queue is never wiped by a plain
+    // click: the client opens «Идти сюда» instead, and a raced command that
+    // finds such an action here is refused with QueueHasAction.
+    private static void ApplyReplaceMovement(
+        WorldState world, ReplaceMovementOrderCommand command, AdmissionTracker admission)
+    {
+        var actor = command.Move.Npc;
+        if (admission.AssignedNpcIds is { } assignments && !assignments.Contains(actor.Value))
+        {
+            Reject(world, actor, "Go", "NotAssigned", admission);
+            return;
+        }
+        if (!TryTakeOrder(world, actor, "Go", requireManual: false, admission, out var npc))
+            return;
+        if (npc.Mind.ExternalControl?.IsActive == true)
+        {
+            Reject(world, actor, "Go", "ControlledByAgent", admission);
+            return;
+        }
+        if (Incapacitated(world, npc))
+        {
+            Reject(world, actor, "Go", "Incapacitated", admission);
+            return;
+        }
+
+        var queue = npc.Mind.PlayerOrders;
+        if (!HoldsOnlyMovement(queue))
+        {
+            Reject(world, actor, "Go", "QueueHasAction", admission);
+            return;
+        }
+
+        if (!npc.Mind.ManualControl)
+            ApplySetManual(world, new SetManualControlCommand(actor, true), admission);
+        if (!admission.Accepted)
+            return;
+
+        // ApplyMoveTo aborts the running walk through the ordinary plan transaction.
+        ApplyMoveTo(world, command.Move, admission);
+        if (!admission.Accepted)
+            return;
+
+        queue.Pending.Clear();
+        queue.Active = new PlayerOrderQueue.Entry(++queue.NextId, command.Move, OrderName(command.Move), string.Empty);
+        ManualControlMath.RenewInactivityLease(world, npc);
+    }
+
     // §121.13: drag-to-reorder in the action list. Same gate as cancelling:
     // an assigned, owned, manually controlled character. Only the waiting
     // tail moves; the running order keeps running.

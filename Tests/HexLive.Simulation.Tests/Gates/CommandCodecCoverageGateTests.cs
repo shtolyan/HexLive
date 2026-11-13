@@ -55,6 +55,7 @@ public sealed class CommandCodecCoverageGateTests
         new QueuePlayerOrderCommand(new MoveToCommand(new EntityId(701), new Float2(4.25f, -1.5f), run: true)),
         new CancelPlayerOrderCommand(new EntityId(702), 51),
         new MovePlayerOrderCommand(new EntityId(703), 52, 53),
+        new ReplaceMovementOrderCommand(new MoveToCommand(new EntityId(704), new Float2(2.75f, -3.5f), run: false)),
         new PlacePlantingSiteCommand(ContentIds.YuccaSeed, new TileCoord(4, -7), new JunctionId(638)),
         new KnockDoorCommand(new EntityId(643), new ObjectId(1643)),
         new BreakDoorCommand(new EntityId(644), new ObjectId(2643)),

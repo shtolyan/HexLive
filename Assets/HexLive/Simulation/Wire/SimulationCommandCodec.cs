@@ -42,7 +42,8 @@ public static class SimulationCommandCodec
     // 12: §176 manual placement of one carried furniture item (57).
     // 13: §54.14 craft at a selected station, with legacy opcode 10 unchanged.
     // 15: §120.13 r2 construction hold until «Готово» (64).
-    // 16: §121.13 drag-to-reorder of the player's action queue (65).
+    // 16: §121.13 drag-to-reorder of the player's action queue (65) and the
+    //     plain-click «go, replacing only walking» order (66).
     public const int WireVersion = 16;
 
     // Защита от мусора в потоке: злонамеренный клиент не должен уметь
@@ -116,6 +117,7 @@ public static class SimulationCommandCodec
         CancelPlayerOrder = 63,
         SetConstructionHold = 64, // §120.13 r2 (#721) append-only
         MovePlayerOrder = 65, // §121.13 append-only
+        ReplaceMovementOrder = 66, // §121.13 r2 append-only
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -132,6 +134,10 @@ public static class SimulationCommandCodec
                 w.Write((ushort)CommandType.CancelPlayerOrder);
                 WriteEntity(w, cancelled.Npc);
                 w.Write(cancelled.OrderId);
+                break;
+            case ReplaceMovementOrderCommand go:
+                w.Write((ushort)CommandType.ReplaceMovementOrder);
+                Write(w, go.Move);
                 break;
             case MovePlayerOrderCommand moved:
                 w.Write((ushort)CommandType.MovePlayerOrder);
@@ -515,6 +521,14 @@ public static class SimulationCommandCodec
             }
             case CommandType.CancelPlayerOrder:
                 return new CancelPlayerOrderCommand(ReadEntity(r), r.ReadInt32());
+            case CommandType.ReplaceMovementOrder:
+            {
+                if (!allowQueue)
+                    throw new InvalidDataException("Nested player order queue.");
+                if (Read(r, allowQueue: false) is not MoveToCommand move)
+                    throw new InvalidDataException("Replace-movement order must carry a MoveTo.");
+                return new ReplaceMovementOrderCommand(move);
+            }
             case CommandType.MovePlayerOrder:
                 return new MovePlayerOrderCommand(ReadEntity(r), r.ReadInt32(), r.ReadInt32());
             case CommandType.RecordAgentSocial:

@@ -75,6 +75,9 @@ internal static partial class ManualCommandExecutor
             case MovePlayerOrderCommand moved:
                 ApplyMovePlayerOrder(world, moved, admission);
                 break;
+            case ReplaceMovementOrderCommand go:
+                ApplyReplaceMovement(world, go, admission);
+                break;
             case RecordAgentSocialCommand agentSocial:
                 ApplyRecordAgentSocial(world, agentSocial, admission);
                 break;
@@ -302,6 +305,7 @@ internal static partial class ManualCommandExecutor
         RecordAgentSocialCommand => "RecordAgentSocial",
         RecordCompanionTurnCommand => "RecordCompanionTurn",
         MovePlayerOrderCommand => "MoveOrder",
+        ReplaceMovementOrderCommand => "Go",
         SetManualControlCommand => "SetManual",
         KnockDoorCommand => "KnockDoor",
         BreakDoorCommand => "BreakDoor",

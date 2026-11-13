@@ -191,6 +191,22 @@ public sealed class MovePlayerOrderCommand : ISimulationCommand
     public EntityId? TargetEntity => Npc;
 }
 
+/// <summary>
+/// §121.13 r2: a plain ground click — «go there now». When the character's
+/// queue holds nothing but go orders, this one replaces all of them at once
+/// (the running walk is re-planned, waiting go points are dropped). If the
+/// queue holds any other action the simulation refuses with
+/// <c>QueueHasAction</c> and touches nothing; appending a go point is the
+/// ordinary <see cref="QueuePlayerOrderCommand"/>.
+/// </summary>
+public sealed class ReplaceMovementOrderCommand : ISimulationCommand
+{
+    public ReplaceMovementOrderCommand(MoveToCommand move) => Move = move;
+
+    public MoveToCommand Move { get; }
+    public EntityId? TargetEntity => Move.Npc;
+}
+
 public interface IGroupSimulationCommand : ISimulationCommand
 {
     IReadOnlyList<EntityId> Actors { get; }

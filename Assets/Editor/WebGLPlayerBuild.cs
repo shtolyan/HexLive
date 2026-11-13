@@ -37,6 +37,14 @@ public static class HexLiveWebGLPlayerBuild
         try
         {
             RequireWebInputFix(Application.unityVersion);
+            var actionClips = AssetDatabase.LoadAssetAtPath<HexLive.UnityPresentation.Wearing.EverydayActionClips>(
+                HexLive.UnityPresentation.Wearing.EverydayActionClips.AssetPath);
+            if (actionClips == null || !actionClips.HasAllClips)
+                throw new InvalidOperationException("EverydayActions is missing required humanoid animation clips.");
+            var socialClips = AssetDatabase.LoadAssetAtPath<HexLive.UnityPresentation.TwoPeopleTest.SocialContactClipCatalog>(
+                HexLive.UnityPresentation.TwoPeopleTest.SocialContactClipCatalog.AssetPath);
+            if (socialClips == null || !socialClips.HasExpandedClips)
+                throw new InvalidOperationException("SocialContact is missing required pair animation clips.");
             if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.WebGL)
             {
                 throw new InvalidOperationException(

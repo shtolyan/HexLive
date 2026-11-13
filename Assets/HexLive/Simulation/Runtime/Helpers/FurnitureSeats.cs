@@ -209,6 +209,35 @@ public static class FurnitureSeats
         obj.IsOccupied = true;
         obj.CurrentUser ??= npc.Id;
     }
+
+    internal static WorldObjectState? CurrentMealSeat(WorldState world, NPCState npc)
+    {
+        var id = npc.Execution.ConsumptionSeat;
+        if (id == null && npc.Execution.CurrentInteraction == InteractionType.Sit &&
+            npc.Execution.Status == HexLive.Simulation.AI.ExecutionStatus.InProgress)
+            id = npc.Execution.TargetObject;
+        return id is { } seatId && world.Entities.Objects.TryGetValue(seatId, out var seat) &&
+            (seat.CurrentUser == npc.Id || SitsOwnSeat(world, npc, seat)) ? seat : null;
+    }
+
+    internal static void KeepForMeal(NPCState npc, WorldObjectState? seat)
+    {
+        if (seat == null) return;
+        npc.Execution.ConsumptionSeat = seat.Id;
+        seat.IsOccupied = true;
+        seat.CurrentUser ??= npc.Id;
+    }
+
+    internal static void ReleaseMealSeat(WorldState world, NPCState npc)
+    {
+        if (npc.Execution.ConsumptionSeat is { } id && world.Entities.Objects.TryGetValue(id, out var seat) &&
+            seat.CurrentUser == npc.Id)
+        {
+            seat.IsOccupied = false;
+            seat.CurrentUser = null;
+        }
+        npc.Execution.ConsumptionSeat = null;
+    }
 }
 
 }

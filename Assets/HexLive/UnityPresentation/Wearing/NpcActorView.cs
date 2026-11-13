@@ -17,7 +17,7 @@ namespace HexLive.UnityPresentation.Wearing
 // Owns wardrobe sync (sim WornItems -> Equip/TakeOff), the walk/idle
 // animator, and the LookAtIK gaze (ported from molly_copy's pattern:
 // drive solver.target + weights, ease in/out smoothly).
-public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
+public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
 {
     private static readonly int SpeedParam = Animator.StringToHash("Speed");
     private static readonly int HitReactParam = Animator.StringToHash("HitReact");
@@ -1400,7 +1400,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // A land hop in ANY phase (flight or the grace window after release)
         // owns the body — the root's tile-switch snap must not echo a second
         // arc.
-        if (_jumpTimer > 0f || _jumpRetriggerGuard > 0f)
+        if (_jumpTimer > 0f || _jumpRetriggerGuard > 0f || _shoreHopTick != 0)
         {
             return;
         }
@@ -2194,6 +2194,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     private void OnDestroy()
     {
+        StopEverydayAction();
         if (LiveByNpcId.TryGetValue(_npcId, out var registered) && registered == this)
         {
             LiveByNpcId.Remove(_npcId);
@@ -3559,6 +3560,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         RefreshAnimatorCulling();
         _layingAttach = attachPoint;
         _layingSurfaceY = surfaceY;
+        RefreshBedSleepClip(laying && !fallenChain && !_crying && attachPoint != null);
         // Spec 31C.8: lying poses stretch outside the authored skin bounds and
         // get frustum-culled; per-frame bounds while sleeping keep her visible.
         // Труп держит их по своей причине (см. RefreshSkinBounds), поэтому
@@ -4283,7 +4285,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     public void SyncHeldLeafDryness(float dryness) => _handLeafTint?.Sync(dryness);
 
     public void SetInteraction(string interaction, string heldItemId, bool aidTargetLying = false,
-        float interactionSeconds = 0f, int lyingStationSlot = -1, bool standingCraft = false)
+        float interactionSeconds = 0f, int lyingStationSlot = -1, bool standingCraft = false,
+        bool seatedMeal = false)
     {
         if (!_hasUsableHand)
         {
@@ -4344,7 +4347,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             (crafting && standingCraft ||
              interaction is "TreatSelf" or "TreatOther" or "Splint" or "FitProsthetic");
         _wantsTalk = interaction == "Talk"; // the Talk bool is driven by turn-taking
-        _sitting = interaction == "Sit";   // §78.5: LateUpdate nudges a male seat
+        _sitting = interaction == "Sit" || seatedMeal; // §78.5: LateUpdate nudges a male seat
         SyncHeelPoseTarget();
 
         // Which procedural/clip action this verb wants (before touching the
@@ -4396,7 +4399,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 _animator.SetBool(StationAtHeadParam, lyingStationSlot is 3 or 4);
             }
             _animator.SetBool(ChoppingParam, chopping);
-            _animator.SetBool(SittingParam, interaction == "Sit");
+            _animator.SetBool(SittingParam, _sitting);
             // Clip source: config override if present, else the state's base clip.
             if (gathering && _animSet != null) OverrideClip("X Bot@Gathering Objects", Standing(_animSet.gather));
             // Bug #345: both bottle and pierced-coconut paths arrive as Drink.
@@ -5410,7 +5413,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         var clip = _crying && poses.Length > 1 ? poses[1]
             : poses[((_npcId % poses.Length) + poses.Length) % poses.Length];
-        OverrideClip(SleepBaseClip, clip);
+        OverrideClip(SleepBaseClip, _bedSleepClip != null ? _bedSleepClip : clip);
         OverrideClip(FallenIdleBaseClip, clip);
     }
 
@@ -7527,6 +7530,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         otherEffector.rotationWeight = 0f;
 
         if (TryDriveStumpServingIK(solver, hand, effector, otherEffector)) return;
+        if (TryDriveMealContactIK(solver, hand, effector, otherEffector)) return;
 
         var weight = _hasUsableHand && _actionTargetActive && !_ragdollActive &&
             !_laying && !_swimming && hand != null
@@ -7717,7 +7721,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // §142: третий повод разбудить решатель — вторая ладонь на древке.
         // В отличие от первых двух он держится и НА ХОДУ: копьё несут двумя
         // руками и в шаге, и в беге.
-        var wants = HurtReachActive || _actionTargetActive || _servingAtStump ||
+        var wants = HurtReachActive || _actionTargetActive || _servingAtStump || _feedingRecipient != null ||
+                    _requestedEverydayClip != null && (_action == ActionKind.RaiseToMouth || _everydayDrinking) ||
                     (_offHandGripIk && TwoHandCarryActive);
         if (_fullBodyIK.enabled != wants)
         {
@@ -8080,12 +8085,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             }
         }
 
+        var everydayAction = EvaluateEverydayAction();
         // Spec 40.13: while ragdolled (faint/corpse) the bones belong to
         // physics — no procedural pose layer may write over them.
         if (!_dead && !_ragdollActive && !_romanceVisual && !_socialContactVisual)
         {
             // Layer the current action's arm swing over the animated pose.
-            ApplyActionPose();
+            if (!everydayAction) ApplyActionPose();
             ApplyCarryPose();
 
             // §104 r9: и отбой от удара — поверх всего, в любой позе.

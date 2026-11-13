@@ -133,6 +133,23 @@ public sealed partial class ExecutionSystem
 
         var itemRef = new InventoryItemRef(itemSource, selectedIndex, expected);
 
+        if (!take && PlayerLootTargets.IsStandingRecipient(world, other))
+        {
+            if (looter.Execution.CurrentInteraction != InteractionType.GiveGift)
+            {
+                FaceHelperToward(looter, other);
+                FaceHelperToward(other, looter);
+                looter.Execution.CurrentInteraction = InteractionType.GiveGift;
+                looter.Execution.Status = ExecutionStatus.InProgress;
+                looter.Execution.StartTick = world.Tick;
+                looter.Execution.EndTick = world.Tick + System.Math.Max(1,
+                    (int)System.Math.Ceiling(2.25f / world.TickDeltaTime));
+                SocialCueSignals.Stamp(world, looter, "GiftOffering", other.Id);
+                return;
+            }
+            if (world.Tick < looter.Execution.EndTick) return;
+        }
+
         if (!PlayerInventoryTransferMath.TryResolveTransfer(
                 world, source, itemRef, count, out var moving, out var contents) ||
             moving.Count == 0 || !ReferenceEquals(moving[0], selected))

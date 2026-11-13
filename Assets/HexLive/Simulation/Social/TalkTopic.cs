@@ -70,7 +70,21 @@ public enum TalkTopic
     HugAccepted,
     HugDeclined,
     KissAccepted,
-    KissDeclined
+    KissDeclined,
+    Greet,
+    GreetAccepted,
+    GreetDeclined,
+    Dance,
+    DanceAccepted,
+    DanceDeclined,
+    PassionateKiss,
+    PassionateKissAccepted,
+    PassionateKissDeclined,
+    FlirtGesture,
+    FlirtAccepted,
+    FlirtDeclined,
+    Apologize,
+    ApologyAccepted
 }
 
 /// <summary>§28.15G: only shared conversation subjects may be requested by a command.</summary>
@@ -83,7 +97,8 @@ public static class TalkTopicRequest
         TalkTopic.Flirt, TalkTopic.Joke, TalkTopic.Grumble,
         // §167.2: просьбы — общие темы по определению (их задаёт просящая).
         TalkTopic.AskBuild, TalkTopic.AskStockFood, TalkTopic.AskStockWater, TalkTopic.AskFirewood,
-        TalkTopic.AskBathe, TalkTopic.AskWashClothes, TalkTopic.Hug, TalkTopic.Kiss
+        TalkTopic.AskBathe, TalkTopic.AskWashClothes, TalkTopic.Hug, TalkTopic.Kiss,
+        TalkTopic.Greet, TalkTopic.Dance, TalkTopic.PassionateKiss, TalkTopic.FlirtGesture, TalkTopic.Apologize
     });
 
     public static bool IsAllowed(TalkTopic topic)

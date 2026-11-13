@@ -813,6 +813,8 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         _ = Rendering.BloodSplashVfx.Prefabs;
         HexLive.UnityPresentation.Content.AtomicResources.Prewarm("HexLive/NpcAnimSet");
         HexLive.UnityPresentation.Content.AtomicResources.Prewarm(
+            HexLive.UnityPresentation.Wearing.EverydayActionClips.ContentPath);
+        HexLive.UnityPresentation.Content.AtomicResources.Prewarm(
             HexLive.UnityPresentation.TwoPeopleTest.SocialContactClipCatalog.ResourcesPath);
         HexLive.UnityPresentation.Content.AtomicResources.Prewarm("HexLive/CarryPoses/Carrying");
         HexLive.UnityPresentation.Content.AtomicResources.Prewarm("HexLive/CarryPoses/BeingCarried");

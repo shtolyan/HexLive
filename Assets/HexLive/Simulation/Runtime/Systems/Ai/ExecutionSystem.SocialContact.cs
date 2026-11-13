@@ -25,32 +25,51 @@ public sealed partial class ExecutionSystem
 
     private static void StartSocialContact(WorldState world, NPCState npc, NPCState target, TalkTopic request)
     {
-        var kiss = request == TalkTopic.Kiss;
         if (!CanStageContact(world, npc, target))
         {
-            SocialCueSignals.Stamp(world, npc, kiss ? "KissUnavailable" : "HugUnavailable", target.Id);
+            var cue = SocialContact.IsKiss(request) ? "KissUnavailable" :
+                request == TalkTopic.Hug ? "HugUnavailable" : "ContactUnavailable";
+            SocialCueSignals.Stamp(world, npc, cue, target.Id);
             FinishSocialContact(world, npc, target);
             return;
         }
 
         var relation = target.Social.GetOrCreate(npc.Id);
-        var accepted = !FactionRelations.AreHostile(world, target, npc) && (kiss
-            ? relation.Affinity >= 0.42f && relation.Trust >= 0.25f && relation.Familiarity >= 0.28f
-            : relation.Affinity >= 0.08f && relation.Familiarity >= 0.10f);
-        var result = kiss
-            ? (accepted ? TalkTopic.KissAccepted : TalkTopic.KissDeclined)
-            : (accepted ? TalkTopic.HugAccepted : TalkTopic.HugDeclined);
+        var friendly = !FactionRelations.AreHostile(world, target, npc);
+        var result = request switch
+        {
+            TalkTopic.Kiss => friendly && relation.Affinity >= .42f && relation.Trust >= .25f &&
+                relation.Familiarity >= .28f ? TalkTopic.KissAccepted : TalkTopic.KissDeclined,
+            TalkTopic.PassionateKiss => friendly && relation.Affinity >= .62f && relation.Trust >= .4f &&
+                relation.Familiarity >= .42f ? TalkTopic.PassionateKissAccepted : TalkTopic.PassionateKissDeclined,
+            TalkTopic.FlirtGesture => friendly && relation.Affinity >= .15f
+                ? TalkTopic.FlirtAccepted : TalkTopic.FlirtDeclined,
+            TalkTopic.Dance => friendly && relation.Affinity >= .08f
+                ? TalkTopic.DanceAccepted : TalkTopic.DanceDeclined,
+            TalkTopic.Greet => friendly ? TalkTopic.GreetAccepted : TalkTopic.GreetDeclined,
+            TalkTopic.Apologize when relation.Affinity < .15f || relation.Trust < .2f
+                => TalkTopic.ApologyAccepted,
+            TalkTopic.Hug => friendly && relation.Affinity >= .08f && relation.Familiarity >= .10f
+                ? TalkTopic.HugAccepted : TalkTopic.HugDeclined,
+            _ => (TalkTopic?)null
+        };
+        if (result is not { } outcome)
+        {
+            SocialCueSignals.Stamp(world, npc, "ContactUnavailable", target.Id);
+            FinishSocialContact(world, npc, target);
+            return;
+        }
         npc.Plan.RequestedTalkTopic = result;
         npc.Execution.Status = ExecutionStatus.InProgress;
         npc.Execution.CurrentInteraction = InteractionType.Talk;
         npc.Execution.StartTick = world.Tick;
         npc.Execution.EndTick = world.Tick + Math.Max(1,
-            (int)Math.Ceiling(SocialContact.Duration(result) / Math.Max(0.001f, world.TickDeltaTime)));
+            (int)Math.Ceiling(SocialContact.Duration(outcome) / Math.Max(0.001f, world.TickDeltaTime)));
         npc.Execution.CurrentTalkTopic = result;
         npc.Execution.CurrentTalkTopicPeerId = target.Id;
         target.Mind.PendingTalkSinceTick = world.Tick;
         if (npc.Plan.TargetJunctionId is { } at) SpatialMutations.OccupyJunction(world, at, npc.Id);
-        SocialCueSignals.Stamp(world, target, result.ToString(), npc.Id);
+        SocialCueSignals.Stamp(world, target, outcome.ToString(), npc.Id);
     }
 
     private static void RunSocialContact(WorldState world, NPCState npc, NPCState target, TalkTopic result)
@@ -78,19 +97,29 @@ public sealed partial class ExecutionSystem
     private static void ApplyContactGain(WorldState world, NPCState actor, NPCState peer, TalkTopic result)
     {
         var relation = actor.Social.GetOrCreate(peer.Id);
-        if (result == TalkTopic.KissAccepted)
+        if (result is TalkTopic.KissAccepted or TalkTopic.PassionateKissAccepted or TalkTopic.FlirtAccepted)
         {
             var before = relation.Affinity;
-            relation.Affinity = MathUtil.Clamp(relation.Affinity + SocialContact.KissAffinityGain, -1f, 1f);
+            var gain = result == TalkTopic.FlirtAccepted ? .045f : SocialContact.KissAffinityGain;
+            relation.Affinity = MathUtil.Clamp(relation.Affinity + gain, -1f, 1f);
             actor.Execution.LastTalkAffinityDelta = relation.Affinity - before;
             actor.Execution.LastTalkResultTick = world.Tick;
             SocialCueSignals.Stamp(world, actor, "KissBond", peer.Id);
         }
-        else
+        else if (result == TalkTopic.HugAccepted)
         {
             relation.Trust = MathUtil.Clamp01(relation.Trust + SocialContact.HugFriendshipGain);
             relation.Familiarity = MathUtil.Clamp01(relation.Familiarity + SocialContact.HugFriendshipGain);
             SocialCueSignals.Stamp(world, actor, "HugFriendship", peer.Id);
+        }
+        else
+        {
+            var gain = result == TalkTopic.ApologyAccepted ? .045f : .025f;
+            relation.Trust = MathUtil.Clamp01(relation.Trust + gain);
+            if (result == TalkTopic.ApologyAccepted)
+                relation.Affinity = MathUtil.Clamp(relation.Affinity + gain, -1f, 1f);
+            else
+                relation.Familiarity = MathUtil.Clamp01(relation.Familiarity + gain);
         }
     }
 

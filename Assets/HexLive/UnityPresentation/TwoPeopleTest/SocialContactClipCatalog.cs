@@ -27,9 +27,21 @@ public sealed class SocialContactClipCatalog : ScriptableObject
     [SerializeField] private Pair hugDeclined;
     [SerializeField] private Pair kissAccepted;
     [SerializeField] private Pair kissDeclined;
+    [SerializeField] private Pair greet;
+    [SerializeField] private Pair dance;
+    [SerializeField] private Pair handshakeDeclined;
+    [SerializeField] private Pair passionateKiss;
+    [SerializeField] private Pair passionateKissDeclined;
+    [SerializeField] private Pair flirt;
+    [SerializeField] private Pair flirtDeclined;
+    [SerializeField] private Pair apology;
 
     internal bool HasAllClips =>
         hugAccepted.IsValid && hugDeclined.IsValid && kissAccepted.IsValid && kissDeclined.IsValid;
+
+    public bool HasExpandedClips =>
+        greet.IsValid && dance.IsValid && handshakeDeclined.IsValid && passionateKiss.IsValid &&
+        passionateKissDeclined.IsValid && flirt.IsValid && flirtDeclined.IsValid && apology.IsValid;
 
     internal bool TryGet(TalkTopic outcome, out AnimationClip? initiator, out AnimationClip? partner)
     {
@@ -39,6 +51,15 @@ public sealed class SocialContactClipCatalog : ScriptableObject
             TalkTopic.HugDeclined => hugDeclined,
             TalkTopic.KissAccepted => kissAccepted,
             TalkTopic.KissDeclined => kissDeclined,
+            TalkTopic.GreetAccepted => greet,
+            TalkTopic.DanceAccepted => dance,
+            TalkTopic.GreetDeclined => handshakeDeclined,
+            TalkTopic.DanceDeclined => flirtDeclined,
+            TalkTopic.PassionateKissAccepted => passionateKiss,
+            TalkTopic.PassionateKissDeclined => passionateKissDeclined,
+            TalkTopic.FlirtAccepted => flirt,
+            TalkTopic.FlirtDeclined => flirtDeclined,
+            TalkTopic.ApologyAccepted => apology,
             _ => default
         };
         initiator = pair.initiator;

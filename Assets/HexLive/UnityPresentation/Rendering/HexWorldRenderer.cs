@@ -2671,6 +2671,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         SyncRomancePairs(snapshot);
         SyncSocialContactPairs(snapshot);
+        SyncEverydayPairs(snapshot);
 
         // Spec 40.2-B/C r2 / bug #22: a body with an open wound keeps feeding
         // the existing cosmetic blood pipeline for a finite period after the
@@ -3458,7 +3459,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var hopFlightDirection = Vector3.ProjectOnPlane(
             hopTargetCenter - hopFromCenter, Vector3.up).normalized;
         var hopEdgePoint = (hopFromCenter + hopTargetCenter) * 0.5f;
-        actorView.SetHopSignal(npc.HopKind,
+        var visualShoreClimb = actorView.SyncShoreClimb(npc.HopKind,
+            _swimCoords.Contains(npc.HopFromTile), _waterCoords.Contains(npc.HopTargetTile),
+            npc.HopStartTick, Mathf.Max(0f, (snapshot.Tick - npc.HopStartTick) * snapshot.TickDeltaTime),
+            ActorGroundY(npc.HopFromTile),
+            ActorGroundY(npc.HopTargetTile) - ActorGroundY(npc.HopFromTile), hopEdgePoint, hopFlightDirection,
+            _runner == null || _runner.IsPaused ? 0f : _runner.SpeedMultiplier);
+        actorView.SetHopSignal(visualShoreClimb ? string.Empty : npc.HopKind,
             npc.HopKind.Length > 0
                 ? ActorGroundY(npc.HopTargetTile) - ActorGroundY(npc.HopFromTile)
                 : 0f,
@@ -3529,9 +3536,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var heldItemId = npc.HeldItemId;
         // §77.5: the interaction window goes with the verb — the view fits one
         // playthrough of the work clip into it.
-        // §54.14A: serving on the ground has no clip of its own yet — the
-        // planting kneel stands in for it (placeholder until real art).
-        actorView.SetInteraction(npc.ServingOnGround ? "Plant" : npc.CurrentInteraction, heldItemId,
+        actorView.SetInteraction(npc.CurrentInteraction, heldItemId,
             npc.AidTargetLyingDown, npc.InteractionSeconds, npc.LyingStationSlot,
             standingCraft: npc.CurrentInteraction switch
             {
@@ -3540,7 +3545,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 "Craft" => snapshot.Objects.Exists(item => item.CraftStationObjectId.HasValue &&
                     item.CraftActive && item.CraftCurrentWorkerId == npc.Id.Value),
                 _ => false
-            });
+            }, seatedMeal: npc.CurrentInteraction is "Eat" or "Drink" && HasObjectSitTarget(snapshot, npc));
+        if (!visualShoreClimb) SyncEverydayAction(snapshot, npc, actorView, heldItemId);
         actorView.SetOffhandItem(npc.OffhandItemId);
         actorView.SyncBottleLiquid(npc.HeldBottleFill, npc.HeldBottleAppearance);
         actorView.SyncHeldLeafDryness(npc.HeldLeafDryness);
@@ -3667,7 +3673,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     "HugDeclined" => "social.hug.declined",
                     "KissAccepted" => "social.kiss.accepted",
                     "KissDeclined" => "social.kiss.declined",
-                    "HugUnavailable" or "KissUnavailable" => "social.contact.unavailable",
+                    "HugUnavailable" or "KissUnavailable" or "ContactUnavailable" => "social.contact.unavailable",
                     _ => null
                 };
                 if (contactMessage != null)
@@ -4264,6 +4270,76 @@ public sealed class HexWorldRenderer : MonoBehaviour
     }
 
     // The bed she is sleeping on: nearest bed object view within ~a tile.
+    private void SyncEverydayAction(WorldSnapshot snapshot, NpcSnapshot npc, NpcActorView actorView,
+        string heldItemId)
+    {
+        var active = npc.ExecutionStatus == "InProgress" && npc.InteractionSeconds > 0f &&
+            npc.PostureHint != "Crawl" && !_swimCoords.Contains(npc.Tile);
+        var rate = !active || _runner == null || _runner.IsPaused ? 0f :
+            _runner.SpeedMultiplier / npc.InteractionSeconds;
+        var progress = npc.ProgressAt(snapshot.Tick);
+        var clips = active && npc.CurrentInteraction is "Eat" or "Drink" or "Serve"
+            ? EverydayActionClips.Load() : null;
+        if (clips != null && npc.CurrentInteraction == "Serve" &&
+            (npc.ServingOnGround || TryGetTargetObject(snapshot, npc, out var surface) &&
+                surface.DefinitionId == ContentIds.PalmStump))
+        {
+            actorView.SetEverydayServing(clips, progress, rate);
+            return;
+        }
+        var seated = HasObjectSitTarget(snapshot, npc);
+        var clip = npc.CurrentInteraction switch
+        {
+            "Eat" => clips?.Eating(heldItemId, seated),
+            "Drink" => clips?.Drinking(heldItemId, seated),
+            "Serve" => clips?.serveStanding,
+            _ => null
+        };
+        if (npc.CurrentInteraction == "Drink") actorView.SetEverydayDrinking(clip, progress, rate);
+        else actorView.SetEverydayAction(clip, progress, rate);
+        actorView.SetEverydaySeat(seated);
+    }
+
+    private void SyncEverydayPairs(WorldSnapshot snapshot)
+    {
+        foreach (var helper in snapshot.Npcs)
+        {
+            // Aid stamps the authoritative recipient at the start of the
+            // interaction. The tick check rejects a cue from an earlier aid.
+            if (helper.CurrentInteraction is not ("FeedOther" or "HydrateOther" or "GiveGift" or "TreatOther") ||
+                helper.ExecutionStatus != "InProgress" ||
+                helper.InteractionSeconds <= 0f ||
+                helper.SocialCueTick != helper.ExecutionStartTick ||
+                helper.SocialCueKind is not ("AidStarted:Feed" or "AidStarted:Hydrate" or "GiftOffering" or "AidStarted:Treat") ||
+                helper.SocialCuePeerId is not { } recipientId ||
+                !_actorViews.TryGetValue(helper.Id.Value, out var feeder) || feeder == null ||
+                !_actorViews.TryGetValue(recipientId, out var recipient) || recipient == null)
+                continue;
+
+            var clips = EverydayActionClips.Load();
+            if (clips == null) continue;
+            var phase = helper.ProgressAt(snapshot.Tick);
+            var rate = _runner == null || _runner.IsPaused ? 0f : _runner.SpeedMultiplier / helper.InteractionSeconds;
+            if (helper.CurrentInteraction == "TreatOther")
+            {
+                if (helper.AidBandageZone is { } zone)
+                    feeder.SetBandagingAction(recipient, (BodyPart)zone, phase, rate);
+                continue;
+            }
+            var (give, receive) = helper.CurrentInteraction switch
+            {
+                "HydrateOther" => (clips.giveDrink, clips.receiveDrink),
+                "GiveGift" => (clips.giveGift, clips.receiveGift),
+                _ => (clips.feedStanding, clips.receiveStanding)
+            };
+            if (give == null || receive == null) continue;
+            if (helper.CurrentInteraction == "GiveGift") feeder.SetEverydayAction(give, phase, rate);
+            else feeder.SetFeedingAction(helper.AidTargetLyingDown ? null : give, recipient, phase, rate,
+                supportDrinker: helper.AidTargetLyingDown && helper.CurrentInteraction == "HydrateOther");
+            if (!helper.AidTargetLyingDown) recipient.SetEverydayAction(receive, phase, rate);
+        }
+    }
+
     private Transform? FindBedAttachPoint(WorldSnapshot snapshot, NpcSnapshot npc, out float surfaceY)
     {
         // Default: the sleeper's own tile top, used when there is no bed.
@@ -4354,7 +4430,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         WorldSnapshot snapshot, NpcSnapshot npc, Quaternion rotation, out Pose pose)
     {
         pose = default;
-        if (npc.CurrentInteraction != "Sit" ||
+        if (!HasSeatInteraction(npc) ||
             !TryGetTargetObject(snapshot, npc, out var seat))
         {
             return false;
@@ -4402,9 +4478,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private static bool HasObjectSitTarget(WorldSnapshot snapshot, NpcSnapshot npc)
     {
-        return npc.CurrentInteraction == "Sit" &&
-            TryGetTargetObject(snapshot, npc, out _);
+        return HasSeatInteraction(npc) && TryGetTargetObject(snapshot, npc, out var seat) &&
+            seat.DefinitionId is "stump.palm" or "chair.basic" or "furniture.modern_chair" or FurnitureSeats.SofaDefinitionId;
     }
+
+    private static bool HasSeatInteraction(NpcSnapshot npc) =>
+        npc.CurrentInteraction is "Sit" or "Eat" or "Drink";
 
     private static bool TryGetTargetObject(
         WorldSnapshot snapshot, NpcSnapshot npc, out ObjectSnapshot target)

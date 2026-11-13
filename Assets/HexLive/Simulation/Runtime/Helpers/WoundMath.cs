@@ -271,7 +271,7 @@ internal static class WoundMath
     // cuts favours one scratch over several cuts on a more injured part.
     // HP loss and the aggregate remaining cut damage describe the same injury,
     // so take their maximum, not their sum; critical depth is additional damage.
-    private static WoundState PickMostInjuredZone(NPCState npc)
+    internal static WoundState PickMostInjuredZone(NPCState npc)
     {
         WoundState chosen = null;
         var worstDamage = 0f;

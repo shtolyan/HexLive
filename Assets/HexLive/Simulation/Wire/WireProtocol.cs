@@ -181,7 +181,8 @@ public sealed class Handshake
     //     replaces only walking on a plain click (66); snapshot
     //     v51 carries each queued order's target person/object.
     // 36: §54.14A — snapshot v52 (cell grams, ground serving), command v17 (Serve).
-    public const int ProtocolVersion = 36; // matched client/server required
+    // 37: snapshot v53 carries the treated body zone, and adds social topics.
+    public const int ProtocolVersion = 37; // matched client/server required
 
     public string WorldId { get; set; } = string.Empty;
     public string CreationConfig { get; set; } = string.Empty;

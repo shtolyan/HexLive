@@ -738,6 +738,7 @@ public sealed partial class ExecutionSystem
             (serving && !MealServing.HasKnife(npc)) ||
             (IsPortableCoconutDrink(itemDefinition, verb) && item.ResourceAmount <= 0f))
         {
+            FurnitureSeats.ReleaseMealSeat(world, npc);
             npc.Plan.Status = PlanStatus.Failed;
             npc.Execution.TargetInventoryItem = null;
             if (SimTrace.Enabled)
@@ -900,6 +901,7 @@ public sealed partial class ExecutionSystem
             npc.Plan.Steps.Clear();
             npc.Plan.TargetItemDefinitionId = null;
             npc.Mind.CurrentGoal = GoalType.None;
+            FurnitureSeats.ReleaseMealSeat(world, npc);
             npc.Execution.Status = ExecutionStatus.None;
             npc.Execution.CurrentInteraction = null;
             npc.Execution.TargetInventoryItem = null;
@@ -1180,6 +1182,7 @@ public sealed partial class ExecutionSystem
         npc.Plan.Status = PlanStatus.Completed;
         npc.Plan.Steps.Clear();
         npc.Mind.CurrentGoal = GoalType.None;
+        FurnitureSeats.ReleaseMealSeat(world, npc);
         npc.Execution.Status = ExecutionStatus.None;
         npc.Execution.CurrentInteraction = null;
         npc.Execution.TargetInventoryItem = null;

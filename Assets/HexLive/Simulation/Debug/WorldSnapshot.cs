@@ -780,6 +780,7 @@ public sealed class NpcSnapshot
     // craft pose only plays over a lying ward; over a standing ward the helper
     // just stands and shows the item in hand. False when not aiding.
     public bool AidTargetLyingDown { get; set; }
+    public int? AidBandageZone { get; set; }
 
     // §111.13: КАКУЮ станцию лежащего тела занимает этот персонаж (0 — ноги,
     // 1..4 — бока, -1 — никакую). Вид не имеет права выводить её из позиций:

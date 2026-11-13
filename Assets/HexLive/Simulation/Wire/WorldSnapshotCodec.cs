@@ -100,7 +100,7 @@ public static class WorldSnapshotCodec
     // v49: §121.13 player order queue in NPC mind.
     // v51: §121.13 each queued order carries its target person/object (tooltip).
     // v52: §54.14A per-cell food grams and ground serving.
-    public const int WireVersion = 52;
+    public const int WireVersion = 53;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -1038,6 +1038,7 @@ public static class WorldSnapshotCodec
         w.Write(n.IsPlayingDead); // §105.14
         w.Write(n.LegsLost); // §50: ноги в ноль — вставать нечем
         w.Write(n.AidTargetLyingDown);
+        WireIo.WriteNullableInt(w, n.AidBandageZone);
         w.Write(n.LyingStationSlot); // §111.13
         w.Write(n.ServingOnGround); // §54.14A (v51)
         w.Write(n.IsLedgeSit);
@@ -1456,6 +1457,7 @@ public static class WorldSnapshotCodec
         n.IsPlayingDead = r.ReadBoolean(); // §105.14
         n.LegsLost = r.ReadBoolean(); // §50
         n.AidTargetLyingDown = r.ReadBoolean();
+        n.AidBandageZone = WireIo.ReadNullableInt(r);
         n.LyingStationSlot = r.ReadInt32(); // §111.13
         n.ServingOnGround = r.ReadBoolean(); // §54.14A (v51)
         n.IsLedgeSit = r.ReadBoolean();

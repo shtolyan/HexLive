@@ -370,6 +370,11 @@ namespace HexLive.UnityPresentation.UI
                 {
                     "Hug" => "menu.hug",
                     "Kiss" => "menu.kiss",
+                    "Greet" => "menu.greet",
+                    "Dance" => "menu.dance",
+                    "FlirtGesture" => "menu.flirt_gesture",
+                    "Apologize" => "menu.apologize",
+                    "PassionateKiss" => "menu.passionate_kiss",
                     "AskBathe" => "menu.ask_bathe",
                     "AskWashClothes" => "menu.ask_wash_clothes",
                     _ => "menu.talk_to",

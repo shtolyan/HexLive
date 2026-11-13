@@ -625,7 +625,10 @@ internal static partial class ManualCommandExecutor
         // A passive listener has no active plan to abort, but a new player
         // command must still cancel its invitation and shared heart topics.
         if (!keepRestPose)
+        {
             ExecutionSystem.ClearInterruptedRomanceInvitation(world, npc, InterruptionCause.PlayerCommand);
+            FurnitureSeats.ReleaseMealSeat(world, npc);
+        }
 
         if (interruptedSleep)
         {
@@ -1869,7 +1872,9 @@ internal static partial class ManualCommandExecutor
                     return;
                 }
 
+                var eatingSeat = FurnitureSeats.CurrentMealSeat(world, npc);
                 ClearForNewOrder(world, npc, "Приказ поесть", keepCarriedPerson: true);
+                FurnitureSeats.KeepForMeal(npc, eatingSeat);
                 ClearAttackOrder(world, npc);
                 // План построит штатный планировщик: Eat в списке
                 // MayPlanGoal ручной (§121.6, inventory-only).
@@ -1885,7 +1890,9 @@ internal static partial class ManualCommandExecutor
                     return;
                 }
 
+                var drinkingSeat = FurnitureSeats.CurrentMealSeat(world, npc);
                 ClearForNewOrder(world, npc, "Приказ попить", keepCarriedPerson: true);
+                FurnitureSeats.KeepForMeal(npc, drinkingSeat);
                 ClearAttackOrder(world, npc);
                 npc.Plan.Status = PlanStatus.None;
                 npc.Mind.CurrentGoal = GoalType.Drink;
@@ -2553,7 +2560,9 @@ internal static partial class ManualCommandExecutor
             return;
         }
 
+        var mealSeat = FurnitureSeats.CurrentMealSeat(world, npc);
         ClearForNewOrder(world, npc, "Съесть выбранную еду", keepCarriedPerson: true);
+        FurnitureSeats.KeepForMeal(npc, mealSeat);
         ClearAttackOrder(world, npc);
         npc.Plan.Goal = GoalType.PlayerOrder;
         npc.Plan.TargetItemDefinitionId = selected.DefinitionId;

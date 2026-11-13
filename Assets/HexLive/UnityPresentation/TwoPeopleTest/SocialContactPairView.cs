@@ -30,6 +30,7 @@ public sealed class SocialContactPairView : MonoBehaviour
     private SocialKissContact? secondKiss;
 
     internal static bool CanPlayAll() => LoadCatalog()?.HasAllClips == true;
+    internal static bool CanPlayExpanded() => LoadCatalog()?.HasExpandedClips == true;
 
     private static SocialContactClipCatalog? LoadCatalog()
     {
@@ -108,7 +109,12 @@ public sealed class SocialContactPairView : MonoBehaviour
         axis.y = 0f;
         if (axis.sqrMagnitude < 0.0001f) axis = first.transform.forward;
         axis.Normalize();
-        var separation = (SocialContact.IsKiss(result) ? 0.70f : 0.76f) *
+        var separation = (result switch
+            {
+                TalkTopic.GreetAccepted => .64f,
+                TalkTopic.DanceAccepted => .54f,
+                _ => SocialContact.IsKiss(result) ? .70f : .76f
+            }) *
             Mathf.Abs(first.BodyAnimator.transform.lossyScale.y);
         var midpoint = (firstPosition + secondPosition) * 0.5f;
         var stage = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, 0.16f, progress)) *

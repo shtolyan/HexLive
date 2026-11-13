@@ -708,6 +708,9 @@ public static class WorldSnapshotExporter
             // same zero-guard as the ticks above.
             InteractionSeconds = hasTimedInteraction ? execTotal * world.TickDeltaTime : 0f,
             AidTargetLyingDown = aidTargetLying,
+            AidBandageZone = aidTargetLying && npc.Execution.CurrentInteraction == InteractionType.TreatOther &&
+                npc.Plan.TargetAgentId is { } patientId && world.Entities.Npcs.TryGetValue(patientId, out var patient)
+                ? (int?)WoundMath.PickMostInjuredZone(patient)?.Zone : null,
             // §111.13: станция едет ЧИСЛОМ, а не выводится видом из геометрии —
             // рендер интерполирует кадры, и производная станция мигала бы на
             // границах (тот же урок, что §111.9 r2/r3: позицией владеет симуляция).
@@ -721,7 +724,8 @@ public static class WorldSnapshotExporter
             HeldGarmentBlood = npc.Execution.HeldGarment?.Bloodiness ?? 0f,
             HeldGarmentWet = npc.Execution.HeldGarment?.Wetness ?? 0f,
             HeldGarmentDurability = npc.Execution.HeldGarment?.Durability ?? 1f,
-            TargetObjectId = (npc.Execution.TargetObject ?? npc.Plan.TargetObjectId)?.Value,
+            TargetObjectId = (npc.Execution.TargetObject ?? npc.Plan.TargetObjectId ??
+                npc.Execution.ConsumptionSeat)?.Value,
             Id = npc.Id,
             ProfileId = npc.ProfileId,
             SpeechOrigin = npc.SpeechOrigin,

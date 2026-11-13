@@ -233,6 +233,7 @@ public static class PlanInterruption
         // Sleep without using that junction leaves a standing actor inside the
         // bed until some later movement happens to pull her out.
         LyingSpot.ReleaseRestSurfaceOnRise(world, npc);
+        FurnitureSeats.ReleaseMealSeat(world, npc);
         CraftProjectMath.ReleaseWorker(world, npc);
         ExecutionSystem.ReleaseClaims(world, npc);
         // §111.13: место у лежащего освобождается там же, где освобождается всё

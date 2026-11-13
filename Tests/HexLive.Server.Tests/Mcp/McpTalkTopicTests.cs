@@ -24,7 +24,8 @@ public sealed class McpTalkTopicTests
             TalkTopic.Fire, TalkTopic.Home, TalkTopic.Gossip, TalkTopic.Flirt, TalkTopic.Joke, TalkTopic.Grumble,
             TalkTopic.AskBuild, TalkTopic.AskStockFood, TalkTopic.AskStockWater, TalkTopic.AskFirewood,
             TalkTopic.AskBathe, TalkTopic.AskWashClothes, // §167.2
-            TalkTopic.Hug, TalkTopic.Kiss }.Select(topic => topic.ToString()))); // §28.15H: the same offers a player can make
+            TalkTopic.Hug, TalkTopic.Kiss, TalkTopic.Greet, TalkTopic.Dance, TalkTopic.PassionateKiss,
+            TalkTopic.FlirtGesture, TalkTopic.Apologize }.Select(topic => topic.ToString()))); // §28.15H
         Assert.That(topics, Is.EquivalentTo(TalkTopicRequest.Allowed.Select(t => t.ToString())));
         Assert.That(schema.GetProperty("required").EnumerateArray().Select(x => x.GetString()), Is.EquivalentTo(new[] { "npcId", "targetNpcId" }));
         Assert.That(schema.GetProperty("additionalProperties").GetBoolean(), Is.False);

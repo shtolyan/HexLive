@@ -32008,6 +32008,54 @@ MonoBehaviour:
       - 'Предложить поцелуй'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.social_actions'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Social actions'
+      - 'Общение'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.greet'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Shake hands'
+      - 'Пожать руку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.dance'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Ask to dance'
+      - 'Пригласить на танец'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.flirt_gesture'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Flirt'
+      - 'Флиртовать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.apologize'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Apologize'
+      - 'Извиниться'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.passionate_kiss'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Ask for a passionate kiss'
+      - 'Предложить страстный поцелуй'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'social.hug.accepted'
       TermType: 0
       Description:

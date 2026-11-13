@@ -24,3 +24,27 @@ MonoBehaviour:
   kissDeclined:
     initiator: {fileID: -623603649343465320, guid: 496d4bdeb5766404881805cc694c5011, type: 3}
     partner: {fileID: -623603649343465320, guid: 5c87ceda8b1c5c040a42bfb59da79997, type: 3}
+  greet:
+    initiator: {fileID: -623603649343465320, guid: 9d60046c4c7940d288c6dbd07d0d3c41, type: 3}
+    partner: {fileID: -623603649343465320, guid: fa4159f8e9504297a55889989b55ae74, type: 3}
+  dance:
+    initiator: {fileID: -623603649343465320, guid: 0cc91dcc51cd47fbad4a295b8e1ae9d5, type: 3}
+    partner: {fileID: -623603649343465320, guid: 0bd85786557147db90fbecab7d2cea97, type: 3}
+  handshakeDeclined:
+    initiator: {fileID: -623603649343465320, guid: b5eb3c84de6b418a8a1208f917df592e, type: 3}
+    partner: {fileID: -623603649343465320, guid: 56c6481835b4402d983f28be8263dea2, type: 3}
+  passionateKiss:
+    initiator: {fileID: -623603649343465320, guid: 9267f07eeeca480eaadfe852b559954c, type: 3}
+    partner: {fileID: -623603649343465320, guid: e6831fa8ada54ad5881a7d2fa1d9ecc8, type: 3}
+  passionateKissDeclined:
+    initiator: {fileID: -623603649343465320, guid: 277cb293c5da4ad8b3c3f892ae886f93, type: 3}
+    partner: {fileID: -623603649343465320, guid: 091e47ef6dbe40ac843019cda57d48e0, type: 3}
+  flirt:
+    initiator: {fileID: -623603649343465320, guid: 79be8a1c852c4edeb14fc98c4bdf85f4, type: 3}
+    partner: {fileID: -623603649343465320, guid: c8bd6a3f31f44238a9190ea284fda00d, type: 3}
+  flirtDeclined:
+    initiator: {fileID: -623603649343465320, guid: c4a61d998e074b67b2086587cb86d719, type: 3}
+    partner: {fileID: -623603649343465320, guid: 7bb4076c955f48fd869c49203b93093a, type: 3}
+  apology:
+    initiator: {fileID: -623603649343465320, guid: b51230d0c4a049f5894231b2fe755278, type: 3}
+    partner: {fileID: -623603649343465320, guid: bc726c5be2f84abb8c0cda400c51a3d9, type: 3}

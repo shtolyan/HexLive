@@ -74,7 +74,7 @@ public sealed class SimsSocialSetup : AssetPostprocessor
         foreach (var clip in clips)
         {
             clip.name = Path.GetFileNameWithoutExtension(assetPath);
-            clip.loopTime = false;
+            clip.loopTime = clip.name == "a2o_sleepingBag_sleep_idle_breathe_x";
             clip.lockRootRotation = true;
             clip.lockRootHeightY = true;
             clip.lockRootPositionXZ = true;

@@ -55,6 +55,8 @@ public static class ActionItemResolver
 
         switch (interaction)
         {
+            case InteractionType.GiveGift:
+                return npc.Execution.TargetInventoryItem?.DefinitionId ?? string.Empty;
             case InteractionType.Eat:
             {
                 var groundCoconut = ResolveGroundCoconutInteractionItem(world, npc, InteractionType.Eat);

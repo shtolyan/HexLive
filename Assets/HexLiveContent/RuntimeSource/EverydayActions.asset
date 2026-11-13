@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ede697264dd84883bf0f7449512c434e, type: 3}
+  m_Name: EverydayActions
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.EverydayActionClips
+  bedSleep: {fileID: -623603649343465320, guid: f3dac0b460398754a966bb23b9a54ed0, type: 3}
+  bedEnter: {fileID: -623603649343465320, guid: 347163cc08bf449480436add6d0b4f62, type: 3}
+  bedExit: {fileID: -623603649343465320, guid: 4c2e4ecfefd84e9f954251cb640ef591, type: 3}
+  eatMeat: {fileID: -623603649343465320, guid: 580cc0d5caa052943aad2a2a91b4858f, type: 3}
+  eatMeatSeated: {fileID: -623603649343465320, guid: 4b76594060ab4b3ebd133ddd7f031700, type: 3}
+  eatCoconut: {fileID: -623603649343465320, guid: eed20781671705f4584b0c8471ab44ec, type: 3}
+  eatCoconutSeated: {fileID: -623603649343465320, guid: e6234800ad0b47c084517845910fc489, type: 3}
+  drinkBottle: {fileID: -623603649343465320, guid: cd06c154169247fb959ee02213c737bc, type: 3}
+  drinkBottleSeated: {fileID: -623603649343465320, guid: bc430ade22b24c69a7e2f4e5a9293429, type: 3}
+  drinkCup: {fileID: -623603649343465320, guid: 1c708c2e8ecc4ca38aad678f2b34cce4, type: 3}
+  drinkCupSeated: {fileID: -623603649343465320, guid: 8cca0b2c22844061bee4a6b9c6897fac, type: 3}
+  serveKneel: {fileID: -623603649343465320, guid: fde32047071cd2e4d8a71fb499663feb, type: 3}
+  serveWork: {fileID: -623603649343465320, guid: 78c5e91242d0a8244b9fa7b44f8b5aec, type: 3}
+  serveRise: {fileID: -623603649343465320, guid: b73e52c08b647a84f9ebcefe8d7702fe, type: 3}
+  serveStanding: {fileID: -623603649343465320, guid: bc1831df79bf454ca8840de6139770b4, type: 3}
+  feedStanding: {fileID: -623603649343465320, guid: b400ebe62e8d7a643b75a57008e245a5, type: 3}
+  receiveStanding: {fileID: -623603649343465320, guid: 9b8bd8134e2c7ed4aaf63a6525141113, type: 3}
+  climbFromWater: {fileID: -623603649343465320, guid: e68cde271eefd9c4f93ccc29f0e65492, type: 3}
+  giveDrink: {fileID: -623603649343465320, guid: 9e8a2f0c1e6b4bc6bab541e607087c5e, type: 3}
+  receiveDrink: {fileID: -623603649343465320, guid: b47a50c5cf65401287f1f560c7739224, type: 3}
+  giveGift: {fileID: -623603649343465320, guid: 8f73623f0d404816ae6b6182b949d25b, type: 3}
+  receiveGift: {fileID: -623603649343465320, guid: affb3f689f3046b9a0dfe3f34380bf59, type: 3}

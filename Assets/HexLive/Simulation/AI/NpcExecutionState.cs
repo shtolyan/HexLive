@@ -36,6 +36,9 @@ public sealed class NPCExecutionState
 
     public ObjectId? TargetObject { get; set; }
 
+    // A manual in-place meal can retain the actual furniture seat it began on.
+    public ObjectId? ConsumptionSeat { get; set; }
+
     // §52 / bug #355: exact physical inventory item reserved across a delayed
     // transfer or timed vessel interaction. SourceIndex + definition cannot
     // distinguish two identical instances after one is moved. This transient

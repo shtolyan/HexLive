@@ -111,6 +111,24 @@ internal static class HandPropVisual
         var prefabAxisCorrection = prop.transform.localRotation;
         var keepPrefabAxisCorrection = gearConfig?.preservePrefabRotationInHand == true;
         var prefabLocalScale = prop.transform.localScale;
+        if (itemId == Simulation.Content.ContentIds.LeatherFlask)
+        {
+            var grip = new GameObject($"Grip {itemId}");
+            grip.transform.SetParent(hand, false);
+            prop.transform.SetParent(grip.transform, false);
+            prop.transform.localPosition = Vector3.zero;
+            prop.transform.localRotation = prefabAxisCorrection;
+            grip.transform.localRotation = Quaternion.Euler(0f, leftHanded ? -90f : 90f, 0f);
+            ApplyObjectFitScale(prop, itemId, prefabLocalScale, Vector3.one * .7333f);
+            if (ObjectFit.WorldBounds(prop, out var bounds))
+            {
+                var shoulder = bounds.center + grip.transform.up * (bounds.size.y * .19f);
+                prop.transform.localPosition -= grip.transform.InverseTransformPoint(shoulder);
+            }
+            grip.transform.localPosition = new Vector3(leftHanded ? -PalmGripPoint.x : PalmGripPoint.x,
+                PalmGripPoint.y, PalmGripPoint.z);
+            return grip;
+        }
 
         // Placement priority (each higher tier wins): the gear asset's tuned
         // hand pose (edited live in the AxeChopTest scene) → an "AttachPoint"

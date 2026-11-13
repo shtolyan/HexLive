@@ -1618,11 +1618,8 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
                 canOrderSocial, canOrderSocial ? null : socialBlocked));
             if (!lying && HexLive.UnityPresentation.TwoPeopleTest.SocialContactPairView.CanPlayAll())
             {
-                _entries.Add(new ContextMenuEntry(Loc.Get("menu.hug"),
-                    () => EnqueueOrder(carrier!.Id.Value, new TalkToCommand(carrier.Id, target.Id, TalkTopic.Hug)),
-                    canOrderSocial, canOrderSocial ? null : socialBlocked));
-                _entries.Add(new ContextMenuEntry(Loc.Get("menu.kiss"),
-                    () => EnqueueOrder(carrier!.Id.Value, new TalkToCommand(carrier.Id, target.Id, TalkTopic.Kiss)),
+                _entries.Add(new ContextMenuEntry(Loc.Get("menu.social_actions"),
+                    () => OpenSocialMenu(mousePos, carrier!, target),
                     canOrderSocial, canOrderSocial ? null : socialBlocked));
             }
             _entries.Add(new ContextMenuEntry(Loc.Get("menu.ask_bathe"),
@@ -1988,6 +1985,26 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         Add("menu.aid.hydrate", AidKind.Hydrate);
         Add("menu.aid.console", AidKind.Console);
         ContextMenuPanel.Open(mousePos, NpcTitle(targetId), _entries);
+    }
+
+    private void OpenSocialMenu(Vector2 mousePos, NpcSnapshot actor, NpcSnapshot target)
+    {
+        _entries.Clear();
+        void Add(string key, TalkTopic topic) => _entries.Add(new ContextMenuEntry(
+            Loc.Get(key), () => EnqueueOrder(actor.Id.Value, new TalkToCommand(actor.Id, target.Id, topic))));
+        if (HexLive.UnityPresentation.TwoPeopleTest.SocialContactPairView.CanPlayExpanded())
+        {
+            Add("menu.greet", TalkTopic.Greet);
+            Add("menu.dance", TalkTopic.Dance);
+            Add("menu.flirt_gesture", TalkTopic.FlirtGesture);
+            var relationship = target.RelationshipDetails.Find(value => value.OtherId == actor.Id.Value);
+            if (relationship == null || relationship.Affinity < .15f || relationship.Trust < .2f)
+                Add("menu.apologize", TalkTopic.Apologize);
+            Add("menu.passionate_kiss", TalkTopic.PassionateKiss);
+        }
+        Add("menu.hug", TalkTopic.Hug);
+        Add("menu.kiss", TalkTopic.Kiss);
+        ContextMenuPanel.Open(mousePos, Loc.Get("menu.social_actions"), _entries);
     }
 
     private void OpenMobMenu(Vector2 mousePos, int mobId)

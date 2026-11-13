@@ -329,7 +329,7 @@ public static class WorldSaveSerializer
         w.Write(world.Entities.Objects.Count);
         foreach (var obj in world.Entities.Objects.Values)
         {
-            WriteObject(w, obj, version);
+            WriteObject(w, world, obj, version);
         }
 
         w.Write(world.Entities.Npcs.Count);
@@ -1570,15 +1570,20 @@ public static class WorldSaveSerializer
         }
     }
 
-    private static void WriteObject(BinaryWriter w, WorldObjectState obj, int version)
+    private static void WriteObject(BinaryWriter w, WorldState world, WorldObjectState obj, int version)
     {
         w.Write(obj.Id.Value);
         w.Write(obj.DefinitionId);
         w.Write(obj.Fragment.Value);
         WriteTile(w, obj.Tile);
         WriteJunctionList(w, obj.Junctions);
-        w.Write(obj.IsOccupied);
-        WriteNullableEntity(w, obj.CurrentUser);
+        // Pack meals can keep a chair for the duration of a transient
+        // physical-item reference. That short reservation ends on restore.
+        var mealSeat = obj.CurrentUser is { } sitter &&
+            world.Entities.Npcs.TryGetValue(sitter, out var seatedActor) &&
+            seatedActor.Execution.ConsumptionSeat == obj.Id;
+        w.Write(obj.IsOccupied && !mealSeat);
+        WriteNullableEntity(w, mealSeat ? null : obj.CurrentUser);
         w.Write(obj.ResourceAmount);
         w.Write(obj.Wetness);
         w.Write(obj.Durability);

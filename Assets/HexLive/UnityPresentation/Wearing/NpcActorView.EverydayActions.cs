@@ -9,12 +9,28 @@ namespace HexLive.UnityPresentation.Wearing
     public sealed partial class NpcActorView
     {
         private AnimationClip _bedSleepClip;
+        private Pose _bedEntry;
+        private bool _pillowBed;
+        private Transform _sleepHips;
+        private Transform _sleepSpine;
+        private Transform _sleepRig;
+        private IKSolverLimb _sleepLeftArm;
+        private IKSolverLimb _sleepRightArm;
         private EverydayActionClips _bedClips;
         private AnimationClip _everydayClip;
         private AnimationClip _requestedEverydayClip;
         private bool _everydayDrinking;
+        private Vector3 _standingSipHips;
+        private readonly Quaternion[] _standingSipLegs = new Quaternion[8];
+        private bool _standingSipCaptured;
+        private static readonly HumanBodyBones[] StandingSipBones =
+        {
+            HumanBodyBones.LeftUpperLeg, HumanBodyBones.LeftLowerLeg, HumanBodyBones.LeftFoot, HumanBodyBones.LeftToes,
+            HumanBodyBones.RightUpperLeg, HumanBodyBones.RightLowerLeg, HumanBodyBones.RightFoot, HumanBodyBones.RightToes
+        };
         private bool _supportDrinker;
         private GameObject _drinkContactProp;
+        private Transform _drinkContactHand;
         private Vector3 _drinkOpeningInHand;
         private Vector3 _drinkAxisInHand;
         private float _aidHeadWeight;
@@ -38,6 +54,7 @@ namespace HexLive.UnityPresentation.Wearing
         private int _shoreHopTick;
         private Vector3 _shoreDirection;
         private float _shoreStartY;
+        private float _shoreWaterY;
         private float _shoreHeight;
         private Vector3 _shoreEdge;
         private IKSolverLimb _shoreLeftLeg;
@@ -83,19 +100,100 @@ namespace HexLive.UnityPresentation.Wearing
             // pose was authored around the bag origin, with hips above it and
             // shifted toward the headboard. Fit that pose to the mattress.
             var scale = _bodyRoot.lossyScale.y;
-            var mattressRoot = anchor.position + anchor.rotation * new Vector3(0f, -.17f, .22f) * scale;
-            return new Pose(Vector3.Lerp(transform.position, mattressRoot, blend),
-                Quaternion.Slerp(transform.rotation, anchor.rotation, blend));
+            var fit = _pillowBed
+                ? new Vector3(0f, -.23f, .02f)
+                : new Vector3(0f, -.19f, .14f);
+            var mattressRoot = anchor.position + anchor.rotation * fit * scale;
+            var entry = (_bedEntry.position - anchor.position).sqrMagnitude <= 4f
+                ? _bedEntry : new Pose(transform.position, transform.rotation);
+            return new Pose(Vector3.Lerp(entry.position, mattressRoot, blend),
+                Quaternion.Slerp(entry.rotation, anchor.rotation, blend));
         }
 
-        private void FitBedWakeRoot()
+        private void FitSleepingBody(Pose support)
         {
-            if (_bedSleepClip == null || _wakeBlend <= 0f || _animator == null) return;
+            if (_bedSleepClip == null || _animator == null || !_animator.isHuman ||
+                !_animator.GetCurrentAnimatorStateInfo(0).IsName("Sleep")) return;
+
+            if (_sleepRig != _animator.transform)
+            {
+                _sleepRig = _animator.transform;
+                _sleepHips = _animator.GetBoneTransform(HumanBodyBones.Hips);
+                _sleepSpine = _animator.GetBoneTransform(HumanBodyBones.Spine);
+                _sleepLeftArm = null;
+                _sleepRightArm = null;
+            }
+            if (_sleepHips == null || _sleepSpine == null) return;
+            var leftLeg = _animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
+            var rightLeg = _animator.GetBoneTransform(HumanBodyBones.RightUpperLeg);
+            var leftArm = _animator.GetBoneTransform(HumanBodyBones.LeftUpperArm);
+            var rightArm = _animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
+            if (leftLeg == null || rightLeg == null || leftArm == null || rightArm == null) return;
+
+            var axis = support.rotation * Vector3.forward;
+            var pelvis = Vector3.ProjectOnPlane(rightLeg.position - leftLeg.position, axis);
+            var shoulders = Vector3.ProjectOnPlane(rightArm.position - leftArm.position, axis);
+            if (pelvis.sqrMagnitude < .0001f || shoulders.sqrMagnitude < .0001f) return;
+
+            // Keep the authored side-lying shape while easing excessive twist
+            // between the hips and the shoulders on a wider retargeted body.
+            var twist = Mathf.Clamp(Vector3.SignedAngle(pelvis, shoulders, axis) * .45f, -15f, 15f);
+            var spineRotation = _sleepSpine.rotation;
+            _sleepHips.rotation = Quaternion.AngleAxis(twist, axis) * _sleepHips.rotation;
+            _sleepSpine.rotation = spineRotation;
+
+            _sleepLeftArm ??= CreateSleepArm(true);
+            _sleepRightArm ??= CreateSleepArm(false);
+            var torso = (leftArm.position + rightArm.position + _sleepSpine.position * 2f) * .25f;
+            var torsoClearance = Vector3.Distance(leftArm.position, rightArm.position) * .42f;
+            var mattressUp = support.rotation * Vector3.up;
+            KeepSleepingHandClear(_sleepLeftArm, torso, torsoClearance, mattressUp);
+            KeepSleepingHandClear(_sleepRightArm, torso, torsoClearance, mattressUp);
+        }
+
+        private IKSolverLimb CreateSleepArm(bool left)
+        {
+            var shoulder = _animator.GetBoneTransform(left ? HumanBodyBones.LeftUpperArm : HumanBodyBones.RightUpperArm);
+            var elbow = _animator.GetBoneTransform(left ? HumanBodyBones.LeftLowerArm : HumanBodyBones.RightLowerArm);
+            var hand = _animator.GetBoneTransform(left ? HumanBodyBones.LeftHand : HumanBodyBones.RightHand);
+            if (shoulder == null || elbow == null || hand == null) return null;
+
+            var solver = new IKSolverLimb { goal = left ? AvatarIKGoal.LeftHand : AvatarIKGoal.RightHand };
+            solver.SetChain(shoulder, elbow, hand, _animator.transform);
+            return solver;
+        }
+
+        private static void KeepSleepingHandClear(IKSolverLimb solver, Vector3 torso, float clearance, Vector3 mattressUp)
+        {
+            if (solver == null || !solver.initiated) return;
+            var hand = solver.bone3.transform;
+            var offset = hand.position - torso;
+            if (offset.sqrMagnitude >= clearance * clearance) return;
+
+            solver.IKPosition = hand.position + mattressUp * (clearance - Vector3.Dot(offset, mattressUp));
+            solver.IKRotation = hand.rotation;
+            solver.IKPositionWeight = .85f;
+            solver.IKRotationWeight = 1f;
+            solver.MaintainBend();
+            solver.Update();
+        }
+
+        private bool FitBedWakeRoot()
+        {
+            if (_bedSleepClip == null || _wakeBlend <= 0f || _animator == null) return false;
             var state = _animator.GetCurrentAnimatorStateInfo(0);
-            if (!state.IsName("GetUp")) return;
-            var progress = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.13f, .92f, state.normalizedTime));
-            _bodyRoot.SetPositionAndRotation(Vector3.Lerp(_wakeFromPos, transform.position, progress),
-                Quaternion.Slerp(_wakeFromRot, transform.rotation, progress));
+            if (!state.IsName("GetUp") && _animator.IsInTransition(0))
+                state = _animator.GetNextAnimatorStateInfo(0);
+            if (!state.IsName("GetUp") && !state.IsName("Sleep") && !state.IsName("LieDown"))
+            {
+                _wakeBlend = 0f;
+                return true;
+            }
+            var progress = state.IsName("GetUp")
+                ? Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.13f, .92f, state.normalizedTime)) : 0f;
+            _bodyRoot.SetPositionAndRotation(Vector3.Lerp(_wakeFromPos, _bodyRoot.position, progress),
+                Quaternion.Slerp(_wakeFromRot, _bodyRoot.rotation, progress));
+            return true;
         }
 
         private void SetBedTransition(AnimationClip clip, string baseName)
@@ -209,7 +307,10 @@ namespace HexLive.UnityPresentation.Wearing
                     faceUp = target._headBone.TransformDirection(target._faceLocalUp);
                 }
                 var opening = mouth + faceForward * (.014f * scale);
-                var axis = (-faceForward - faceUp * .38f).normalized;
+                // The vessel's body points away from the face while the
+                // mouth meets the lips. Coconut and flask need less tilt.
+                var pitch = _currentPropId == ContentIds.Bottle ? .38f : .22f;
+                var axis = (-faceForward - faceUp * pitch).normalized;
                 var handRotation = Quaternion.FromToRotation(hand.rotation * _drinkAxisInHand, axis) * hand.rotation;
                 effector.rotation = handRotation;
                 effector.rotationWeight = weight;
@@ -223,19 +324,29 @@ namespace HexLive.UnityPresentation.Wearing
 
         private bool TryGetDrinkOpening(Transform hand)
         {
-            if (_handProp == null || _currentPropId != ContentIds.Bottle) return false;
-            if (_drinkContactProp == _handProp) return true;
+            if (_handProp == null ||
+                _currentPropId is not (ContentIds.Bottle or ContentIds.LeatherFlask or ContentIds.CoconutPierced))
+                return false;
+            if (_drinkContactProp == _handProp && _drinkContactHand == hand) return true;
             var mesh = _handProp.GetComponentInChildren<MeshFilter>();
             if (mesh == null || mesh.sharedMesh == null) return false;
-            // Same source coordinates as BottleLiquidVisual. +Z is the neck
-            // before the bottle prefab's wrapper applies its axis correction.
+
+            // These three source meshes put the mouth of the vessel on +Z.
+            // The wrapper and the hand grip may rotate that axis independently.
             var bounds = mesh.sharedMesh.bounds;
+            var localOpening = bounds.center;
+            localOpening.z = _currentPropId switch
+            {
+                ContentIds.Bottle => bounds.center.z + bounds.extents.z * .94f,
+                ContentIds.LeatherFlask => Mathf.Lerp(bounds.min.z, bounds.max.z, .92f),
+                _ => bounds.max.z
+            };
             var axis = mesh.transform.TransformDirection(Vector3.forward);
-            var opening = mesh.transform.TransformPoint(
-                bounds.center + Vector3.forward * (bounds.extents.z * .94f));
+            var opening = mesh.transform.TransformPoint(localOpening);
             _drinkOpeningInHand = Quaternion.Inverse(hand.rotation) * (opening - hand.position);
             _drinkAxisInHand = Quaternion.Inverse(hand.rotation) * axis;
             _drinkContactProp = _handProp;
+            _drinkContactHand = hand;
             return true;
         }
 
@@ -284,6 +395,7 @@ namespace HexLive.UnityPresentation.Wearing
                 _shoreDirection = direction;
                 _shoreEdge = edge;
                 _shoreStartY = startY;
+                _shoreWaterY = startY + SwimBodyLift * _swimBlend;
                 _shoreHeight = rise;
             }
             var clip = EverydayActionClips.Load()?.climbFromWater;
@@ -382,7 +494,11 @@ namespace HexLive.UnityPresentation.Wearing
             if (_feedingRecipient != null)
                 _feedingContact = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.3f, .48f, contactPhase)) *
                     Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.75f, .56f, contactPhase)) * weight;
-            if (!_everydayGraph.IsValid()) return false;
+            if (!_everydayGraph.IsValid())
+            {
+                _standingSipCaptured = false;
+                return false;
+            }
             var time = Mathf.Clamp(sampleTime, 0f, _everydayClip.length);
             if (_action == ActionKind.RaiseToMouth || _everydayDrinking)
             {
@@ -413,6 +529,10 @@ namespace HexLive.UnityPresentation.Wearing
                 _everydayPositions[i] = _everydayBones[i].localPosition;
                 _everydayRotations[i] = _everydayBones[i].localRotation;
             }
+            var standingSip = _everydayDrinking && !_seatedEveryday && !_legless && _posture != "Crawl";
+            if (standingSip && !_standingSipCaptured) CaptureStandingSip();
+            if (!standingSip) _standingSipCaptured = false;
+
             _everydayPlayable.SetTime(time);
             var position = _animator.transform.position;
             var rotation = _animator.transform.rotation;
@@ -424,20 +544,47 @@ namespace HexLive.UnityPresentation.Wearing
                 bone.localPosition = Vector3.Lerp(_everydayPositions[i], bone.localPosition, weight);
                 bone.localRotation = Quaternion.Slerp(_everydayRotations[i], bone.localRotation, weight);
             }
+            if (standingSip) ApplyStandingSip();
             if (_shoreHopTick != 0)
             {
-                var y = _shoreStartY + _shoreHeight * Mathf.SmoothStep(0f, 1f,
-                    Mathf.InverseLerp(.27f, .88f, phase));
+                var rise = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.27f, .88f, phase));
                 var current = _animator.transform.position;
-                current.y = Mathf.Lerp(current.y, y, weight);
+                current.y = Mathf.Lerp(_shoreWaterY, _shoreStartY + _shoreHeight, rise);
                 var ahead = Vector3.Dot(current - _shoreEdge, _shoreDirection);
-                var cross = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.57f, .94f, phase));
+                var cross = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(
+                    HexLive.Simulation.Navigation.HexHopTuning.ShoreClimbCrossStart,
+                    HexLive.Simulation.Navigation.HexHopTuning.ShoreClimbCrossEnd, elapsed));
                 current -= _shoreDirection * (Mathf.Max(0f, ahead) * (1f - cross) * weight);
                 _animator.transform.SetPositionAndRotation(current,
                     Quaternion.Slerp(rotation, Quaternion.LookRotation(_shoreDirection), weight));
                 FitShoreFeet(phase, weight);
             }
             return true;
+        }
+
+        private void CaptureStandingSip()
+        {
+            var hips = _animator.GetBoneTransform(HumanBodyBones.Hips);
+            if (hips == null) return;
+            _standingSipHips = hips.localPosition;
+            for (var i = 0; i < StandingSipBones.Length; i++)
+            {
+                var bone = _animator.GetBoneTransform(StandingSipBones[i]);
+                if (bone != null) _standingSipLegs[i] = bone.localRotation;
+            }
+            _standingSipCaptured = true;
+        }
+
+        private void ApplyStandingSip()
+        {
+            if (!_standingSipCaptured) return;
+            var hips = _animator.GetBoneTransform(HumanBodyBones.Hips);
+            if (hips != null) hips.localPosition = _standingSipHips;
+            for (var i = 0; i < StandingSipBones.Length; i++)
+            {
+                var bone = _animator.GetBoneTransform(StandingSipBones[i]);
+                if (bone != null) bone.localRotation = _standingSipLegs[i];
+            }
         }
 
         private void FitShoreFeet(float phase, float weight)

@@ -1875,7 +1875,7 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
     {
         scale = _bodyRoot != null ? _bodyRoot.lossyScale.y :
             Rendering.HexWorldRenderer.ActorScale * transform.lossyScale.y;
-        support = _laying ? LyingRootPose() : default;
+        support = _laying ? FitBedSleepRoot(LyingRootPose()) : default;
         return _laying;
     }
 
@@ -3467,8 +3467,11 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     // Spec 31C.2: sleeping snaps the view to the bed's attach point and
     // plays the Laying state; waking releases back to the renderer's flow.
-    public void SetLaying(bool laying, Transform attachPoint, float surfaceY = 0f) =>
+    public void SetLaying(bool laying, Transform attachPoint, float surfaceY = 0f, bool pillowBed = false)
+    {
+        _pillowBed = pillowBed;
         ApplyLying(laying, attachPoint, surfaceY, fallenChain: false, sleepAfterFall: false);
+    }
 
     // §105: тело РУХНУЛО — умирает (окно спасения) или лежит без сознания.
     //
@@ -3529,6 +3532,13 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _lyingChainSleepAfter != sleepAfterFall;
         _lyingChainFallen = fallenChain;
         _lyingChainSleepAfter = sleepAfterFall;
+
+        if (!_laying && laying && attachPoint != null && !fallenChain && _bodyRoot != null)
+        {
+            // The simulation claims the bed centre as soon as Sleep starts.
+            // Preserve the previous rendered stance for the entry clip.
+            _bedEntry = new Pose(_bodyRoot.position, _bodyRoot.rotation);
+        }
 
         if (_laying && !laying && _bodyRoot != null)
         {
@@ -8032,6 +8042,7 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 // with the portrait so camera and body cannot disagree.
                 var support = FitBedSleepRoot(LyingRootPose());
                 _bodyRoot.SetPositionAndRotation(support.position, support.rotation);
+                FitSleepingBody(support);
             }
             else
             {
@@ -8079,7 +8090,8 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 // flips to land only on landing — the arc owns the vertical, so
                 // the lift must not stack on top and pop her up). It eases back in
                 // once the hop closes if she is still in the water.
-                var swimLiftTarget = _swimming && _jumpTimer <= 0f ? 1f : 0f;
+                var swimLiftTarget = _swimming && _jumpTimer <= 0f && _shoreHopTick == 0 ? 1f : 0f;
+                if (_shoreHopTick != 0) _swimBlend = 0f;
                 _swimBlend = Mathf.MoveTowards(
                     _swimBlend, swimLiftTarget,
                     Time.deltaTime * Mathf.Max(1f, _simSpeed) / SwimLiftEaseSeconds);
@@ -8094,8 +8106,7 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
                 // #453: rise on the remembered bed anchor, then ease to the
                 // standing root. Horizontal easing during GetUp was sliding.
-                ApplyWakeEase();
-                FitBedWakeRoot();
+                if (!FitBedWakeRoot()) ApplyWakeEase();
             }
         }
 

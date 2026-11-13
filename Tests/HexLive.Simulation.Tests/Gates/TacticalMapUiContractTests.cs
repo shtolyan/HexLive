@@ -157,7 +157,7 @@ public sealed class TacticalMapUiContractTests
         var leftClickStart = camera.IndexOf(
             "private void TryHandleLeftClick", System.StringComparison.Ordinal);
         var manualClick = camera.IndexOf(
-            "TryHandleManualClick(mousePosition)",
+            "TryHandleManualClick(mousePosition, append: shift)",
             leftClickStart,
             System.StringComparison.Ordinal);
         Assert.That(leftClickStart, Is.GreaterThanOrEqualTo(0));

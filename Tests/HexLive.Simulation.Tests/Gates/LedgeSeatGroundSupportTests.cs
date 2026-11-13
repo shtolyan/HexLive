@@ -72,8 +72,9 @@ public sealed class LedgeSeatGroundSupportTests
                 "The live root and the watchdog fallback must use the same support tile.");
             Assert.That(renderer, Does.Contain(
                 "NpcGroundSupport.Select(npc, GroundTileUnder(npc))"));
-            Assert.That(renderer, Does.Contain("selectedTile = GroundTileUnder(npc);"),
+            Assert.That(renderer, Does.Contain("var tile = GroundTileUnder(npc);"),
                 "§141 house cutaway remains tied to the continuous body position.");
+            Assert.That(renderer, Does.Contain("_occupiedCutawayTiles.Add(tile);"));
         });
     }
 

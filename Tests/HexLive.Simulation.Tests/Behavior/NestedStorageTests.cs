@@ -209,6 +209,45 @@ public sealed class NestedStorageTests
         }
     }
 
+    [TestCase(null)]
+    [TestCase(ContentIds.ModernFridge)]
+    [TestCase(ContentIds.StorageChest)]
+    public void CookedMeatIsEatenFromPackAndObservedStorage(string? storageId)
+    {
+        var engine = TestWorld.CreateEngine(692);
+        var world = engine.World;
+        var npc = Colonist(world);
+        npc.Inventory.Items.Clear();
+        npc.Needs.Hunger = .95f;
+        npc.Needs.Thirst = 0f;
+        npc.Needs.Energy = 1f;
+        var meat = new ItemInstance(ContentIds.MeatCooked) { ResourceAmount = FoodMath.MeatPortionGrams };
+
+        if (storageId == null)
+        {
+            npc.Mind.ManualControl = true;
+            npc.Inventory.Items.Add(meat);
+        }
+        else
+        {
+            var container = WorldObjectMutations.SpawnObject(world, storageId,
+                npc.Fragment, npc.Tile, Junction(world, npc));
+            container.Contents.Add(meat);
+            new PerceptionSystem().Run(world);
+            Assert.That(PlanningSystem.HasObservedStoredItem(world, npc, GoalType.GetFood), Is.True);
+            npc.Mind.CurrentGoal = GoalType.GetFood;
+            new PlanningSystem().Run(world);
+            Assert.That(npc.Plan.TargetObjectId, Is.EqualTo(container.Id));
+            Assert.That(npc.Plan.Steps.Last().Type, Is.EqualTo(PlanStepType.TakeStoredItem));
+        }
+
+        for (var i = 0; i < 250 && meat.ResourceAmount == FoodMath.MeatPortionGrams; i++)
+            engine.Step();
+
+        Assert.That(meat.ResourceAmount, Is.LessThan(FoodMath.MeatPortionGrams));
+        Assert.That(npc.Needs.Hunger, Is.LessThan(.95f));
+    }
+
     [Test]
     public void ThirstPlanFindsTheFullBottleInsideTheBackpackAndDrinksFromIt()
     {

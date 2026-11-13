@@ -29,13 +29,13 @@ function Card({ card, send }) {
         <span class="hx-roster__text">
           <b>${card.mine ? html`<span class="hx-star" aria-hidden="true">★ </span>` : ''}${card.name}</b>
           <span class="hx-roster__status" data-tone=${card.fighting ? 'danger' : card.statusTone}>
-            <i aria-hidden="true"></i>${t(card.fighting ? 'badge.fighting' : `state.${card.status}`)}
+            <i aria-hidden="true"></i>${t(card.status)}
           </span>
         </span>
         ${card.relation && html`
           <span class="hx-roster__relations">
             ${[
-              ['affinity', card.relation.affinity, '♥', card.relation.affinity < 0 ? 'negative' : 'affinity'],
+              ['affinity', (card.relation.affinity + 1) / 2, '♥', card.relation.affinity < 0 ? 'negative' : 'affinity'],
               ['familiarity', card.relation.familiarity, '●', 'familiarity'],
               ['trust', card.relation.trust, '◆', 'trust'],
             ].map(([id, value, glyph, tone]) => {

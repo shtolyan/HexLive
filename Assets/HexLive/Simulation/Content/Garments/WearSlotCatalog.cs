@@ -231,7 +231,7 @@ namespace HexLive.Simulation.Content
             ["clothing.heels_luxury_light_pink_color"] = new[] { WearSlot.FootR, WearSlot.FootL },
             ["clothing.heels_luxury_silver_color"] = new[] { WearSlot.FootR, WearSlot.FootL },
             ["clothing.heels_luxury_white_color"] = new[] { WearSlot.FootR, WearSlot.FootL },
-            ["clothing.hipbelt_anarchy"] = new[] { WearSlot.Pelvis, WearSlot.ThighR, WearSlot.ThighL },
+            ["clothing.hipbelt_anarchy"] = new[] { WearSlot.Pelvis },
             ["clothing.jacket_autumn"] = new[] { WearSlot.Chest, WearSlot.Belly, WearSlot.ShoulderR, WearSlot.ShoulderL, WearSlot.ForearmR, WearSlot.ForearmL },
             ["clothing.jacket_autumn_jacket_material01"] = new[] { WearSlot.Chest, WearSlot.Belly, WearSlot.ShoulderR, WearSlot.ShoulderL, WearSlot.ForearmR, WearSlot.ForearmL },
             ["clothing.jacket_autumn_jacket_material02"] = new[] { WearSlot.Chest, WearSlot.Belly, WearSlot.ShoulderR, WearSlot.ShoulderL, WearSlot.ForearmR, WearSlot.ForearmL },

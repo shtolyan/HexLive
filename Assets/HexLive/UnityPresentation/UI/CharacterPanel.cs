@@ -965,9 +965,9 @@ namespace HexLive.UnityPresentation.UI
             UpdateStatus(npc, isDead);
             UpdateUv(npc);
 
-            var showBadge = npc.IsStarving || npc.IsFighting;
-            _starvingBadge.style.display = showBadge ? DisplayStyle.Flex : DisplayStyle.None;
-            _starvingBadge.text = npc.IsFighting ? Loc.Get("badge.fighting") : Loc.Get("badge.starving");
+            var badge = isDead ? null : NeedBadge(npc);
+            _starvingBadge.style.display = badge != null ? DisplayStyle.Flex : DisplayStyle.None;
+            _starvingBadge.text = badge == null ? string.Empty : Loc.Get(badge);
 
             UpdateNeeds(npc);
             UpdateSheet(npc);
@@ -1008,9 +1008,30 @@ namespace HexLive.UnityPresentation.UI
         }
 
         /// <summary>§123 shared resolver for the roster and detail card.</summary>
-        private static void ResolveStatus(NpcSnapshot npc, out string key, out Color dot)
+        private static string NeedBadge(NpcSnapshot npc)
         {
-            ResolveStatus(npc, isDead: false, out key, out dot);
+            if (npc.IsFighting) return "badge.fighting";
+            if (npc.IsStarving) return "badge.starving";
+            if (npc.Hunger >= SimBalance.GetFoodHungerThreshold) return "badge.hungry";
+            if (npc.Thirst >= SimBalance.StarvingEnterThreshold) return "badge.dehydrated";
+            if (npc.Thirst >= AiBalance.DrinkThirstThreshold) return "badge.thirsty";
+            if (npc.Stress >= .7f) return "badge.stressed";
+            if (npc.Stamina <= 0f) return "badge.exhausted";
+            if (npc.Energy <= 0f) return "badge.sleepy";
+            if (npc.Blood < SimBalance.BandageBloodThreshold) return "badge.low_blood";
+            return null;
+        }
+
+        private static string StatusWithNeeds(NpcSnapshot npc, bool isDead, out Color dot)
+        {
+            ResolveStatus(npc, isDead, out var status, out dot);
+            if (isDead || npc.IsDying || npc.IsUnconscious || npc.IsFainted || npc.IsPlayingDead)
+                return status;
+
+            var badge = NeedBadge(npc);
+            if (badge == null) return status;
+            dot = badge == "badge.fighting" ? Crit : Warn;
+            return badge;
         }
 
         private static void ResolveStatus(
@@ -5899,8 +5920,8 @@ namespace HexLive.UnityPresentation.UI
             metric.style.width = 104f;
             metric.style.flexShrink = 0f;
 
-            var pct = signed ? Mathf.RoundToInt(value * 100f) : Mathf.RoundToInt(Mathf.Clamp01(value) * 100f);
-            var text = signed && pct > 0 ? $"+{pct}%" : $"{pct}%";
+            var displayValue = signed ? RelationDisplayValue(value) : Mathf.Clamp01(value);
+            var text = $"{Mathf.RoundToInt(displayValue * 100f)}%";
             metric.tooltip = $"{labelText}: {text}";
 
             var ringWrap = new VisualElement();
@@ -5910,7 +5931,7 @@ namespace HexLive.UnityPresentation.UI
             ringWrap.style.justifyContent = Justify.Center;
             ringWrap.style.flexShrink = 0f;
 
-            var ring = new RingMeter(signed ? Mathf.Abs(value) : value, color);
+            var ring = new RingMeter(displayValue, color);
             ring.style.position = Position.Absolute;
             ring.style.left = 0f;
             ring.style.right = 0f;
@@ -6089,8 +6110,7 @@ namespace HexLive.UnityPresentation.UI
             label.style.textOverflow = TextOverflow.Ellipsis;
             top.Add(label);
 
-            var pct = signed ? Mathf.RoundToInt(value * 100f) : Mathf.RoundToInt(Mathf.Clamp01(value) * 100f);
-            var valueLabel = new Label(signed && pct > 0 ? $"+{pct}%" : $"{pct}%");
+            var valueLabel = new Label(signed ? RelationScore(value) : $"{Mathf.RoundToInt(Mathf.Clamp01(value) * 100f)}%");
             valueLabel.style.color = signed ? RelationColor(value) : color;
             valueLabel.style.fontSize = 9.5f;
             valueLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -6610,7 +6630,7 @@ namespace HexLive.UnityPresentation.UI
             name.style.unityFontStyleAndWeight = FontStyle.Bold;
             name.pickingMode = PickingMode.Ignore;
             text.Add(name);
-            ResolveStatus(npc, out var statusKey, out var statusColor);
+            var statusKey = StatusWithNeeds(npc, isDead: false, out var statusColor);
             var status = new Label(Loc.Get(statusKey));
             status.style.fontSize = 10f;
             status.style.color = TextDim;
@@ -6625,20 +6645,12 @@ namespace HexLive.UnityPresentation.UI
                 var metrics = new VisualElement { pickingMode = PickingMode.Ignore };
                 metrics.style.flexDirection = FlexDirection.Row;
                 metrics.style.flexShrink = 0f;
-                metrics.Add(RosterRelationshipMeter("♥", "rel.affinity", affinity, RelationColor(affinity)));
+                metrics.Add(RosterRelationshipMeter("♥", "rel.affinity", RelationDisplayValue(affinity), RelationColor(affinity)));
                 metrics.Add(RosterRelationshipMeter("●", "rel.familiarity", Mathf.Clamp01(relation?.Familiarity ?? 0f), Social));
                 metrics.Add(RosterRelationshipMeter("◆", "rel.trust", Mathf.Clamp01(relation?.Trust ?? 0f), Good));
                 card.Add(metrics);
             }
 
-            if (npc.IsFighting)
-            {
-                var fight = new Label(Loc.Get("badge.fighting"));
-                fight.style.fontSize = 9f;
-                fight.style.color = Crit;
-                fight.pickingMode = PickingMode.Ignore;
-                card.Add(fight);
-            }
             var dot = new VisualElement();
             dot.style.width = 10f;
             dot.style.height = 10f;
@@ -8293,11 +8305,10 @@ namespace HexLive.UnityPresentation.UI
             return track;
         }
 
-        private static string RelationScore(float affinity)
-        {
-            var pct = Mathf.RoundToInt(affinity * 100f);
-            return pct > 0 ? $"+{pct}%" : $"{pct}%";
-        }
+        private static float RelationDisplayValue(float affinity) => Mathf.Clamp01((affinity + 1f) * .5f);
+
+        private static string RelationScore(float affinity) =>
+            $"{Mathf.RoundToInt(RelationDisplayValue(affinity) * 100f)}%";
 
         private static Color RelationColor(float affinity)
         {

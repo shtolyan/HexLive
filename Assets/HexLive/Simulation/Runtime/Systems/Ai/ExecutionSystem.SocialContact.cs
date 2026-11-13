@@ -13,23 +13,29 @@ namespace HexLive.Simulation.Runtime
 
 public sealed partial class ExecutionSystem
 {
-    private static bool CanStageContact(WorldState world, NPCState npc, NPCState target) =>
-        npc.Health > 0f && target.Health > 0f && !npc.IsDying && !target.IsDying &&
-        !npc.IsFighting && !target.IsFighting && !npc.IsLyingDown(world.Tick) &&
-        !target.IsLyingDown(world.Tick) && !target.Movement.IsMoving &&
-        !npc.IsBeingCarried && !target.IsBeingCarried && !npc.IsCarryingPerson && !target.IsCarryingPerson &&
-        !target.Mind.IsStarving && !target.Mind.IsDehydrated &&
-        target.Mind.ExternalControl?.IsActive != true && !ManualControlMath.IsManual(target) &&
-        target.Execution.Status != ExecutionStatus.InProgress && target.Mind.PendingTalkFrom == npc.Id &&
-        HexSpatialMath.Distance(npc.Position, target.Position) <= InteractionReach.Talk;
+    private static string? ContactBlocker(WorldState world, NPCState npc, NPCState target)
+    {
+        if (npc.Health <= 0f || target.Health <= 0f || npc.IsDying || target.IsDying ||
+            npc.IsLyingDown(world.Tick) || target.IsLyingDown(world.Tick) ||
+            npc.IsBeingCarried || target.IsBeingCarried || npc.IsCarryingPerson || target.IsCarryingPerson)
+            return "ContactNeedsStanding";
+        if (npc.IsFighting || target.IsFighting) return "ContactFighting";
+        if (target.Mind.IsStarving || target.Mind.IsDehydrated) return "ContactUrgentNeed";
+        if (target.Mind.ExternalControl?.IsActive == true || ManualControlMath.IsManual(target))
+            return "ContactControlled";
+        if (target.Movement.IsMoving || target.Execution.Status == ExecutionStatus.InProgress)
+            return "ContactBusy";
+        if (target.Mind.PendingTalkFrom != npc.Id) return "ContactInvitationLost";
+        if (HexSpatialMath.Distance(npc.Position, target.Position) > InteractionReach.Talk)
+            return "ContactTooFar";
+        return null;
+    }
 
     private static void StartSocialContact(WorldState world, NPCState npc, NPCState target, TalkTopic request)
     {
-        if (!CanStageContact(world, npc, target))
+        if (ContactBlocker(world, npc, target) is { } blocker)
         {
-            var cue = SocialContact.IsKiss(request) ? "KissUnavailable" :
-                request == TalkTopic.Hug ? "HugUnavailable" : "ContactUnavailable";
-            SocialCueSignals.Stamp(world, npc, cue, target.Id);
+            SocialCueSignals.Stamp(world, npc, blocker, target.Id);
             FinishSocialContact(world, npc, target);
             return;
         }
@@ -55,7 +61,8 @@ public sealed partial class ExecutionSystem
         };
         if (result is not { } outcome)
         {
-            SocialCueSignals.Stamp(world, npc, "ContactUnavailable", target.Id);
+            SocialCueSignals.Stamp(world, npc, request == TalkTopic.Apologize
+                ? "ContactApologyNotNeeded" : "ContactUnavailable", target.Id);
             FinishSocialContact(world, npc, target);
             return;
         }
@@ -74,7 +81,7 @@ public sealed partial class ExecutionSystem
 
     private static void RunSocialContact(WorldState world, NPCState npc, NPCState target, TalkTopic result)
     {
-        if (!CanStageContact(world, npc, target))
+        if (ContactBlocker(world, npc, target) is not null)
         {
             FinishSocialContact(world, npc, target);
             return;

@@ -145,6 +145,13 @@ public sealed partial class ExecutionSystem
                     }
                 }
 
+                if (SocialContact.IsRequest(npc.Plan.RequestedTalkTopic))
+                {
+                    SocialCueSignals.Stamp(world, npc, "ContactTooFar", target.Id);
+                    FinishSocialContact(world, npc, target);
+                    return;
+                }
+
                 AbortTalk(world, npc, $"Target NPC{targetId.Value} out of talk range");
                 return;
             }

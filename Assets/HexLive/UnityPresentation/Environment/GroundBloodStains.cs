@@ -72,8 +72,10 @@ public sealed class GroundBloodStains : MonoBehaviour
     // top face is at the foot and everything above — her — is outside it.
     private const float ProjectorHover = 0.06f;
     private const float ProjectorDepth = 0.9f;
-    // §56.7 / #485: a full butchery pool spans 1.4 hex radii (R=1.5 wu).
-    internal const float ButcheryPoolDiameter = 2.1f;
+    // §56.7: six times the blood coverage scales the diameter by sqrt(6).
+    private static readonly float ButcheryDiameterMultiplier = Mathf.Sqrt(6f);
+    internal static readonly float ButcheryPoolDiameter = 2.1f * ButcheryDiameterMultiplier;
+    private static readonly float ButcheryPartDiameter = .72f * ButcheryDiameterMultiplier;
 
     private sealed class Stain
     {
@@ -140,7 +142,7 @@ public sealed class GroundBloodStains : MonoBehaviour
     {
         var stain = Spawn(at, tick);
         if (stain == null) return;
-        stain.FullScale = part ? .72f : ButcheryPoolDiameter;
+        stain.FullScale = part ? ButcheryPartDiameter : ButcheryPoolDiameter;
         stain.SpreadFromScale = stain.FullScale * .8f;
         stain.CurrentScale = stain.SpreadFromScale;
         stain.Projector.size = new Vector3(stain.CurrentScale, stain.CurrentScale, ProjectorDepth);

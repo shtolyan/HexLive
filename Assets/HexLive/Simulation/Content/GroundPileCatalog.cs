@@ -1861,7 +1861,7 @@ public static class GroundPileCatalog
         // source-sha256: 648d713bc585632bb92ea84b6222b1dabcd320769a5e416fd337684dfe65c991 Assets/HexLiveContent/Wear/clothing.helmet_vintage/helmet_vintage.mesh.asset.meta
         // source-sha256: 0080d82ce30999c9f87e5cdb24f799c2a2c3bdec98d062e80e9182c1fe1da497 Assets/HexLiveContent/Wear/clothing.helmet_vintage/helmet_vintage.prefab
         // source-sha256: 5f24419572a393602ca43575fddc7e4f62b6bab94ef98d6ad28ca2ecba062826 Assets/HexLiveContent/Wear/clothing.helmet_vintage/helmet_vintage.prefab.meta
-        // source-sha256: 30c1a15f40d9080fd360193ec9a9838bb9e71a07b132a5d3701b7da125a7e644 Assets/HexLiveContent/Wear/clothing.hipbelt_anarchy/AnarchyHipBelt.prefab
+        // source-sha256: 706e9daeacf910e15661017d444c1c84d2ca9496c32ed6c3e851d6489cfca4cb Assets/HexLiveContent/Wear/clothing.hipbelt_anarchy/AnarchyHipBelt.prefab
         // source-sha256: 4cb9397ca1bd8782533e6125026a24af65f0c316ef98b49ba39aec5626d694b4 Assets/HexLiveContent/Wear/clothing.hipbelt_anarchy/AnarchyHipBelt.prefab.meta
         // source-sha256: 778a373f155595f1e13f49689ae9e8745f1276de3254e735a47a899ca92d850d Assets/HexLiveContent/Wear/clothing.jacket_autumn/AutumnJacket.prefab
         // source-sha256: ba46ecee946c72fa5e1821f7e4a0dbe66e54877e5507f5bbc9f7654abd451d03 Assets/HexLiveContent/Wear/clothing.jacket_autumn/AutumnJacket.prefab.meta

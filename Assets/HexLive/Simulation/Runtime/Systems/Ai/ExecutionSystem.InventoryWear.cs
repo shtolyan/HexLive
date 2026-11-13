@@ -856,17 +856,6 @@ public sealed partial class ExecutionSystem
                 if (SimTrace.Enabled)
                     Trace.Debug(world, npc.Id, "MealServed",
                         $"{itemId} -> {served} g of {MealServing.OutputFor(itemId)} on the ground");
-
-                var portionId = MealServing.OutputFor(itemId);
-                if (npc.Plan.Goal == GoalType.Eat && FoodMath.NextBite(npc, portionId) != null)
-                {
-                    npc.Plan.TargetItemDefinitionId = portionId;
-                    npc.Plan.Steps[0].Interaction = InteractionType.Eat;
-                    npc.Execution.Status = ExecutionStatus.None;
-                    npc.Execution.CurrentInteraction = null;
-                    npc.Execution.TargetInventoryItem = null;
-                    return;
-                }
             }
             else
             {
@@ -907,15 +896,25 @@ public sealed partial class ExecutionSystem
                     $"{itemId} eaten NeedsAfter=[{needsAfter}]");
             }
 
-            npc.Plan.Status = PlanStatus.Completed;
-            npc.Plan.Steps.Clear();
-            npc.Plan.TargetItemDefinitionId = null;
-            npc.Mind.CurrentGoal = GoalType.None;
+            var portionId = serving ? MealServing.OutputFor(itemId) : null;
+            var eatServedPortion = portionId != null && npc.Plan.Goal == GoalType.Eat &&
+                FoodMath.NextBite(npc, portionId) != null;
             npc.Execution.Status = ExecutionStatus.None;
             npc.Execution.CurrentInteraction = null;
             npc.Execution.TargetInventoryItem = null;
             npc.Execution.StartTick = 0;
             npc.Execution.EndTick = 0;
+            if (eatServedPortion)
+            {
+                npc.Plan.TargetItemDefinitionId = portionId;
+                npc.Plan.Steps[0].Interaction = InteractionType.Eat;
+                return;
+            }
+
+            npc.Plan.Status = PlanStatus.Completed;
+            npc.Plan.Steps.Clear();
+            npc.Plan.TargetItemDefinitionId = null;
+            npc.Mind.CurrentGoal = GoalType.None;
 
             if (SimTrace.Enabled)
             {

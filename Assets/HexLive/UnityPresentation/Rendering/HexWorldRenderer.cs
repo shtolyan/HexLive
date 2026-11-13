@@ -3448,8 +3448,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // Fast-forward: animations play at the sim's speed multiplier, so 2× /
         // 4× / 50× worlds move bodies 2× / 4× / 50× faster too (1× on pause).
         actorView.SetSimSpeed(_runner != null && !_runner.IsPaused ? _runner.SpeedMultiplier : 1f);
-        // §40.18-B: in deep water the animator swims (tread idle / strokes).
-        actorView.SetSwimming(_swimCoords.Contains(npc.Tile));
         // Spec §67: what the feet land on — wading water beats sand beats
         // grass — so the view picks the right footstep sample.
         actorView.SetGroundSurface(
@@ -3484,6 +3482,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             ActorGroundY(npc.HopFromTile),
             ActorGroundY(npc.HopTargetTile) - ActorGroundY(npc.HopFromTile), hopEdgePoint, hopFlightDirection,
             _runner == null || _runner.IsPaused ? 0f : _runner.SpeedMultiplier);
+        // Exit the swimming controller as soon as the climb owns the pose.
+        actorView.SetSwimming(!visualShoreClimb && _swimCoords.Contains(npc.Tile));
         actorView.SetHopSignal(visualShoreClimb ? string.Empty : npc.HopKind,
             npc.HopKind.Length > 0
                 ? ActorGroundY(npc.HopTargetTile) - ActorGroundY(npc.HopFromTile)

@@ -8079,7 +8079,8 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 // flips to land only on landing — the arc owns the vertical, so
                 // the lift must not stack on top and pop her up). It eases back in
                 // once the hop closes if she is still in the water.
-                var swimLiftTarget = _swimming && _jumpTimer <= 0f ? 1f : 0f;
+                var swimLiftTarget = _swimming && _jumpTimer <= 0f && _shoreHopTick == 0 ? 1f : 0f;
+                if (_shoreHopTick != 0) _swimBlend = 0f;
                 _swimBlend = Mathf.MoveTowards(
                     _swimBlend, swimLiftTarget,
                     Time.deltaTime * Mathf.Max(1f, _simSpeed) / SwimLiftEaseSeconds);

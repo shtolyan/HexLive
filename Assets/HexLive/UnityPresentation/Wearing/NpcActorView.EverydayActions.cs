@@ -46,6 +46,7 @@ namespace HexLive.UnityPresentation.Wearing
         private int _shoreHopTick;
         private Vector3 _shoreDirection;
         private float _shoreStartY;
+        private float _shoreWaterY;
         private float _shoreHeight;
         private Vector3 _shoreEdge;
         private IKSolverLimb _shoreLeftLeg;
@@ -292,6 +293,7 @@ namespace HexLive.UnityPresentation.Wearing
                 _shoreDirection = direction;
                 _shoreEdge = edge;
                 _shoreStartY = startY;
+                _shoreWaterY = startY + SwimBodyLift * _swimBlend;
                 _shoreHeight = rise;
             }
             var clip = EverydayActionClips.Load()?.climbFromWater;
@@ -443,12 +445,13 @@ namespace HexLive.UnityPresentation.Wearing
             if (standingSip) ApplyStandingSip();
             if (_shoreHopTick != 0)
             {
-                var y = _shoreStartY + _shoreHeight * Mathf.SmoothStep(0f, 1f,
-                    Mathf.InverseLerp(.27f, .88f, phase));
+                var rise = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.27f, .88f, phase));
                 var current = _animator.transform.position;
-                current.y = Mathf.Lerp(current.y, y, weight);
+                current.y = Mathf.Lerp(_shoreWaterY, _shoreStartY + _shoreHeight, rise);
                 var ahead = Vector3.Dot(current - _shoreEdge, _shoreDirection);
-                var cross = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.57f, .94f, phase));
+                var cross = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(
+                    HexLive.Simulation.Navigation.HexHopTuning.ShoreClimbCrossStart,
+                    HexLive.Simulation.Navigation.HexHopTuning.ShoreClimbCrossEnd, elapsed));
                 current -= _shoreDirection * (Mathf.Max(0f, ahead) * (1f - cross) * weight);
                 _animator.transform.SetPositionAndRotation(current,
                     Quaternion.Slerp(rotation, Quaternion.LookRotation(_shoreDirection), weight));

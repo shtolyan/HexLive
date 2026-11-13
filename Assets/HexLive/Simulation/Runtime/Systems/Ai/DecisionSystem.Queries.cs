@@ -288,9 +288,11 @@ public sealed partial class DecisionSystem
             // food — the fire is the source object, the meat is what's taken.
             if (definition.HasTag("Campfire"))
             {
-                if (world.Entities.Objects.TryGetValue(obj.Id, out var fire) &&
+                if (MealServing.HasKnife(npc) &&
+                    world.Entities.Objects.TryGetValue(obj.Id, out var fire) &&
                     BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked) > 0 &&
-                    InventoryMath.CanMakeRoomForGoal(world, npc, GoalType.Eat, ContentIds.MeatCooked))
+                    MealServing.FindSurface(world, npc) != null &&
+                    InventoryMath.CanMakeRoomForGoal(world, npc, GoalType.Eat, ContentIds.MeatRoasted))
                 {
                     return true;
                 }
@@ -298,11 +300,18 @@ public sealed partial class DecisionSystem
                 continue;
             }
 
-            if (!InventoryMath.CanMakeRoomForGoal(world, npc, GoalType.GetFood, obj.DefinitionId) ||
-                !definition.HasTag("Food"))
+            if (!InventoryMath.CanMakeRoomForGoal(world, npc, GoalType.GetFood, obj.DefinitionId))
+                continue;
+
+            if (MealServing.IsReadyToServe(definition.Id) || HumanMeatCatalog.IsRaw(definition.Id))
             {
+                if (MealServing.HasKnife(npc) && MealServing.FindSurface(world, npc) != null &&
+                    (MealServing.IsReadyToServe(definition.Id) || FindCookingFire(npc, world, definition.Id) != null))
+                    return true;
                 continue;
             }
+
+            if (!definition.HasTag("Food")) continue;
 
             if (definition.HasTag("Coconut") && !hasBlade)
             {
@@ -743,7 +752,7 @@ public sealed partial class DecisionSystem
     // fire happened to be first: an incomplete/cold new hearth could suppress
     // CookMeat even when a lit free spit was also visible (or availability
     // could be borrowed from one fire while the planner selected another).
-    internal static WorldObjectState FindCookingFire(NPCState npc, WorldState world)
+    internal static WorldObjectState FindCookingFire(NPCState npc, WorldState world, string rawMeatId = null)
     {
         foreach (var perceived in npc.Perception.Objects)
         {
@@ -755,7 +764,9 @@ public sealed partial class DecisionSystem
                 !definition.HasTag("Campfire") ||
                 !world.Entities.Objects.TryGetValue(perceived.Id, out var fire) ||
                 fire.ResourceAmount <= 0f ||
-                !FoodMath.SpitHasFreeHook(fire))
+                !(rawMeatId == null
+                    ? npc.Inventory.Items.Exists(item => BuildSiteMath.CanHangMeat(world, fire, item.DefinitionId))
+                    : BuildSiteMath.CanHangMeat(world, fire, rawMeatId)))
             {
                 continue;
             }

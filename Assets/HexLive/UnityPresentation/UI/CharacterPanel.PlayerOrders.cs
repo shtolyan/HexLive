@@ -131,6 +131,7 @@ namespace HexLive.UnityPresentation.UI
                 "Craft" => "interaction.Craft.verb",
                 "Inventory" when order.Detail == "Eat" => "inv.action.eat",
                 "Inventory" when order.Detail == "Cook" => "menu.cook_meat",
+                "Inventory" when order.Detail == "Serve" => "inv.action.serve",
                 "FillVessel" => "inv.action.fill",
                 "TalkTo" or "RequestItem" => "menu.talk_to",
                 "Romance" or "ForceRomance" => "menu.romance",

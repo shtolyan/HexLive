@@ -26,7 +26,8 @@ public sealed class CampfireQueueTests
     private static NPCState Colonist(WorldState world) => world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
     private static string[] Definitions(WorldState world) => world.Content.ObjectDefinitions.Keys
         .Where(id => id.StartsWith("resource.", StringComparison.Ordinal) || id.StartsWith("tool.", StringComparison.Ordinal))
-        .Where(id => id != ContentIds.Bottle).OrderBy(id => id, StringComparer.Ordinal).Take(21).ToArray();
+        .Where(id => id != ContentIds.Bottle && !HumanMeatCatalog.IsRaw(id))
+        .OrderBy(id => id, StringComparer.Ordinal).Take(21).ToArray();
     private static void Give(WorldState world, WorldObjectState fire, NPCState npc, params ItemInstance[] items)
     {
         npc.Inventory.Items.AddRange(items);
@@ -95,13 +96,13 @@ public sealed class CampfireQueueTests
     public void CookedSpitItemDoesNotMergeIntoItsDiscardQueueCell()
     {
         var world = TestWorld.CreateWorld(66804); var npc = Colonist(world); var fire = Fire(world, npc);
-        var cooked = new ItemInstance(ContentIds.MeatCooked); fire.Contents.Add(cooked);
-        var discarded = new ItemInstance(ContentIds.MeatCooked); Give(world, fire, npc, discarded);
+        var cooked = new ItemInstance(ContentIds.MeatRoasted); fire.Contents.Add(cooked);
+        var discarded = new ItemInstance(ContentIds.MeatRoasted); Give(world, fire, npc, discarded);
         var cells = new List<(string ItemId, int Count, int SourceIndex)>(); ContainerLootMath.BuildCells(world, fire, cells);
         Assert.That(cells, Has.Count.EqualTo(2));
-        Assert.That(ContainerLootMath.TryResolve(world, fire, 0, ContentIds.MeatCooked, 1, out var food, out _), Is.True);
+        Assert.That(ContainerLootMath.TryResolve(world, fire, 0, ContentIds.MeatRoasted, 1, out var food, out _), Is.True);
         Assert.That(ReferenceEquals(food.Single(), cooked), Is.True);
-        Assert.That(ContainerLootMath.TryResolve(world, fire, 1, ContentIds.MeatCooked, 1, out var fuel, out _), Is.True);
+        Assert.That(ContainerLootMath.TryResolve(world, fire, 1, ContentIds.MeatRoasted, 1, out var fuel, out _), Is.True);
         Assert.That(ReferenceEquals(fuel.Single(), discarded), Is.True);
         Assert.That(ContainerLootMath.TryConsumeCampfireFuel(world, fire, out _), Is.True);
         Assert.That(ReferenceEquals(fire.Contents.Single(), cooked), Is.True);

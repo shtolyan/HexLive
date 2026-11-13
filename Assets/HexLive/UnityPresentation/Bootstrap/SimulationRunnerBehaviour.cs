@@ -607,6 +607,14 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         Bootstrap(definition, prebuiltWorld);
     }
 
+    internal void ConfigureLocalTest(WorldBootstrapDefinition definition, HexLive.Simulation.Core.WorldState world)
+    {
+        AutosaveSuppressed = true;
+        _startPaused = true;
+        _initialSpeed = 1f;
+        Bootstrap(definition, world, localTest: true);
+    }
+
     private void Bootstrap()
     {
         if (_bootstrapAsset?.WorldJson is null)
@@ -624,7 +632,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     }
 
     private void Bootstrap(
-        WorldBootstrapDefinition definition, HexLive.Simulation.Core.WorldState prebuiltWorld)
+        WorldBootstrapDefinition definition, HexLive.Simulation.Core.WorldState prebuiltWorld, bool localTest = false)
     {
         // A remote client does not own a local fallback world. Building one
         // here was pure waste: Continue synchronously generated seed 0,
@@ -633,7 +641,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         // curtain before the first "Connecting" frame. The authoritative seed
         // arrives in Handshake; RemoteSocketBackend regenerates exactly that
         // topology on a worker.
-        if (TryBootstrapRemote())
+        if (!localTest && TryBootstrapRemote())
         {
             return;
         }
@@ -642,8 +650,11 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         // готовый мир; синхронный Create здесь остаётся для dev-сцен и
         // редких fallback-путей с маленькими мирами.
         var world = prebuiltWorld ?? new WorldStateFactory().Create(definition);
-        var saveHeader = SaveGame.TryReadHeader();
-        _gameHistory.OpenForWorld(world.Seed, saveHeader != null && saveHeader.seed == world.Seed);
+        if (!localTest)
+        {
+            var saveHeader = SaveGame.TryReadHeader();
+            _gameHistory.OpenForWorld(world.Seed, saveHeader != null && saveHeader.seed == world.Seed);
+        }
 
         var settings = new SimulationSettings
         {

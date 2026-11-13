@@ -116,6 +116,7 @@ public static class ActionItemResolver
             case InteractionType.Harvest:
             case InteractionType.Process:
             case InteractionType.Butcher:
+            case InteractionType.Serve:
                 return WorkTool(world, npc)?.DefinitionId ?? string.Empty;
 
             // Bug #333: наложение шины показывает шину в руке (поза — контур
@@ -199,6 +200,10 @@ public static class ActionItemResolver
     // второй, чтобы вид сыграл крафт-позу с двумя ёмкостями.
     public static string OffhandId(NPCState npc)
     {
+        if (npc.Execution.CurrentInteraction == InteractionType.Serve &&
+            npc.Execution.TargetInventoryItem is { } preparation &&
+            InventoryMath.ContainsReference(npc.Inventory.Items, preparation))
+            return MealServing.PreparedArtId(preparation.DefinitionId);
         if (npc.Execution.CurrentInteraction == InteractionType.FillVessel)
         {
             var source = npc.Execution.ActionSupply;

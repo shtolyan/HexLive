@@ -106,7 +106,7 @@ namespace HexLive.Simulation.Runtime
         // 3 «больших» глотка: 10×0.21 ≈ 3×0.7). Жаждущая пьёт несколько
         // глотков подряд тем же next-sip циклом, что и кокос.
         // ─────────────────────────────────────────────────────────────
-        public static int DrinkBottleDurationTicks = 16;   // gulp-by-gulp duration
+        public static int DrinkBottleDurationTicks = 24;   // 100 ml drinking cycle
         public static float DrinkThirstRaw = 0.21f;        // thirst removed by one 100 ml raw sip
         public static float DrinkThirstBoiled = 0.26f;     // thirst removed by one 100 ml boiled sip
         public static float DrinkComfortBoiled = 0.015f;   // boiled water is a small comfort too
@@ -173,8 +173,8 @@ namespace HexLive.Simulation.Runtime
         // ─────────────────────────────────────────────────────────────
         // Food restore (hunger removed when eaten).
         // ─────────────────────────────────────────────────────────────
-        public static float CoconutHunger = 0.6f;      // eating a coconut
-        public static float CookedMeatHunger = 0.9f;   // eating cooked meat
+        public static float CoconutHunger = 0.225f;    // 100 g of split coconut flesh
+        public static float CookedMeatHunger = 0.9f;   // full 300 g serving of cooked meat
         // §55: pierced coconut water is drunk one small gulp at a time; the full
         // coconut quenches roughly one thirst bar across CoconutWaterCapacity uses.
         public static float CoconutThirst = 0.25f;     // thirst removed per coconut gulp

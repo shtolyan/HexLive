@@ -120,6 +120,15 @@ public static class PrototypeRuntimeBootstrap
         InstallCamera(runner);
         InstallCharacterUi(runner);
 
+        var mealTest = Object.FindAnyObjectByType<MealPreparationTest.MealPreparationTestBootstrap>();
+        if (mealTest != null)
+        {
+            var definition = MealPreparationTest.MealPreparationTestWorld.CreateDefinition(mealTest.EmptyHands);
+            var world = MealPreparationTest.MealPreparationTestWorld.CreateWorld(definition, mealTest.EmptyHands);
+            runner.ConfigureLocalTest(definition, world);
+            return;
+        }
+
         // Spec 41.1/41.4: the loading curtain owns the rest — menu, world
         // bootstrap, replay, view spawn, warm-up, fade, unpause, Jana.
         var loaderRoot = new GameObject("HexLive Loading Screen");

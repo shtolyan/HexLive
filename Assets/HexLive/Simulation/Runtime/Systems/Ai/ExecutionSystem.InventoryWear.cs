@@ -751,7 +751,10 @@ public sealed partial class ExecutionSystem
             // another equal item with different ResourceAmount.
             npc.Execution.TargetInventoryItem = item;
             npc.Execution.StartTick = world.Tick;
-            npc.Execution.EndTick = world.Tick + interaction.DurationTicks;
+            var duration = verb == InteractionType.Eat
+                ? FoodMath.EatTicks(item.DefinitionId, item.ResourceAmount)
+                : interaction.DurationTicks;
+            npc.Execution.EndTick = world.Tick + duration;
 
             if (SimTrace.Enabled)
             {
@@ -770,14 +773,19 @@ public sealed partial class ExecutionSystem
         {
             var remaining = npc.Execution.EndTick - world.Tick;
             var total = npc.Execution.EndTick - npc.Execution.StartTick;
-            if (remaining > 0)
+            var needsBefore = remaining > 0 ? null : Trace.FormatNeeds(npc.Needs);
+            var share = total > 0 ? 1f / total : 1f;
+            if (verb == InteractionType.Eat)
+            {
+                var amount = item.ResourceAmount;
+                share = FoodMath.EatTick(itemId, ref amount);
+                item.ResourceAmount = amount;
+            }
+            ApplyEffectsScaled(npc, interaction.Effects, share);
+
+            if (remaining > 0 && (verb != InteractionType.Eat || item.ResourceAmount != 0f))
             {
                 var progress = total > 0 ? 1f - (float)remaining / total : 1f;
-                // Spec 29C.9: hunger drops mouthful by mouthful, not in a jump.
-                if (total > 0)
-                {
-                    ApplyEffectsScaled(npc, interaction.Effects, 1f / total);
-                }
 
                 if (SimTrace.Enabled)
                 {
@@ -792,8 +800,6 @@ public sealed partial class ExecutionSystem
                 return;
             }
 
-            var needsBefore = Trace.FormatNeeds(npc.Needs);
-            ApplyEffectsScaled(npc, interaction.Effects, total > 0 ? 1f / total : 1f);
             if (IsPortableCoconutDrink(itemDefinition, verb))
             {
                 item.ResourceAmount = System.MathF.Max(0f, item.ResourceAmount - 1f);
@@ -826,8 +832,8 @@ public sealed partial class ExecutionSystem
             }
             else
             {
-                if (verb == InteractionType.Eat) FoodMath.SpendInventoryBite(npc, item);
-                else InventoryMath.RemoveReference(npc.Inventory.Items, item);
+                if (verb != InteractionType.Eat || item.ResourceAmount == 0f)
+                    InventoryMath.RemoveReference(npc.Inventory.Items, item);
                 // §55: a consumed item may transform rather than vanish — cracking a
                 // coconut (Drink) yields the opened husk straight into the hand.
                 foreach (var yield in interaction.Yields)

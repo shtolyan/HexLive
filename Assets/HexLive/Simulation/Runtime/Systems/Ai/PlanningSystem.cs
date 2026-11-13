@@ -246,8 +246,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // Bug #323: и РУЧНАЯ тоже — но только у близкого костра
                 // (шаг к огню рядом — не «ушла сама»); дальний вертел для неё
                 // по-прежнему закрыт §121.6.
-                if (TryBuildSpitTakePlan(world, npc, foodDefinitionId,
-                        inventoryOnly ? ManualSpitTakeRadiusTiles : int.MaxValue))
+                if (!inventoryOnly && (TryBuildServingPlan(world, npc, foodDefinitionId) ||
+                    TryBuildSpitTakePlan(world, npc, foodDefinitionId)))
                 {
                     continue;
                 }
@@ -1649,7 +1649,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
     internal static bool RequiresBesideApproach(
         WorldState world, JunctionId anchor, InteractionType interaction)
     {
-        if (interaction is InteractionType.Sit or InteractionType.Sleep or InteractionType.PickUp)
+        if (interaction is InteractionType.Sit or InteractionType.Sleep or InteractionType.PickUp or InteractionType.Serve)
         {
             return true;
         }
@@ -1726,7 +1726,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
     /// hammer boxed in by bodies/furniture is not selected and failed every
     /// four ticks.  Geometry, route and live reservations deliberately mirror
     /// the real planner.</summary>
-    private static bool HasUsableBesideJunction(
+    internal static bool HasUsableBesideJunction(
         WorldState world,
         NPCState npc,
         JunctionId anchorId,
@@ -2042,7 +2042,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
     }
 
     private static bool IsAnimalMeat(string id) =>
-        id is ContentIds.MeatRaw or ContentIds.MeatCooked or ContentIds.CrabRaw or ContentIds.CrabCooked;
+        (HumanMeatCatalog.IsRaw(id) || HumanMeatCatalog.IsCooked(id)) && !HumanMeatCatalog.IsHumanPart(id);
 
     // Spec 23.10: a failed plan puts its goal on cooldown so the NPC does
     // something else instead of hammering the same target.
@@ -2418,7 +2418,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // the campfire itself becomes a GetFood target while any hangs.
                 if (definition.HasTag("Campfire"))
                 {
-                    return world.Entities.Objects.TryGetValue(perceived.Id, out var spitSource) &&
+                    return MealServing.HasKnife(npc) && MealServing.FindSurface(world, npc) != null &&
+                        world.Entities.Objects.TryGetValue(perceived.Id, out var spitSource) &&
                         BuildSiteMath.HangingMeat(spitSource, ContentIds.MeatCooked) > 0;
                 }
 
@@ -2431,6 +2432,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     return false;
                 }
 
+                if (MealServing.IsReadyToServe(definition.Id))
+                    return MealServing.HasKnife(npc) && MealServing.FindSurface(world, npc) != null;
+                if (HumanMeatCatalog.IsRaw(definition.Id))
+                    return MealServing.HasKnife(npc) && MealServing.FindSurface(world, npc) != null &&
+                        DecisionSystem.FindCookingFire(npc, world, definition.Id) != null;
                 return definition.HasTag("Food") &&
                     (!definition.HasTag("Coconut") || HasCoconutBlade(npc));
             case GoalType.GatherWood:
@@ -2487,10 +2493,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 return definition.HasTag("Campfire") &&
                     world.Entities.Objects.TryGetValue(perceived.Id, out var spitFire) &&
                     spitFire.ResourceAmount > 0f &&
-                    BuildSiteMath.CampfireSpitComplete(spitFire) &&
-                    BuildSiteMath.HangingMeat(spitFire, ContentIds.MeatRaw) +
-                    BuildSiteMath.HangingMeat(spitFire, ContentIds.MeatCooked) <
-                    SimBalance.CampfireSpitCapacity;
+                    npc.Inventory.Items.Exists(item => BuildSiteMath.CanHangMeat(world, spitFire, item.DefinitionId));
             case GoalType.CraftRope:
             case GoalType.CraftCloth:
             case GoalType.CraftSharpStone:

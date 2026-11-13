@@ -66,16 +66,55 @@ public sealed partial class PlanningSystem
     // костра — шаг к огню рядом не «ушла сама», а поход через карту — ушла.
     internal const int ManualSpitTakeRadiusTiles = 2;
 
+    private static bool TryBuildServingPlan(WorldState world, NPCState npc, string? bestInPack)
+    {
+        var preparation = MealServing.FirstPreparation(npc);
+        if (preparation == null || !MealServing.HasKnife(npc) ||
+            bestInPack is not null && FoodMath.NutritionOf(world, bestInPack) >= FoodMath.NutritionOf(world, ContentIds.MeatCooked))
+            return false;
+
+        var surface = MealServing.FindSurface(world, npc);
+        if (surface == null) return false;
+        var definition = world.Content.ObjectDefinitions[surface.DefinitionId];
+        if (!TryReserveBesideJunction(world, npc, surface.Junctions[0], 48, out var stand,
+                SpatialQueries.BesideReach(definition.ObstacleRadius), surface)) return false;
+
+        npc.Plan.TargetObjectId = surface.Id;
+        npc.Plan.TargetTile = surface.Tile;
+        npc.Plan.TargetJunctionId = stand;
+        npc.Plan.TargetItemDefinitionId = preparation.DefinitionId;
+        npc.Execution.TargetInventoryItem = preparation;
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = stand,
+            TargetObject = surface.Id
+        });
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.Interact,
+            TargetObject = surface.Id,
+            TargetJunction = stand,
+            Interaction = InteractionType.Serve,
+            InteractionId = MealServing.InteractionId
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        return true;
+    }
+
     private static bool TryBuildSpitTakePlan(
         WorldState world, NPCState npc, string? bestInPack, int maxTiles = int.MaxValue)
     {
         var packNutrition = bestInPack is null ? 0f : FoodMath.NutritionOf(world, bestInPack);
-        if (packNutrition + 0.01f >= SimBalance.CookedMeatHunger)
+        if (packNutrition + 0.01f >= FoodMath.NutritionOf(world, ContentIds.MeatCooked))
         {
             return false; // the pack already holds a meal at least as good
         }
 
-        if (!InventoryMath.CanMakeRoomForGoal(world, npc, GoalType.Eat, ContentIds.MeatCooked))
+        if (!MealServing.HasKnife(npc) || MealServing.FirstPreparation(npc) != null ||
+            MealServing.FindSurface(world, npc, maxTiles) == null ||
+            !InventoryMath.CanMakeRoomForGoal(world, npc, GoalType.Eat, ContentIds.MeatRoasted))
         {
             return false; // take.from.spit must be able to make a real slot
         }

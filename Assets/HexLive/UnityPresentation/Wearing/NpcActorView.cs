@@ -33,6 +33,18 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private readonly HashSet<int> _animatorParameterHashes = new();
     private LookAtIK _lookAtIK;
     private FullBodyBipedIK _fullBodyIK;
+    private bool _servingAtStump;
+    private Vector3 _servingSurface;
+    private float _servingProgress;
+
+    public void SetStumpServingTarget(Vector3 top, float progress)
+    {
+        _servingAtStump = true;
+        _servingSurface = top;
+        _servingProgress = progress;
+    }
+
+    public void ClearStumpServingTarget() => _servingAtStump = false;
     private ActorName _actorMesh;
     private readonly Dictionary<string, int> _equippedSimItems = new();
     private readonly List<string> _removeScratch = new();
@@ -4290,7 +4302,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // kneel as crafting. The sim deliberately keeps InteractionType.Loot;
         // this visual alias is all the scene needs.
         var looting = !_legless && interaction == "Loot";
-        var crafting = !_legless && interaction == "Craft";
+        if (interaction != "Serve") ClearStumpServingTarget();
+        var crafting = !_legless && interaction is ("Craft" or "Serve");
         // §173: planting uses the authored gardening/craft kneel.
         var planting = !_legless && interaction == "Plant";
         var pouring = !_legless && interaction == "FillVessel";
@@ -7513,6 +7526,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         otherEffector.positionWeight = 0f;
         otherEffector.rotationWeight = 0f;
 
+        if (TryDriveStumpServingIK(solver, hand, effector, otherEffector)) return;
+
         var weight = _hasUsableHand && _actionTargetActive && !_ragdollActive &&
             !_laying && !_swimming && hand != null
             ? CurrentActionTargetIKWeight()
@@ -7702,7 +7717,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // §142: третий повод разбудить решатель — вторая ладонь на древке.
         // В отличие от первых двух он держится и НА ХОДУ: копьё несут двумя
         // руками и в шаге, и в беге.
-        var wants = HurtReachActive || _actionTargetActive ||
+        var wants = HurtReachActive || _actionTargetActive || _servingAtStump ||
                     (_offHandGripIk && TwoHandCarryActive);
         if (_fullBodyIK.enabled != wants)
         {
@@ -7744,6 +7759,41 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         effector.positionWeight = _hurtReachWeight;
         effector.rotationWeight = 0f;
         solver.IKPositionWeight = 1f;
+    }
+
+    private bool TryDriveStumpServingIK(IKSolverFullBodyBiped solver, Transform hand,
+        IKEffector knifeHand, IKEffector supportHand)
+    {
+        if (!_servingAtStump || hand == null || !_hasUsableHand ||
+            _laying || _swimming || _ragdollActive) return false;
+
+        var toward = _servingSurface - transform.position;
+        toward.y = 0f;
+        var distance = toward.magnitude;
+        if (distance < .12f || distance > 1.1f) return false;
+        toward /= distance;
+        var across = Vector3.Cross(Vector3.up, toward) * (_leftHanded ? -1f : 1f);
+        var blendIn = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.18f, .31f, _servingProgress));
+        var blendOut = Mathf.SmoothStep(1f, 0f, Mathf.InverseLerp(.74f, .89f, _servingProgress));
+        var weight = blendIn * blendOut;
+        if (weight <= .001f) return false;
+
+        var stroke = Mathf.Sin(_servingProgress * Mathf.PI * 9f);
+        var work = _servingSurface - toward * .065f;
+        var cut = work + across * (.035f + .025f * stroke) +
+            Vector3.up * (.06f + .055f * (1f + stroke));
+        var hold = work - across * .085f + Vector3.up * .13f;
+        knifeHand.target = null;
+        knifeHand.position = cut - (ActionPropContactPoint(cut, hand) - hand.position);
+        knifeHand.positionWeight = weight;
+        knifeHand.rotationWeight = 0f;
+        supportHand.target = null;
+        supportHand.position = hold;
+        supportHand.positionWeight = weight * .85f;
+        supportHand.rotationWeight = 0f;
+        solver.pullBodyHorizontal = 0f;
+        solver.IKPositionWeight = 1f;
+        return true;
     }
 
     private float CurrentActionTargetIKWeight()

@@ -15,30 +15,54 @@ namespace HexLive.Simulation.Runtime
 public static class FoodMath
 {
     public const int BiteGrams = 100;
+    public const int MeatPortionGrams = 300;
+    private const int EatPortionTicks = 24;
+
+    public static int EatTicks(string id, float amount) =>
+        System.Math.Max(1, (int)System.MathF.Ceiling(
+            System.MathF.Min(BiteGrams, EdibleGrams(id, amount)) * EatPortionTicks / BiteGrams));
+
+    internal static float EatTick(string id, ref float amount) =>
+        SpendFood(id, ref amount, (float)BiteGrams / EatPortionTicks);
+
+    private static float EdibleGrams(string id, float amount)
+    {
+        // Zero and one were whole-item markers in older saves. A negative
+        // fraction records a real remainder of at most one gram unambiguously.
+        if (amount < 0f) return -amount;
+        if (amount is 0f or 1f) return id == ContentIds.MeatCooked ? MeatPortionGrams : BiteGrams;
+        return amount;
+    }
+
+    private static float SpendFood(string id, ref float amount, float grams)
+    {
+        var available = EdibleGrams(id, amount);
+        var eaten = System.MathF.Min(available, grams);
+        var left = available - eaten;
+        if (left < 0.001f) left = 0f;
+        amount = left <= 1f ? -left : left;
+        return eaten / BiteGrams;
+    }
 
     public static bool CanEat(ObjectDefinition? definition) =>
         definition is not null && definition.Interactions.Exists(interaction => interaction.Type == InteractionType.Eat);
 
     public static int GramsRemaining(string definitionId, float resourceAmount)
     {
-        var full = HumanMeatCatalog.IsLeg(definitionId) ? 10000
-            : HumanMeatCatalog.IsArm(definitionId) ? 5000
-            : HumanMeatCatalog.IsTorso(definitionId) ? 20000
-            : BiteGrams;
-        // Legacy carried and ground items use 0 or 1 for a whole portion.
-        // Raw meat uses this field for spit progress until it is cooked.
-        return full > BiteGrams && HumanMeatCatalog.IsCooked(definitionId) &&
-            resourceAmount >= BiteGrams && resourceAmount <= full ? (int)resourceAmount : full;
+        if (HumanMeatCatalog.IsRaw(definitionId))
+            return MealServing.PortionGrams(HumanMeatCatalog.Cooked(definitionId), 0f);
+        if (MealServing.IsReadyToServe(definitionId))
+            return MealServing.PortionGrams(definitionId, resourceAmount);
+        return (int)System.MathF.Ceiling(EdibleGrams(definitionId, resourceAmount));
     }
 
-    internal static int RemainingAfterBite(string definitionId, float resourceAmount) =>
-        GramsRemaining(definitionId, resourceAmount) - BiteGrams;
-
-    internal static void SpendInventoryBite(NPCState npc, ItemInstance item)
+    internal static float SpendInventoryBite(NPCState npc, ItemInstance item)
     {
-        var remaining = RemainingAfterBite(item.DefinitionId, item.ResourceAmount);
-        if (remaining > 0) item.ResourceAmount = remaining;
-        else InventoryMath.RemoveReference(npc.Inventory.Items, item);
+        var amount = item.ResourceAmount;
+        var share = SpendFood(item.DefinitionId, ref amount, BiteGrams);
+        item.ResourceAmount = amount;
+        if (amount == 0f) InventoryMath.RemoveReference(npc.Inventory.Items, item);
+        return share;
     }
 
     // The Hunger the food's own Eat interaction removes; the §53 flat value
@@ -98,15 +122,13 @@ public static class FoodMath
     // hang itself is still worth planning around a fire she can relight.)
     public static bool SpitHasFreeHook(WorldObjectState fire) =>
         BuildSiteMath.CampfireSpitComplete(fire) &&
-        BuildSiteMath.HangingMeat(fire, ContentIds.MeatRaw) +
-        BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked) <
-        SimBalance.CampfireSpitCapacity;
+        BuildSiteMath.UsedSpitHooks(fire) < SimBalance.CampfireSpitCapacity;
 
     // What a GetFood CANDIDATE is worth in hunger, before walking to it.
     // A campfire is only a valid GetFood target while cooked meat hangs on
     // its spit (IsValidTargetFor), so it reads as a cooked chunk. Raw meat is
-    // worth a cooked chunk when the colony can actually roast it — otherwise
-    // it is a gamble valued at the §53 flat relief, below an open coconut.
+    // worth the future cooked yield when there is a usable fire. Roasted
+    // preparations only pass the planner's filter when a serving surface exists.
     public static float ProspectiveNutrition(WorldState world, string definitionId, bool fireUsable)
     {
         if (world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition) &&
@@ -115,10 +137,10 @@ public static class FoodMath
             return SimBalance.CookedMeatHunger;
         }
 
-        if (definitionId == ContentIds.MeatRaw)
-        {
-            return fireUsable ? SimBalance.CookedMeatHunger : Spec53.FeedRelief;
-        }
+        if (HumanMeatCatalog.IsRaw(definitionId))
+            return fireUsable ? SimBalance.CookedMeatHunger : 0f;
+        if (MealServing.IsReadyToServe(definitionId))
+            return SimBalance.CookedMeatHunger;
 
         return NutritionOf(world, definitionId);
     }

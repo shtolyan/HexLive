@@ -447,6 +447,7 @@ namespace HexLive.UnityPresentation.UI
             public VisualElement Cell;
             public Label Label;
             public Label Pct;
+            public Label ConsumptionArrow;
             public VisualElement Fill;
         }
 
@@ -1147,6 +1148,13 @@ namespace HexLive.UnityPresentation.UI
                     ? $"−{Mathf.RoundToInt(bloodDeficit * 100f)}%"
                     : $"{Mathf.RoundToInt(display * 100f)}%";
 
+                if (b.ConsumptionArrow != null)
+                {
+                    b.ConsumptionArrow.style.visibility = ConsumptionIncreasing(npc, b.Config.Key, goodness)
+                        ? Visibility.Visible : Visibility.Hidden;
+                    b.ConsumptionArrow.style.opacity = 0.75f + 0.25f * Mathf.Sin(Time.unscaledTime * 6f);
+                }
+
                 var alarm = goodness < 0.30f;
                 b.Pct.style.color = alarm ? Crit : TextDim;
                 b.Label.style.color = alarm ? new Color(0.949f, 0.769f, 0.753f) : Text;
@@ -1158,6 +1166,21 @@ namespace HexLive.UnityPresentation.UI
             {
                 ShowNeedTooltip(hovered, _hoveredNeedAnchor, npc);
             }
+        }
+
+        private static bool ConsumptionIncreasing(NpcSnapshot npc, string key, float goodness)
+        {
+            if (goodness >= 0.999f) return false;
+            var impact = key switch
+            {
+                "need.hunger" => "Hunger\tEating\tPositive",
+                "need.thirst" => "Thirst\tDrinking\tPositive",
+                _ => null
+            };
+            if (impact == null) return false;
+            foreach (var row in npc.EffectImpacts)
+                if (row.StartsWith(impact, StringComparison.Ordinal)) return true;
+            return false;
         }
 
         // §76: the character sheet. Both pages are refreshed whichever tab is
@@ -4224,12 +4247,14 @@ namespace HexLive.UnityPresentation.UI
             var wearable = def != null && def.Layer.HasValue;
             var canEat = CanEatInventory(def, worn);
             var canCook = CanCookInventory(id, worn);
+            var canServe = CanServeInventory(id, worn);
             _invPrimaryInventoryAction = canEat ? InventoryAction.Eat
+                : canServe ? InventoryAction.Serve
                 : canCook ? InventoryAction.Cook
                 : id == ContentIds.Flashlight ? InventoryAction.ToggleFlashlight
                 : worn ? InventoryAction.Stow : InventoryAction.Wear;
             _invPrimaryAction.style.display = _inventoryMutable &&
-                (canEat || canCook || id == ContentIds.Flashlight || worn || wearable)
+                (canEat || canCook || canServe || id == ContentIds.Flashlight || worn || wearable)
                 ? DisplayStyle.Flex : DisplayStyle.None;
             _invPlantAction.style.display = _inventoryMutable && !worn &&
                 (InventoryPlacementMath.CanPlace(id) || PortableFurniture.CanCarry(id))
@@ -4261,12 +4286,16 @@ namespace HexLive.UnityPresentation.UI
             _inventoryMutable && !worn && FoodMath.CanEat(def);
 
         private bool CanCookInventory(string id, bool worn) =>
-            _inventoryMutable && !worn && HumanMeatCatalog.IsRaw(id);
+            _inventoryMutable && !worn && (HumanMeatCatalog.IsRaw(id) || id == ContentIds.WolfCarcassRaw);
+
+        private bool CanServeInventory(string id, bool worn) =>
+            _inventoryMutable && !worn && MealServing.IsReadyToServe(id);
 
         private static string PrimaryInventoryActionKey(InventoryAction action) => action switch
         {
             InventoryAction.Eat => "inv.action.eat",
             InventoryAction.Cook => "menu.cook_meat",
+            InventoryAction.Serve => "inv.action.serve",
             InventoryAction.ToggleFlashlight => "inv.action.switch_light",
             InventoryAction.Stow => "inv.action.stow",
             _ => "inv.action.wear"
@@ -4692,7 +4721,7 @@ namespace HexLive.UnityPresentation.UI
                     Loc.Get("inv.restores"), $"+{Mathf.RoundToInt(-hunger * 100f)}%", CategoryColor(ItemCategory.Food)));
             }
 
-            if (FoodMath.CanEat(def) || HumanMeatCatalog.IsRaw(def.Id))
+            if (FoodMath.CanEat(def))
             {
                 var grams = FoodMath.GramsRemaining(def.Id, resourceAmount);
                 rows.Add(MakeStatRow(Loc.Get("inv.food_mass"),
@@ -7855,6 +7884,15 @@ namespace HexLive.UnityPresentation.UI
             pct.style.flexShrink = 0f;
             pct.style.marginLeft = 6f;
             top.Add(label);
+            Label arrow = null;
+            if (need is NeedKind.Hunger or NeedKind.Thirst)
+            {
+                arrow = new Label("↑") { pickingMode = PickingMode.Ignore };
+                arrow.style.color = config.Color;
+                arrow.style.fontSize = 12;
+                arrow.style.visibility = Visibility.Hidden;
+                top.Add(arrow);
+            }
             top.Add(pct);
             body.Add(top);
 
@@ -7890,6 +7928,7 @@ namespace HexLive.UnityPresentation.UI
                 Cell = cell,
                 Label = label,
                 Pct = pct,
+                ConsumptionArrow = arrow,
                 Fill = fill
             });
 

@@ -244,7 +244,7 @@ namespace HexLive.UnityPresentation.Config
 
         [Header("Еда — сколько снимает голода")]
         [Tooltip("Кокос (базовая еда).")]
-        [Range(0f, 1f)] public float coconutHunger = 0.6f;
+        [Range(0f, 1f)] public float coconutHunger = 0.225f;
         [Tooltip("Сколько жажды снимает один глоток из дырявого кокоса.")]
         [Range(0f, 1f)] public float coconutThirst = 0.25f;
         [Tooltip("Жареное мясо (сытнее).")]

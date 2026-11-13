@@ -45,6 +45,10 @@ public static class ContentIds
     public const string MeatCooked = "food.meat_cooked";
     public const string CrabRaw = "food.crab_raw";
     public const string CrabCooked = "food.crab_cooked";
+    public const string MeatRoasted = "food.meat_roasted";
+    public const string CrabRoasted = "food.crab_roasted";
+    public const string WolfCarcassRaw = "resource.wolf_carcass_raw";
+    public const string WolfCarcassCooked = "resource.wolf_carcass_cooked";
     public const string Apple = "food.apple";
     public const string Banana = "food.banana";
     public const string StrawberryYogurt = "food.strawberry_yogurt";

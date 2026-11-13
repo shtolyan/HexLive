@@ -526,6 +526,15 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     continue;
                 }
 
+                if (interaction.Type == InteractionType.Serve &&
+                    !TryBindServingPreparation(world, npc, worldObject))
+                {
+                    PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
+                        "Cannot serve without a knife, a preparation and a free surface");
+                    npc.Mind.CurrentGoal = GoalType.None;
+                    continue;
+                }
+
                 // Spec 35.5: hanging needs a wet worn garment and a free rack.
                 if (interaction.Type == InteractionType.Hang)
                 {
@@ -852,6 +861,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 var workTicks = AttributeMath.WorkTicks(
                     npc, Content.GearCatalog.ScaleTicks(authoredWorkTicks, toolSpeedMult),
                     interaction.Type, npc.Plan.Goal);
+                if (interaction.Type == InteractionType.Eat && definition.HasTag(ObjectTags.Food))
+                    workTicks = FoodMath.EatTicks(worldObject.DefinitionId, worldObject.ResourceAmount);
                 if (interaction.Type == InteractionType.Sleep)
                 {
                     // The whole transition is atomic and shared with rescue
@@ -1001,7 +1012,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                         GetPlannedInteractionId(npc.Plan));
                     if (inProgressInteraction is not null && total > 0)
                     {
-                        ApplyEffectsScaled(npc, inProgressInteraction.Effects, 1f / total);
+                        ApplyWorldActionTick(npc, worldObject, definition, inProgressInteraction, 1f / total);
                     }
 
                     // §77: halfway through the deposit clip the carried
@@ -1046,7 +1057,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // Spec 29C.9: the final duration-share of the gradual fill —
                 // the earlier shares landed tick-by-tick during the action.
                 var completedTotal = npc.Execution.EndTick - npc.Execution.StartTick;
-                ApplyEffectsScaled(npc, completedInteraction.Effects,
+                ApplyWorldActionTick(npc, worldObject, definition, completedInteraction,
                     completedTotal > 0 ? 1f / completedTotal : 1f);
 
                 // §49.1 / §49.9: beds and leaf mats re-arm exactly like ground
@@ -1316,36 +1327,18 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             // spit. The roast itself runs in FireSystem while the fire
             // burns; the cooked chunk stays on the crossbar until a
             // hungry housemate takes it (GetFood → PickUp).
-            if (BuildSiteMath.CampfireSpitComplete(worldObject) &&
-                BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatRaw) +
-                BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatCooked) <
-                SimBalance.CampfireSpitCapacity)
-            {
-                var raw = CookMeatInput(npc);
-                if (raw == null)
-                    return FailHearthScene(world, npc, worldObject, "Selected raw portion is no longer carried");
-                InventoryMath.RemoveReference(npc.Inventory.Items, raw);
-                raw.ResourceAmount = 0f;
-                worldObject.Contents.Add(raw);
-                npc.Execution.TargetInventoryItem = null;
-                Trace.Emit(world, npc.Id, "MeatHungOnSpit",
-                    $"{raw.DefinitionId} on the spit at Tile={worldObject.Tile.Q},{worldObject.Tile.R} " +
-                    $"hanging raw={BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatRaw)} " +
-                    $"cooked={BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatCooked)}");
-            }
-            else
-            {
-                if (SimTrace.Enabled)
-                {
-                    Trace.Debug(world, npc.Id, "SpitHangFailed",
-                        $"spitComplete={BuildSiteMath.CampfireSpitComplete(worldObject)} " +
-                        $"hooksUsed={BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatRaw) + BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatCooked)}" +
-                        $"/{SimBalance.CampfireSpitCapacity}");
-                }
-            }
+            var raw = CookMeatInput(world, npc, worldObject);
+            if (raw == null)
+                return FailHearthScene(world, npc, worldObject, "Selected meat is unavailable or does not fit the spit");
+            InventoryMath.RemoveReference(npc.Inventory.Items, raw);
+            raw.ResourceAmount = 0f;
+            worldObject.Contents.Add(raw);
+            npc.Execution.TargetInventoryItem = null;
+            Trace.Emit(world, npc.Id, "MeatHungOnSpit",
+                $"{raw.DefinitionId} on the spit at Tile={worldObject.Tile.Q},{worldObject.Tile.R} " +
+                $"hooks={BuildSiteMath.UsedSpitHooks(worldObject)}/{SimBalance.CampfireSpitCapacity}");
 
-            worldObject.IsOccupied = false;
-            worldObject.CurrentUser = null;
+            ReleaseHearthClaim(npc, worldObject);
         }
         else if (completedInteraction.Type == InteractionType.Craft &&
                  RecipeCatalog.UsesPersistentProject(npc.Plan.Goal))
@@ -1441,6 +1434,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 return false;
             }
         }
+        else if (completedInteraction.Type == InteractionType.Serve)
+        {
+            if (!CompleteServing(world, npc, worldObject)) return false;
+        }
         else if (completedInteraction.Type == InteractionType.Process)
         {
             if (!CompleteProcess(world, npc, worldObject, definition,
@@ -1500,10 +1497,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
         else if (completedInteraction.Type == InteractionType.Eat && definition.HasTag(ObjectTags.Food))
         {
-            var remaining = FoodMath.RemainingAfterBite(worldObject.DefinitionId, worldObject.ResourceAmount);
-            if (remaining > 0)
+            if (worldObject.ResourceAmount != 0f)
             {
-                worldObject.ResourceAmount = remaining;
                 worldObject.IsOccupied = false;
                 worldObject.CurrentUser = null;
             }
@@ -2313,7 +2308,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
         Trace.Emit(world, npc.Id, "Butchered",
             $"{worldObject.DefinitionId} (variant={worldObject.Variant}) -> " +
-            (MobIds.CarcassMobId(worldObject.Variant) == MobIds.Crab ? "whole crab" : "meat + hide") +
+            (MobIds.CarcassMobId(worldObject.Variant) switch
+            {
+                MobIds.Crab => "whole crab",
+                MobIds.Dog => "whole skinned wolf + hide",
+                _ => "meat + hide"
+            }) +
             (wasCorpse ? " [cannibalism]" : string.Empty));
         WorldObjectMutations.DespawnObject(world, worldObject.Id);
 
@@ -2325,13 +2325,17 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         new() { DefinitionId = ContentIds.CrabRaw, Count = 1, Scatter = false },
     };
 
+    private static readonly HarvestDrop[] WholeWolfYield =
+    {
+        new() { DefinitionId = ContentIds.WolfCarcassRaw, Count = 1, Scatter = false },
+        new() { DefinitionId = ContentIds.WolfHide, Count = 1, Scatter = true },
+    };
+
     private static System.Collections.Generic.IReadOnlyList<HarvestDrop> AnimalCarcassYields(
         string variant, System.Collections.Generic.List<HarvestDrop> defaults) => MobIds.CarcassMobId(variant) switch
     {
         MobIds.Crab => WholeCrabYield,
-        MobIds.Dog => defaults.ConvertAll(drop => drop.DefinitionId == ContentIds.Hide
-            ? new HarvestDrop { DefinitionId = ContentIds.WolfHide, Count = drop.Count, Scatter = drop.Scatter }
-            : drop),
+        MobIds.Dog => WholeWolfYield,
         _ => defaults,
     };
 
@@ -3005,6 +3009,18 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
     // Spec 29C.9: apply a fraction of an interaction's effect — used to drip
     // the need relief gradually across the action's duration (Sims-style).
+    private static void ApplyWorldActionTick(NPCState npc, WorldObjectState target,
+        ObjectDefinition definition, InteractionDefinition interaction, float share)
+    {
+        if (interaction.Type == InteractionType.Eat && definition.HasTag(ObjectTags.Food))
+        {
+            var amount = target.ResourceAmount;
+            share = FoodMath.EatTick(target.DefinitionId, ref amount);
+            target.ResourceAmount = amount;
+        }
+        ApplyEffectsScaled(npc, interaction.Effects, share);
+    }
+
     private static void ApplyEffectsScaled(NPCState npc, InteractionEffects effects, float k)
     {
         npc.Needs.Hunger = MathUtil.Clamp01(npc.Needs.Hunger + effects.HungerDelta * k);

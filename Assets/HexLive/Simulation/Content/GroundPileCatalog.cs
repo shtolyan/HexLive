@@ -237,7 +237,14 @@ public static class GroundPileCatalog
         // §54.4: centered FBX bounds measured at the shared hand/world fit.
         Profiles[ContentIds.WolfHide] = new(ContentIds.WolfHide, new(-.200f, 0, -.270f, .200f, .018f, .270f),
             TargetWorldSize(ContentIds.WolfHide), 5, centerVisualXZ: true);
-        foreach (var crab in new[] { ContentIds.CrabRaw, ContentIds.CrabCooked })
+        Profiles[ContentIds.MeatRoasted] = new(ContentIds.MeatRoasted,
+            new(-.135011f, 0, -.068545f, .135011f, .130987f, .068545f),
+            TargetWorldSize(ContentIds.MeatRoasted), 3, centerVisualXZ: true);
+        // Source FBX bounds fitted to 0.88 wu using the same uniform ObjectFit as the ground view.
+        foreach (var wolf in new[] { ContentIds.WolfCarcassRaw, ContentIds.WolfCarcassCooked })
+            Profiles[wolf] = new(wolf, new(-.44001f, 0, -.19872f, .44001f, .25351f, .19872f),
+                TargetWorldSize(wolf), centerVisualXZ: true);
+        foreach (var crab in new[] { ContentIds.CrabRaw, ContentIds.CrabCooked, ContentIds.CrabRoasted })
             Profiles[crab] = new(crab, new(-.120f, 0, -.056f, .120f, .063f, .056f),
                 TargetWorldSize(crab), centerVisualXZ: true);
         // source-sha256: 68b8656a4a6952ec8982676cdf33e05ea58f245a1029d0146a960410fab3b871 Assets/HexLiveContent/RuntimeSource/Objects/resource.mechanical_part.fbx
@@ -3414,7 +3421,9 @@ public static class GroundPileCatalog
             // A meat chunk reads bigger than a coconut half — 1.5× the standard
             // food size. Ground, hand and the roasting spit all share this.
             if (definitionId == "food.meat_raw" || definitionId == "food.meat_cooked") return r * 0.18f;
-            if (definitionId is ContentIds.CrabRaw or ContentIds.CrabCooked) return r * 0.16f;
+            if (definitionId is ContentIds.WolfCarcassRaw or ContentIds.WolfCarcassCooked) return .88f;
+            if (definitionId == ContentIds.MeatRoasted) return TargetWorldSize(ContentIds.MeatCooked);
+            if (definitionId is ContentIds.CrabRaw or ContentIds.CrabCooked or ContentIds.CrabRoasted) return r * 0.16f;
             if (definitionId == ContentIds.WolfHide) return .54f;
             if (definitionId == ContentIds.HamSandwich) return r * 0.15f;
             if (definitionId == ContentIds.CannedPeaches) return r * 0.11f;

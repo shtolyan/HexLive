@@ -502,7 +502,9 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // §167.5: стокерша не съедает запас, пока сама не голодна по
             // штатному порогу — выше него ест как все (сама бы пошла за едой).
             var stockingFood = directiveKind == DirectiveKind.StockFood;
-            var eatAvail = (hasFoodInInventory || hasCoconutMeal) &&
+            var canServe = MealServing.FirstPreparation(npc) != null && MealServing.HasKnife(npc) &&
+                MealServing.FindSurface(world, npc) != null;
+            var eatAvail = (hasFoodInInventory || hasCoconutMeal || canServe) &&
                 !(stockingFood && npc.Needs.Hunger < getFoodHungerThreshold);
             // §53.7: split the "is there food to fetch at all" half out of the
             // gate — an aid errand fetches food for a STARVING HOUSEMATE, so
@@ -526,7 +528,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 npc.Needs.Hunger < Spec167.RefuseNeedThreshold && npc.Needs.Thirst < Spec167.RefuseNeedThreshold &&
                 npc.Needs.Energy > Spec167.RefuseEnergyThreshold &&
                 DirectiveMath.StockWanted(world, npc, DirectiveKind.StockFood);
-            var getFoodAvail = !hasFoodInInventory && !hasCoconutMeal &&
+            var getFoodAvail = !hasFoodInInventory && !hasCoconutMeal && !canServe &&
                 (npc.Needs.Hunger >= getFoodHungerThreshold || stockFoodWanted) && foodSourceReachable;
             // §167.9: почему стокерша сейчас НЕ носит — раз в 64 тика, чтобы
             // «обещала и забыла» в соаке читалось причиной, а не тишиной.
@@ -2344,10 +2346,17 @@ public sealed partial class DecisionSystem : ISimulationSystem
             ((HasRecipeInputs(npc, GoalType.CraftHammer) && CraftPlaceOk(GoalType.CraftHammer)) ||
              CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftHammer));
         AddGoalScore(npc, world.Tick, GoalType.CraftHammer, 0.65f + freeHands, craftHammerAvail);
-        AddGoalScore(npc, world.Tick, GoalType.HarvestYucca, 0.26f + freeHands + bedRopePull, harvestYuccaAvail);
-        AddGoalScore(npc, world.Tick, GoalType.GatherFiber, 0.24f + freeHands + bedRopePull + dreamPull, gatherFiberAvail,
+        // A critical need suppresses ordinary chores. Cordage must retain a
+        // survival bid while it is still a missing ingredient of the coconut knife.
+        var knifeRopeEmergency = carriedRope < knifeRopeTarget ? coconutEmergencyBoost : 0f;
+        var knifeFiberEmergency = carriedFiber < SimBalance.RopeFiberCost ? knifeRopeEmergency : 0f;
+        AddGoalScore(npc, world.Tick, GoalType.HarvestYucca, 0.26f + freeHands + bedRopePull,
+            harvestYuccaAvail, knifeFiberEmergency);
+        AddGoalScore(npc, world.Tick, GoalType.GatherFiber, 0.24f + freeHands + bedRopePull + dreamPull,
+            gatherFiberAvail, knifeFiberEmergency,
             command: DirectiveMath.Pull(ctx.DirectiveKind, GoalType.GatherFiber));
-        AddGoalScore(npc, world.Tick, GoalType.CraftRope, 0.28f + freeHands + bedRopePull + dreamPull, craftRopeAvail,
+        AddGoalScore(npc, world.Tick, GoalType.CraftRope, 0.28f + freeHands + bedRopePull + dreamPull,
+            craftRopeAvail, knifeRopeEmergency,
             command: DirectiveMath.Pull(ctx.DirectiveKind, GoalType.CraftRope));
         AddGoalScore(npc, world.Tick, GoalType.CraftCloth, 0.28f + freeHands, craftClothAvail);
         AddGoalScore(npc, world.Tick, GoalType.CraftSharpStone,

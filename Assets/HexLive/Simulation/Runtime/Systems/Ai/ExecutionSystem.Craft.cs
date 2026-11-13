@@ -29,7 +29,7 @@ public sealed partial class ExecutionSystem
             return CraftProjectMath.CanBeginCycle(world, npc, goal, worldObject);
         }
 
-        if (goal == GoalType.CookMeat && CookMeatInput(npc) == null)
+        if (goal == GoalType.CookMeat && CookMeatInput(world, npc, worldObject) == null)
             return false;
 
         foreach (var ing in recipe.Inputs)
@@ -53,14 +53,15 @@ public sealed partial class ExecutionSystem
         return true;
     }
 
-    private static ItemInstance? CookMeatInput(NPCState npc)
+    private static ItemInstance? CookMeatInput(WorldState world, NPCState npc, WorldObjectState fire)
     {
         if (!HumanMeatCatalog.IsRaw(npc.Plan.TargetItemDefinitionId))
-            return HumanMeatCatalog.FirstRaw(npc);
+            return npc.Inventory.Items.Find(item => BuildSiteMath.CanHangMeat(world, fire, item.DefinitionId));
 
         var selected = npc.Execution.TargetInventoryItem;
         return selected != null && selected.DefinitionId == npc.Plan.TargetItemDefinitionId &&
-            InventoryMath.ContainsReference(npc.Inventory.Items, selected) ? selected : null;
+            InventoryMath.ContainsReference(npc.Inventory.Items, selected) &&
+            BuildSiteMath.CanHangMeat(world, fire, selected.DefinitionId) ? selected : null;
     }
 
     private static bool CraftNeedsToolsOrWeapons(GoalType goal) =>
@@ -93,7 +94,7 @@ public sealed partial class ExecutionSystem
         for (var i = 0; i < fire.Contents.Count; i++)
         {
             var item = fire.Contents[i];
-            if (!HumanMeatCatalog.IsCooked(item.DefinitionId) || ContainerLootMath.IsQueuedCampfireFuel(fire,item))
+            if (!MealServing.IsReadyToServe(item.DefinitionId) || ContainerLootMath.IsQueuedCampfireFuel(fire, item))
             {
                 continue;
             }

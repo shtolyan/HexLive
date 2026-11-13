@@ -1,4 +1,5 @@
 #nullable enable
+using HexLive.Simulation.Runtime;
 using HexLive.UnityPresentation.Content;
 using UnityEngine;
 
@@ -38,10 +39,12 @@ namespace HexLive.UnityPresentation.Environment
             _ => id
         };
 
-        public static GameObject? Load(string id) =>
-            ContentPrefabCache.GetOrRequest("object", id);
+        public static string ArtId(string id) => MealServing.PreparedArtId(id);
 
-        public static void Prewarm(string id) => ContentPrefabCache.Prewarm("object", id);
+        public static GameObject? Load(string id) =>
+            ContentPrefabCache.GetOrRequest("object", ArtId(id));
+
+        public static void Prewarm(string id) => ContentPrefabCache.Prewarm("object", ArtId(id));
 
         /// <summary>
         /// Instantiate the same Player-safe authored prop used by world drops.

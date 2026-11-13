@@ -17,6 +17,7 @@ public sealed class AnimalLootTests
 {
     private const string CrabRaw = ContentIds.CrabRaw;
     private const string CrabCooked = ContentIds.CrabCooked;
+    private const string CrabRoasted = ContentIds.CrabRoasted;
     private const string WolfHide = ContentIds.WolfHide;
 
     [OneTimeSetUp]
@@ -51,23 +52,30 @@ public sealed class AnimalLootTests
         Assert.That(fire.Contents.Count(item => item.DefinitionId == CrabRaw), Is.EqualTo(1));
         Assert.That(actor.Inventory.Items, Is.Empty);
         Until(engine, () => BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked) > 0);
-        Assert.That(fire.Contents.Count(item => item.DefinitionId == CrabCooked), Is.EqualTo(1));
+        Assert.That(fire.Contents.Count(item => item.DefinitionId == CrabRoasted), Is.EqualTo(1));
 
         Apply(engine, new InteractCommand(actor.Id, fire.Id, InteractionType.PickUp));
+        Until(engine, () => actor.Inventory.Items.Any(item => item.DefinitionId == CrabRoasted));
+        WorldObjectMutations.DespawnObject(world, fire.Id);
+        actor.Inventory.Items.Add(new ItemInstance(ContentIds.Knife));
+        var stump = WorldObjectMutations.SpawnObject(world, ContentIds.PalmStump,
+            actor.Fragment, actor.Tile, anchor);
+        Apply(engine, new InteractCommand(actor.Id, stump.Id, InteractionType.Serve, MealServing.InteractionId));
         Until(engine, () => actor.Inventory.Items.Any(item => item.DefinitionId == CrabCooked));
         actor.Needs.Hunger = .8f;
         Apply(engine, new SelfActionCommand(actor.Id, SelfActionKind.EatFromPack));
-        Until(engine, () => actor.Inventory.Items.Count == 0);
+        Until(engine, () => actor.Inventory.Items.All(item => item.DefinitionId != CrabCooked));
         Assert.That(actor.Needs.Hunger, Is.LessThan(.7f));
     }
 
     [Test]
-    public void WolfKeepsMeatYieldAndDropsOneIdentifiableHide()
+    public void WolfProducesOneWholeSkinnedCarcassAndOneIdentifiableHide()
     {
         var (engine, actor) = Fixture();
         Butcher(engine, actor, MobIds.Dog);
-        Assert.That(actor.Inventory.Items.Count(item => item.DefinitionId == ContentIds.MeatRaw),
-            Is.EqualTo(SimBalance.CarcassMeatYield));
+        Assert.That(actor.Inventory.Items.Count(item => item.DefinitionId == ContentIds.WolfCarcassRaw),
+            Is.EqualTo(1));
+        Assert.That(actor.Inventory.Items.Any(item => item.DefinitionId == ContentIds.MeatRaw), Is.False);
         var hides = engine.World.Entities.Objects.Values.Where(obj => obj.DefinitionId is ContentIds.Hide or WolfHide);
         Assert.That(hides.Select(obj => obj.DefinitionId), Is.EqualTo(new[] { WolfHide }));
     }

@@ -98,6 +98,7 @@ public static class ItemIcons
         {
             return null;
         }
+        id = Environment.WorldPropResources.ArtId(id);
         var localModern = LocalModernContent.Icon(id);
         if (localModern != null) return localModern;
         ObserveRegistry();

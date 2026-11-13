@@ -155,14 +155,14 @@ public sealed class ManualSelfActionTests
     [TestCase(.05f)]
     [TestCase(.4f)]
     [TestCase(.9f)]
-    public void ExplicitFoodOrderSurvivesDecisionBeforePlanningAndConsumesTheRealMeal(float hunger)
+    public void ExplicitFoodOrderSurvivesDecisionBeforePlanningAndConsumesOnlyOneHundredGrams(float hunger)
     {
         var engine = TestWorld.CreateEngine();
         var world = engine.World;
         var npc = Colonists(world)[0];
         TakeControl(engine, npc);
         npc.Inventory.Items.Clear();
-        var food = new ItemInstance("food.meat_cooked");
+        var food = new ItemInstance(ContentIds.MeatCooked) { ResourceAmount = FoodMath.MeatPortionGrams };
         npc.Inventory.Items.Add(food);
         npc.Needs.Hunger = hunger;
         Assert.That(engine.ApplyManualCommand(new SelfActionCommand(npc.Id,
@@ -171,12 +171,37 @@ public sealed class ManualSelfActionTests
         new DecisionSystem().Run(world);
         Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.Eat),
             "Decision runs before Planning: a not-yet-built explicit order is not completed.");
-        for (var i = 0; i < 100 && npc.Inventory.Items.Any(item => ReferenceEquals(item, food)); i++) engine.Step();
-        Assert.That(npc.Inventory.Items.Any(item => ReferenceEquals(item, food)), Is.False,
-            "The real carried meal must be consumed, including when initial hunger is zero.");
+        for (var i = 0; i < 100 && npc.Mind.CurrentGoal == GoalType.Eat; i++) engine.Step();
+        Assert.That(npc.Inventory.Items.Any(item => ReferenceEquals(item, food)), Is.True);
+        Assert.That(food.ResourceAmount, Is.EqualTo(200f).Within(.002f));
         for (var i = 0; i < 8; i++) engine.Step();
         Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None),
             "The completed explicit meal still retires normally.");
+    }
+
+    [Test]
+    public void StoppingEatingPreservesPartiallyConsumedGrams()
+    {
+        var engine = TestWorld.CreateEngine();
+        var npc = Colonists(engine.World)[0];
+        TakeControl(engine, npc);
+        npc.Inventory.Items.Clear();
+        var food = new ItemInstance(ContentIds.MeatCooked) { ResourceAmount = FoodMath.MeatPortionGrams };
+        npc.Inventory.Items.Add(food);
+        npc.Needs.Hunger = .7f;
+        var order = new ManageInventoryCommand(npc.Id,
+            new InventoryItemRef(InventoryItemSource.Carried, 0, ContentIds.MeatCooked), InventoryAction.Eat);
+        Assert.That(engine.ApplyManualCommand(order).Accepted, Is.True);
+        for (var i = 0; i < 50 && food.ResourceAmount > 250.01f; i++) engine.Step();
+        Assert.That(food.ResourceAmount, Is.EqualTo(250f).Within(.002f));
+        Assert.That(npc.Needs.Hunger, Is.InRange(.54f, .57f));
+
+        engine.ApplyManualCommand(new StopCommand(npc.Id));
+        for (var i = 0; i < 32; i++) engine.Step();
+        Assert.That(food.ResourceAmount, Is.EqualTo(250f).Within(.002f));
+        Assert.That(engine.ApplyManualCommand(order).Accepted, Is.True);
+        for (var i = 0; i < 50 && food.ResourceAmount > 150.01f; i++) engine.Step();
+        Assert.That(food.ResourceAmount, Is.EqualTo(150f).Within(.003f));
     }
 
     [Test]
@@ -205,7 +230,7 @@ public sealed class ManualSelfActionTests
     }
 
     [Test]
-    public void EatSelectedCookedLegRejectsAStaleSlotAndNeverSubstitutesAnotherLeg()
+    public void EatRejectsUnservedCookedLeg()
     {
         var engine = TestWorld.CreateEngine();
         var npc = Colonists(engine.World)[0];
@@ -219,42 +244,13 @@ public sealed class ManualSelfActionTests
         var order = new ManageInventoryCommand(npc.Id,
             new InventoryItemRef(InventoryItemSource.Carried, 1, HumanMeatCatalog.LegCooked), InventoryAction.Eat);
         var admission = engine.ApplyManualCommand(order);
-        Assert.That(admission.Accepted, Is.True, admission.Reason);
+        Assert.That(admission.Accepted, Is.False);
+        Assert.That(admission.Reason, Is.EqualTo("NothingToEat"));
         npc.Inventory.Items.RemoveAt(1);
         Assert.That(engine.ApplyManualCommand(order).Reason, Is.EqualTo("StaleItem"));
         for (var i = 0; i < 30; i++) engine.Step();
         Assert.That(npc.Inventory.Items.Any(item => ReferenceEquals(item, other)), Is.True);
         Assert.That(npc.Needs.Hunger, Is.GreaterThanOrEqualTo(.5f));
-    }
-
-    [TestCase(HumanMeatCatalog.ArmCooked, 5000)]
-    [TestCase(HumanMeatCatalog.LegCooked, 10000)]
-    [TestCase(HumanMeatCatalog.MaleTorsoCooked, 20000)]
-    public void FoodGramsReadLegacyWholePartsAndPreservePartialBites(string id, int whole)
-    {
-        Assert.That(FoodMath.GramsRemaining(id, 0f), Is.EqualTo(whole));
-        Assert.That(FoodMath.GramsRemaining(id, 1f), Is.EqualTo(whole));
-        var world = TestWorld.CreateWorld();
-        var npc = Colonists(world)[0];
-        npc.Inventory.Items.Clear();
-        var item = new ItemInstance(id);
-        npc.Inventory.Items.Add(item);
-        FoodMath.SpendInventoryBite(npc, item);
-        Assert.That(item.ResourceAmount, Is.EqualTo(whole - 100));
-
-        using var bytes = new System.IO.MemoryStream();
-        using (var writer = new System.IO.BinaryWriter(bytes, System.Text.Encoding.UTF8, true))
-            HexLive.Simulation.Persistence.WorldSaveSerializer.Write(world, writer);
-        bytes.Position = 0;
-        var restored = TestWorld.CreateWorld();
-        using (var reader = new System.IO.BinaryReader(bytes, System.Text.Encoding.UTF8, true))
-            HexLive.Simulation.Persistence.WorldSaveSerializer.Read(restored, reader);
-        var actor = restored.Entities.Npcs[npc.Id];
-        var portion = actor.Inventory.Items.Single();
-        Assert.That(FoodMath.GramsRemaining(portion.DefinitionId, portion.ResourceAmount), Is.EqualTo(whole - 100));
-        portion.ResourceAmount = 100f;
-        FoodMath.SpendInventoryBite(actor, portion);
-        Assert.That(actor.Inventory.Items, Is.Empty);
     }
 
     [Test]

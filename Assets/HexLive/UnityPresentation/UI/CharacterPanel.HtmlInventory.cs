@@ -272,6 +272,7 @@ namespace HexLive.UnityPresentation.UI
             var actions = new JArray();
             if (CanEatInventory(def, worn)) actions.Add("eat");
             if (CanCookInventory(id, worn)) actions.Add("cook");
+            if (CanServeInventory(id, worn)) actions.Add("serve");
             if (_inventoryMutable && !worn && id == ContentIds.Flashlight) actions.Add("switch_light");
             if (_inventoryMutable && (worn || wearable)) actions.Add(worn ? "stow" : "wear");
             if (_inventoryMutable && !worn && (InventoryPlacementMath.CanPlace(id) || PortableFurniture.CanCarry(id)))
@@ -385,6 +386,7 @@ namespace HexLive.UnityPresentation.UI
                         case "wear": EnqueueInventoryAction(InventoryAction.Wear); break;
                         case "eat": EnqueueInventoryAction(InventoryAction.Eat); break;
                         case "cook": EnqueueInventoryAction(InventoryAction.Cook); break;
+                        case "serve": EnqueueInventoryAction(InventoryAction.Serve); break;
                         case "stow": EnqueueInventoryAction(InventoryAction.Stow); break;
                         case "drop": EnqueueInventoryAction(InventoryAction.Drop, count); break;
                         case "fill": EnqueueFillVessel(); break;

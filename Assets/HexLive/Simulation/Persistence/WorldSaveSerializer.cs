@@ -194,7 +194,8 @@ public static class WorldSaveSerializer
     // v93 (§128.5): a carried backpack keeps the physical instances in its pockets.
     // v94 (§176): apartment visit serial and the expanded reserved grid.
     // v95 (§67.16): authored speech origin at the tail of each NPC record.
-    public const int BlobVersion = 95;
+    // v96 (§54.17): old cooked whole items become unserved preparations.
+    public const int BlobVersion = 96;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1666,6 +1667,7 @@ public static class WorldSaveSerializer
             Fragment = new FragmentId(r.ReadInt32()),
             Tile = ReadTile(r)
         };
+        if (version < 96) obj.DefinitionId = MealServing.MigrateLegacyCookedId(obj.DefinitionId);
         ReadJunctionList(r, obj.Junctions);
         obj.IsOccupied = r.ReadBoolean();
         obj.CurrentUser = ReadNullableEntity(r);
@@ -3433,7 +3435,9 @@ public static class WorldSaveSerializer
         var count = nestedCount ?? r.ReadInt32();
         for (var i = 0; i < count; i++)
         {
-            var item = new ItemInstance(r.ReadString())
+            var itemId = r.ReadString();
+            if (version < 96) itemId = MealServing.MigrateLegacyCookedId(itemId);
+            var item = new ItemInstance(itemId)
             {
                 Wetness = r.ReadSingle(),
                 Durability = r.ReadSingle(),

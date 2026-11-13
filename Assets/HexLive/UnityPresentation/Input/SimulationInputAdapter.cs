@@ -1285,6 +1285,9 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             var objectId = interaction.Type == InteractionType.Build ? view.ObjectId : view.ContextObjectId;
             var type = interaction.Type;
             var interactionId = interaction.Id;
+            var noMeal = type == InteractionType.Serve &&
+                !System.Linq.Enumerable.Any(carried, MealServing.IsReadyToServe);
+            if (noMeal) ok = false;
             var emptyDrink = type == InteractionType.Drink && clicked != null &&
                 ItemCatalog.IsDrainedWaterShell(clicked.DefinitionId, clicked.ResourceAmount);
             var emptyBattery = type == InteractionType.SwitchFlashlight && clicked != null && clicked.Durability <= 0f;
@@ -1303,6 +1306,7 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             var label = emptyDrink ? Loc.Get("menu.drink_empty") : theft && type == InteractionType.PickUp ? Loc.Get("menu.steal") : verb;
             void Activate() => EnqueueOrder(actorId, new InteractCommand(actor, new ObjectId(objectId), type, interactionId));
             var hint = emptyDrink ? Loc.Get("menu.drink_empty") : emptyBattery ? Loc.Get("toast.order_rejected.BatteryEmpty") :
+                noMeal ? Loc.Get("menu.serve_meal.no_food") :
                 ok ? null : Loc.Get(usableHands == 0 ? "menu.needs_hand" : "menu.missing_tool");
             _entries.Add(type == InteractionType.Sleep
                 ? SleepMenuEntry(label, Activate, actingNpc, ok, hint)

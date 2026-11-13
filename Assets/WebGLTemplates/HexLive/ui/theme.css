@@ -1815,6 +1815,8 @@
   animation: hx-pop 90ms ease-out;
 }
 .hx-tip header { display: flex; align-items: center; gap: 0.625rem; }
+.hx-tip[data-interactive="true"] { pointer-events: auto; }
+.hx-tip li button { background: transparent; color: inherit; border: 0; padding: 0; text-align: left; text-decoration: underline; cursor: pointer; }
 .hx-tip header b { font-size: 1rem; }
 .hx-tip[data-tone="buff"] header b { color: var(--hx-leaf); }
 .hx-tip[data-tone="debuff"] header b { color: rgb(242 196 192); }
@@ -1822,10 +1824,10 @@
 .hx-tip p { margin: 0.375rem 0 0; color: var(--hx-text-dim); font-size: 0.8125rem; line-height: 1.4; }
 .hx-tip ul { margin: 0.375rem 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.3125rem; }
 .hx-tip li { display: grid; grid-template-columns: 1.75rem minmax(0, 1fr) auto; align-items: center; gap: 0.375rem; padding: 0.3125rem 0.5rem; border-radius: 0.4375rem; background: rgb(242 196 192 / 0.08); font-size: 0.75rem; }
-.hx-tip li[data-up="true"] { background: rgb(95 196 106 / 0.08); }
+.hx-tip li[data-positive="true"] { background: rgb(95 196 106 / 0.08); }
 .hx-tip li > span:first-child { font-size: 1.125rem; }
 .hx-tip li b { font-size: 1.125rem; color: rgb(242 196 192); }
-.hx-tip li[data-up="true"] b { color: var(--hx-leaf); }
+.hx-tip li[data-positive="true"] b { color: var(--hx-leaf); }
 
 /* §174.7 hex inspector — left of the roster, under the HUD; the world stays live */
 .hx-inspect {

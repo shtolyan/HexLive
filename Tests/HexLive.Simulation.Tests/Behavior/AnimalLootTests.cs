@@ -103,8 +103,8 @@ public sealed class AnimalLootTests
         Until(engine, () => fire.Contents.Any(item => item.DefinitionId == ContentIds.WolfCarcassCooked));
         Apply(engine, new InteractCommand(actor.Id, fire.Id, InteractionType.PickUp));
         Until(engine, () => actor.Inventory.Items.Any(item => item.DefinitionId == ContentIds.WolfCarcassCooked));
-        Assert.That(engine.ApplyManualCommand(new SelfActionCommand(actor.Id, SelfActionKind.EatFromPack)).Accepted,
-            Is.False, "A roasted carcass must be served first.");
+        Assert.That(FoodMath.CanEat(world.Content.ObjectDefinitions[ContentIds.WolfCarcassCooked]), Is.False,
+            "The roasted carcass must become portions before an Eat interaction.");
 
         WorldObjectMutations.DespawnObject(world, fire.Id);
         var stump = WorldObjectMutations.SpawnObject(world, ContentIds.PalmStump,

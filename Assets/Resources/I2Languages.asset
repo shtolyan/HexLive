@@ -2289,6 +2289,22 @@ MonoBehaviour:
       - "\u041D\u0435\u043F\u043E\u0441\u0440\u0435\u0434\u0441\u0442\u0432\u0435\u043D\u043D\u0430\u044F \u0443\u0433\u0440\u043E\u0437\u0430 \u0443\u0441\u0438\u043B\u0438\u0432\u0430\u0435\u0442 \u0441\u0442\u0440\u0435\u0441\u0441."
       Flags: 0101
       Languages_Touch: []
+    - Term: effect.stress_source.wolf
+      TermType: 0
+      Description:
+      Languages:
+      - "Wolf"
+      - "Волк"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: effect.stress_source.animal
+      TermType: 0
+      Description:
+      Languages:
+      - "Animal"
+      - "Животное"
+      Flags: 0101
+      Languages_Touch: []
     - Term: effect.bodycrisis.title
       TermType: 0
       Description:

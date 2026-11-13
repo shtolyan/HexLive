@@ -149,6 +149,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
     }
 
     private readonly List<HutCutawayView> _hutCutawayViews = new();
+    private readonly List<(TileCoord Tile, ArchitectureModuleView View)> _freeRoofCutaways = new();
+    private readonly HashSet<TileCoord> _occupiedCutawayTiles = new();
     private readonly Dictionary<int, ObjectSnapshot> _cutawayOwners = new();
     private readonly Dictionary<int, int> _cutawayPieceOwners = new();
     private int _hoveredHutObjectId = -1;
@@ -986,26 +988,24 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // §120: a house raised from a player plan has no HutAssembly at all —
         // it IS its 51 modules — so the same feature has to be able to run with
         // _hutCutawayViews empty.
-        if (_hutCutawayViews.Count == 0 && _planCutawayModules.Count == 0) return;
+        if (_hutCutawayViews.Count == 0 && _planCutawayModules.Count == 0 &&
+            _freeRoofCutaways.Count == 0) return;
 
         _cutawayCamera ??= Camera.main;
-        var hasInteriorSelection = false;
-        var selectedTile = TileCoord.Zero;
+        _occupiedCutawayTiles.Clear();
         NpcSnapshot? selected = null;
-        if (Input.NpcSelection.HasSelection)
+        var selectedId = Input.NpcSelection.HasSelection ? Input.NpcSelection.SelectedId : -1;
+        foreach (var npc in snapshot.Npcs)
         {
-            var selectedId = Input.NpcSelection.SelectedId;
-            foreach (var npc in snapshot.Npcs)
+            var isSelected = npc.Id.Value == selectedId;
+            if (isSelected) selected = npc;
+            if (npc.Health <= 0f ||
+                !(isSelected && IsPlayerOwned(npc) || _runner != null && _runner.IsAssignedNpc(npc.Id)))
+                continue;
+            var tile = GroundTileUnder(npc);
+            if (_rainShelterCoords.Contains(tile))
             {
-                if (npc.Id.Value != selectedId) continue;
-                selected = npc;
-                // §141: «она в доме» — про ТЕЛО, а не про поле тайла. Дом
-                // раскрывался не в тот момент, когда она входит: поле
-                // догоняет тело, и на пороге получалось «и в доме, и не в
-                // доме» — при том, что высоту вид брал оттуда же.
-                selectedTile = GroundTileUnder(npc);
-                hasInteriorSelection = _indoorCoords.Contains(selectedTile);
-                break;
+                _occupiedCutawayTiles.Add(tile);
             }
         }
 
@@ -1015,12 +1015,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
             : Vector3.zero;
         foreach (var hut in _hutCutawayViews)
         {
-            var reveal = ((hasInteriorSelection && hut.Tile.Equals(selectedTile)) || hut.OwnerId == hoverOwner) &&
+            var reveal = (_occupiedCutawayTiles.Contains(hut.Tile) || hut.OwnerId == hoverOwner) &&
                 _cutawayCamera != null;
             hut.Assembly.SetInteriorCutaway(reveal, cameraPosition);
         }
 
-        UpdatePlanCutaways(hasInteriorSelection, selectedTile, cameraPosition, hoverOwner);
+        foreach (var (tile, view) in _freeRoofCutaways)
+            if (view != null) view.SetCutawayHidden(_occupiedCutawayTiles.Contains(tile));
+
+        UpdatePlanCutaways(cameraPosition, hoverOwner);
     }
 
     /// <summary>
@@ -1036,8 +1039,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     /// the wall pair it picks.
     /// </para>
     /// </summary>
-    private void UpdatePlanCutaways(
-        bool hasInteriorSelection, TileCoord selectedTile, Vector3 cameraPosition, int hoverOwner = -1)
+    private void UpdatePlanCutaways(Vector3 cameraPosition, int hoverOwner)
     {
         if (_planCutawayModules.Count == 0) return;
         var hasCamera = _cutawayCamera != null;
@@ -1055,8 +1057,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (owned.Count == 0) continue;
 
             var reveal = hasCamera && (ownerKey == hoverOwner ||
-                (hasInteriorSelection && _planFootprints.TryGetValue(ownerKey, out var footprint) &&
-                 Covers(footprint, selectedTile)));
+                (_planFootprints.TryGetValue(ownerKey, out var footprint) && IsOccupiedForCutaway(footprint)));
             if (!reveal)
             {
                 for (var i = 0; i < owned.Count; i++)
@@ -1105,6 +1106,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
     }
 
+    private bool IsOccupiedForCutaway(IReadOnlyList<TileCoord> footprint)
+    {
+        foreach (var tile in footprint)
+            if (_occupiedCutawayTiles.Contains(tile)) return true;
+        return false;
+    }
+
     private static bool Covers(IReadOnlyList<TileCoord> footprint, TileCoord tile)
     {
         for (var i = 0; i < footprint.Count; i++)
@@ -1125,6 +1133,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
         ObjectSnapshot piece,
         HexLive.UnityPresentation.Environment.ArchitectureModuleView view)
     {
+        if (FreeArchitectureRules.IsFreePiece(piece))
+        {
+            if (HutHoverRevealMath.IsCompletedCutawayModule(piece) &&
+                piece.ArchitectureElements[0].DefinitionId.StartsWith("architecture.roof.", StringComparison.Ordinal))
+                _freeRoofCutaways.Add((piece.Tile, view));
+            else
+                view.SetCutawayHidden(false);
+            return;
+        }
+
         if (!HutHoverRevealMath.IsCompletedCutawayModule(piece) ||
             piece.ArchitectureOwnerObjectId is not { } ownerKey ||
             !_planOwnerAnchors.TryGetValue(ownerKey, out var anchor))
@@ -1733,6 +1751,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _planCutawayOwners.Clear();
         _planFootprintTiles.Clear();
         _planCutawayModules.Clear();
+        _freeRoofCutaways.Clear();
         _architectureFloorTiles.Clear();
         _planFootprints.Clear();
         foreach (var worldObject in snapshot.Objects)
@@ -5132,7 +5151,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             siteRoot.transform.SetParent(_objectsRoot, false);
             var siteAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
             siteRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
-                siteAnchor, GroundY(worldObject.Tile));
+                siteAnchor, ObjectGroundY(worldObject));
             var pile = siteRoot.AddComponent<HexLive.UnityPresentation.Environment.BuildSitePile>();
             pile.Rebuild(worldObject);
             return siteRoot;
@@ -7213,12 +7232,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return true;
     }
 
-    private bool IsIntegratedHutBed(ObjectSnapshot worldObject) =>
-        PortableFurniture.IsBuiltInBed(worldObject.DefinitionId, worldObject.Variant, _floorTiles.Contains(worldObject.Tile));
+    private static bool IsIntegratedHutBed(ObjectSnapshot worldObject) =>
+        PortableFurniture.IsBuiltInBed(worldObject.DefinitionId, worldObject.Variant);
 
-    private bool IsIntegratedHutHearth(ObjectSnapshot worldObject) =>
+    private static bool IsIntegratedHutHearth(ObjectSnapshot worldObject) =>
         worldObject.DefinitionId == ContentIds.Campfire &&
-        (worldObject.Variant == BuildingRules.HutHearthVariant || _floorTiles.Contains(worldObject.Tile));
+        worldObject.Variant == BuildingRules.HutHearthVariant;
 
     private static Float2 GetObjectAnchorFromJunctions(ObjectSnapshot worldObject, Dictionary<int, Float2> junctionPositions)
     {

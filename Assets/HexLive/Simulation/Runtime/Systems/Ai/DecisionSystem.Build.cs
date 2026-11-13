@@ -125,10 +125,10 @@ public sealed partial class DecisionSystem
         var sourcesScanned = false;
         foreach (var obj in npc.Perception.Objects)
         {
-            if (!obj.IsReachable ||
-                !world.Entities.Objects.TryGetValue(obj.Id, out var site) ||
+            if (!world.Entities.Objects.TryGetValue(obj.Id, out var site) ||
                 !BuildSiteMath.IsSite(site) || BuildSiteMath.IsPlantingSite(site) ||
-                !IsOurSite(world, npc, site))
+                !IsOurSite(world, npc, site) ||
+                (!obj.IsReachable && !BuildWorkPoint.HasStand(world, npc, site)))
             {
                 continue;
             }

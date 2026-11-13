@@ -337,7 +337,7 @@ public static class SpeechCatalog
 
         // ---- взаимопомощь (§53) ------------------------------------------
         ["AidRequest"] = new("Food", "sad_aid_ask"),
-        ["AidIncoming"] = new("Food", "happy_aid_give"),
+        ["AidIncoming"] = new("Food", null, Rank.Action),
         ["AidReceiving"] = new("Aid", null, Rank.Action),
         // §105 r5: помощь подписана по ВИДУ — над помощницей всплывает знак
         // того, что она делает. Ключ приходит как "AidStarted:<AidKind>";

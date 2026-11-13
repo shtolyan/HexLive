@@ -112,9 +112,7 @@ public sealed partial class DecisionSystem
         // Кокос в рюкзаке — законная еда: вскрыть его она может там, где
         // стоит (BuildCoconutInventoryPlan). Кокос на земле или на пальме —
         // уже поход, и его здесь нет.
-        var eatAvail = hungry &&
-            (npc.Inventory.FindFirstFood(world.Content) is not null ||
-             HasInventoryCoconutMeal(npc));
+        var eatAvail = hungry && HasInventoryMeal(world, npc);
 
         // HasInventoryCoconutWater покрывает и полную флягу, и продырявленный
         // кокос с водой; FindFirstDrink — всё прочее питьевое в рюкзаке.

@@ -2,7 +2,7 @@
 
 The wooden arm and leg are carved anatomical lofts (calf, ankle, foot with
 toes; forearm, palm, fingers) with leather/rope/iron details (bug #740); the
-mechanical set keeps the modular rails/pistons construction. Everything is
+mechanical set uses the same anatomical references with articulated metal parts. Everything is
 flat-shaded with separate material blocks, no textures.  Every limb is authored along local +Y with its joint
 at Y=0 and organic hand/foot endpoint at Y=1, allowing Unity to fit one asset to
 any actor by scaling it to the live bone-to-bone distance.
@@ -28,6 +28,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--reference", type=Path)
 parser.add_argument("--preview", type=Path, default=PROJECT_ROOT / "Build/ProstheticFit.png")
+parser.add_argument("--mechanical", action="store_true", help="Export and preview the mechanical variants")
 args = parser.parse_args(sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else [])
 PREVIEW_PATH = args.preview.resolve()
 EXPORT_ROOT = PROJECT_ROOT / "Assets/HexLiveContent/Prosthetics"
@@ -666,21 +667,30 @@ def mechanical_arm(side):
                 (0.0, 0.89, 0.025), 0.021, COPPER, vertices=8)
     piston_sleeve(r, 0.44, -0.008)
     cylinder("WristHub", r, 0.090, 0.11, 0.94, METAL_DARK, vertices=12)
-    box("Palm", r, (0.34, 0.32, ARM_HAND_THICKNESS),
-        (0.0, 1.15, -0.006), METAL, bevel=0.022)
+    for y, width in ((0.34, 0.099), (0.72, 0.075)):
+        rod_between("ForearmCrossbrace", r, (-width, y, -0.045), (width, y, -0.045),
+                    0.023, METAL_DARK, vertices=8)
+        for x in (-width, width):
+            rod_between("RailFastener", r, (x, y, -0.055), (x, y, 0.046),
+                        0.017, COPPER, vertices=6)
+    box("Palm", r, (0.29, 0.31, ARM_HAND_THICKNESS),
+        (0.0, 1.15, -0.006), METAL, bevel=0.034)
     box("PalmPlate", r, (0.21, 0.18, 0.023),
         (0.0, 1.14, 0.091), METAL_DARK, bevel=0.010)
     rod_between("KnuckleAxle", r, (-0.137, 1.285, 0.027),
                 (0.137, 1.285, 0.027), 0.022, COPPER, vertices=8)
-    rod_between("FingerOuter", r, (0.115 * side, 1.27, 0.020),
-                (0.145 * side, 1.0 + ARM_HAND_OVERHANG, 0.025),
-                0.036, METAL_DARK, vertices=8)
-    rod_between("FingerInner", r, (-0.105 * side, 1.27, -0.020),
-                (-0.105 * side, 1.60, 0.018), 0.034, METAL_DARK, vertices=8)
-    rod_between("FingerCenter", r, (0.0, 1.28, -0.045),
-                (0.0, 1.64, -0.025), 0.029, COPPER, vertices=8)
-    rod_between("Thumb", r, (0.17 * side, 1.12, -0.01),
-                (0.22 * side, 1.38, 0.055), 0.034, METAL_DARK, vertices=8)
+    for index, (x, tip_y) in enumerate(((0.113, 1.62), (0.038, 1.0 + ARM_HAND_OVERHANG),
+                                       (-0.038, 1.625), (-0.111, 1.55)), start=1):
+        knuckle = (x * side, 1.28, 0.014)
+        hinge = (x * side * 1.11, 1.28 + (tip_y - 1.28) * 0.57, 0.035)
+        tip = (x * side * 1.14, tip_y, 0.072)
+        rod_between(f"Finger{index}Base", r, knuckle, hinge, 0.029, METAL, vertices=8)
+        rod_between(f"Finger{index}Tip", r, hinge, tip, 0.024, METAL_DARK, vertices=8)
+        rod_between(f"Finger{index}Pin", r, (hinge[0] - 0.031, hinge[1], hinge[2]),
+                    (hinge[0] + 0.031, hinge[1], hinge[2]), 0.015, COPPER, vertices=8)
+    thumb_hinge = (0.20 * side, 1.25, 0.042)
+    rod_between("ThumbBase", r, (0.129 * side, 1.11, -0.01), thumb_hinge, 0.034, METAL, vertices=8)
+    rod_between("ThumbTip", r, thumb_hinge, (0.22 * side, 1.38, 0.10), 0.029, METAL_DARK, vertices=8)
     add_landmarks(r, "arm")
     return r
 
@@ -703,13 +713,14 @@ def mechanical_leg(side):
                 (0.0, 0.89, 0.03), 0.023, COPPER, vertices=8)
     piston_sleeve(r, 0.45, -0.010)
     cylinder("AnkleHub", r, 0.094, 0.11, 0.92, METAL_DARK, vertices=12)
-    box("FootFrame", r, (LEG_FOOT_WIDTH, LEG_FOOT_HEIGHT - 0.045, LEG_FOOT_LENGTH),
-        (0.0, 1.035, LEG_FOOT_FORWARD_CENTER), METAL, bevel=0.022)
-    for z in (-0.07, 0.04, 0.15):
-        rod_between("FootRib", r, (-0.104, 0.947, LEG_FOOT_FORWARD_CENTER + z),
-                    (0.104, 0.947, LEG_FOOT_FORWARD_CENTER + z), 0.014, METAL_DARK, vertices=6)
-    box("Sole", r, (LEG_FOOT_WIDTH + 0.018, 0.042, LEG_FOOT_LENGTH + 0.02),
-        (0.0, 1.145, LEG_FOOT_FORWARD_CENTER), METAL_DARK, bevel=0.010)
+    slab_mesh("FootFrame", r, foot_outline(side, inset=0.014), 0.990, 1.122, METAL)
+    slab_mesh("Sole", r, foot_outline(side), 1.122, 1.166, METAL_DARK)
+    for x in (-0.076, 0.076):
+        rod_between("HeelStrut", r, (x, 0.91, -0.025), (x, 1.04, -0.106), 0.026, METAL, vertices=8)
+        rod_between("InstepStrut", r, (x, 0.93, 0.018), (x, 1.015, 0.235), 0.023, METAL_DARK, vertices=8)
+    for z in (0.23, 0.30, 0.35):
+        rod_between("ToeTread", r, (-0.078, 1.16, z), (0.078, 1.16, z),
+                    0.008, METAL_DARK, vertices=6)
     rod_between("ToeBrace", r,
                 (-0.105, 1.02, LEG_FOOT_FORWARD_CENTER + 0.24),
                 (0.105, 1.02, LEG_FOOT_FORWARD_CENTER + 0.24),
@@ -936,12 +947,10 @@ def build_fit_scene(model_roots):
             model_roots[model_name], target, f"Fit_{model_name}")
         fit_preview(preview, armature, start_name, end_name)
 
-    # Wood is the default review layer; the mechanical layer uses the same fit
-    # and is one collection toggle away without double-drawing both devices.
-    wood.hide_viewport = False
-    wood.hide_render = False
-    mechanical.hide_viewport = True
-    mechanical.hide_render = True
+    wood.hide_viewport = args.mechanical
+    wood.hide_render = args.mechanical
+    mechanical.hide_viewport = not args.mechanical
+    mechanical.hide_render = not args.mechanical
 
     old_scene = bpy.data.scenes.get(FIT_SCENE_NAME)
     if old_scene:
@@ -973,7 +982,8 @@ models = [
 ]
 
 for model, filename, _ in models:
-    export(model, filename)
+    if not args.mechanical or "_mechanical_" in filename:
+        export(model, filename)
 
 for model, _, preview_location in models:
     model.location = preview_location

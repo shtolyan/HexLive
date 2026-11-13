@@ -673,6 +673,7 @@ public sealed class NPCState
     // Systems write this beside the real mutation; save/load ignores it and
     // the next fast/slow pass reconstructs it from live state.
     public EffectImpactLedger EffectImpacts { get; } = new();
+    internal System.Collections.Generic.SortedSet<(bool IsMob, int Id)> StressSources { get; } = new();
 
     public NPCMind Mind { get; } = new();
 

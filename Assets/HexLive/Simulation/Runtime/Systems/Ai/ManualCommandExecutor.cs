@@ -1865,8 +1865,7 @@ internal static partial class ManualCommandExecutor
                 break;
 
             case SelfActionKind.EatFromPack:
-                if (npc.Inventory.FindFirstFood(world.Content) is null &&
-                    !DecisionSystem.HasInventoryCoconutMeal(npc))
+                if (!DecisionSystem.HasInventoryMeal(world, npc))
                 {
                     Reject(world, npc.Id, "SelfAction", "NothingToEat", admission);
                     return;

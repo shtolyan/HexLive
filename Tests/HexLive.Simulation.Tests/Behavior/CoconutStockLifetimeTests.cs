@@ -111,6 +111,8 @@ public sealed class CoconutStockLifetimeTests
         var world = TestWorld.CreateWorld();
         var npc = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
         npc.Inventory.Items.Clear();
+        npc.WornItems.Clear();
+        npc.Inventory.Capacity = 0;
         world.Tick = 100;
         var source = world.Entities.Objects.Values.First(o => o.DefinitionId == ContentIds.Palm);
         var harvest = world.Content.ObjectDefinitions["palm.coconut_branch"].Interactions
@@ -119,7 +121,7 @@ public sealed class CoconutStockLifetimeTests
         ExecutionSystem.ApplyHarvestYields(world, npc, source, harvest.Yields);
         var stock = world.Entities.Objects.Values
             .Where(o => !before.Contains(o.Id) && o.DefinitionId == ContentIds.Coconut).ToArray();
-        Assert.That(stock, Has.Length.EqualTo(3), "Exercise the real scattered branch yield path.");
+        Assert.That(stock, Has.Length.EqualTo(3), "Exercise ground overflow from a harvested branch.");
         Assert.That(stock.All(o => o.ProduceOrigin == ProduceOrigin.Gathered), Is.True);
         world.Tick += WorldBalance.FruitRotTicks + 1;
         new FruitProductionSystem().Run(world);

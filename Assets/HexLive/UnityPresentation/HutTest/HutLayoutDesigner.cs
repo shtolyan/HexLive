@@ -1084,7 +1084,8 @@ namespace HexLive.UnityPresentation.HutTest
         {
             if (_pendingRevisionJson != null) return;
             if (string.IsNullOrEmpty(_selectedId)) return;
-            if (_selectedIds.Any(IsFinishedWorldFurniture))
+            if (_draft.Furniture.Any(item => _selectedIds.Contains(item.Id) &&
+                    IsFinishedWorldFurniture(item.Id) && !FurniturePlacement.CanRemoveFinished(item.DefinitionId)))
             {
                 SetStatus("toast.order_rejected.FurnitureBuilt", true);
                 return;

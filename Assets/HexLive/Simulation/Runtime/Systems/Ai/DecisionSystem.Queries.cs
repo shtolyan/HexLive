@@ -194,6 +194,10 @@ public sealed partial class DecisionSystem
     internal static bool HasBottleWater(NPCState npc) =>
         BottleInventoryMath.HasWater(npc);
 
+    internal static bool HasInventoryMeal(WorldState world, NPCState npc) =>
+        npc.Inventory.FindFirstFood(world.Content) is not null ||
+        HasInventoryCoconutMeal(npc) || MealServing.CanServe(npc);
+
     internal static bool HasInventoryCoconutMeal(NPCState npc)
     {
         if (npc.Inventory.Items.Contains(ContentIds.CoconutOpen))

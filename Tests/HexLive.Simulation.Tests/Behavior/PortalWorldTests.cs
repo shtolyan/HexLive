@@ -662,9 +662,14 @@ public sealed class PortalWorldTests
         var receipt = engine.ApplyManualCommand(new PlaceInventoryFurnitureCommand(actor.Id, reference, target, tile.Coord, 60f));
         Assert.That(receipt.Accepted, Is.True, receipt.Reason);
         var bed = world.Entities.Objects.Values.Single(obj => obj.DefinitionId == ContentIds.BedBasic);
-        Assert.That(PortableFurniture.IsBuiltInBed(bed.DefinitionId, bed.Variant, hasFloor: true), Is.False);
+        Assert.That(PortableFurniture.IsBuiltInBed(bed.DefinitionId, bed.Variant), Is.False);
         Assert.That(PortableFurniture.PickupRefusal(world, actor, bed), Is.Null);
         Assert.That(actor.Inventory.Items, Is.Empty);
+
+        bed.Variant = string.Empty; // A bed built from materials on the same floor.
+        var pickup = engine.ApplyManualCommand(new InteractCommand(actor.Id, bed.Id, InteractionType.PickUp,
+            "pickup.bed.basic"));
+        Assert.That(pickup.Accepted, Is.True, pickup.Reason);
     }
 
     private static WorldState CreateWorld(int seed = 0, bool portal = true)

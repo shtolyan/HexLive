@@ -1,7 +1,7 @@
 {
   "version": 1,
   "definitionId": "campfire.spot",
-  "modelSha256": "6f0efd6733dbb398ce260c190c696435b20f496831ee10836c82dc7ec615acad",
+  "modelSha256": "856b173b9e57dd7b42c7e83a01ce4305907a5fa95479dc526a26b6dc9978a2b0",
   "basis": {
     "up": "+Z",
     "forward": "+Y",

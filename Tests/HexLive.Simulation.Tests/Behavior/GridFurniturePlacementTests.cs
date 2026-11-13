@@ -215,7 +215,7 @@ public sealed class GridFurniturePlacementTests
     }
 
     [Test]
-    public void RemovingASiteLeavesItsMaterialsOnTheGroundAndRefusesFinishedFurniture()
+    public void RemovingASiteLeavesItsMaterialsOnTheGroundAndAllowsFinishedBedRemoval()
     {
         var (engine, world) = Create();
         var anchor = FreeOffCentreAnchor(world, ContentIds.BedBasic);
@@ -233,14 +233,21 @@ public sealed class GridFurniturePlacementTests
         Assert.That(world.Entities.Objects.Values.Count(o => o.DefinitionId == ContentIds.Log),
             Is.EqualTo(logsBefore + 1), "The delivered log is back on the ground.");
 
-        // Готовую мебель режим стройки не уничтожает.
+        world.Tiles.Items[FurniturePlacement.TileOf(anchor)].Flags |= TileFlags.HasFloor;
         Assert.That(engine.ApplyManualCommand(new PlaceFurnitureCommand(
             ContentIds.BedBasic, key.XKey, key.YKey, 0)).Accepted, Is.True);
         var second = FurniturePlacement.FindAt(world, ContentIds.BedBasic, key)!;
-        ExecutionSystem.RaiseFurnitureSite(world, second, anchor.Fragment, anchor.Id);
-        var refused = engine.ApplyManualCommand(new RemoveFurnitureCommand(ContentIds.BedBasic, key.XKey, key.YKey));
-        Assert.That(refused.Accepted, Is.False);
-        Assert.That(refused.Reason, Is.EqualTo("FurnitureBuilt"));
+        var bed = ExecutionSystem.RaiseFurnitureSite(world, second, anchor.Fragment, anchor.Id);
+        var target = FreeOffCentreAnchor(world, ContentIds.BedBasic, avoid: new HashSet<JunctionId> { anchor.Id });
+        var targetKey = Key(target);
+        var moved = engine.ApplyManualCommand(new MoveFurnitureCommand(
+            ContentIds.BedBasic, key.XKey, key.YKey, targetKey.XKey, targetKey.YKey, 0));
+        Assert.That(moved.Accepted, Is.True, moved.Reason);
+        Assert.That(bed.Junctions[0], Is.EqualTo(target.Id));
+        var removed = engine.ApplyManualCommand(new RemoveFurnitureCommand(
+            ContentIds.BedBasic, targetKey.XKey, targetKey.YKey));
+        Assert.That(removed.Accepted, Is.True, removed.Reason);
+        Assert.That(world.Entities.Objects.ContainsKey(bed.Id), Is.False);
     }
 
     [Test]

@@ -82,7 +82,8 @@ public static partial class CampDiplomacyMath
     /// by how much the seen person dislikes the observer, not by their faction
     /// label (including Outsiders).
     /// </summary>
-    public static float VisibleHumanThreatFactor(WorldState world, NPCState observer)
+    public static float VisibleHumanThreatFactor(WorldState world, NPCState observer,
+        bool recordStressSources = false)
     {
         var worst = 0f;
 
@@ -99,6 +100,7 @@ public static partial class CampDiplomacyMath
                     world, person.Faction, observer.Faction))
             {
                 worst = 1f;
+                if (recordStressSources) observer.StressSources.Add((false, person.Id.Value));
                 return;
             }
 
@@ -106,8 +108,10 @@ public static partial class CampDiplomacyMath
                     observer.Id, out var relationship)
                 ? relationship.Affinity
                 : 0f;
-            worst = Math.Max(worst,
-                MathUtil.Clamp01(Math.Max(0f, -incomingAffinity)));
+            var threat = MathUtil.Clamp01(Math.Max(0f, -incomingAffinity));
+            if (threat > 0f && recordStressSources)
+                observer.StressSources.Add((false, person.Id.Value));
+            worst = Math.Max(worst, threat);
         }
 
         foreach (var seen in observer.Perception.Agents)

@@ -50,13 +50,12 @@ public static class PortableFurniture
             WorldObjectMutations.SetAuthoredFurnitureBlocking(world, placed, blocked: true);
     }
 
-    public static bool IsBuiltInBed(string definitionId, string variant, bool hasFloor) =>
-        definitionId == ContentIds.BedBasic &&
-        (variant == ContentIds.HutBedVariant || hasFloor && variant != BasicPlacedVariant);
+    public static bool IsBuiltInBed(string definitionId, string variant) =>
+        definitionId == ContentIds.BedBasic && variant == ContentIds.HutBedVariant;
 
-    public static bool CanShowPickup(ObjectSnapshot obj, bool hasFloor) => CanCarry(obj.DefinitionId) &&
+    public static bool CanShowPickup(ObjectSnapshot obj) => CanCarry(obj.DefinitionId) &&
         !obj.ArchitectureOwnerObjectId.HasValue && string.IsNullOrEmpty(obj.BuildProduct) &&
-        !IsBuiltInBed(obj.DefinitionId, obj.Variant, hasFloor);
+        !IsBuiltInBed(obj.DefinitionId, obj.Variant);
 
     public static float FootprintRadius(string definitionId) => definitionId switch
     {
@@ -94,9 +93,8 @@ public static class PortableFurniture
         bool allowOwnReservation = false)
     {
         if (!ManualControlMath.IsManual(actor)) return "ManualOnly";
-        var hasFloor = world.Tiles.Items.TryGetValue(obj.Tile, out var tile) && tile.Flags.HasFlag(TileFlags.HasFloor);
         if (obj.ArchitectureOwnerId.HasValue || BuildSiteMath.IsSite(obj) || obj.IsCraftProject ||
-            IsBuiltInBed(obj.DefinitionId, obj.Variant, hasFloor)) return "FurnitureIntegrated";
+            IsBuiltInBed(obj.DefinitionId, obj.Variant)) return "FurnitureIntegrated";
         if ((obj.IsOccupied || obj.CurrentUser.HasValue) && (!allowOwnReservation || obj.CurrentUser != actor.Id) ||
             obj.Contents.Count > 0) return "Occupied";
         return actor.Body.HasUsableHand ? null : "NeedsHand";

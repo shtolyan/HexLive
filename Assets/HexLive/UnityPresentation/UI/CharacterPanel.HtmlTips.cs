@@ -1,5 +1,7 @@
 using System;
+using System.Globalization;
 using HexLive.Simulation.Agents.Effects;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using Newtonsoft.Json.Linq;
 
@@ -15,7 +17,7 @@ namespace HexLive.UnityPresentation.UI
     public sealed partial class CharacterPanel
     {
         /// <summary>«hunger» … «thermal» → the effects pushing that need up or down.</summary>
-        private JArray HtmlNeedImpacts(NpcSnapshot npc, string needId)
+        private JArray HtmlNeedImpacts(WorldSnapshot snapshot, NpcSnapshot npc, string needId)
         {
             var impacts = new JArray();
             var kindName = needId == "thermal" ? nameof(NeedKind.Temperature) : needId;
@@ -50,10 +52,49 @@ namespace HexLive.UnityPresentation.UI
                 impacts.Add(new JObject
                 {
                     ["emoji"] = def.Emoji, ["title"] = def.TitleKey,
-                    ["up"] = impact.Direction == EffectImpactDirection.Positive,
+                    ["up"] = (impact.Direction == EffectImpactDirection.Positive) != (need == NeedKind.Stress),
+                    ["positive"] = impact.Direction == EffectImpactDirection.Positive,
                 });
             }
+            if (need == NeedKind.Stress)
+            {
+                foreach (var source in StressSources(snapshot, npc))
+                    impacts.Add(new JObject
+                    {
+                        ["emoji"] = source.IsMob ? "🐾" : "👤", ["name"] = source.Name,
+                        ["up"] = true, ["positive"] = false, ["sourceId"] = source.Id, ["sourceMob"] = source.IsMob
+                    });
+            }
             return impacts;
+        }
+
+        private static System.Collections.Generic.IEnumerable<(bool IsMob, int Id, string Name)>
+            StressSources(WorldSnapshot snapshot, NpcSnapshot npc)
+        {
+            foreach (var row in npc.EffectImpacts)
+            {
+                if (!row.StartsWith("Stress\tThreatened\tNegative\t", StringComparison.Ordinal)) continue;
+                var fields = row.Split('\t');
+                if (fields.Length != 5 || !int.TryParse(fields[4], NumberStyles.None, CultureInfo.InvariantCulture, out var id))
+                    continue;
+                if (fields[3] == "npc" && snapshot.Npcs.Find(other => other.Id.Value == id && other.Health > 0f) is { } person)
+                    yield return (false, id, Localization.Loc.NpcName(person.DisplayName));
+                else if (fields[3] == "mob" && snapshot.Mobs.Find(mob => mob.Id == id && mob.Health > 0f) is { } animal)
+                    yield return (true, id, Localization.Loc.Get("effect.stress_source." +
+                        (animal.MobId == MobIds.Dog ? "wolf" : "animal")));
+            }
+        }
+
+        private void FocusStressSource(int observerId, bool isMob, int id)
+        {
+            var snapshot = _runner?.CreateSnapshot();
+            if (snapshot?.Npcs.Find(npc => npc.Id.Value == observerId) is not { } observer ||
+                !System.Linq.Enumerable.Any(StressSources(snapshot, observer),
+                    source => source.Id == id && source.IsMob == isMob)) return;
+            if (isMob && snapshot.Mobs.Find(mob => mob.Id == id) is { } animal)
+                FindFirstObjectByType<Input.RtsCameraController>()?.MoveToMapPoint(animal.Position);
+            else if (!isMob)
+                Input.NpcSelection.Activate(id);
         }
     }
 }

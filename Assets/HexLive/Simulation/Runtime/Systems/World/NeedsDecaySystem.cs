@@ -697,7 +697,24 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 DamageReactionSystemHelpers.IsAdrenalineActive(world, npc);
             var bodyCrisis =
                 npc.Health < 0.6f || npc.Needs.Hunger >= 0.85f || npc.Needs.Thirst >= 0.85f;
-            var humanThreat = CampDiplomacyMath.VisibleHumanThreatFactor(world, npc);
+            npc.StressSources.Clear();
+            var humanThreat = CampDiplomacyMath.VisibleHumanThreatFactor(world, npc,
+                recordStressSources: fullThreat || !bodyCrisis);
+            if (fullThreat)
+            {
+                foreach (var mob in npc.Perception.Mobs)
+                    if (mob.Health > 0f && (mob.TargetsMe || npc.Mind.ManualAttackMobId == mob.Id))
+                        npc.StressSources.Add((true, mob.Id));
+                foreach (var seen in npc.Perception.Agents)
+                {
+                    if (!world.Entities.Npcs.TryGetValue(seen.Id, out var other) || other.Health <= 0f) continue;
+                    var mind = other.Mind;
+                    if (mind.RaidTargetNpcId == npc.Id || mind.AbuseTargetNpcId == npc.Id ||
+                        mind.GroupHuntTargetNpcId == npc.Id || mind.ExpulsionTargetNpcId == npc.Id ||
+                        mind.ManualAttackNpcId == npc.Id || npc.Mind.ManualAttackNpcId == other.Id)
+                        npc.StressSources.Add((false, other.Id.Value));
+                }
+            }
             var stressDelta = fullThreat || bodyCrisis
                 ? SimBalance.StressUpRate
                 : humanThreat > 0f

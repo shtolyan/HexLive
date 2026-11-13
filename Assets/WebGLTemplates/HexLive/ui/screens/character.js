@@ -222,7 +222,7 @@ function NeedIcon({ need }) {
   return look ? html`<i class="hx-needs__icon" style=${{ color: look[1] }}>${needIcons[look[0]]()}</i>` : null;
 }
 
-function Needs({ npc }) {
+function Needs({ npc, send }) {
   const [tab, setTab] = useState('needs');
   return html`
     <section class="hx-sheet">
@@ -237,7 +237,11 @@ function Needs({ npc }) {
               // CharacterPanel.ShowNeedTooltip: the effects acting on this need right now.
               icon: '↕', title: `${t(`need.${n.id}`)} · ${needValue(n)}${n.deficit > 0 ? ` (−${Math.round(n.deficit * 100)}%)` : ''}`,
               desc: t(n.impacts?.length ? 'effect.impacts.current' : 'effect.impacts.none'),
-              rows: (n.impacts || []).map((i) => ({ icon: i.emoji, title: t(i.title), up: i.up })),
+              rows: (n.impacts || []).map((i) => ({
+                icon: i.emoji, title: i.name || t(i.title), up: i.up,
+                action: i.sourceId == null ? undefined : () =>
+                  send('stressSource', { observerId: npc.id, id: i.sourceId, mob: i.sourceMob }),
+              })),
             }))}>
               <span class="hx-needs__label"><${NeedIcon} need=${n} />${t(`need.${n.id}`)}</span>
               <span class="hx-needs__value"><span class="hx-needs__increase" data-active=${n.increasing === true} aria-hidden="true">↑</span><span data-tone=${n.thermal != null ? (n.thermal < -0.05 ? 'cold' : n.thermal > 0.05 ? 'hot' : '') : ''}>${needValue(n)}</span></span>
@@ -379,7 +383,7 @@ export function Character({ model, send }) {
       </div>
       <${CardBox} className="hx-card hx-surface" send=${send}>
         <${Identity} npc=${npc} send=${send} />
-        <${Needs} npc=${npc} />
+        <${Needs} npc=${npc} send=${send} />
         <${Relations} key=${npc.id} npc=${npc} />
         <button type="button" class="hx-card__collapse" aria-label=${t('panel.close')} title=${t('panel.close')} onClick=${() => send('collapse')}>▼</button>
       <//>

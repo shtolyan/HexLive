@@ -1815,6 +1815,8 @@
   animation: hx-pop 90ms ease-out;
 }
 .hx-tip header { display: flex; align-items: center; gap: 0.625rem; }
+.hx-tip[data-interactive="true"] { pointer-events: auto; }
+.hx-tip li button { background: transparent; color: inherit; border: 0; padding: 0; text-align: left; text-decoration: underline; cursor: pointer; }
 .hx-tip header b { font-size: 1rem; }
 .hx-tip[data-tone="buff"] header b { color: var(--hx-leaf); }
 .hx-tip[data-tone="debuff"] header b { color: rgb(242 196 192); }

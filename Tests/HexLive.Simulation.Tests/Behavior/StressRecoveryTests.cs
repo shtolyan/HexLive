@@ -1,5 +1,7 @@
 using System.Linq;
 using HexLive.Simulation.AI;
+using HexLive.Simulation.Content;
+using HexLive.Simulation.Debug;
 using HexLive.Simulation.Memory;
 using HexLive.Simulation.Runtime;
 using NUnit.Framework;
@@ -49,5 +51,33 @@ public sealed class StressRecoveryTests
 
         Assert.That(npc.Needs.Stress,
             Is.EqualTo(0.5f + SimBalance.StressUpRate).Within(0.000001f));
+    }
+
+    [Test]
+    public void StressSnapshotNamesThePursuingWolfAndHostilePerson()
+    {
+        var world = TestWorld.CreateWorld(187);
+        var npc = world.Entities.Npcs.Values.First();
+        var other = world.Entities.Npcs.Values.First(candidate => candidate.Id != npc.Id);
+        npc.Needs.Hunger = npc.Needs.Thirst = .1f;
+        npc.Mind.CurrentGoal = GoalType.Flee;
+        npc.Perception.Agents.Add(new PerceivedAgent { Id = other.Id, CanSee = true });
+        other.Social.GetOrCreate(npc.Id).Affinity = -.5f;
+        npc.Perception.Mobs.Add(new PerceivedMob { Id = 11, MobId = MobIds.Dog, Health = 1f, TargetsMe = true });
+        npc.Perception.Mobs.Add(new PerceivedMob { Id = 12, MobId = MobIds.Dog, Health = 1f });
+
+        new NeedsDecaySystem().Run(world);
+        var stress = WorldSnapshotExporter.Export(world).Npcs.Single(person => person.Id == npc.Id).EffectImpacts;
+        Assert.That(stress, Does.Contain("Stress\tThreatened\tNegative\tmob\t11"));
+        Assert.That(stress, Does.Contain($"Stress\tThreatened\tNegative\tnpc\t{other.Id.Value}"));
+        Assert.That(stress, Does.Not.Contain("Stress\tThreatened\tNegative\tmob\t12"));
+
+        npc.Mind.CurrentGoal = GoalType.None;
+        npc.Perception.Agents.Clear();
+        npc.Perception.Hostiles.Clear();
+        npc.Perception.Mobs.Clear();
+        new NeedsDecaySystem().Run(world);
+        stress = WorldSnapshotExporter.Export(world).Npcs.Single(person => person.Id == npc.Id).EffectImpacts;
+        Assert.That(stress.Any(row => row.StartsWith("Stress\tThreatened\tNegative\t")), Is.False);
     }
 }

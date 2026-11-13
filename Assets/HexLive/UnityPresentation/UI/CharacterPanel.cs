@@ -103,6 +103,7 @@ namespace HexLive.UnityPresentation.UI
         private Label _effectTooltipTitle;
         private Label _effectTooltipDesc;
         private VisualElement _effectTooltipImpacts;
+        private IVisualElementScheduledItem _stressTooltipDismiss;
         private NpcSnapshot _currentTooltipNpc;
         private NeedKind? _hoveredNeed;
         private VisualElement _hoveredNeedAnchor;
@@ -1423,6 +1424,12 @@ namespace HexLive.UnityPresentation.UI
             _effectTooltip.style.paddingBottom = 13f;
             _effectTooltip.pickingMode = PickingMode.Ignore;
             _effectTooltip.style.display = DisplayStyle.None;
+            _effectTooltip.RegisterCallback<PointerEnterEvent>(_ => _stressTooltipDismiss?.Pause());
+            _effectTooltip.RegisterCallback<PointerLeaveEvent>(_ =>
+            {
+                if (_effectTooltip.pickingMode == PickingMode.Position && _hoveredNeed == null)
+                    HideEffectTooltip();
+            });
 
             // Header: big emoji + bold title (title tinted by polarity).
             var header = new VisualElement();
@@ -1675,11 +1682,25 @@ namespace HexLive.UnityPresentation.UI
             _effectTooltipDesc.style.display = DisplayStyle.Flex;
 
             _effectTooltipImpacts.Clear();
+            _effectTooltip.pickingMode = PickingMode.Ignore;
             foreach (var impact in parsed)
             {
                 _effectTooltipImpacts.Add(BuildNeedImpactRow(impact));
             }
-            _effectTooltipImpacts.style.display = parsed.Count > 0
+            if (need == NeedKind.Stress && _runner?.CreateSnapshot() is { } snapshot)
+            {
+                foreach (var source in StressSources(snapshot, npc))
+                {
+                    _effectTooltip.pickingMode = PickingMode.Position;
+                    var sourceButton = new Button(() =>
+                    {
+                        FocusStressSource(npc.Id.Value, source.IsMob, source.Id);
+                        HideEffectTooltip();
+                    }) { text = source.Name };
+                    _effectTooltipImpacts.Add(sourceButton);
+                }
+            }
+            _effectTooltipImpacts.style.display = _effectTooltipImpacts.childCount > 0
                 ? DisplayStyle.Flex
                 : DisplayStyle.None;
 
@@ -1788,6 +1809,8 @@ namespace HexLive.UnityPresentation.UI
             if (_effectTooltip != null)
             {
                 _effectTooltip.style.display = DisplayStyle.None;
+                _effectTooltip.pickingMode = PickingMode.Ignore;
+                _stressTooltipDismiss?.Pause();
                 // §121.13: the action-list card borrows the icon slot for its glyph.
                 _effectTooltipIcon.style.backgroundImage = StyleKeyword.Null;
             }
@@ -7927,6 +7950,7 @@ namespace HexLive.UnityPresentation.UI
 
             cell.RegisterCallback<MouseEnterEvent>(_ =>
             {
+                _stressTooltipDismiss?.Pause();
                 _hoveredNeed = need;
                 _hoveredNeedAnchor = cell;
                 cell.style.backgroundColor = Raised;
@@ -7941,7 +7965,12 @@ namespace HexLive.UnityPresentation.UI
                 }
 
                 cell.style.backgroundColor = Color.clear;
-                HideEffectTooltip();
+                if (need == NeedKind.Stress && _effectTooltip?.pickingMode == PickingMode.Position)
+                {
+                    _stressTooltipDismiss?.Pause();
+                    _stressTooltipDismiss = _effectTooltip.schedule.Execute(HideEffectTooltip).StartingIn(250);
+                }
+                else HideEffectTooltip();
             });
 
             _needBindings.Add(new NeedBinding

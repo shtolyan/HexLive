@@ -286,7 +286,7 @@ namespace HexLive.UnityPresentation.UI
                 // value stays goodness for the colour; the card inverts the fill.
                 if (config.Direct) need["direct"] = true;
                 if (ConsumptionIncreasing(npc, config.Key, good)) need["increasing"] = true;
-                need["impacts"] = HtmlNeedImpacts(npc, (string)need["id"]); // the row's tooltip (§48.7)
+                need["impacts"] = HtmlNeedImpacts(snapshot, npc, (string)need["id"]); // the row's tooltip (§48.7)
                 if (config.Key == "need.blood" && npc.BloodDeficit > 0f)
                 {
                     need["value"] = 0f;
@@ -296,7 +296,7 @@ namespace HexLive.UnityPresentation.UI
                 // Temperature is the bipolar cell, placed where the UI Toolkit grid has it.
                 if (config.Key == "need.social")
                     needs.Add(new JObject { ["id"] = "thermal", ["value"] = 0f, ["thermal"] = Mathf.Round(Mathf.Clamp(npc.ThermalComfort, -1f, 1f) * 100f) / 100f,
-                        ["impacts"] = HtmlNeedImpacts(npc, "thermal") });
+                        ["impacts"] = HtmlNeedImpacts(snapshot, npc, "thermal") });
             }
 
             var effects = new JArray();
@@ -466,6 +466,10 @@ namespace HexLive.UnityPresentation.UI
                     else NpcSelection.Activate(id);
                     return;
                 case "selectClan": SelectWholeClan(); return;
+                case "stressSource":
+                    FocusStressSource((int?)args["observerId"] ?? -1, (bool?)args["mob"] ?? false,
+                        (int?)args["id"] ?? -1);
+                    return;
                 case "speak": TogglePlayerSpeech(); return;
                 case "control":
                     var mode = (string)args["mode"];

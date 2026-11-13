@@ -9,18 +9,25 @@
 import { html, useEffect, useRef, useState } from './html.js';
 
 let current = null; // { anchor, content }
+let dismissTimer;
 const listeners = new Set();
 const emit = () => listeners.forEach((l) => l());
+const cancelDismiss = () => clearTimeout(dismissTimer);
+const dismissSoon = () => {
+  cancelDismiss();
+  dismissTimer = setTimeout(hideTip, 250);
+};
 
 /** Spread onto any element: hover shows the card built by `content()`. */
 export function tip(content) {
   return {
-    onPointerEnter: (e) => { current = { anchor: e.currentTarget, content: content() }; emit(); },
-    onPointerLeave: () => { current = null; emit(); },
+    onPointerEnter: (e) => { cancelDismiss(); current = { anchor: e.currentTarget, content: content() }; emit(); },
+    onPointerLeave: () => current?.content.rows?.some((row) => row.action) ? dismissSoon() : hideTip(),
   };
 }
 
 export function hideTip() {
+  cancelDismiss();
   if (!current) return;
   current = null;
   emit();
@@ -51,12 +58,17 @@ export function TooltipLayer() {
   });
   if (!current) return null;
   const c = current.content;
+  const interactive = c.rows?.some((row) => row.action) === true;
   return html`
-    <div class="hx-tip" ref=${card} role="tooltip" data-tone=${c.tone || ''}
+    <div class="hx-tip" ref=${card} role=${interactive ? 'group' : 'tooltip'} data-tone=${c.tone || ''}
+      data-interactive=${interactive} onPointerEnter=${interactive ? cancelDismiss : undefined}
+      onPointerLeave=${interactive ? dismissSoon : undefined}
       style=${pos ? { left: `${pos.left}px`, top: `${pos.top}px` } : { visibility: 'hidden', left: 0, top: 0 }}>
       <header>${c.icon && html`<span class="hx-tip__icon" aria-hidden="true">${c.icon}</span>`}<b>${c.title}</b></header>
       ${c.desc && html`<p>${c.desc}</p>`}
       ${c.rows?.length > 0 && html`<ul>${c.rows.map((r, i) => html`
-        <li key=${i} data-up=${r.up}><span aria-hidden="true">${r.icon}</span><span>${r.title}</span><b>${r.up ? '↑' : '↓'}</b></li>`)}</ul>`}
+        <li key=${i} data-up=${r.up}><span aria-hidden="true">${r.icon}</span>
+          ${r.action ? html`<button type="button" onClick=${() => { r.action(); hideTip(); }}>${r.title}</button>`
+            : html`<span>${r.title}</span>`}<b>${r.up ? '↑' : '↓'}</b></li>`)}</ul>`}
     </div>`;
 }

@@ -1028,6 +1028,9 @@ public static class WorldSnapshotExporter
         // straight into the existing wire rows without an intermediate list.
         var effectSink = new EffectSnapshotSink(npcSnapshot);
         EffectReadModel.Visit(world, npc, npcSnapshot.EffectiveUv, ref effectSink);
+        foreach (var (isMob, id) in npc.StressSources)
+            npcSnapshot.EffectImpacts.Add(FormattableString.Invariant(
+                $"Stress\tThreatened\tNegative\t{(isMob ? "mob" : "npc")}\t{id}"));
 
         // §76: the character sheet. Looped off AttributeSet.All/SkillSet.All so
         // adding a seventh attribute never means remembering this file.

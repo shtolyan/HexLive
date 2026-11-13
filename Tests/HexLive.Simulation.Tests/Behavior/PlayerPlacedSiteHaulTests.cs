@@ -127,6 +127,11 @@ public sealed class PlayerPlacedSiteHaulTests
         foreach (var site in world.Entities.Objects.Values.Where(BuildSiteMath.IsSite).Select(o => o.Id).ToList())
             WorldObjectMutations.DespawnObject(world, site);
         colonists = world.Entities.Npcs.Values.Where(n => n.Faction == Faction.Colony).ToList();
+        // The arena measures hauling, not a fight: the prototype island's
+        // outsider stays still (manual, no orders) instead of starting an
+        // abuse scene that ties the whole colony up in Aid/Rescue.
+        foreach (var stranger in world.Entities.Npcs.Values.Where(n => n.Faction != Faction.Colony))
+            stranger.Mind.ManualControl = true;
         Assert.That(colonists, Is.Not.Empty);
         engine.Step();
         foreach (var npc in colonists) Rest(npc);

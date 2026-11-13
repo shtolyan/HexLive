@@ -168,6 +168,38 @@ public sealed class MealChainArenaTests
         Assert.That(onGround, Is.False);
     }
 
+    // 2b. Furniture surfaces block their footprint (furniture obstacle rule);
+    // she must still reach the rim and serve there, not fall back to the ground.
+    [TestCase(ContentIds.Workbench)]
+    [TestCase(ContentIds.ModernTable)]
+    public void BlockingFurnitureSurfaceIsReachedAndUsed(string surfaceId)
+    {
+        var arena = Build();
+        var npc = arena.Actor;
+        var surface = arena.Place(surfaceId, new TileCoord(2, -1));
+        // A carried kitchen table is stamped the way manual placement does it.
+        if (surfaceId == ContentIds.ModernTable)
+            ExecutionSystem.ApplyIndoorFurnitureFootprint(arena.World, surface);
+        Assert.That(arena.World.Junctions.Items[surface.Junctions[0]].Blocked, Is.True,
+            "the furniture footprint must be blocked in this arena, or the case proves nothing");
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.Knife));
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.MeatRoasted));
+        var onSurface = false;
+        var onGround = false;
+        for (var i = 0; i < 900 && !arena.Logged("MeatEaten", npc.Id); i++)
+        {
+            arena.Step(1);
+            if (npc.Execution.CurrentInteraction == InteractionType.Serve)
+            {
+                onSurface |= npc.Execution.TargetObject == surface.Id;
+                onGround |= npc.Execution.TargetObject == null;
+            }
+        }
+        AssertAte(arena, npc, .6f);
+        Assert.That(onSurface, Is.True, () => $"Serving must happen at the {surfaceId}\n" + arena.Tail());
+        Assert.That(onGround, Is.False);
+    }
+
     // 3a. Moderate hunger, knife + axe, no surface, palm nearby: chop, then serve on the new stump.
     [Test]
     public void ModerateHungerChopsAPalmForAStumpThenServesOnIt()

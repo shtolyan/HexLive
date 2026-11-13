@@ -98,7 +98,8 @@ public static class WorldSnapshotCodec
     // v43: persistent craft project current/last worker (§119, #422).
     // v44: §54.21 / #429 distinguishes harvest scatter from inventory piles.
     // v49: §121.13 player order queue in NPC mind.
-    public const int WireVersion = 50; // §128.4/#727: per-cell item state (wear, wet, dirt, blood, owner).
+    // v51: §121.13 each queued order carries its target person/object (tooltip).
+    public const int WireVersion = 51; // §121.13: target person/object of each queued player order.
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -1098,6 +1099,8 @@ public static class WorldSnapshotCodec
             WireIo.WriteString(w, order.Action);
             WireIo.WriteString(w, order.Detail);
             w.Write(order.Active);
+            WireIo.WriteNullableInt(w, order.TargetNpcId);
+            WireIo.WriteNullableInt(w, order.TargetObjectId);
         }
     }
 
@@ -1506,7 +1509,8 @@ public static class WorldSnapshotCodec
         if (orderCount > PlayerOrderQueue.Capacity)
             throw new InvalidDataException("Invalid player order count.");
         for (var i = 0; i < orderCount; i++)
-            n.PlayerOrders.Add(new PlayerOrderView(r.ReadInt32(), r.ReadString(), r.ReadString(), r.ReadBoolean()));
+            n.PlayerOrders.Add(new PlayerOrderView(r.ReadInt32(), r.ReadString(), r.ReadString(), r.ReadBoolean(),
+                WireIo.ReadNullableInt(r), WireIo.ReadNullableInt(r)));
     }
 
     private static void ReadNpcInventory(BinaryReader r, NpcSnapshot n)

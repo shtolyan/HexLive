@@ -306,6 +306,24 @@ public sealed class PlayerCharacterAssignmentsTests
             assigned, leases, "ws:one", out _), Is.True);
     }
 
+    // §121.13: drag-to-reorder travels the same authorization path as cancel —
+    // assignment first, then the character's lease.
+    [Test]
+    public void ReorderingTheQueueNeedsTheAssignedCharacterAndItsLease()
+    {
+        var leases = new ControlLeases();
+        var assigned = new HashSet<int> { 1 };
+        Assert.That(PlayerCommandAuthorization.TryAuthorize(new MovePlayerOrderCommand(new EntityId(2), 3, 4),
+            assigned, leases, "ws:one", out var refusal), Is.False);
+        Assert.That(refusal, Is.EqualTo("NotAssigned"));
+        Assert.That(PlayerCommandAuthorization.TryAuthorize(new MovePlayerOrderCommand(new EntityId(1), 3, 4),
+            assigned, leases, "ws:one", out _), Is.True);
+        Assert.That(leases.HolderOf(1), Is.EqualTo("ws:one"));
+        Assert.That(PlayerCommandAuthorization.TryAuthorize(new MovePlayerOrderCommand(new EntityId(1), 3, 0),
+            assigned, leases, "ws:two", out refusal), Is.False);
+        Assert.That(refusal, Is.EqualTo("ControlledByOther"));
+    }
+
     // §149.2: в HugeIsland/Maniac в каждом из шести лагерей ОДНА девушка.
     // Пока выдавалась только Faction.Colony, свой лагерь исчерпывался первым
     // подключившимся, и второй игрок молча оставался ни с чем — сетевая игра

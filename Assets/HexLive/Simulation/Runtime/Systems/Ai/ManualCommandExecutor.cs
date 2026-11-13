@@ -72,6 +72,9 @@ internal static partial class ManualCommandExecutor
             case CancelPlayerOrderCommand cancelled:
                 ApplyCancelPlayerOrder(world, cancelled, admission);
                 break;
+            case MovePlayerOrderCommand moved:
+                ApplyMovePlayerOrder(world, moved, admission);
+                break;
             case RecordAgentSocialCommand agentSocial:
                 ApplyRecordAgentSocial(world, agentSocial, admission);
                 break;
@@ -298,6 +301,7 @@ internal static partial class ManualCommandExecutor
     {
         RecordAgentSocialCommand => "RecordAgentSocial",
         RecordCompanionTurnCommand => "RecordCompanionTurn",
+        MovePlayerOrderCommand => "MoveOrder",
         SetManualControlCommand => "SetManual",
         KnockDoorCommand => "KnockDoor",
         BreakDoorCommand => "BreakDoor",

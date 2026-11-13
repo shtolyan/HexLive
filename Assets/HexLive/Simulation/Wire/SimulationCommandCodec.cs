@@ -42,7 +42,8 @@ public static class SimulationCommandCodec
     // 12: §176 manual placement of one carried furniture item (57).
     // 13: §54.14 craft at a selected station, with legacy opcode 10 unchanged.
     // 15: §120.13 r2 construction hold until «Готово» (64).
-    public const int WireVersion = 15;
+    // 16: §121.13 drag-to-reorder of the player's action queue (65).
+    public const int WireVersion = 16;
 
     // Защита от мусора в потоке: злонамеренный клиент не должен уметь
     // заказать аллокацию на гигабайт одним ushort'ом.
@@ -114,6 +115,7 @@ public static class SimulationCommandCodec
         QueuePlayerOrder = 62, // §121.13
         CancelPlayerOrder = 63,
         SetConstructionHold = 64, // §120.13 r2 (#721) append-only
+        MovePlayerOrder = 65, // §121.13 append-only
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -130,6 +132,12 @@ public static class SimulationCommandCodec
                 w.Write((ushort)CommandType.CancelPlayerOrder);
                 WriteEntity(w, cancelled.Npc);
                 w.Write(cancelled.OrderId);
+                break;
+            case MovePlayerOrderCommand moved:
+                w.Write((ushort)CommandType.MovePlayerOrder);
+                WriteEntity(w, moved.Npc);
+                w.Write(moved.OrderId);
+                w.Write(moved.BeforeOrderId);
                 break;
             case BeginGiftSessionCommand c:
                 w.Write((ushort)CommandType.BeginGiftSession); WriteEntity(w, c.Npc); WriteEntity(w, c.Recipient);
@@ -507,6 +515,8 @@ public static class SimulationCommandCodec
             }
             case CommandType.CancelPlayerOrder:
                 return new CancelPlayerOrderCommand(ReadEntity(r), r.ReadInt32());
+            case CommandType.MovePlayerOrder:
+                return new MovePlayerOrderCommand(ReadEntity(r), r.ReadInt32(), r.ReadInt32());
             case CommandType.RecordAgentSocial:
                 return new RecordAgentSocialCommand(
                     ReadEntity(r), r.ReadString(), (Agents.CompanionReaction)r.ReadByte());

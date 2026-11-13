@@ -9,38 +9,51 @@ namespace HexLive.Simulation.Runtime
 
 public readonly struct PlayerOrderView
 {
-    public PlayerOrderView(int id, string action, string detail, bool active)
+    public PlayerOrderView(int id, string action, string detail, bool active,
+        int? targetNpcId = null, int? targetObjectId = null)
     {
         Id = id;
         Action = action;
         Detail = detail;
         Active = active;
+        TargetNpcId = targetNpcId;
+        TargetObjectId = targetObjectId;
     }
 
     public int Id { get; }
     public string Action { get; }
     public string Detail { get; }
     public bool Active { get; }
+    // §121.13: who or what the order is about, for the hover caption («Обнять: Марта»).
+    public int? TargetNpcId { get; }
+    public int? TargetObjectId { get; }
 }
 
 // Orders belong to the current player control session, like a build or gather session.
+// §121.13: this queue is the single source of truth for the player's action list —
+// the UI only mirrors it from the snapshot and edits it through commands.
 internal sealed class PlayerOrderQueue
 {
     public const int Capacity = 16;
     internal sealed class Entry
     {
-        public Entry(int id, ISimulationCommand command, string action, string detail)
+        public Entry(int id, ISimulationCommand command, string action, string detail,
+            int? targetNpcId = null, int? targetObjectId = null)
         {
             Id = id;
             Command = command;
             Action = action;
             Detail = detail;
+            TargetNpcId = targetNpcId;
+            TargetObjectId = targetObjectId;
         }
 
         public int Id { get; }
         public ISimulationCommand Command { get; }
         public string Action { get; }
         public string Detail { get; }
+        public int? TargetNpcId { get; }
+        public int? TargetObjectId { get; }
     }
 
     public readonly List<Entry> Pending = new();
@@ -56,9 +69,41 @@ internal sealed class PlayerOrderQueue
     public void CopyTo(List<PlayerOrderView> items)
     {
         if (Active is { } active)
-            items.Add(new PlayerOrderView(active.Id, active.Action, active.Detail, true));
+            items.Add(View(active, true));
         foreach (var entry in Pending)
-            items.Add(new PlayerOrderView(entry.Id, entry.Action, entry.Detail, false));
+            items.Add(View(entry, false));
+    }
+
+    private static PlayerOrderView View(Entry entry, bool active) => new(
+        entry.Id, entry.Action, entry.Detail, active, entry.TargetNpcId, entry.TargetObjectId);
+
+    /// <summary>
+    /// §121.13: moves one WAITING order so that it stands right before
+    /// <paramref name="beforeOrderId"/> (0 = to the end of the waiting tail).
+    /// Both are named by their stable queue id, never by a list position, so a
+    /// drag made against an older snapshot cannot move a different order. The
+    /// running order is not part of the tail: it can be neither moved nor used
+    /// as an anchor. Returns the refusal reason, or an empty string.
+    /// </summary>
+    public string TryMove(int orderId, int beforeOrderId)
+    {
+        if (Active != null && (Active.Id == orderId || Active.Id == beforeOrderId))
+            return "OrderRunning";
+        var from = Pending.FindIndex(entry => entry.Id == orderId);
+        if (from < 0)
+            return "QueueChanged";
+        if (beforeOrderId == orderId)
+            return string.Empty;
+        if (beforeOrderId != 0 && Pending.FindIndex(entry => entry.Id == beforeOrderId) < 0)
+            return "QueueChanged";
+
+        var moved = Pending[from];
+        Pending.RemoveAt(from);
+        var to = beforeOrderId == 0
+            ? Pending.Count
+            : Pending.FindIndex(entry => entry.Id == beforeOrderId);
+        Pending.Insert(to, moved);
+        return string.Empty;
     }
 }
 
@@ -107,12 +152,67 @@ internal static partial class ManualCommandExecutor
             CraftByOutputCommand craft => craft.OutputDefinitionId.Length <= 128
                 ? craft.OutputDefinitionId : string.Empty,
             ManageInventoryCommand inventory => inventory.Action.ToString(),
+            // §121.13: the kind of a social order picks its own icon (hug ≠ kiss ≠ talk).
+            TalkToCommand talk => talk.RequestedTopic?.ToString() ?? string.Empty,
+            AidPersonCommand aid => aid.Kind.ToString(),
+            RequestItemCommand request => request.DefinitionId.Length <= 128
+                ? request.DefinitionId : string.Empty,
+            GatherAllOnHexCommand gather => gather.Interaction.ToString(),
             _ => string.Empty
         };
-        queue.Pending.Add(new PlayerOrderQueue.Entry(++queue.NextId, command.Order, OrderName(command.Order), detail));
+        var (targetNpc, targetObject) = OrderTargets(command.Order);
+        queue.Pending.Add(new PlayerOrderQueue.Entry(++queue.NextId, command.Order, OrderName(command.Order), detail,
+            targetNpc, targetObject));
 
         if (!npc.Mind.ManualControl)
             ApplySetManual(world, new SetManualControlCommand(actor, true), admission);
+        ManualControlMath.RenewInactivityLease(world, npc);
+    }
+
+    // §121.13: the person or object an order is about, as the queue shows it.
+    private static (int? Npc, int? Object) OrderTargets(ISimulationCommand order) => order switch
+    {
+        InteractCommand c => (null, c.Target.Value),
+        GatherAllOnHexCommand c => (null, c.Target.Value),
+        PutPersonInBedCommand c => (null, c.Bed.Value),
+        KnockDoorCommand c => (null, c.Door.Value),
+        BreakDoorCommand c => (null, c.Door.Value),
+        CraftItemCommand { Station: { } station } => (null, station.Value),
+        AttackNpcCommand c => (c.Target.Value, null),
+        CarryPersonCommand c => (c.Target.Value, null),
+        TalkToCommand c => (c.Target.Value, null),
+        RequestItemCommand c => (c.Target.Value, null),
+        RomancePersonCommand c => (c.Target.Value, null),
+        AidPersonCommand c => (c.Target.Value, null),
+        TreatLimbsCommand c => (c.Target.Value, null),
+        MedicalAidCommand c => (c.Target.Value, null),
+        PreyPersonCommand c => (c.Target.Value, null),
+        ButcherPersonCommand c => (c.Target.Value, null),
+        AbusePersonCommand c => (c.Target.Value, null),
+        _ => (null, null)
+    };
+
+    // §121.13: drag-to-reorder in the action list. Same gate as cancelling:
+    // an assigned, owned, manually controlled character. Only the waiting
+    // tail moves; the running order keeps running.
+    private static void ApplyMovePlayerOrder(
+        WorldState world, MovePlayerOrderCommand command, AdmissionTracker admission)
+    {
+        if (admission.AssignedNpcIds is { } assignments && !assignments.Contains(command.Npc.Value))
+        {
+            Reject(world, command.Npc, "MoveOrder", "NotAssigned", admission);
+            return;
+        }
+        if (!TryTakeOrder(world, command.Npc, "MoveOrder", requireManual: true, admission, out var npc))
+            return;
+
+        var refusal = npc.Mind.PlayerOrders.TryMove(command.OrderId, command.BeforeOrderId);
+        if (refusal.Length > 0)
+        {
+            Reject(world, command.Npc, "MoveOrder", refusal, admission);
+            return;
+        }
+
         ManualControlMath.RenewInactivityLease(world, npc);
     }
 

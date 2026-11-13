@@ -169,6 +169,28 @@ public sealed class CancelPlayerOrderCommand : ISimulationCommand
     public EntityId? TargetEntity => Npc;
 }
 
+/// <summary>
+/// §121.13: drag-to-reorder in the player's action list. Moves the waiting
+/// order <see cref="OrderId"/> so it stands right before the waiting order
+/// <see cref="BeforeOrderId"/>; 0 means «to the end». Both are stable queue
+/// ids from the snapshot, so a stale drag is refused instead of moving
+/// something else. The running order cannot be moved or used as an anchor.
+/// </summary>
+public sealed class MovePlayerOrderCommand : ISimulationCommand
+{
+    public MovePlayerOrderCommand(EntityId npc, int orderId, int beforeOrderId)
+    {
+        Npc = npc;
+        OrderId = orderId;
+        BeforeOrderId = beforeOrderId;
+    }
+
+    public EntityId Npc { get; }
+    public int OrderId { get; }
+    public int BeforeOrderId { get; }
+    public EntityId? TargetEntity => Npc;
+}
+
 public interface IGroupSimulationCommand : ISimulationCommand
 {
     IReadOnlyList<EntityId> Actors { get; }

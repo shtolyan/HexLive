@@ -4297,7 +4297,7 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     public void SetInteraction(string interaction, string heldItemId, bool aidTargetLying = false,
         float interactionSeconds = 0f, int lyingStationSlot = -1, bool standingCraft = false,
-        bool seatedMeal = false)
+        bool seatedMeal = false, bool kneelingSaw = false)
     {
         if (!_hasUsableHand)
         {
@@ -4363,7 +4363,7 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         // Which procedural/clip action this verb wants (before touching the
         // animator, so the axe-chop clip-state can pre-empt the crouch Working pose).
-        var actionKind = (gathering || drinking || kneelingCraft || praying || treating || _wantsTalk)
+        var actionKind = (gathering || drinking || kneelingCraft || kneelingSaw || praying || treating || _wantsTalk)
             ? ActionKind.None
             : ActionFromInteraction(interaction, heldItemId);
         // §axe: chopping/mining with an axe or pickaxe now plays the looping Chop
@@ -7540,6 +7540,7 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
         otherEffector.positionWeight = 0f;
         otherEffector.rotationWeight = 0f;
 
+        if (TryDriveLogSawIK(solver, hand, effector, otherEffector)) return;
         if (TryDriveStumpServingIK(solver, hand, effector, otherEffector)) return;
         if (TryDriveMealContactIK(solver, hand, effector, otherEffector)) return;
 
@@ -7735,14 +7736,14 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // В отличие от первых двух он держится и НА ХОДУ: копьё несут двумя
         // руками и в шаге, и в беге.
         var wants = !_socialContactVisual && !_romanceVisual &&
-            (HurtReachActive || _actionTargetActive || _servingAtStump || _feedingRecipient != null ||
+            (HurtReachActive || _actionTargetActive || _servingAtStump || _sawLogTop.HasValue || _feedingRecipient != null ||
              _requestedEverydayClip != null && (_action == ActionKind.RaiseToMouth || _everydayDrinking) ||
              (_offHandGripIk && TwoHandCarryActive));
         // The humanoid graph writes the complete action pose. Final IK's
         // pre-animation reset otherwise restores the rig's bind pose on
         // frames where the manual graph and the controller share an Animator.
         _fullBodyIK.fixTransforms = _authoredFullBodyFixTransforms &&
-            _requestedEverydayClip == null && !_everydayServing && !_socialContactVisual;
+            _requestedEverydayClip == null && _kneelingWorkClips == null && !_socialContactVisual;
         if (_fullBodyIK.enabled != wants)
         {
             _fullBodyIK.enabled = wants;
@@ -7785,6 +7786,45 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
         solver.IKPositionWeight = 1f;
     }
 
+    private bool TryDriveLogSawIK(IKSolverFullBodyBiped solver, Transform hand,
+        IKEffector sawHand, IKEffector supportHand)
+    {
+        if (_sawLogTop is not { } logTop || _sawContact <= .001f || hand == null || !_hasUsableHand ||
+            _laying || _swimming || _ragdollActive) return false;
+
+        var toward = logTop - transform.position;
+        toward.y = 0f;
+        var distance = toward.magnitude;
+        if (distance < .12f || distance > 1.1f) return false;
+        toward /= distance;
+        var across = Vector3.Cross(Vector3.up, toward) * (_leftHanded ? -1f : 1f);
+        var stroke = Mathf.Sin(_kneelingWorkSeconds * (2f * Mathf.PI * 1.30f));
+        // Move the saw from the palm along the cut, with the other hand set
+        // back from the blade. The prop stays attached to the rotating wrist.
+        sawHand.target = null;
+        var contact = logTop + across * .105f + Vector3.up * .07f + toward * (.09f * stroke - .15f);
+        sawHand.position = contact;
+        sawHand.positionWeight = _sawContact;
+        sawHand.rotationWeight = 0f;
+        if (HandPropVisual.TryGetSawFrame(_handProp, _currentPropId, out var grip, out var blade, out var teeth))
+        {
+            var sawFrame = Quaternion.LookRotation(blade, -teeth);
+            var strokeFrame = Quaternion.LookRotation(toward + Vector3.down * .12f, Vector3.up);
+            var rotation = strokeFrame * Quaternion.Inverse(sawFrame);
+            sawHand.position = contact - Quaternion.Slerp(Quaternion.identity, rotation, _sawContact) *
+                (grip - hand.position);
+            sawHand.rotation = rotation * hand.rotation;
+            sawHand.rotationWeight = _sawContact;
+            CloseSawGrip(grip);
+        }
+        supportHand.target = null;
+        supportHand.position = logTop - across * .18f + Vector3.up * .015f - toward * .045f;
+        supportHand.positionWeight = _hasTwoUsableHands ? _sawContact * .85f : 0f;
+        solver.pullBodyHorizontal = 0f;
+        solver.IKPositionWeight = 1f;
+        return true;
+    }
+
     private bool TryDriveStumpServingIK(IKSolverFullBodyBiped solver, Transform hand,
         IKEffector knifeHand, IKEffector supportHand)
     {
@@ -7804,8 +7844,8 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         // Follow the physical cut beat even when a better knife shortens the
         // work window. The blade keeps the authored hand attachment.
-        var stroke = _everydayServing
-            ? Mathf.Sin(_servingCutSeconds * Mathf.PI * 2f * 2.28f)
+        var stroke = _kneelingWorkClips != null
+            ? Mathf.Sin(_kneelingWorkSeconds * Mathf.PI * 2f * 2.28f)
             : Mathf.Sin(_servingProgress * Mathf.PI * 9f);
         var work = _servingSurface - toward * .065f;
         var cut = work + across * (.035f + .025f * stroke) +

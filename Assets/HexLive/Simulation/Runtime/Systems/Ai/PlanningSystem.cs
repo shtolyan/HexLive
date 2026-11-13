@@ -1658,6 +1658,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
         WorldState world, JunctionId anchor, InteractionType interaction, string definitionId)
     {
         if (interaction is InteractionType.Sit or InteractionType.Sleep or InteractionType.PickUp or InteractionType.Serve ||
+            (interaction == InteractionType.Process && definitionId == ContentIds.Log) ||
             (interaction is InteractionType.Dress or InteractionType.Hang &&
              world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition) &&
              StowMath.IsClothingStation(definition)))

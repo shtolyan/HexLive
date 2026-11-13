@@ -43,10 +43,13 @@ namespace HexLive.UnityPresentation.Wearing
         private float _everydaySampledAt;
         private float _everydayRate;
         private float _everydayDuration;
-        private float _servingCutSeconds;
+        private float _kneelingWorkSeconds;
+        private float _sawContact;
+        private Vector3? _sawLogTop;
+        private Transform _sawFingerRig;
+        private readonly Transform[,] _sawFingerJoints = new Transform[2, 12];
         private float _everydayWeight;
-        private bool _everydayServing;
-        private EverydayActionClips _servingClips;
+        private EverydayActionClips _kneelingWorkClips;
         private Transform[] _everydayBones;
         private Vector3[] _everydayPositions;
         private Quaternion[] _everydayRotations;
@@ -65,11 +68,46 @@ namespace HexLive.UnityPresentation.Wearing
         private Transform _upperLip;
         private Transform _lowerLip;
 
-        internal void SetEverydayServing(EverydayActionClips clips, float phase, float rate, float duration)
+        internal bool CanKneelWithTool => !_legless && _hasUsableHand && !_laying && !_swimming;
+
+        internal void SetKneelingWork(EverydayActionClips clips, float phase, float rate, float duration,
+            Vector3? sawLogTop = null)
         {
-            _everydayServing = true;
-            _servingClips = clips;
-            SetEverydayClock(phase, rate, duration, 1f);
+            SetEverydayAction(null, phase, rate, duration);
+            _kneelingWorkClips = clips;
+            _sawLogTop = sawLogTop;
+        }
+
+        private void CloseSawGrip(Vector3 handle)
+        {
+            if (_animator == null || !_animator.isHuman) return;
+            if (_sawFingerRig != _animator.transform)
+            {
+                _sawFingerRig = _animator.transform;
+                // The four fingers are consecutive groups of three in the
+                // humanoid map. Leave the thumb to the authored kneeling pose.
+                for (var joint = 0; joint < 12; joint++)
+                {
+                    _sawFingerJoints[0, joint] = _animator.GetBoneTransform(HumanBodyBones.RightIndexProximal + joint);
+                    _sawFingerJoints[1, joint] = _animator.GetBoneTransform(HumanBodyBones.LeftIndexProximal + joint);
+                }
+            }
+
+            var row = _leftHanded ? 1 : 0;
+            for (var finger = 0; finger < 12; finger += 3)
+            {
+                var knuckle = _sawFingerJoints[row, finger];
+                var middle = _sawFingerJoints[row, finger + 1];
+                var end = _sawFingerJoints[row, finger + 2];
+                if (knuckle == null || middle == null || end == null) continue;
+                var downFinger = middle.position - knuckle.position;
+                var intoPalm = Vector3.ProjectOnPlane(handle - knuckle.position, downFinger);
+                var bend = Vector3.Cross(downFinger, intoPalm);
+                if (bend.sqrMagnitude <= .00000001f) continue;
+                knuckle.rotation = Quaternion.AngleAxis(36f * _sawContact, bend) * knuckle.rotation;
+                middle.rotation = Quaternion.AngleAxis(43f * _sawContact, bend) * middle.rotation;
+                end.rotation = Quaternion.AngleAxis(25f * _sawContact, bend) * end.rotation;
+            }
         }
 
         private void RefreshBedSleepClip(bool onBed)
@@ -208,7 +246,8 @@ namespace HexLive.UnityPresentation.Wearing
 
         internal void SetEverydayAction(AnimationClip clip, float phase, float rate, float duration, float weight = 1f)
         {
-            _everydayServing = false;
+            _kneelingWorkClips = null;
+            _sawLogTop = null;
             _feedingRecipient = null;
             _everydayDrinking = false;
             _supportDrinker = false;
@@ -442,7 +481,8 @@ namespace HexLive.UnityPresentation.Wearing
         {
             _feedingContact = 0f;
             _eatingContact = 0f;
-            _servingCutSeconds = 0f;
+            _kneelingWorkSeconds = 0f;
+            _sawContact = 0f;
             if (_animator == null || !_animator.isActiveAndEnabled || _dead || _laying || _ragdollActive ||
                 _romanceVisual || _socialContactVisual)
             {
@@ -458,20 +498,26 @@ namespace HexLive.UnityPresentation.Wearing
             if (_seatedEveryday) weight = _everydayWeight;
 
             var sampleTime = elapsed;
-            if (_everydayServing)
+            if (_kneelingWorkClips != null)
             {
-                // Use the authored approach and rise once. Repeat the short
-                // cut while the server's serving window is still running.
-                var kneel = _servingClips.serveKneel;
-                var cut = _servingClips.serveWork;
-                var rise = _servingClips.serveRise;
+                var kneel = _kneelingWorkClips.serveKneel;
+                var work = _kneelingWorkClips.serveWork;
+                var rise = _kneelingWorkClips.serveRise;
                 var riseAt = Mathf.Max(kneel.length, _everydayDuration - rise.length);
                 if (elapsed < kneel.length) BindEverydayClip(kneel);
                 else if (elapsed < riseAt)
                 {
-                    BindEverydayClip(cut);
-                    _servingCutSeconds = elapsed - kneel.length;
-                    sampleTime = Mathf.PingPong(_servingCutSeconds, cut.length);
+                    BindEverydayClip(work);
+                    _kneelingWorkSeconds = elapsed - kneel.length;
+                    if (_sawLogTop.HasValue)
+                    {
+                        // Hold the forward-leaning kneel while the arm solver
+                        // moves the saw. Keep the approach and rise at clip pace.
+                        sampleTime = Mathf.Min(_kneelingWorkSeconds, work.length);
+                        _sawContact = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, .55f, _kneelingWorkSeconds)) *
+                            Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, .42f, riseAt - elapsed));
+                    }
+                    else sampleTime = Mathf.PingPong(_kneelingWorkSeconds, work.length);
                 }
                 else
                 {

@@ -777,6 +777,46 @@ public sealed class ManualControlTests
         });
     }
 
+    [TestCase("saw.log", GearCatalog.Saw, ContentIds.Board, 2)]
+    [TestCase("split.log", GearCatalog.Axe, ContentIds.Stick, 4)]
+    public void ManualLogProcessingStandsBesideTheLogAndUsesTheOrderedTool(
+        string action, string tool, string output, int quantity)
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Items.Add(new ItemInstance(tool));
+        npc.Needs.Hunger = 0f;
+        npc.Needs.Thirst = 0f;
+
+        var anchor = SpatialQueries.GetPassableNeighbors(world, npc.CurrentJunction!.Value)
+            .First(id => SpatialQueries.IsJunctionFree(world, id));
+        var log = WorldObjectMutations.SpawnObject(world, ContentIds.Log, new FragmentId(1),
+            world.Junctions.Items[anchor].Tiles[0], anchor);
+        var existingOutput = world.Entities.Objects.Values.Where(item => item.DefinitionId == output)
+            .Select(item => item.Id).ToHashSet();
+
+        var result = engine.ApplyManualCommand(new InteractCommand(npc.Id, log.Id, InteractionType.Process, action));
+        Assert.That(result.Accepted, Is.True);
+        for (var i = 0; i < 80 && npc.Execution.CurrentInteraction != InteractionType.Process; i++)
+            engine.Step();
+        Assert.That(npc.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Process));
+        Assert.That(npc.CurrentJunction, Is.Not.EqualTo(anchor));
+        Assert.That(HexSpatialMath.Distance(npc.Position, world.Junctions.Items[anchor].WorldPosition),
+            Is.InRange(.1f, SpatialQueries.StandStepAllowance + .001f));
+        Assert.That(ActionItemResolver.HeldId(world, npc), Is.EqualTo(tool));
+
+        for (var i = 0; i < 180 && world.Entities.Objects.ContainsKey(log.Id); i++)
+            engine.Step();
+        Assert.That(world.Entities.Objects.ContainsKey(log.Id), Is.False);
+        var packed = npc.Inventory.Items.Count(item => item.DefinitionId == output);
+        var scattered = world.Entities.Objects.Values.Count(item =>
+            item.DefinitionId == output && !existingOutput.Contains(item.Id) && item.IsHarvestScatter);
+        Assert.That(packed + scattered, Is.GreaterThanOrEqualTo(quantity));
+    }
+
     [Test]
     public void ManualSleepUsesApproachJunctionAndStaysInBedUntilCancelled()
     {

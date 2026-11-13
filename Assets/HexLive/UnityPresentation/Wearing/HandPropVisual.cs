@@ -8,6 +8,10 @@ internal static class HandPropVisual
     // Center of the orange handle at the recessed grip, in the folding saw's
     // imported mesh coordinates. The prefab origin is near the blade hinge.
     private static readonly Vector3 FoldingSawGripPoint = new(0f, -.002055f, .00018f);
+    // Mesh-space handle centres measured on the two saw FBXs. Both were
+    // exported with their blade on +Z and their cutting edge on -Y.
+    private static readonly Vector3 SawGripPoint = new(0f, .038f, .15f);
+    private static readonly Vector3 CrudeSawGripPoint = new(0f, .00015f, .0011f);
 
     // §59.5 (#759): where the shipped tools' handle axis crosses the closed fist,
     // in right-hand anchor space — the position of their shared GearConfig pose
@@ -150,6 +154,22 @@ internal static class HandPropVisual
             return prop;
         }
 
+        if (itemId is Simulation.Content.ContentIds.CrudeSaw or Simulation.Content.GearCatalog.Saw)
+        {
+            var side = leftHanded ? -1f : 1f;
+            prop.transform.localPosition = Vector3.zero;
+            prop.transform.localRotation = Quaternion.LookRotation(Vector3.right * side, Vector3.up);
+            ApplyObjectFitScale(prop, itemId, prefabLocalScale, Vector3.one);
+            var mesh = prop.GetComponentInChildren<MeshFilter>();
+            if (mesh != null)
+            {
+                var grip = itemId == Simulation.Content.ContentIds.CrudeSaw ? CrudeSawGripPoint : SawGripPoint;
+                var palm = new Vector3(PalmGripPoint.x * side, PalmGripPoint.y, PalmGripPoint.z);
+                prop.transform.localPosition = palm - hand.InverseTransformPoint(mesh.transform.TransformPoint(grip));
+            }
+            return prop;
+        }
+
         // #622 / §54.12: resources use the same physical size as their ground
         // owner. Native FBX scale is not a world size (seeds can be authored
         // metres across). Only native-size ground profiles bypass ObjectFit. One
@@ -201,6 +221,29 @@ internal static class HandPropVisual
         prop.transform.localRotation = Quaternion.identity;
         ApplyObjectFitScale(prop, itemId, prefabLocalScale, Vector3.one);
         return prop;
+    }
+
+    internal static bool TryGetSawFrame(GameObject prop, string itemId, out Vector3 grip,
+        out Vector3 blade, out Vector3 teeth)
+    {
+        grip = default;
+        blade = default;
+        teeth = default;
+        if (prop == null) return false;
+        var mesh = prop.GetComponentInChildren<MeshFilter>();
+        if (mesh == null) return false;
+        if (itemId == Simulation.Content.ContentIds.FoldingSaw)
+        {
+            grip = prop.transform.position;
+            blade = mesh.transform.up;
+            teeth = mesh.transform.forward;
+            return true;
+        }
+        grip = mesh.transform.TransformPoint(
+            itemId == Simulation.Content.ContentIds.CrudeSaw ? CrudeSawGripPoint : SawGripPoint);
+        blade = mesh.transform.forward;
+        teeth = -mesh.transform.up;
+        return true;
     }
 
     /// <summary>#136: one multiply-contract for every fitted actor prop.

@@ -3553,6 +3553,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             HexLive.UnityPresentation.Diagnostics.WebPerf.EndNamed();
         }
         var heldItemId = npc.HeldItemId;
+        var kneelingSaw = !visualShoreClimb && SyncEverydayAction(snapshot, npc, actorView, heldItemId);
         // §77.5: the interaction window goes with the verb — the view fits one
         // playthrough of the work clip into it.
         actorView.SetInteraction(npc.CurrentInteraction, heldItemId,
@@ -3564,8 +3565,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 "Craft" => snapshot.Objects.Exists(item => item.CraftStationObjectId.HasValue &&
                     item.CraftActive && item.CraftCurrentWorkerId == npc.Id.Value),
                 _ => false
-            }, seatedMeal: npc.CurrentInteraction is "Eat" or "Drink" && HasObjectSitTarget(snapshot, npc));
-        if (!visualShoreClimb) SyncEverydayAction(snapshot, npc, actorView, heldItemId);
+            }, seatedMeal: npc.CurrentInteraction is "Eat" or "Drink" && HasObjectSitTarget(snapshot, npc),
+            kneelingSaw: kneelingSaw);
         actorView.SetOffhandItem(npc.OffhandItemId);
         actorView.SyncBottleLiquid(npc.HeldBottleFill, npc.HeldBottleAppearance);
         actorView.SyncHeldLeafDryness(npc.HeldLeafDryness);
@@ -4301,8 +4302,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return false;
     }
 
-    // The bed she is sleeping on: nearest bed object view within ~a tile.
-    private void SyncEverydayAction(WorldSnapshot snapshot, NpcSnapshot npc, NpcActorView actorView,
+    private bool SyncEverydayAction(WorldSnapshot snapshot, NpcSnapshot npc, NpcActorView actorView,
         string heldItemId)
     {
         var active = npc.ExecutionStatus == "InProgress" && npc.InteractionSeconds > 0f &&
@@ -4310,14 +4310,26 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var rate = !active || _runner == null || _runner.IsPaused ? 0f :
             _runner.SpeedMultiplier / npc.InteractionSeconds;
         var progress = npc.ProgressAt(snapshot.Tick);
-        var clips = active && npc.CurrentInteraction is "Eat" or "Drink" or "Serve"
+        var sawing = active && npc.CurrentInteraction == "Process" && actorView.CanKneelWithTool &&
+            GearCatalog.For(heldItemId).Has(GearCapability.Saw) &&
+            TryGetTargetObject(snapshot, npc, out var log) && log.DefinitionId == ContentIds.Log;
+        var clips = active && (npc.CurrentInteraction is "Eat" or "Drink" or "Serve" || sawing)
             ? EverydayActionClips.Load() : null;
+        if (sawing && clips != null && clips.serveKneel != null && clips.serveWork != null &&
+            clips.serveRise != null && npc.InteractionSeconds > clips.serveKneel.length + clips.serveRise.length &&
+            npc.TargetObjectId is { } logId && _objectViewParts.TryGetValue(logId, out var logParts) &&
+            logParts.ObjectView != null && logParts.ObjectView.TryGetWorldBounds(out var bounds))
+        {
+            var logTop = new Vector3(bounds.center.x, bounds.max.y, bounds.center.z);
+            actorView.SetKneelingWork(clips, progress, rate, npc.InteractionSeconds, logTop);
+            return true;
+        }
         if (clips != null && npc.CurrentInteraction == "Serve" &&
             (npc.ServingOnGround || TryGetTargetObject(snapshot, npc, out var surface) &&
                 surface.DefinitionId == ContentIds.PalmStump))
         {
-            actorView.SetEverydayServing(clips, progress, rate, npc.InteractionSeconds);
-            return;
+            actorView.SetKneelingWork(clips, progress, rate, npc.InteractionSeconds);
+            return false;
         }
         var seated = HasObjectSitTarget(snapshot, npc);
         var clip = npc.CurrentInteraction switch
@@ -4330,6 +4342,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         if (npc.CurrentInteraction == "Drink") actorView.SetEverydayDrinking(clip, progress, rate, npc.InteractionSeconds);
         else actorView.SetEverydayAction(clip, progress, rate, npc.InteractionSeconds);
         actorView.SetEverydaySeat(seated);
+        return false;
     }
 
     private void SyncEverydayPairs(WorldSnapshot snapshot)

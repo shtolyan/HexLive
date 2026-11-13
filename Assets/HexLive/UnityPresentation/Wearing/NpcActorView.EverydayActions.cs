@@ -25,6 +25,7 @@ namespace HexLive.UnityPresentation.Wearing
         };
         private bool _supportDrinker;
         private GameObject _drinkContactProp;
+        private Transform _drinkContactHand;
         private Vector3 _drinkOpeningInHand;
         private Vector3 _drinkAxisInHand;
         private float _aidHeadWeight;
@@ -233,7 +234,10 @@ namespace HexLive.UnityPresentation.Wearing
                     faceUp = target._headBone.TransformDirection(target._faceLocalUp);
                 }
                 var opening = mouth + faceForward * (.014f * scale);
-                var axis = (-faceForward - faceUp * .38f).normalized;
+                // The vessel's body points away from the face while the
+                // mouth meets the lips. Coconut and flask need less tilt.
+                var pitch = _currentPropId == ContentIds.Bottle ? .38f : .22f;
+                var axis = (-faceForward - faceUp * pitch).normalized;
                 var handRotation = Quaternion.FromToRotation(hand.rotation * _drinkAxisInHand, axis) * hand.rotation;
                 effector.rotation = handRotation;
                 effector.rotationWeight = weight;
@@ -247,19 +251,29 @@ namespace HexLive.UnityPresentation.Wearing
 
         private bool TryGetDrinkOpening(Transform hand)
         {
-            if (_handProp == null || _currentPropId != ContentIds.Bottle) return false;
-            if (_drinkContactProp == _handProp) return true;
+            if (_handProp == null ||
+                _currentPropId is not (ContentIds.Bottle or ContentIds.LeatherFlask or ContentIds.CoconutPierced))
+                return false;
+            if (_drinkContactProp == _handProp && _drinkContactHand == hand) return true;
             var mesh = _handProp.GetComponentInChildren<MeshFilter>();
             if (mesh == null || mesh.sharedMesh == null) return false;
-            // Same source coordinates as BottleLiquidVisual. +Z is the neck
-            // before the bottle prefab's wrapper applies its axis correction.
+
+            // These three source meshes put the mouth of the vessel on +Z.
+            // The wrapper and the hand grip may rotate that axis independently.
             var bounds = mesh.sharedMesh.bounds;
+            var localOpening = bounds.center;
+            localOpening.z = _currentPropId switch
+            {
+                ContentIds.Bottle => bounds.center.z + bounds.extents.z * .94f,
+                ContentIds.LeatherFlask => Mathf.Lerp(bounds.min.z, bounds.max.z, .92f),
+                _ => bounds.max.z
+            };
             var axis = mesh.transform.TransformDirection(Vector3.forward);
-            var opening = mesh.transform.TransformPoint(
-                bounds.center + Vector3.forward * (bounds.extents.z * .94f));
+            var opening = mesh.transform.TransformPoint(localOpening);
             _drinkOpeningInHand = Quaternion.Inverse(hand.rotation) * (opening - hand.position);
             _drinkAxisInHand = Quaternion.Inverse(hand.rotation) * axis;
             _drinkContactProp = _handProp;
+            _drinkContactHand = hand;
             return true;
         }
 

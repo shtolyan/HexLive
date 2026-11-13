@@ -965,9 +965,9 @@ namespace HexLive.UnityPresentation.UI
             UpdateStatus(npc, isDead);
             UpdateUv(npc);
 
-            var showBadge = npc.IsStarving || npc.IsFighting;
-            _starvingBadge.style.display = showBadge ? DisplayStyle.Flex : DisplayStyle.None;
-            _starvingBadge.text = npc.IsFighting ? Loc.Get("badge.fighting") : Loc.Get("badge.starving");
+            var badge = isDead ? null : NeedBadge(npc);
+            _starvingBadge.style.display = badge != null ? DisplayStyle.Flex : DisplayStyle.None;
+            _starvingBadge.text = badge == null ? string.Empty : Loc.Get(badge);
 
             UpdateNeeds(npc);
             UpdateSheet(npc);
@@ -1008,9 +1008,30 @@ namespace HexLive.UnityPresentation.UI
         }
 
         /// <summary>§123 shared resolver for the roster and detail card.</summary>
-        private static void ResolveStatus(NpcSnapshot npc, out string key, out Color dot)
+        private static string NeedBadge(NpcSnapshot npc)
         {
-            ResolveStatus(npc, isDead: false, out key, out dot);
+            if (npc.IsFighting) return "badge.fighting";
+            if (npc.IsStarving) return "badge.starving";
+            if (npc.Hunger >= SimBalance.GetFoodHungerThreshold) return "badge.hungry";
+            if (npc.Thirst >= SimBalance.StarvingEnterThreshold) return "badge.dehydrated";
+            if (npc.Thirst >= AiBalance.DrinkThirstThreshold) return "badge.thirsty";
+            if (npc.Stress >= .7f) return "badge.stressed";
+            if (npc.Stamina <= 0f) return "badge.exhausted";
+            if (npc.Energy <= 0f) return "badge.sleepy";
+            if (npc.Blood < SimBalance.BandageBloodThreshold) return "badge.low_blood";
+            return null;
+        }
+
+        private static string StatusWithNeeds(NpcSnapshot npc, bool isDead, out Color dot)
+        {
+            ResolveStatus(npc, isDead, out var status, out dot);
+            if (isDead || npc.IsDying || npc.IsUnconscious || npc.IsFainted || npc.IsPlayingDead)
+                return status;
+
+            var badge = NeedBadge(npc);
+            if (badge == null) return status;
+            dot = badge == "badge.fighting" ? Crit : Warn;
+            return badge;
         }
 
         private static void ResolveStatus(
@@ -6609,7 +6630,7 @@ namespace HexLive.UnityPresentation.UI
             name.style.unityFontStyleAndWeight = FontStyle.Bold;
             name.pickingMode = PickingMode.Ignore;
             text.Add(name);
-            ResolveStatus(npc, out var statusKey, out var statusColor);
+            var statusKey = StatusWithNeeds(npc, isDead: false, out var statusColor);
             var status = new Label(Loc.Get(statusKey));
             status.style.fontSize = 10f;
             status.style.color = TextDim;
@@ -6630,14 +6651,6 @@ namespace HexLive.UnityPresentation.UI
                 card.Add(metrics);
             }
 
-            if (npc.IsFighting)
-            {
-                var fight = new Label(Loc.Get("badge.fighting"));
-                fight.style.fontSize = 9f;
-                fight.style.color = Crit;
-                fight.pickingMode = PickingMode.Ignore;
-                card.Add(fight);
-            }
             var dot = new VisualElement();
             dot.style.width = 10f;
             dot.style.height = 10f;

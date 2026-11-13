@@ -190,7 +190,9 @@ namespace HexLive.UnityPresentation.UI
         private static string StatusTone(string key) => key switch
         {
             "state.dead" or "state.dying" or "state.coma" => "danger",
-            "state.fainted" or "state.playdead" => "warn",
+            "state.fainted" or "state.playdead" or "badge.hungry" or "badge.starving" or
+                "badge.thirsty" or "badge.dehydrated" or "badge.stressed" or "badge.exhausted" or
+                "badge.sleepy" or "badge.low_blood" => "warn",
             "state.resting" => "idle",
             _ => "ok",
         };
@@ -225,7 +227,7 @@ namespace HexLive.UnityPresentation.UI
                 // Same visibility rule as the UI Toolkit roster.
                 if (!owned && (_worldRenderer == null || !_worldRenderer.IsNpcPickable(npc.Id.Value, npc.Tile, false)))
                     continue;
-                ResolveStatus(npc, out var status, out _);
+                var status = StatusWithNeeds(npc, isDead: false, out _);
                 var hp = Mathf.Clamp01(npc.DisplayHealth);
                 var card = new JObject
                 {
@@ -234,7 +236,7 @@ namespace HexLive.UnityPresentation.UI
                     ["face"] = FaceKey(npc.Id.Value),
                     ["health"] = Mathf.Round(hp * 100f) / 100f,
                     ["healthColor"] = Hex(CharacterDollStage.StatusColor(hp, false)),
-                    ["status"] = status.Substring("state.".Length),
+                    ["status"] = status,
                     ["statusTone"] = StatusTone(status),
                     ["fighting"] = npc.IsFighting,
                     ["mine"] = selective && owned,
@@ -378,7 +380,7 @@ namespace HexLive.UnityPresentation.UI
                 ["statusTone"] = StatusTone(status),
                 ["uv"] = uv < 0.02f ? "none" : uv < 0.3f ? "low" : uv < 0.6f ? "mid" : "high",
                 ["shade"] = npc.IsShaded && uv >= 0.02f,
-                ["badge"] = npc.IsFighting ? "fighting" : npc.IsStarving ? "starving" : null,
+                ["badge"] = isDead ? null : NeedBadge(npc)?.Substring("badge.".Length),
                 ["journalUnread"] = _journalUnread,
                 ["goal"] = DisplayedGoal(npc),
                 // §160: an attached agent speaks for her in the 💭 pill (RefreshAgentVoice's _thoughtValue).

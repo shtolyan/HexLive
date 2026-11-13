@@ -3162,6 +3162,62 @@ MonoBehaviour:
       - "\u0414\u0415\u0420\u0401\u0422\u0421\u042F"
       Flags: 0101
       Languages_Touch: []
+    - Term: badge.hungry
+      TermType: 0
+      Description:
+      Languages:
+      - HUNGRY
+      - ГОЛОДЕН
+      Flags: 0101
+      Languages_Touch: []
+    - Term: badge.thirsty
+      TermType: 0
+      Description:
+      Languages:
+      - THIRSTY
+      - ХОЧЕТ ПИТЬ
+      Flags: 0101
+      Languages_Touch: []
+    - Term: badge.dehydrated
+      TermType: 0
+      Description:
+      Languages:
+      - PARCHED
+      - МУЧАЕТ ЖАЖДА
+      Flags: 0101
+      Languages_Touch: []
+    - Term: badge.stressed
+      TermType: 0
+      Description:
+      Languages:
+      - STRESSED
+      - В СТРЕССЕ
+      Flags: 0101
+      Languages_Touch: []
+    - Term: badge.exhausted
+      TermType: 0
+      Description:
+      Languages:
+      - EXHAUSTED
+      - БЕЗ СИЛ
+      Flags: 0101
+      Languages_Touch: []
+    - Term: badge.sleepy
+      TermType: 0
+      Description:
+      Languages:
+      - NEEDS SLEEP
+      - ХОЧЕТ СПАТЬ
+      Flags: 0101
+      Languages_Touch: []
+    - Term: badge.low_blood
+      TermType: 0
+      Description:
+      Languages:
+      - LOW BLOOD
+      - НУЖНА КРОВЬ
+      Flags: 0101
+      Languages_Touch: []
     - Term: goal.None
       TermType: 0
       Description: 

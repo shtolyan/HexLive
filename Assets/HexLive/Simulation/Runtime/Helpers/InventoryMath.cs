@@ -194,7 +194,7 @@ internal static class InventoryMath
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "InventoryMadeRoom",
-                $"Dropped {victim.DefinitionId} for emergency {goal} target {incomingDefinitionId}");
+                $"Dropped {victim.DefinitionId} for {goal} target {incomingDefinitionId}");
         }
 
         return true;
@@ -479,7 +479,7 @@ internal static class InventoryMath
             definition.Interactions.Exists(interaction => interaction.Type == InteractionType.Eat);
         if ((!exactMaterial || !NeedsEmergencyCoconutBlade(world, npc)) && !immediateMeal)
         {
-            return null;
+            return SiteHaulReplacementVictim(world, npc, incomingDefinitionId);
         }
 
         // One exact victim must open a whole cell. Never discard a stack one
@@ -518,6 +518,93 @@ internal static class InventoryMath
         }
 
         return victim;
+    }
+
+    /// <summary>
+    /// §54.23 (баг #766): полный рюкзак не должен запирать стройку. На живом
+    /// сейве у всех восьми колонисток рюкзак был забит до последней ячейки
+    /// (8/8, 11/11, 14/14, 18/18…) — и ни одна не могла поднять даже одну
+    /// палку для факела, хотя три палки лежали в лагере. Обычная переноска
+    /// по-прежнему не меняет полезный инструмент на материал; уступает место
+    /// только ЛИШНИЙ инструмент — тот, чьи умения целиком покрыты остальным
+    /// рюкзаком и который не лучшее её оружие (<see cref="IsRedundantTool"/>).
+    /// Такой предмет никто обратно не подберёт: GatherTools берёт только то,
+    /// что что-то ДОБАВЛЯЕТ. Место освобождается лишь под материал, которого
+    /// ТЕКУЩЕЙ стадии её стройки ещё не хватает, и не больше недостачи.
+    /// </summary>
+    private static ItemInstance SiteHaulReplacementVictim(
+        WorldState world, NPCState npc, string incomingDefinitionId)
+    {
+        if (npc.Inventory.UsedSlots != npc.Inventory.Capacity ||
+            System.Array.IndexOf(BuildSiteMath.AllMaterials, incomingDefinitionId) < 0)
+        {
+            return null;
+        }
+
+        var favoriteWeapon = FavoriteWeaponInstance(npc.Id.Value, npc.Inventory);
+        ItemInstance victim = null;
+        var victimWeaponPriority = int.MaxValue;
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (item.DefinitionId == incomingDefinitionId ||
+                !CanFreePocket(npc, item, favoriteWeapon) ||
+                !OpensCell(npc, item) ||
+                !IsRedundantTool(npc, item))
+            {
+                continue;
+            }
+
+            var weaponPriority = Content.GearCatalog.For(item.DefinitionId).MeleePriority;
+            if (weaponPriority < victimWeaponPriority)
+            {
+                victim = item;
+                victimWeaponPriority = weaponPriority;
+            }
+        }
+
+        // Дорогой вопрос — последним: только у той, кому вообще есть что
+        // оставить.
+        if (victim is null ||
+            DecisionSystem.FindBuildSite(npc, world) is not { } site ||
+            BuildSiteMath.Remaining(site, incomingDefinitionId) <=
+                CountCarried(npc, incomingDefinitionId))
+        {
+            return null;
+        }
+
+        return victim;
+    }
+
+    /// <summary>§54.23: инструмент, без которого её рюкзак ничего не теряет —
+    /// каждое его умение есть у другого предмета, а как оружие он не лучше
+    /// того, что уже при ней. Вода (<c>CarryWater</c>) и перевязка
+    /// (<c>Dressing</c>) — запас, а не умение: вторая бутылка это ещё литр
+    /// воды, поэтому они лишними не считаются никогда. Предмет без умений и
+    /// без оружейного веса (не снаряжение) — тоже не «лишний инструмент».</summary>
+    internal static bool IsRedundantTool(NPCState npc, ItemInstance item)
+    {
+        var stats = Content.GearCatalog.For(item.DefinitionId);
+        if (stats.Id != item.DefinitionId ||
+            (stats.Capabilities & (GearCapability.CarryWater | GearCapability.Dressing)) != 0 ||
+            (stats.Capabilities == GearCapability.None && stats.MeleePriority <= 0))
+        {
+            return false;
+        }
+
+        var rest = new List<ItemInstance>(npc.Inventory.Items);
+        RemoveReference(rest, item);
+        return !Content.GearCatalog.AddsValueOver(rest, item.DefinitionId, npc.Body.WeaponHands);
+    }
+
+    private static int CountCarried(NPCState npc, string definitionId)
+    {
+        var count = 0;
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (item.DefinitionId == definitionId) count++;
+        }
+
+        return count;
     }
 
     private static bool OpensCell(NPCState npc, ItemInstance item)

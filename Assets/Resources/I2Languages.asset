@@ -33432,6 +33432,14 @@ MonoBehaviour:
       - 'Это действие уже началось'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'toast.order_rejected.QueueHasAction'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'There are other actions in the list first. Shift+click adds a waypoint'
+      - 'Сначала действия из списка. Shift+клик добавит точку пути'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

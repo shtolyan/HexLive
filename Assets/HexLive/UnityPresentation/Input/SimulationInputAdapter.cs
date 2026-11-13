@@ -916,8 +916,10 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
     /// <summary>
     /// Левый клик в ручном режиме. Возвращает истину, если клик СЪЕДЕН —
     /// тогда камера не делает свою обычную работу (выбор NPC / гекса).
+    /// <paramref name="append"/> — зажат Shift: точка ДОПИСЫВАЕТСЯ в конец
+    /// очереди действий (§121.13 r2), ничего не заменяя.
     /// </summary>
-    public bool TryHandleManualClick(Vector2 mousePos)
+    public bool TryHandleManualClick(Vector2 mousePos, bool append = false)
     {
         if (_plantingActorId >= 0)
         {
@@ -1010,7 +1012,26 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
             // симуляции, и у каждой выделенной девушки она своя.
             if (OrderNpcId >= 0)
             {
-                EnqueueOrder(OrderNpcId, new MoveToCommand(new EntityId(OrderNpcId), point));
+                // §121.13 r2: Shift+клик — путевая точка в конец очереди.
+                // Обычный клик при одной ходьбе в очереди заменяет её целиком
+                // (Diablo/RTS); при любом другом действии ничего не отменяет и
+                // предлагает «Идти сюда» — дописать ходьбу после него. Решение
+                // читается из той же очереди снапшота, что рисует список, а
+                // симуляция повторяет его сама (QueueHasAction) против гонки.
+                var go = new MoveToCommand(new EntityId(OrderNpcId), point);
+                if (append)
+                {
+                    EnqueueOrder(OrderNpcId, go);
+                }
+                else if (PlayerQueueHoldsAction(clickSnapshot, OrderNpcId))
+                {
+                    OpenGoHereMenu(mousePos, OrderNpcId, point);
+                    return true;
+                }
+                else
+                {
+                    _runner.EnqueueCommand(new ReplaceMovementOrderCommand(go));
+                }
             }
             else
             {
@@ -1163,6 +1184,29 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
         }
 
         _runner.EnqueueCommand(new SetManualControlCommand(new EntityId(actorId), true));
+    }
+
+    /// <summary>§121.13 r2: в очереди действий есть что-то кроме ходьбы.</summary>
+    internal static bool PlayerQueueHoldsAction(WorldSnapshot? snapshot, int npcId)
+    {
+        var npc = snapshot?.Npcs.Find(candidate => candidate.Id.Value == npcId);
+        return npc != null && npc.PlayerOrders.Any(order => order.Action != "MoveTo");
+    }
+
+    /// <summary>
+    /// §121.13 r2: обычный клик по земле, когда в очереди есть не-ходьба:
+    /// меню из одного пункта. Выбор дописывает ходьбу в КОНЕЦ очереди,
+    /// закрытие меню не меняет ничего.
+    /// </summary>
+    private void OpenGoHereMenu(Vector2 mousePos, int actorId, Float2 point)
+    {
+        _entries.Clear();
+        _entries.Add(new ContextMenuEntry(Loc.Get("menu.walk_here"), () =>
+        {
+            EnqueueOrder(actorId, new MoveToCommand(new EntityId(actorId), point));
+            DestinationMarker.Show(SimulationUnityMapper.ToUnityPosition(point, GroundMarkerY(point)));
+        }));
+        ContextMenuPanel.Open(mousePos, NpcTitle(actorId), _entries);
     }
 
     private void EnqueueOrder(int actorId, ISimulationCommand command)

@@ -956,7 +956,8 @@ namespace HexLive.UnityPresentation.Input
                 _manualInput = GetComponent<SimulationInputAdapter>();
             }
 
-            if (_manualInput != null && _manualInput.TryHandleManualClick(mousePosition))
+            // §121.13 r2: Shift на земле — дописать точку в очередь, не заменяя.
+            if (_manualInput != null && _manualInput.TryHandleManualClick(mousePosition, append: shift))
             {
                 return;
             }

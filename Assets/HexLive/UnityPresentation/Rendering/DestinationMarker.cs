@@ -12,8 +12,10 @@ namespace HexLive.UnityPresentation.Rendering
 /// читается как непринятый. Это единственная задача метки, поэтому она и
 /// живёт ровно столько, сколько нужно глазу.
 ///
-/// Проекторов и декалей в проекте нет, поэтому это просто квад с прозрачным
-/// материалом, лежащий чуть выше земли.
+/// Проекторов и декалей в проекте нет, поэтому это плоский меш с прозрачным
+/// материалом, лежащий чуть выше земли. §121.13 r2: форма — шестиугольное
+/// кольцо, повёрнутое как гексы мира (вершины на ±Z, как в
+/// <c>PointInsideHex</c>), а не квадрат: метка говорит на языке карты.
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class DestinationMarker : MonoBehaviour
@@ -21,6 +23,9 @@ public sealed class DestinationMarker : MonoBehaviour
     private const float LifetimeSeconds = 0.55f;
     private const float StartScale = 1.1f;
     private const float EndScale = 0.45f;
+    // Радиусы кольца в долях единичной метки: внешний — до вершины.
+    internal const float HexOuterRadius = 0.55f;
+    internal const float HexInnerRadius = 0.36f;
 
     private static DestinationMarker? _instance;
 
@@ -45,22 +50,48 @@ public sealed class DestinationMarker : MonoBehaviour
         marker._renderer.enabled = true;
     }
 
-    private static DestinationMarker? Create()
+    /// <summary>
+    /// Шестиугольное кольцо в плоскости XZ, нормаль вверх. Вершина k — под
+    /// углом 90° + 60°·k от оси X, то есть «острым верхом» по Z, как тайлы
+    /// (<c>HexSpatialMath</c>: |dz| ≤ R и √3·|dx| + |dz| ≤ √3·R).
+    /// </summary>
+    internal static Mesh BuildHexRingMesh(float outer, float inner)
     {
-        var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
-        quad.name = "HexLive/DestinationMarker";
-        // Примитив приезжает с коллайдером, а физического пикинга в проекте
-        // нет — коллайдер здесь только мешал бы будущим лучам.
-        var collider = quad.GetComponent<Collider>();
-        if (collider != null)
+        var vertices = new Vector3[12];
+        for (var k = 0; k < 6; k++)
         {
-            Object.Destroy(collider);
+            var angle = Mathf.Deg2Rad * (90f + 60f * k);
+            var direction = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+            vertices[k] = direction * outer;
+            vertices[k + 6] = direction * inner;
         }
 
-        quad.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+        var triangles = new int[36];
+        for (var k = 0; k < 6; k++)
+        {
+            var next = (k + 1) % 6;
+            var t = k * 6;
+            // По часовой стрелке при взгляде сверху — лицевая сторона к камере.
+            triangles[t] = k; triangles[t + 1] = k + 6; triangles[t + 2] = next;
+            triangles[t + 3] = next; triangles[t + 4] = k + 6; triangles[t + 5] = next + 6;
+        }
 
-        var marker = quad.AddComponent<DestinationMarker>();
-        marker._renderer = quad.GetComponent<MeshRenderer>();
+        var normals = new Vector3[12];
+        for (var i = 0; i < normals.Length; i++) normals[i] = Vector3.up;
+        var mesh = new Mesh { name = "DestinationMarkerHex", vertices = vertices, triangles = triangles, normals = normals };
+        mesh.RecalculateBounds();
+        return mesh;
+    }
+
+    private static DestinationMarker? Create()
+    {
+        var go = new GameObject("HexLive/DestinationMarker");
+        // Ни коллайдера, ни физического пикинга: метка не должна ловить лучи.
+        go.AddComponent<MeshFilter>().sharedMesh = BuildHexRingMesh(HexOuterRadius, HexInnerRadius);
+        go.AddComponent<MeshRenderer>();
+
+        var marker = go.AddComponent<DestinationMarker>();
+        marker._renderer = go.GetComponent<MeshRenderer>();
         marker._renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         marker._renderer.receiveShadows = false;
         marker._renderer.enabled = false;
@@ -71,6 +102,7 @@ public sealed class DestinationMarker : MonoBehaviour
         {
             var material = new Material(shader) { name = "DestinationMarker" };
             material.SetFloat("_Surface", 1f); // прозрачный
+            material.SetFloat("_Cull", 0f); // кольцо видно с любой стороны
             material.renderQueue = 3000;
             marker._renderer.sharedMaterial = material;
         }
@@ -95,7 +127,7 @@ public sealed class DestinationMarker : MonoBehaviour
         }
 
         var scale = Mathf.Lerp(StartScale, EndScale, age);
-        transform.localScale = new Vector3(scale, scale, 1f);
+        transform.localScale = new Vector3(scale, 1f, scale);
 
         _renderer.GetPropertyBlock(_block);
         _block.SetColor("_BaseColor", new Color(_color.r, _color.g, _color.b, 1f - age));

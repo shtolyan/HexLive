@@ -1,0 +1,2 @@
+# §121.13 r2: a plain ground click never wipes a non-movement action.
+toast.order_rejected.QueueHasAction	There are other actions in the list first. Shift+click adds a waypoint	Сначала действия из списка. Shift+клик добавит точку пути

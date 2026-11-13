@@ -115,6 +115,7 @@ public sealed class SocialContactPairView : MonoBehaviour
             {
                 TalkTopic.GreetAccepted => .64f,
                 TalkTopic.DanceAccepted => .54f,
+                TalkTopic.ApologyAccepted => 1.10f,
                 _ => SocialContact.IsKiss(result) ? .70f : .76f
             }) *
             Mathf.Abs(first.BodyAnimator.transform.lossyScale.y);

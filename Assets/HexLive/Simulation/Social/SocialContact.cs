@@ -34,6 +34,7 @@ public static class SocialContact
         TalkTopic.PassionateKissAccepted => 5f,
         TalkTopic.PassionateKissDeclined => 2.833f,
         TalkTopic.FlirtAccepted => 4.033333f,
+        TalkTopic.ApologyAccepted => 119f / 30f,
         TalkTopic.FlirtDeclined or TalkTopic.DanceDeclined => 3.466667f,
         _ => 4f
     };

@@ -3692,6 +3692,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     "HugDeclined" => "social.hug.declined",
                     "KissAccepted" => "social.kiss.accepted",
                     "KissDeclined" => "social.kiss.declined",
+                    "ApologyAccepted" => "social.apology.spoken",
                     "HugUnavailable" or "KissUnavailable" or "ContactUnavailable" => "social.contact.unavailable",
                     "ContactNeedsStanding" => "social.contact.needs_standing",
                     "ContactFighting" => "social.contact.fighting",

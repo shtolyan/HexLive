@@ -32160,6 +32160,14 @@ MonoBehaviour:
       - 'Я не хочу целоваться.'
       Flags: 0101
       Languages_Touch: []
+    - Term: social.apology.spoken
+      TermType: 0
+      Description:
+      Languages:
+      - 'I’m sorry.'
+      - 'Прости меня.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'social.contact.unavailable'
       TermType: 0
       Description:

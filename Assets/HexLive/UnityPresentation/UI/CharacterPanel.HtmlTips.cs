@@ -52,7 +52,8 @@ namespace HexLive.UnityPresentation.UI
                 impacts.Add(new JObject
                 {
                     ["emoji"] = def.Emoji, ["title"] = def.TitleKey,
-                    ["up"] = impact.Direction == EffectImpactDirection.Positive,
+                    ["up"] = (impact.Direction == EffectImpactDirection.Positive) != (need == NeedKind.Stress),
+                    ["positive"] = impact.Direction == EffectImpactDirection.Positive,
                 });
             }
             if (need == NeedKind.Stress)
@@ -61,7 +62,7 @@ namespace HexLive.UnityPresentation.UI
                     impacts.Add(new JObject
                     {
                         ["emoji"] = source.IsMob ? "🐾" : "👤", ["name"] = source.Name,
-                        ["up"] = false, ["sourceId"] = source.Id, ["sourceMob"] = source.IsMob
+                        ["up"] = true, ["positive"] = false, ["sourceId"] = source.Id, ["sourceMob"] = source.IsMob
                     });
             }
             return impacts;

@@ -67,7 +67,7 @@ export function TooltipLayer() {
       <header>${c.icon && html`<span class="hx-tip__icon" aria-hidden="true">${c.icon}</span>`}<b>${c.title}</b></header>
       ${c.desc && html`<p>${c.desc}</p>`}
       ${c.rows?.length > 0 && html`<ul>${c.rows.map((r, i) => html`
-        <li key=${i} data-up=${r.up}><span aria-hidden="true">${r.icon}</span>
+        <li key=${i} data-positive=${r.positive ?? r.up}><span aria-hidden="true">${r.icon}</span>
           ${r.action ? html`<button type="button" onClick=${() => { r.action(); hideTip(); }}>${r.title}</button>`
             : html`<span>${r.title}</span>`}<b>${r.up ? '↑' : '↓'}</b></li>`)}</ul>`}
     </div>`;

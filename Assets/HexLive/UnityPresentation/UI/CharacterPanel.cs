@@ -1685,7 +1685,7 @@ namespace HexLive.UnityPresentation.UI
             _effectTooltip.pickingMode = PickingMode.Ignore;
             foreach (var impact in parsed)
             {
-                _effectTooltipImpacts.Add(BuildNeedImpactRow(impact));
+                _effectTooltipImpacts.Add(BuildNeedImpactRow(impact, need == NeedKind.Stress));
             }
             if (need == NeedKind.Stress && _runner?.CreateSnapshot() is { } snapshot)
             {
@@ -1723,7 +1723,7 @@ namespace HexLive.UnityPresentation.UI
             return false;
         }
 
-        private VisualElement BuildNeedImpactRow(EffectImpactView impact)
+        private VisualElement BuildNeedImpactRow(EffectImpactView impact, bool isPressure)
         {
             var def = EffectCatalog.Get(impact.Kind);
             var positive = impact.Direction == EffectImpactDirection.Positive;
@@ -1755,7 +1755,7 @@ namespace HexLive.UnityPresentation.UI
             title.pickingMode = PickingMode.Ignore;
             row.Add(title);
 
-            var arrow = new Label(positive ? "↑" : "↓");
+            var arrow = new Label(positive != isPressure ? "↑" : "↓");
             arrow.style.color = color;
             arrow.style.fontSize = 18;
             arrow.style.unityFontStyleAndWeight = FontStyle.Bold;

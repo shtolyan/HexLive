@@ -238,7 +238,7 @@ function Needs({ npc, send }) {
               icon: '↕', title: `${t(`need.${n.id}`)} · ${needValue(n)}${n.deficit > 0 ? ` (−${Math.round(n.deficit * 100)}%)` : ''}`,
               desc: t(n.impacts?.length ? 'effect.impacts.current' : 'effect.impacts.none'),
               rows: (n.impacts || []).map((i) => ({
-                icon: i.emoji, title: i.name || t(i.title), up: i.up,
+                icon: i.emoji, title: i.name || t(i.title), up: i.up, positive: i.positive,
                 action: i.sourceId == null ? undefined : () =>
                   send('stressSource', { observerId: npc.id, id: i.sourceId, mob: i.sourceMob }),
               })),

@@ -18,6 +18,10 @@ public sealed class SnapshotMovementPresentationContractTests
             Assert.That(renderer, Does.Contain("SnapshotMovementRoute.Build("));
             Assert.That(renderer, Does.Contain("SnapshotMovementRoute.Evaluate(route, alpha)"));
             Assert.That(renderer, Does.Contain("RouteKind.Disconnected"));
+            // #760: a remote client's wall graph is seed-built and stale for the
+            // portal apartment; one ordinary stride must never be snapped by it.
+            Assert.That(renderer, Does.Contain("!IsOrdinaryStride(oldPose.Position, targetPose.Position)"));
+            Assert.That(renderer, Does.Contain("OrdinaryStrideWorldUnits = 0.9f"));
         });
     }
 

@@ -2573,10 +2573,18 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     else
                     {
                         _npcMovementRoutes.Remove(key);
-                        if (routeKind == SnapshotMovementRoute.RouteKind.Disconnected)
+                        if (routeKind == SnapshotMovementRoute.RouteKind.Disconnected &&
+                            !IsOrdinaryStride(oldPose.Position, targetPose.Position))
                         {
                             // A relocation with no passable graph connection is
                             // never safe to animate as travel through solid art.
+                            // #760: but one tick's stride of a body the simulation
+                            // reports as walking IS travel. A remote client only
+                            // knows the walls of its seed-built world: the portal
+                            // apartment is laid out anew on every visit, so its real
+                            // rooms cross walls that exist only here. Trusting this
+                            // graph over the server snapped 39% of the steps there
+                            // (178 of 461 on a recorded run) — the visible jerking.
                             previousPose = targetPose;
                         }
                     }
@@ -4554,6 +4562,18 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private const float TopUvScale = 0.42f;
     private const float WallUvScaleU = 0.5f;
     private const float WallUvScaleV = 0.45f;
+
+    // #760: the longest distance a walking or running body covers in one
+    // simulation tick is ~0.6 wu; anything up to this is ordinary travel that
+    // the authoritative simulation already validated against the real walls.
+    private const float OrdinaryStrideWorldUnits = 0.9f;
+
+    private static bool IsOrdinaryStride(Vector3 from, Vector3 to)
+    {
+        var dx = to.x - from.x;
+        var dz = to.z - from.z;
+        return dx * dx + dz * dz <= OrdinaryStrideWorldUnits * OrdinaryStrideWorldUnits;
+    }
 
     private float GroundY(TileCoord coord)
     {

@@ -14,6 +14,11 @@ namespace HexLive.UnityPresentation.Wearing
         private AnimationClip _requestedEverydayClip;
         private bool _everydayDrinking;
         private bool _supportDrinker;
+        private GameObject _drinkContactProp;
+        private Vector3 _drinkOpeningInHand;
+        private Vector3 _drinkAxisInHand;
+        private float _aidHeadWeight;
+        private float _aidHeadSampledAt;
         private bool _seatedEveryday;
         private BodyPart? _bandagePart;
         private PlayableGraph _everydayGraph;
@@ -63,6 +68,32 @@ namespace HexLive.UnityPresentation.Wearing
                 OverrideClip(SleepBaseClip, authored);
             SetBedTransition(_bedClips?.bedEnter, "LieDown");
             SetBedTransition(_bedClips?.bedExit, "Situp To Idle");
+        }
+
+        private Pose FitBedSleepRoot(Pose anchor)
+        {
+            if (_bedSleepClip == null || _animator == null) return anchor;
+            var state = _animator.GetCurrentAnimatorStateInfo(0);
+            var blend = state.IsName("Sleep") ? 1f : state.IsName("LieDown")
+                ? Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.09f, .83f, state.normalizedTime))
+                : 0f;
+            // The sleeping-bag take starts with feet on the floor. Its rest
+            // pose was authored around the bag origin, with hips above it and
+            // shifted toward the headboard. Fit that pose to the mattress.
+            var scale = _bodyRoot.lossyScale.y;
+            var mattressRoot = anchor.position + anchor.rotation * new Vector3(0f, -.17f, .22f) * scale;
+            return new Pose(Vector3.Lerp(transform.position, mattressRoot, blend),
+                Quaternion.Slerp(transform.rotation, anchor.rotation, blend));
+        }
+
+        private void FitBedWakeRoot()
+        {
+            if (_bedSleepClip == null || _wakeBlend <= 0f || _animator == null) return;
+            var state = _animator.GetCurrentAnimatorStateInfo(0);
+            if (!state.IsName("GetUp")) return;
+            var progress = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.13f, .92f, state.normalizedTime));
+            _bodyRoot.SetPositionAndRotation(Vector3.Lerp(_wakeFromPos, transform.position, progress),
+                Quaternion.Slerp(_wakeFromRot, transform.rotation, progress));
         }
 
         private void SetBedTransition(AnimationClip clip, string baseName)
@@ -139,6 +170,14 @@ namespace HexLive.UnityPresentation.Wearing
                 if (!target.TryGetBandagePosition(part, out mouth)) return false;
             }
             else if (!target.TryGetMouth(out mouth)) return false;
+            var drinking = _everydayDrinking || _supportDrinker ||
+                !eating && _feedingRecipient != null && _currentPropId is
+                    (ContentIds.Bottle or ContentIds.LeatherFlask or ContentIds.DrinkingGlass or ContentIds.CoconutPierced);
+            if (_supportDrinker && target._laying && target._headBone != null && !target._ragdollActive)
+            {
+                target._aidHeadWeight = weight;
+                target._aidHeadSampledAt = Time.unscaledTime;
+            }
             var offset = hand.position - mouth;
             if (offset.sqrMagnitude > 1.21f) return false;
             if (_bandagePart.HasValue || _supportDrinker)
@@ -157,9 +196,53 @@ namespace HexLive.UnityPresentation.Wearing
             effector.position = contact - (ActionPropContactPoint(contact, hand) - hand.position);
             effector.positionWeight = weight;
             effector.rotationWeight = 0f;
+            if (drinking && TryGetDrinkOpening(hand) &&
+                target.TryGetFace(out _, out var faceForward, out var faceUp, out var scale))
+            {
+                // An upright eye frame uses world up. The head's calibrated
+                // frame follows a sleeper or a person tilting back to swallow.
+                if (target._faceCalibrated && target._headBone != null)
+                {
+                    faceForward = target._headBone.TransformDirection(target._faceLocalForward);
+                    faceUp = target._headBone.TransformDirection(target._faceLocalUp);
+                }
+                var opening = mouth + faceForward * (.014f * scale);
+                var axis = (-faceForward - faceUp * .38f).normalized;
+                var handRotation = Quaternion.FromToRotation(hand.rotation * _drinkAxisInHand, axis) * hand.rotation;
+                effector.rotation = handRotation;
+                effector.rotationWeight = weight;
+                var visibleRotation = Quaternion.Slerp(hand.rotation, handRotation, weight);
+                effector.position = opening - visibleRotation * _drinkOpeningInHand;
+            }
             solver.pullBodyHorizontal = 0f;
             solver.IKPositionWeight = 1f;
             return true;
+        }
+
+        private bool TryGetDrinkOpening(Transform hand)
+        {
+            if (_handProp == null || _currentPropId != ContentIds.Bottle) return false;
+            if (_drinkContactProp == _handProp) return true;
+            var mesh = _handProp.GetComponentInChildren<MeshFilter>();
+            if (mesh == null || mesh.sharedMesh == null) return false;
+            // Same source coordinates as BottleLiquidVisual. +Z is the neck
+            // before the bottle prefab's wrapper applies its axis correction.
+            var bounds = mesh.sharedMesh.bounds;
+            var axis = mesh.transform.TransformDirection(Vector3.forward);
+            var opening = mesh.transform.TransformPoint(
+                bounds.center + Vector3.forward * (bounds.extents.z * .94f));
+            _drinkOpeningInHand = Quaternion.Inverse(hand.rotation) * (opening - hand.position);
+            _drinkAxisInHand = Quaternion.Inverse(hand.rotation) * axis;
+            _drinkContactProp = _handProp;
+            return true;
+        }
+
+        private void ApplySupportedSip()
+        {
+            if (!_laying || _ragdollActive || _headBone == null || !_faceCalibrated ||
+                Time.unscaledTime - _aidHeadSampledAt > .12f || _aidHeadWeight <= 0f) return;
+            var right = Vector3.Cross(_faceLocalUp, _faceLocalForward).normalized;
+            _headBone.localRotation *= Quaternion.AngleAxis(-11f * _aidHeadWeight, right);
         }
 
         private bool TryGetBandagePosition(BodyPart part, out Vector3 position)
@@ -275,7 +358,9 @@ namespace HexLive.UnityPresentation.Wearing
                 var time = phase * _everydayClip.length;
                 _eatingContact = _everydayDrinking
                     ? Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.44f, .77f, time)) *
-                      Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(1.65f, 1.32f, time)) * weight
+                      Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(
+                          _currentPropId == ContentIds.Bottle ? 2.35f : 1.65f,
+                          _currentPropId == ContentIds.Bottle ? 1.91f : 1.32f, time)) * weight
                     : Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.42f, .68f, time)) *
                       Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(1.17f, .86f, time)) * weight;
             }

@@ -2155,6 +2155,7 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // enable it only for the weighted hit window.
         if (_fullBodyIK != null)
         {
+            _authoredFullBodyFixTransforms = _fullBodyIK.fixTransforms;
             _fullBodyIK.enabled = false;
             if (_fullBodyIK.solver != null)
             {
@@ -7710,6 +7711,8 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
     //
     // Выбирает цель тут же: список ран обновляет рендерер, и дёргать его на
     // каждый кадр солвера незачем.
+    private bool _authoredFullBodyFixTransforms;
+
     private void UpdateHurtReach()
     {
         RefreshHurtReachTarget();
@@ -7721,9 +7724,15 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // §142: третий повод разбудить решатель — вторая ладонь на древке.
         // В отличие от первых двух он держится и НА ХОДУ: копьё несут двумя
         // руками и в шаге, и в беге.
-        var wants = HurtReachActive || _actionTargetActive || _servingAtStump || _feedingRecipient != null ||
-                    _requestedEverydayClip != null && (_action == ActionKind.RaiseToMouth || _everydayDrinking) ||
-                    (_offHandGripIk && TwoHandCarryActive);
+        var wants = !_socialContactVisual && !_romanceVisual &&
+            (HurtReachActive || _actionTargetActive || _servingAtStump || _feedingRecipient != null ||
+             _requestedEverydayClip != null && (_action == ActionKind.RaiseToMouth || _everydayDrinking) ||
+             (_offHandGripIk && TwoHandCarryActive));
+        // The humanoid graph writes the complete action pose. Final IK's
+        // pre-animation reset otherwise restores the rig's bind pose on
+        // frames where the manual graph and the controller share an Animator.
+        _fullBodyIK.fixTransforms = _authoredFullBodyFixTransforms &&
+            _requestedEverydayClip == null && !_everydayServing && !_socialContactVisual;
         if (_fullBodyIK.enabled != wants)
         {
             _fullBodyIK.enabled = wants;
@@ -8017,7 +8026,7 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
             {
                 // Bed XZ/yaw + surface Y, otherwise actor ground root. Shared
                 // with the portrait so camera and body cannot disagree.
-                var support = LyingRootPose();
+                var support = FitBedSleepRoot(LyingRootPose());
                 _bodyRoot.SetPositionAndRotation(support.position, support.rotation);
             }
             else
@@ -8082,10 +8091,12 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 // #453: rise on the remembered bed anchor, then ease to the
                 // standing root. Horizontal easing during GetUp was sliding.
                 ApplyWakeEase();
+                FitBedWakeRoot();
             }
         }
 
         var everydayAction = EvaluateEverydayAction();
+        ApplySupportedSip();
         // Spec 40.13: while ragdolled (faint/corpse) the bones belong to
         // physics — no procedural pose layer may write over them.
         if (!_dead && !_ragdollActive && !_romanceVisual && !_socialContactVisual)

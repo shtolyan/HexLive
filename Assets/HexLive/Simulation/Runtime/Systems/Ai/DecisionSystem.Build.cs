@@ -111,6 +111,7 @@ public sealed partial class DecisionSystem
         WorldObjectState houseSite = null;
         WorldObjectState dreamSite = null;
         WorldObjectState collectorSite = null;
+        WorldObjectState playerUtilitySite = null;
         WorldObjectState furnitureSite = null;
         WorldObjectState hearthUpgrade = null;
         // §54.19: стройка, которую нечем закрыть, — последняя в очереди, а не
@@ -228,6 +229,14 @@ public sealed partial class DecisionSystem
                 // water branch never exists at all.
                 collectorSite ??= site;
             }
+            else if (site.DefinitionId == ContentIds.BuildSite && site.OwnerFaction.HasValue &&
+                site.BuildProduct is ContentIds.StorageChest or ContentIds.Torch)
+            {
+                // These explicit orders compete with automatically staked beds
+                // and racks for the same sticks. The player order gets the
+                // next delivery after the colony's shelter and water needs.
+                playerUtilitySite ??= site;
+            }
             else if (site.DefinitionId == ContentIds.BuildSite &&
                 BuildCatalogDefinition.TryGet(site.BuildProduct, out var catalogEntry) &&
                 catalogEntry.Mode == BuildCatalogMode.Furniture)
@@ -254,7 +263,7 @@ public sealed partial class DecisionSystem
         var needsSpitNow = (HumanMeatCatalog.CountRaw(npc) > 0);
         return needsSpitNow && hearthUpgrade != null
             ? hearthUpgrade
-            : demolitionSite ?? collectorSite ?? houseSite ?? dreamSite ?? hearthUpgrade ?? furnitureSite ??
+            : demolitionSite ?? collectorSite ?? houseSite ?? playerUtilitySite ?? dreamSite ?? hearthUpgrade ?? furnitureSite ??
               firstSite ?? starvedSite;
     }
 

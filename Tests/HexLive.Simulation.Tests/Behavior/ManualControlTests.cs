@@ -758,8 +758,6 @@ public sealed class ManualControlTests
         var tile = world.Junctions.Items[neighbor].Tiles[0];
         var herb = WorldObjectMutations.SpawnObject(
             world, "herb.bush", new FragmentId(1), tile, neighbor);
-        var leavesBefore = world.Entities.Objects.Values.Count(o =>
-            o.DefinitionId == ContentIds.HerbLeaf);
 
         engine.Commands.Enqueue(new InteractCommand(
             npc.Id, herb.Id, InteractionType.Harvest));
@@ -774,8 +772,7 @@ public sealed class ManualControlTests
         {
             Assert.That(world.Entities.Objects.ContainsKey(herb.Id), Is.False,
                 "Ручной приказ дошёл до куста, но исполнитель не завершил сбор.");
-            Assert.That(world.Entities.Objects.Values.Count(o =>
-                    o.DefinitionId == ContentIds.HerbLeaf) - leavesBefore,
+            Assert.That(npc.Inventory.Items.Count(item => item.DefinitionId == ContentIds.HerbLeaf),
                 Is.EqualTo(3));
         });
     }

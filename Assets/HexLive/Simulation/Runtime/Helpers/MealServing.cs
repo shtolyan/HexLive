@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.AI;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Spatial;
@@ -12,6 +14,21 @@ namespace HexLive.Simulation.Runtime
 public static class MealServing
 {
     public const string InteractionId = "serve.meal";
+    public const string GroundInteractionId = "serve.ground";
+    public const int ServeDurationTicks = 24;
+
+    /// <summary>§54.14A: how far she looks for a stump/workbench/table or a
+    /// palm to fell before serving on the ground (six hexes ≈ 13.5 wu).</summary>
+    public const int SurfaceSearchTiles = 6;
+
+    /// <summary>§54.14A: serving on the ground — same blade, yield and time as
+    /// on a surface. Deliberately absent from every catalog definition: it is
+    /// an in-place pack action, so no world object advertises it.</summary>
+    internal static readonly InteractionDefinition GroundInteraction = new()
+    {
+        Id = GroundInteractionId, Type = InteractionType.Serve, DurationTicks = ServeDurationTicks,
+        RequiredCapabilities = { GearCapability.Butcher }
+    };
 
     public static bool IsSurface(string id) =>
         id is ContentIds.PalmStump or ContentIds.Workbench or ContentIds.ModernTable;
@@ -55,7 +72,10 @@ public static class MealServing
         // are the old remaining grams and preserve only that share of output.
         if (amount <= 1f) return newGrams;
         var remaining = Math.Clamp(amount / oldFullGrams, 0f, 1f);
-        return (int)(remaining * newGrams / FoodMath.BiteGrams) * FoodMath.BiteGrams;
+        // §54.14A: a nibbled legacy part never serves into nothing — the
+        // smallest non-empty remainder still gives one 100 g bite.
+        return Math.Max(FoodMath.BiteGrams,
+            (int)(remaining * newGrams / FoodMath.BiteGrams) * FoodMath.BiteGrams);
     }
 
     internal static string OutputFor(string id) =>
@@ -67,6 +87,10 @@ public static class MealServing
     internal static ItemInstance? FirstPreparation(NPCState npc) =>
         npc.Inventory.Items.Find(item => IsReadyToServe(item.DefinitionId));
 
+    /// <summary>§54.14A: a blank in the pack plus a Butcher blade is always a
+    /// meal — a surface only changes where it is served, never whether.</summary>
+    internal static bool CanServe(NPCState npc) => HasKnife(npc) && FirstPreparation(npc) != null;
+
     internal static bool IsUsableSurface(WorldState world, NPCState npc, WorldObjectState surface) =>
         IsSurface(surface.DefinitionId) && !surface.IsCraftProject && !BuildSiteMath.IsSite(surface) &&
         surface.Fragment == npc.Fragment && surface.Junctions.Count > 0 &&
@@ -74,24 +98,87 @@ public static class MealServing
         world.Content.ObjectDefinitions.TryGetValue(surface.DefinitionId, out var definition) &&
         definition.Interactions.Exists(action => action.Type == InteractionType.Serve);
 
-    internal static WorldObjectState? FindSurface(WorldState world, NPCState npc, int maxTiles = int.MaxValue)
+    /// <summary>§54.14A: the nearest usable surface within
+    /// <see cref="SurfaceSearchTiles"/> hexes. Rings of tiles through the
+    /// per-tile object index (§158.1) — never a pass over every object.</summary>
+    internal static WorldObjectState? FindSurface(WorldState world, NPCState npc, int maxTiles = SurfaceSearchTiles) =>
+        FindNear(world, npc, maxTiles, candidate => IsUsableSurface(world, npc, candidate));
+
+    /// <summary>§54.14A: a palm she can fell with what she carries — the stump
+    /// it leaves is the surface. Same bounded ring search.</summary>
+    internal static WorldObjectState? FindPalmForStump(WorldState world, NPCState npc, out InteractionDefinition? chop)
+    {
+        chop = null;
+        var palm = FindNear(world, npc, SurfaceSearchTiles, candidate => ChopFor(world, npc, candidate) != null &&
+            candidate.Fragment == npc.Fragment && candidate.Junctions.Count > 0 && !candidate.IsOccupied &&
+            !npc.Memory.IsShunned(candidate.Id, world.Tick) && CampPropertyMath.CanUse(world, npc, candidate));
+        if (palm != null) chop = ChopFor(world, npc, palm);
+        return palm;
+    }
+
+    private static InteractionDefinition? ChopFor(WorldState world, NPCState npc, WorldObjectState candidate)
+    {
+        if (!world.Content.ObjectDefinitions.TryGetValue(candidate.DefinitionId, out var definition) ||
+            !definition.HasTag("Palm")) return null;
+        return definition.Interactions.Find(action => action.Type == InteractionType.Harvest &&
+            action.RequiredCapabilities.Count > 0 && DecisionSystem.HasAnyCapability(npc, action.RequiredCapabilities));
+    }
+
+    private static WorldObjectState? FindNear(WorldState world, NPCState npc, int maxTiles,
+        Func<WorldObjectState, bool> accept)
     {
         WorldObjectState? best = null;
         var nearest = float.PositiveInfinity;
-        foreach (var surface in world.Entities.Objects.Values)
+        var center = npc.Tile;
+        for (var ring = 0; ring <= maxTiles; ring++)
         {
-            if (!IsUsableSurface(world, npc, surface) ||
-                HexSpatialMath.HexDistance(npc.Tile, surface.Tile) > maxTiles) continue;
-            var distance = HexSpatialMath.Distance(npc.Position, HexSpatialMath.TileToWorld(surface.Tile));
-            if (distance > nearest || distance == nearest && best != null && surface.Id.Value >= best.Id.Value)
-                continue;
-            var definition = world.Content.ObjectDefinitions[surface.DefinitionId];
-            if (!PlanningSystem.HasUsableBesideJunction(world, npc, surface.Junctions[0],
-                    SpatialQueries.BesideReach(definition.ObstacleRadius), surface)) continue;
-            nearest = distance;
-            best = surface;
+            if (best != null && LocalSearch.RingLowerBound(ring) > nearest) break;
+            for (var dq = -ring; dq <= ring; dq++)
+            for (var dr = Math.Max(-ring, -dq - ring); dr <= Math.Min(ring, -dq + ring); dr++)
+            {
+                if (Math.Max(Math.Abs(dq), Math.Max(Math.Abs(dr), Math.Abs(dq + dr))) != ring ||
+                    !world.Caches.ObjectsByTile.TryGetValue(new TileCoord(center.Q + dq, center.R + dr), out var ids))
+                    continue;
+                foreach (var id in ids)
+                {
+                    if (!world.Entities.Objects.TryGetValue(id, out var candidate)) continue;
+                    var distance = HexSpatialMath.Distance(npc.Position, HexSpatialMath.TileToWorld(candidate.Tile));
+                    if (distance > nearest || distance == nearest && best != null && candidate.Id.Value >= best.Id.Value ||
+                        !accept(candidate)) continue;
+                    var definition = world.Content.ObjectDefinitions[candidate.DefinitionId];
+                    if (!PlanningSystem.HasUsableBesideJunction(world, npc, candidate.Junctions[0],
+                            SpatialQueries.BesideReach(definition.ObstacleRadius), candidate)) continue;
+                    nearest = distance;
+                    best = candidate;
+                }
+            }
         }
         return best;
+    }
+
+    /// <summary>§54.14A: work time of one serving — the same authored 24 ticks
+    /// scaled by the blade and her hands, on a surface or on the ground.</summary>
+    internal static int ServeTicks(NPCState npc, GoalType goal)
+    {
+        var tool = GearCatalog.BestToolFor(npc.Inventory.Items, GearCapability.Butcher, npc.Body.IntactHands);
+        var speed = tool is null ? 1f : GearCatalog.For(tool.DefinitionId).HarvestSpeedMult;
+        return AttributeMath.WorkTicks(npc, GearCatalog.ScaleTicks(ServeDurationTicks, speed),
+            InteractionType.Serve, goal);
+    }
+
+    /// <summary>§54.14A: replace the blank by its portions. Nothing is removed
+    /// unless at least one bite comes out, so serving can never destroy food.</summary>
+    internal static bool TryServe(WorldState world, NPCState npc, ItemInstance blank, out int total)
+    {
+        total = 0;
+        if (!IsReadyToServe(blank.DefinitionId) || !HasKnife(npc)) return false;
+        total = PortionGrams(blank);
+        if (total <= 0 || !InventoryMath.RemoveReference(npc.Inventory.Items, blank)) return false;
+        var outputId = OutputFor(blank.DefinitionId);
+        var portionSize = outputId == ContentIds.CrabCooked ? FoodMath.BiteGrams : FoodMath.MeatPortionGrams;
+        for (var left = total; left > 0; left -= portionSize)
+            ExecutionSystem.GiveOrDrop(world, npc, new ItemInstance(outputId) { ResourceAmount = Math.Min(left, portionSize) });
+        return true;
     }
 
     internal static void ApplyActionRules(Dictionary<string, ObjectDefinition> definitions)
@@ -107,7 +194,7 @@ public static class MealServing
                 definition.Interactions.Exists(action => action.Id == InteractionId)) continue;
             definition.Interactions.Add(new InteractionDefinition
             {
-                Id = InteractionId, Type = InteractionType.Serve, DurationTicks = 24,
+                Id = InteractionId, Type = InteractionType.Serve, DurationTicks = ServeDurationTicks,
                 RequiredCapabilities = { GearCapability.Butcher }
             });
         }

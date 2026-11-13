@@ -2720,6 +2720,9 @@ public static class WorldSaveSerializer
         plan.TargetJunctionId = ReadNullableJunction(r);
         plan.TargetTile = r.ReadBoolean() ? ReadTile(r) : null;
         plan.TargetItemDefinitionId = ReadNullableString(r);
+        // §54.14A (v96): a plan aimed at a legacy cooked item now names its blank.
+        if (version < 96 && plan.TargetItemDefinitionId is { } plannedItem)
+            plan.TargetItemDefinitionId = MealServing.MigrateLegacyCookedId(plannedItem);
         plan.TargetAgentId = ReadNullableEntity(r);
         plan.RunRequested = version >= 39 && r.ReadBoolean();
         var stepCount = r.ReadInt32();
@@ -2811,6 +2814,8 @@ public static class WorldSaveSerializer
                 IsOccupied = r.ReadBoolean(),
                 OccupiedBy = ReadNullableEntity(r)
             };
+            // §54.14A (v96): perception and memory name the same migrated object.
+            if (version < 96) perceived.DefinitionId = MealServing.MigrateLegacyCookedId(perceived.DefinitionId);
             var interactionCount = r.ReadInt32();
             for (var j = 0; j < interactionCount; j++)
             {
@@ -2852,6 +2857,7 @@ public static class WorldSaveSerializer
                 IsPermanent = r.ReadBoolean(),
                 LastSeenTick = r.ReadInt32()
             };
+            if (version < 96) memory.DefinitionId = MealServing.MigrateLegacyCookedId(memory.DefinitionId);
             npc.Memory.KnownObjects[memory.Id] = memory;
         }
 

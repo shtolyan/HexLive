@@ -488,7 +488,7 @@ public static class CraftingOptions
             }
             var distance = HexSpatialMath.HexDistance(npc.Tile, station.Tile);
             if (exactStation is null && option.Goal == GoalType.CookMeat &&
-                distance > PlanningSystem.ManualSpitTakeRadiusTiles ||
+                distance > PlanningSystem.ManualCookFireRadiusTiles ||
                 !StationReachable(world, npc, station)) continue;
 
             var ingredients = new List<CraftIngredientOption>();

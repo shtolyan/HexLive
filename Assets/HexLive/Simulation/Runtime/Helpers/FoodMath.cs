@@ -56,6 +56,51 @@ public static class FoodMath
         return (int)System.MathF.Ceiling(EdibleGrams(definitionId, resourceAmount));
     }
 
+    /// <summary>§54.14A: the piece of <paramref name="definitionId"/> the next
+    /// bite comes from — the most-bitten one (fewest grams left), so a stack
+    /// never holds more than one started piece. Ties keep pack order.</summary>
+    internal static ItemInstance? NextBite(NPCState npc, string definitionId)
+    {
+        ItemInstance? best = null;
+        var least = int.MaxValue;
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (item.DefinitionId != definitionId) continue;
+            var grams = GramsRemaining(item.DefinitionId, item.ResourceAmount);
+            if (grams <= 0 || grams >= least) continue;
+            least = grams;
+            best = item;
+        }
+        return best;
+    }
+
+    /// <summary>§54.14A: order for counted transfers, drops and gifts — the
+    /// fullest pieces leave first and a started one last. Stable for equal
+    /// grams, so non-food stacks keep their old order exactly.</summary>
+    /// <summary>§54.14A: total grams of the <paramref name="count"/> pieces of
+    /// one cell, starting at <paramref name="sourceIndex"/> — what the
+    /// inventory cell shows beside the count. Zero for non-food.</summary>
+    public static int CellGrams(System.Collections.Generic.IReadOnlyList<ItemInstance> items, int sourceIndex, int count)
+    {
+        if (sourceIndex < 0 || sourceIndex >= items.Count || count <= 0) return 0;
+        var id = items[sourceIndex].DefinitionId;
+        if (!IsEatenInBites(id) && !MealServing.IsReadyToServe(id)) return 0;
+        var grams = 0;
+        for (var i = sourceIndex; i < items.Count && count > 0; i++)
+        {
+            if (items[i].DefinitionId != id) continue;
+            grams += GramsRemaining(id, items[i].ResourceAmount);
+            count--;
+        }
+        return grams;
+    }
+
+    internal static bool IsEatenInBites(string definitionId) =>
+        definitionId is ContentIds.MeatCooked or ContentIds.CrabCooked or ContentIds.CoconutOpen;
+
+    internal static int FullestFirst(ItemInstance a, ItemInstance b) =>
+        GramsRemaining(b.DefinitionId, b.ResourceAmount).CompareTo(GramsRemaining(a.DefinitionId, a.ResourceAmount));
+
     internal static float SpendInventoryBite(NPCState npc, ItemInstance item)
     {
         var amount = item.ResourceAmount;
@@ -128,7 +173,8 @@ public static class FoodMath
     // A campfire is only a valid GetFood target while cooked meat hangs on
     // its spit (IsValidTargetFor), so it reads as a cooked chunk. Raw meat is
     // worth the future cooked yield when there is a usable fire. Roasted
-    // preparations only pass the planner's filter when a serving surface exists.
+    // preparations only pass the planner's filter when she carries a Butcher
+    // blade; a surface is never required (§54.14A — the ground always serves).
     public static float ProspectiveNutrition(WorldState world, string definitionId, bool fireUsable)
     {
         if (world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition) &&

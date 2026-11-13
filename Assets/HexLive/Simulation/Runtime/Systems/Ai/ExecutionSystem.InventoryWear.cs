@@ -709,7 +709,12 @@ public sealed partial class ExecutionSystem
         var verb = npc.Plan.Steps.Count > 0 && npc.Plan.Steps[0].Interaction.HasValue
             ? npc.Plan.Steps[0].Interaction.Value
             : InteractionType.Eat;
-        var interaction = ResolveInteraction(world, npc, itemDefinition, verb);
+        // §54.14A: serving on the ground is an in-place pack action with its
+        // own fixed definition — the blank itself never advertises it.
+        var serving = verb == InteractionType.Serve;
+        var interaction = serving
+            ? (MealServing.IsReadyToServe(itemId) ? MealServing.GroundInteraction : null)
+            : ResolveInteraction(world, npc, itemDefinition, verb);
         if (interaction is null)
         {
             npc.Plan.Status = PlanStatus.Failed;
@@ -723,11 +728,14 @@ public sealed partial class ExecutionSystem
         }
 
         var starting = npc.Execution.Status == ExecutionStatus.None;
-        var item = starting && npc.Plan.Goal != GoalType.PlayerOrder
+        var preselected = serving && npc.Execution.TargetInventoryItem is { } chosen &&
+            chosen.DefinitionId == itemId && InventoryMath.ContainsReference(npc.Inventory.Items, chosen);
+        var item = starting && npc.Plan.Goal != GoalType.PlayerOrder && !preselected
             ? FindConsumableInventoryItem(npc, itemId, verb, itemDefinition)
             : npc.Execution.TargetInventoryItem;
         if (item is null || item.DefinitionId != itemId ||
             !InventoryMath.ContainsReference(npc.Inventory.Items, item) ||
+            (serving && !MealServing.HasKnife(npc)) ||
             (IsPortableCoconutDrink(itemDefinition, verb) && item.ResourceAmount <= 0f))
         {
             npc.Plan.Status = PlanStatus.Failed;
@@ -753,6 +761,7 @@ public sealed partial class ExecutionSystem
             npc.Execution.StartTick = world.Tick;
             var duration = verb == InteractionType.Eat
                 ? FoodMath.EatTicks(item.DefinitionId, item.ResourceAmount)
+                : serving ? MealServing.ServeTicks(npc, npc.Plan.Goal)
                 : interaction.DurationTicks;
             npc.Execution.EndTick = world.Tick + duration;
 
@@ -830,6 +839,24 @@ public sealed partial class ExecutionSystem
                     return;
                 }
             }
+            else if (serving)
+            {
+                // §54.14A: the blank becomes its portions right here; a blade
+                // or blank lost mid-way fails the plan and leaves everything.
+                if (!MealServing.TryServe(world, npc, item, out var served))
+                {
+                    npc.Plan.Status = PlanStatus.Failed;
+                    npc.Execution.Status = ExecutionStatus.None;
+                    npc.Execution.CurrentInteraction = null;
+                    npc.Execution.TargetInventoryItem = null;
+                    if (SimTrace.Enabled)
+                        Trace.Debug(world, npc.Id, "ExecFailed", $"ConsumeInventoryItem: cannot serve '{itemId}'");
+                    return;
+                }
+                if (SimTrace.Enabled)
+                    Trace.Debug(world, npc.Id, "MealServed",
+                        $"{itemId} -> {served} g of {MealServing.OutputFor(itemId)} on the ground");
+            }
             else
             {
                 if (verb != InteractionType.Eat || item.ResourceAmount == 0f)
@@ -893,6 +920,9 @@ public sealed partial class ExecutionSystem
         InteractionType verb,
         ObjectDefinition definition)
     {
+        // §54.14A: a stack keeps at most one started piece — eating always
+        // continues the most-bitten one.
+        if (verb == InteractionType.Eat) return FoodMath.NextBite(npc, definitionId);
         foreach (var item in npc.Inventory.Items)
         {
             if (item.DefinitionId != definitionId)

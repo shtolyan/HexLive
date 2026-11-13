@@ -44,7 +44,7 @@ internal static class PlayerInventoryTransferMath
             return false;
         }
 
-        for (var i = itemRef.Index; i < sourceItems.Count && items.Count < count; i++)
+        for (var i = itemRef.Index; i < sourceItems.Count; i++)
         {
             if (sourceItems[i].DefinitionId == itemRef.ExpectedDefinitionId)
             {
@@ -52,7 +52,30 @@ internal static class PlayerInventoryTransferMath
             }
         }
 
-        return items.Count == count;
+        if (items.Count < count) return false;
+        if (items.Count > count)
+        {
+            // §54.14A: a counted move takes the fullest pieces and leaves the
+            // started one for last. Stable, so equal pieces (every non-food
+            // stack) keep exactly the old pack order.
+            if (itemRef.Source == InventoryItemSource.Carried && FoodMath.IsEatenInBites(itemRef.ExpectedDefinitionId))
+            {
+                var order = new int[items.Count];
+                for (var i = 0; i < order.Length; i++) order[i] = i;
+                var pieces = items;
+                System.Array.Sort(order, (a, b) =>
+                {
+                    var byGrams = FoodMath.FullestFirst(pieces[a], pieces[b]);
+                    return byGrams != 0 ? byGrams : a.CompareTo(b);
+                });
+                var ordered = new List<ItemInstance>(order.Length);
+                foreach (var index in order) ordered.Add(pieces[index]);
+                items = ordered;
+            }
+            items.RemoveRange(count, items.Count - count);
+        }
+
+        return true;
     }
 
     internal static bool TryResolveTransfer(

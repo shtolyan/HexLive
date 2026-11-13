@@ -98,7 +98,8 @@ public static class WorldSnapshotCodec
     // v43: persistent craft project current/last worker (§119, #422).
     // v44: §54.21 / #429 distinguishes harvest scatter from inventory piles.
     // v49: §121.13 player order queue in NPC mind.
-    public const int WireVersion = 50; // §128.4/#727: per-cell item state (wear, wet, dirt, blood, owner).
+    // v50: §128.4/#727 per-cell item state (wear, wet, dirt, blood, owner).
+    public const int WireVersion = 51; // §54.14A: per-cell food grams and ground serving.
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -1037,6 +1038,7 @@ public static class WorldSnapshotCodec
         w.Write(n.LegsLost); // §50: ноги в ноль — вставать нечем
         w.Write(n.AidTargetLyingDown);
         w.Write(n.LyingStationSlot); // §111.13
+        w.Write(n.ServingOnGround); // §54.14A (v51)
         w.Write(n.IsLedgeSit);
         w.Write(n.LedgeSeatStepsUp);
         w.Write(n.IsWaking);
@@ -1156,6 +1158,7 @@ public static class WorldSnapshotCodec
         w.Write(slot.Dirtiness);
         w.Write(slot.Bloodiness);
         w.Write(slot.OwnerId);
+        w.Write(slot.Grams); // §54.14A (v51)
     }
 
     private static void ReadSlotItemState(BinaryReader r, InventorySlotSnapshot slot)
@@ -1165,6 +1168,7 @@ public static class WorldSnapshotCodec
         slot.Dirtiness = r.ReadSingle();
         slot.Bloodiness = r.ReadSingle();
         slot.OwnerId = r.ReadInt32();
+        slot.Grams = r.ReadInt32(); // §54.14A (v51)
     }
 
     private static void WriteNpcWear(BinaryWriter w, NpcSnapshot n)
@@ -1450,6 +1454,7 @@ public static class WorldSnapshotCodec
         n.LegsLost = r.ReadBoolean(); // §50
         n.AidTargetLyingDown = r.ReadBoolean();
         n.LyingStationSlot = r.ReadInt32(); // §111.13
+        n.ServingOnGround = r.ReadBoolean(); // §54.14A (v51)
         n.IsLedgeSit = r.ReadBoolean();
         n.LedgeSeatStepsUp = r.ReadInt32();
         n.IsWaking = r.ReadBoolean();

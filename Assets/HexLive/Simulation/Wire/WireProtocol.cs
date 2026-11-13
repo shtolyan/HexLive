@@ -177,7 +177,8 @@ public sealed class Handshake
     //     §54.14 — command v13 can name the exact station for cooking.
     // 33: §121.13 — snapshot v49 carries the player order queue.
     // 34: §128.4/#727 — snapshot v50 carries each cell's item state.
-    public const int ProtocolVersion = 34; // matched client/server required
+    // 35: §54.14A — snapshot v51 (cell grams, ground serving), command v16 (Serve).
+    public const int ProtocolVersion = 35; // matched client/server required
 
     public string WorldId { get; set; } = string.Empty;
     public string CreationConfig { get; set; } = string.Empty;

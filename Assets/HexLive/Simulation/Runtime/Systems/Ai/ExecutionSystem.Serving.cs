@@ -29,28 +29,18 @@ public sealed partial class ExecutionSystem
     private static bool CompleteServing(WorldState world, NPCState npc, WorldObjectState surface)
     {
         var selected = npc.Execution.TargetInventoryItem;
-        if (selected == null || !MealServing.IsUsableSurface(world, npc, surface) || !MealServing.HasKnife(npc) ||
-            !MealServing.IsReadyToServe(selected.DefinitionId) ||
-            !InventoryMath.RemoveReference(npc.Inventory.Items, selected))
+        if (selected == null || !MealServing.IsUsableSurface(world, npc, surface) ||
+            !InventoryMath.ContainsReference(npc.Inventory.Items, selected) ||
+            !MealServing.TryServe(world, npc, selected, out var total))
         {
             return FailHearthScene(world, npc, surface, "Serving preparation or knife is no longer available");
-        }
-
-        var outputId = MealServing.OutputFor(selected.DefinitionId);
-        var portionSize = outputId == ContentIds.CrabCooked ? FoodMath.BiteGrams : FoodMath.MeatPortionGrams;
-        var total = MealServing.PortionGrams(selected);
-        for (var left = total; left > 0; left -= portionSize)
-        {
-            GiveOrDrop(world, npc, new ItemInstance(outputId)
-            {
-                ResourceAmount = Math.Min(left, portionSize)
-            });
         }
 
         npc.Execution.TargetInventoryItem = null;
         ReleaseHearthClaim(npc, surface);
         if (SimTrace.Enabled)
-            Trace.Debug(world, npc.Id, "MealServed", $"{selected.DefinitionId} -> {total} g of {outputId}");
+            Trace.Debug(world, npc.Id, "MealServed",
+                $"{selected.DefinitionId} -> {total} g of {MealServing.OutputFor(selected.DefinitionId)} on {surface.DefinitionId}");
         return true;
     }
 }

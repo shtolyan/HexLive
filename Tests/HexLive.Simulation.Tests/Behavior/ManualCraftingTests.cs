@@ -651,7 +651,7 @@ public sealed class ManualCraftingTests
         var approachNode = world.Junctions.Items.Values.First(node =>
             node.Fragment.Equals(npc.Fragment) && !node.Blocked &&
             node.Tiles.Count > 0 && SpatialQueries.IsJunctionFree(world, node.Id) &&
-            HexSpatialMath.HexDistance(fire.Tile, node.Tiles[0]) <= PlanningSystem.ManualSpitTakeRadiusTiles);
+            HexSpatialMath.HexDistance(fire.Tile, node.Tiles[0]) <= PlanningSystem.ManualCookFireRadiusTiles);
         var approach = approachNode.Id;
         var previousTile = npc.Tile;
         npc.Tile = approachNode.Tiles[0];
@@ -702,7 +702,7 @@ public sealed class ManualCraftingTests
         var from = npc.CurrentJunction.Value;
         var farAnchor = world.Junctions.Items.Values.First(node =>
             node.Fragment.Equals(npc.Fragment) && !node.Blocked && node.Tiles.Count > 0 &&
-            HexSpatialMath.HexDistance(npc.Tile, node.Tiles[0]) > PlanningSystem.ManualSpitTakeRadiusTiles);
+            HexSpatialMath.HexDistance(npc.Tile, node.Tiles[0]) > PlanningSystem.ManualCookFireRadiusTiles);
         var far = WorldObjectMutations.SpawnObject(world, ContentIds.Campfire,
             npc.Fragment, farAnchor.Tiles[0], farAnchor.Id);
         StockFire(far);
@@ -775,7 +775,7 @@ public sealed class ManualCraftingTests
         var approach = world.Junctions.Items.Values.First(node =>
             node.Fragment.Equals(npc.Fragment) && !node.Blocked && node.Tiles.Count > 0 &&
             SpatialQueries.IsJunctionFree(world, node.Id) &&
-            HexSpatialMath.HexDistance(fire.Tile, node.Tiles[0]) <= PlanningSystem.ManualSpitTakeRadiusTiles);
+            HexSpatialMath.HexDistance(fire.Tile, node.Tiles[0]) <= PlanningSystem.ManualCookFireRadiusTiles);
         if (npc.CurrentJunction is { } previous) SpatialMutations.FreeJunction(world, previous, npc.Id);
         var oldTile = npc.Tile;
         npc.CurrentJunction = approach.Id;

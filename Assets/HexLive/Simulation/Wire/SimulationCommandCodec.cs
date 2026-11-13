@@ -42,7 +42,8 @@ public static class SimulationCommandCodec
     // 12: §176 manual placement of one carried furniture item (57).
     // 13: §54.14 craft at a selected station, with legacy opcode 10 unchanged.
     // 15: §120.13 r2 construction hold until «Готово» (64).
-    public const int WireVersion = 15;
+    // 16: §54.14A ManageInventory may carry InventoryAction.Serve.
+    public const int WireVersion = 16;
 
     // Защита от мусора в потоке: злонамеренный клиент не должен уметь
     // заказать аллокацию на гигабайт одним ushort'ом.

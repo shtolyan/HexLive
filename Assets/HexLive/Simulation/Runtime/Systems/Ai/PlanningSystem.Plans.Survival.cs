@@ -57,24 +57,88 @@ public sealed partial class PlanningSystem
         return false;
     }
 
-    // §54.17 r2: a roast hanging on a perceived spit beats whatever is in the
-    // pack — walk over and take it; the NEXT Eat pass consumes it from the
-    // pack (BestFoodInInventory then picks the cooked chunk). Every obstacle
-    // returns false, never PlanFailed: the pack coconut stays the fallback,
-    // and a vanished/contested fire must not cost the meal she already holds.
-    // Bug #323: ручная (§121.6) берёт готовое мясо с вертела только у БЛИЗКОГО
-    // костра — шаг к огню рядом не «ушла сама», а поход через карту — ушла.
-    internal const int ManualSpitTakeRadiusTiles = 2;
+    // §54.16/#687: a manual «Пожарить мясо» from the pack only uses a burning
+    // spit within two hexes — a step to the fire next to her is not «she went
+    // off on her own». (The old Bug #323 manual spit-TAKE that also read this
+    // radius is gone: §54.14A takes no blank into a manual pack by itself.)
+    internal const int ManualCookFireRadiusTiles = 2;
 
-    private static bool TryBuildServingPlan(WorldState world, NPCState npc, string? bestInPack)
+    /// <summary>§54.14A: turn a carried blank into portions. Preference:
+    /// (1) a free stump/workbench/table within <paramref name="surfaceTiles"/>;
+    /// (2) unless she is starving, fell a nearby palm she can chop — the stump
+    /// it leaves is the surface, and the next Eat pass serves on it; (3) serve
+    /// on the ground where she stands. Same blade, yield and time everywhere,
+    /// so (3) is never a dead end. A manual inventory-only character only ever
+    /// gets (3): every walking branch is closed for her (§121.6).</summary>
+    internal static bool TryBuildServingPlan(WorldState world, NPCState npc, bool allowWalk,
+        bool allowChop, int surfaceTiles = MealServing.SurfaceSearchTiles)
     {
         var preparation = MealServing.FirstPreparation(npc);
-        if (preparation == null || !MealServing.HasKnife(npc) ||
-            bestInPack is not null && FoodMath.NutritionOf(world, bestInPack) >= FoodMath.NutritionOf(world, ContentIds.MeatCooked))
+        if (preparation == null || !MealServing.HasKnife(npc))
             return false;
 
-        var surface = MealServing.FindSurface(world, npc);
-        if (surface == null) return false;
+        if (allowWalk && MealServing.FindSurface(world, npc, surfaceTiles) is { } surface &&
+            TryInstallSurfaceServing(world, npc, surface, preparation))
+            return true;
+
+        // §54.14A: hunger must not wait on an axe. From the starving band
+        // (SimBalance.StarvingEnterThreshold, 0.85) she serves on the ground now.
+        if (allowWalk && allowChop && !npc.Mind.IsStarving &&
+            npc.Needs.Hunger < SimBalance.StarvingEnterThreshold &&
+            MealServing.FindPalmForStump(world, npc, out var chop) is { } palm && chop != null &&
+            TryInstallStumpChop(world, npc, palm, chop))
+            return true;
+
+        npc.Plan.TargetItemDefinitionId = preparation.DefinitionId;
+        npc.Execution.TargetInventoryItem = preparation;
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.ConsumeInventoryItem,
+            Interaction = InteractionType.Serve
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        if (SimTrace.Enabled)
+            Trace.Debug(world, npc.Id, "PlanBuilt",
+                $"Goal={npc.Plan.Goal} Item={preparation.DefinitionId} Steps=[ConsumeInventoryItem(Serve, ground)]");
+        return true;
+    }
+
+    private static bool TryInstallStumpChop(WorldState world, NPCState npc, WorldObjectState palm,
+        InteractionDefinition chop)
+    {
+        var definition = world.Content.ObjectDefinitions[palm.DefinitionId];
+        if (!TryReserveBesideJunction(world, npc, palm.Junctions[0], 48, out var stand,
+                SpatialQueries.BesideReach(definition.ObstacleRadius), palm)) return false;
+
+        npc.Plan.TargetObjectId = palm.Id;
+        npc.Plan.TargetTile = palm.Tile;
+        npc.Plan.TargetJunctionId = stand;
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = stand,
+            TargetObject = palm.Id
+        });
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.Interact,
+            TargetObject = palm.Id,
+            TargetJunction = stand,
+            Interaction = InteractionType.Harvest,
+            InteractionId = chop.Id
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        if (SimTrace.Enabled)
+            Trace.Debug(world, npc.Id, "PlanBuilt",
+                $"Goal={npc.Plan.Goal} Target={palm.DefinitionId} (stump for serving) Steps=[MoveToJunction,Harvest]");
+        return true;
+    }
+
+    private static bool TryInstallSurfaceServing(WorldState world, NPCState npc, WorldObjectState surface,
+        ItemInstance preparation)
+    {
         var definition = world.Content.ObjectDefinitions[surface.DefinitionId];
         if (!TryReserveBesideJunction(world, npc, surface.Junctions[0], 48, out var stand,
                 SpatialQueries.BesideReach(definition.ObstacleRadius), surface)) return false;
@@ -103,6 +167,11 @@ public sealed partial class PlanningSystem
         return true;
     }
 
+    // §54.17 r2: a roast hanging on a perceived spit beats whatever is in the
+    // pack — walk over and take it; the NEXT Eat pass serves it (§54.14A) and
+    // the one after eats the portion. Every obstacle returns false, never
+    // PlanFailed: the pack coconut stays the fallback, and a vanished or
+    // contested fire must not cost the meal she already holds.
     private static bool TryBuildSpitTakePlan(
         WorldState world, NPCState npc, string? bestInPack, int maxTiles = int.MaxValue)
     {
@@ -113,7 +182,6 @@ public sealed partial class PlanningSystem
         }
 
         if (!MealServing.HasKnife(npc) || MealServing.FirstPreparation(npc) != null ||
-            MealServing.FindSurface(world, npc, maxTiles) == null ||
             !InventoryMath.CanMakeRoomForGoal(world, npc, GoalType.Eat, ContentIds.MeatRoasted))
         {
             return false; // take.from.spit must be able to make a real slot

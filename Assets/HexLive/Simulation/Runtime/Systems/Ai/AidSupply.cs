@@ -50,6 +50,20 @@ internal static class AidSupply
         };
     }
 
+    // §54.14A: food she cannot hand over yet but can MAKE edible on the spot —
+    // a blank plus a Butcher blade (serve it), or a whole/pierced coconut plus
+    // an opener (split it into halves). Not a payable supply (Has stays false,
+    // so the feed interaction never starts on it); the aid planner first turns
+    // it into a portion/half, then the ordinary feed runs.
+    internal static bool CanPrepareFeed(NPCState npc) =>
+        MealServing.CanServe(npc) || DecisionSystem.HasInventoryCoconutMeal(npc);
+
+    // Payable now, or payable after an in-place preparation. This is what the
+    // aid bid and the ward choice read, so a helper holding only a blank goes
+    // to prepare it instead of fetching more food (§53.7 errand loop).
+    internal static bool CanProvide(WorldState world, NPCState npc, AidKind kind) =>
+        Has(world, npc, kind) || kind == AidKind.Feed && CanPrepareFeed(npc);
+
     // What a completed aid actually took out of the helper's stores, and how
     // much relief that particular item is worth.
     internal readonly struct Spend
@@ -108,7 +122,8 @@ internal static class AidSupply
         {
             case AidKind.Feed:
                 var food = FoodMath.BestFoodInInventory(world, npc);
-                return food is null ? null : Find(food);
+                // §54.14A: the started piece goes first, like her own meal.
+                return food is null ? null : FoodMath.NextBite(npc, food) ?? Find(food);
             case AidKind.Hydrate:
                 return BottleInventoryMath.FirstDrinkable(npc) ??
                     npc.Inventory.Items.Find(item => item.DefinitionId == ContentIds.CoconutPierced && item.ResourceAmount > 0f) ??

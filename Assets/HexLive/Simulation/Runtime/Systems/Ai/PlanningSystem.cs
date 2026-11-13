@@ -243,14 +243,15 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // §54.17 r2: a roast on a perceived spit outranks the pack —
                 // otherwise "coconut in hand" wins forever and the cooked
                 // meat hangs untouched until it burns through colony turnover.
-                // Bug #323: и РУЧНАЯ тоже — но только у близкого костра
-                // (шаг к огню рядом — не «ушла сама»); дальний вертел для неё
-                // по-прежнему закрыт §121.6.
-                if (!inventoryOnly && (TryBuildServingPlan(world, npc, foodDefinitionId) ||
-                    TryBuildSpitTakePlan(world, npc, foodDefinitionId)))
+                // §121.6: the manual character never walks to a spit by herself.
+                if (!inventoryOnly && TryBuildSpitTakePlan(world, npc, foodDefinitionId))
                 {
                     continue;
                 }
+
+                // §54.14A (I): whatever is ready in the pack is eaten before a
+                // blank is served — she never walks off to a stump holding a
+                // coconut half. The blank waits for the next meal.
 
                 if (foodDefinitionId is not null)
                 {
@@ -267,6 +268,13 @@ public sealed partial class PlanningSystem : ISimulationSystem
                         Trace.Debug(world, npc.Id, "PlanBuilt",
                             $"Goal=Eat Item={foodDefinitionId} Steps=[ConsumeInventoryItem]");
                     }
+                    continue;
+                }
+
+                // §54.14A: a blank + blade is always a meal — surface, stump
+                // from a felled palm, or the ground (never a dead end).
+                if (TryBuildServingPlan(world, npc, allowWalk: !inventoryOnly, allowChop: !inventoryOnly))
+                {
                     continue;
                 }
 
@@ -2216,7 +2224,9 @@ public sealed partial class PlanningSystem : ISimulationSystem
             GoalType.GatherStone => definition.HasTag("Stone"),
             GoalType.GatherHerb => definition.HasTag("Herb"),
             GoalType.GatherFiber => definition.HasTag("Fiber"),
-            GoalType.GetFood => definition.HasTag("Food") &&
+            // §54.14A: a stored blank (roast, cooked part, wolf) is food for
+            // anyone carrying a Butcher blade — she can always serve it.
+            GoalType.GetFood => (definition.HasTag("Food") || MealServing.IsReadyToServe(id) && MealServing.HasKnife(npc)) &&
                 (!definition.HasTag("Coconut") || HasCoconutBlade(npc)) &&
                 !(DirectiveMath.Current(npc) == DirectiveKind.StockFood &&
                   npc.Needs.Hunger < SimBalance.GetFoodHungerThreshold && DirectiveMath.InCampStock(world, npc, tile)),
@@ -2418,7 +2428,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // the campfire itself becomes a GetFood target while any hangs.
                 if (definition.HasTag("Campfire"))
                 {
-                    return MealServing.HasKnife(npc) && MealServing.FindSurface(world, npc) != null &&
+                    return MealServing.HasKnife(npc) &&
                         world.Entities.Objects.TryGetValue(perceived.Id, out var spitSource) &&
                         BuildSiteMath.HangingMeat(spitSource, ContentIds.MeatCooked) > 0;
                 }
@@ -2433,9 +2443,9 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 }
 
                 if (MealServing.IsReadyToServe(definition.Id))
-                    return MealServing.HasKnife(npc) && MealServing.FindSurface(world, npc) != null;
+                    return MealServing.HasKnife(npc);
                 if (HumanMeatCatalog.IsRaw(definition.Id))
-                    return MealServing.HasKnife(npc) && MealServing.FindSurface(world, npc) != null &&
+                    return MealServing.HasKnife(npc) &&
                         DecisionSystem.FindCookingFire(npc, world, definition.Id) != null;
                 return definition.HasTag("Food") &&
                     (!definition.HasTag("Coconut") || HasCoconutBlade(npc));

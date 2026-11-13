@@ -502,8 +502,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // §167.5: стокерша не съедает запас, пока сама не голодна по
             // штатному порогу — выше него ест как все (сама бы пошла за едой).
             var stockingFood = directiveKind == DirectiveKind.StockFood;
-            var canServe = MealServing.FirstPreparation(npc) != null && MealServing.HasKnife(npc) &&
-                MealServing.FindSurface(world, npc) != null;
+            // §54.14A: a blank + blade is a meal wherever she stands.
+            var canServe = MealServing.CanServe(npc);
             var eatAvail = (hasFoodInInventory || hasCoconutMeal || canServe) &&
                 !(stockingFood && npc.Needs.Hunger < getFoodHungerThreshold);
             // §53.7: split the "is there food to fetch at all" half out of the
@@ -3085,7 +3085,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
 
             foreach (var agent in _aidCandidatesScratch)
             {
-                var hasSupply = AidSupply.Has(world, npc, agent.AidKind);
+                var hasSupply = AidSupply.CanProvide(world, npc, agent.AidKind);
                 // Класс уже решён победительницей с не меньшим страданием —
                 // прежний обход тоже не сменил бы её (строгое «>»).
                 if (hasSupply ? aidAvail : errandTarget is not null)
@@ -3138,7 +3138,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     if (remembered.AidKind == AidKind.None ||
                         remembered.Age > Spec53.AidMemoryMaxAgeTicks ||
                         remembered.Suffering < Spec53.SufferingThreshold ||
-                        !AidSupply.Has(world, npc, remembered.AidKind))
+                        !AidSupply.CanProvide(world, npc, remembered.AidKind))
                     {
                         continue;
                     }
@@ -3238,7 +3238,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         {
             errandDone = "timed out";
         }
-        else if (AidSupply.Has(world, npc, npc.Mind.AidErrandKind))
+        else if (AidSupply.CanProvide(world, npc, npc.Mind.AidErrandKind))
         {
             errandDone = "supply in hand";
         }

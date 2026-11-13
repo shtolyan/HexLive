@@ -2501,18 +2501,29 @@ internal static partial class ManualCommandExecutor
                 Reject(world, npc.Id, "Inventory", "MissingTool", admission);
                 return;
             }
-            var surface = MealServing.FindSurface(world, npc);
-            if (surface == null)
+            // §54.14A: a near free surface if there is one; otherwise she
+            // serves right where she stands — the order is never refused for
+            // want of a stump.
+            if (MealServing.FindSurface(world, npc) is { } surface)
             {
-                Reject(world, npc.Id, "Inventory", "NoServingSurface", admission);
+                if (TryStartInteractOrder(world, npc, surface.Id, InteractionType.Serve,
+                        MealServing.InteractionId, "Inventory", admission))
+                {
+                    npc.Plan.TargetItemDefinitionId = selected.DefinitionId;
+                    npc.Execution.TargetInventoryItem = selected;
+                }
                 return;
             }
-            if (TryStartInteractOrder(world, npc, surface.Id, InteractionType.Serve,
-                    MealServing.InteractionId, "Inventory", admission))
-            {
-                npc.Plan.TargetItemDefinitionId = selected.DefinitionId;
-                npc.Execution.TargetInventoryItem = selected;
-            }
+
+            ClearForNewOrder(world, npc, "Сервировать на земле", keepCarriedPerson: true);
+            ClearAttackOrder(world, npc);
+            npc.Plan.Goal = GoalType.PlayerOrder;
+            npc.Plan.TargetItemDefinitionId = selected.DefinitionId;
+            npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.ConsumeInventoryItem, Interaction = InteractionType.Serve });
+            npc.Plan.CurrentStepIndex = 0;
+            npc.Plan.Status = PlanStatus.Active;
+            npc.Execution.TargetInventoryItem = selected;
+            npc.Mind.CurrentGoal = GoalType.PlayerOrder;
             return;
         }
         if (command.Action == InventoryAction.Cook)

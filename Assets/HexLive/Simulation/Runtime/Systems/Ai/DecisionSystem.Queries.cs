@@ -291,7 +291,6 @@ public sealed partial class DecisionSystem
                 if (MealServing.HasKnife(npc) &&
                     world.Entities.Objects.TryGetValue(obj.Id, out var fire) &&
                     BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked) > 0 &&
-                    MealServing.FindSurface(world, npc) != null &&
                     InventoryMath.CanMakeRoomForGoal(world, npc, GoalType.Eat, ContentIds.MeatRoasted))
                 {
                     return true;
@@ -305,7 +304,7 @@ public sealed partial class DecisionSystem
 
             if (MealServing.IsReadyToServe(definition.Id) || HumanMeatCatalog.IsRaw(definition.Id))
             {
-                if (MealServing.HasKnife(npc) && MealServing.FindSurface(world, npc) != null &&
+                if (MealServing.HasKnife(npc) &&
                     (MealServing.IsReadyToServe(definition.Id) || FindCookingFire(npc, world, definition.Id) != null))
                     return true;
                 continue;

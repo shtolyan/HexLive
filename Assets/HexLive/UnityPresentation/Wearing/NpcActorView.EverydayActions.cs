@@ -14,6 +14,8 @@ namespace HexLive.UnityPresentation.Wearing
         private Transform _sleepHips;
         private Transform _sleepSpine;
         private Transform _sleepRig;
+        private IKSolverLimb _sleepLeftArm;
+        private IKSolverLimb _sleepRightArm;
         private EverydayActionClips _bedClips;
         private AnimationClip _everydayClip;
         private AnimationClip _requestedEverydayClip;
@@ -108,7 +110,7 @@ namespace HexLive.UnityPresentation.Wearing
                 Quaternion.Slerp(entry.rotation, anchor.rotation, blend));
         }
 
-        private void FitSleepingPelvis(Pose support)
+        private void FitSleepingBody(Pose support)
         {
             if (_bedSleepClip == null || _animator == null || !_animator.isHuman ||
                 !_animator.GetCurrentAnimatorStateInfo(0).IsName("Sleep")) return;
@@ -118,6 +120,8 @@ namespace HexLive.UnityPresentation.Wearing
                 _sleepRig = _animator.transform;
                 _sleepHips = _animator.GetBoneTransform(HumanBodyBones.Hips);
                 _sleepSpine = _animator.GetBoneTransform(HumanBodyBones.Spine);
+                _sleepLeftArm = null;
+                _sleepRightArm = null;
             }
             if (_sleepHips == null || _sleepSpine == null) return;
             var leftLeg = _animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
@@ -137,6 +141,41 @@ namespace HexLive.UnityPresentation.Wearing
             var spineRotation = _sleepSpine.rotation;
             _sleepHips.rotation = Quaternion.AngleAxis(twist, axis) * _sleepHips.rotation;
             _sleepSpine.rotation = spineRotation;
+
+            _sleepLeftArm ??= CreateSleepArm(true);
+            _sleepRightArm ??= CreateSleepArm(false);
+            var torso = (leftArm.position + rightArm.position + _sleepSpine.position * 2f) * .25f;
+            var torsoClearance = Vector3.Distance(leftArm.position, rightArm.position) * .42f;
+            var mattressUp = support.rotation * Vector3.up;
+            KeepSleepingHandClear(_sleepLeftArm, torso, torsoClearance, mattressUp);
+            KeepSleepingHandClear(_sleepRightArm, torso, torsoClearance, mattressUp);
+        }
+
+        private IKSolverLimb CreateSleepArm(bool left)
+        {
+            var shoulder = _animator.GetBoneTransform(left ? HumanBodyBones.LeftUpperArm : HumanBodyBones.RightUpperArm);
+            var elbow = _animator.GetBoneTransform(left ? HumanBodyBones.LeftLowerArm : HumanBodyBones.RightLowerArm);
+            var hand = _animator.GetBoneTransform(left ? HumanBodyBones.LeftHand : HumanBodyBones.RightHand);
+            if (shoulder == null || elbow == null || hand == null) return null;
+
+            var solver = new IKSolverLimb { goal = left ? AvatarIKGoal.LeftHand : AvatarIKGoal.RightHand };
+            solver.SetChain(shoulder, elbow, hand, _animator.transform);
+            return solver;
+        }
+
+        private static void KeepSleepingHandClear(IKSolverLimb solver, Vector3 torso, float clearance, Vector3 mattressUp)
+        {
+            if (solver == null || !solver.initiated) return;
+            var hand = solver.bone3.transform;
+            var offset = hand.position - torso;
+            if (offset.sqrMagnitude >= clearance * clearance) return;
+
+            solver.IKPosition = hand.position + mattressUp * (clearance - Vector3.Dot(offset, mattressUp));
+            solver.IKRotation = hand.rotation;
+            solver.IKPositionWeight = .85f;
+            solver.IKRotationWeight = 1f;
+            solver.MaintainBend();
+            solver.Update();
         }
 
         private bool FitBedWakeRoot()

@@ -107,11 +107,7 @@ public sealed class GiftTransferTests
         var gift = new ItemInstance("food.coconut") { ResourceAmount = 1f };
         giver.Inventory.Items.Add(gift);
         var before = receiver.Social.GetOrCreate(giver.Id).Affinity;
-        // Приём происходит ВНУТРИ тика, а Step оставляет world.Tick уже за ним:
-        // штамп «+/−» помечен тем тиком, на котором вещь доехала.
-        var giftTick = world.Tick;
-
-        Give(engine, giver, receiver, gift.DefinitionId);
+        var giftTick = Give(engine, giver, receiver, gift.DefinitionId);
 
         var toGiver = receiver.Social.GetOrCreate(giver.Id);
         Assert.Multiple(() =>
@@ -229,6 +225,10 @@ public sealed class GiftTransferTests
             new InventoryItemRef(InventoryItemSource.Carried,0,ContentIds.Stick),3,InventoryTransferDirection.Give));
         Assert.That(result.Accepted,Is.True);
         engine.Step();
+        Assert.That(giver.Execution.CurrentInteraction, Is.EqualTo(InteractionType.GiveGift));
+        Assert.That(receiver.Inventory.Items, Is.Empty);
+        Assert.That(giver.Inventory.Items, Is.EqualTo(stack));
+        FinishGift(engine, giver);
         Assert.That(receiver.Inventory.Items.Count,Is.EqualTo(1));
         Assert.That(receiver.Inventory.Items[0],Is.SameAs(stack[0]));
         Assert.That(giver.Inventory.Items.Count,Is.EqualTo(2));
@@ -385,7 +385,7 @@ public sealed class GiftTransferTests
         return (engine, giver, receiver);
     }
 
-    private static void Give(
+    private static long Give(
         SimulationEngine engine, NPCState giver, NPCState receiver, string definitionId)
     {
         var index = giver.Inventory.Items.FindIndex(i => i.DefinitionId == definitionId);
@@ -395,6 +395,20 @@ public sealed class GiftTransferTests
             new InventoryItemRef(InventoryItemSource.Carried, index, definitionId),
             1, InventoryTransferDirection.Give));
         engine.Step();
+        return FinishGift(engine, giver);
+    }
+
+    private static long FinishGift(SimulationEngine engine, NPCState giver)
+    {
+        var lastTick = engine.World.Tick - 1;
+        if (giver.Execution.CurrentInteraction != InteractionType.GiveGift) return lastTick;
+        var handoffTick = giver.Execution.EndTick;
+        while (engine.World.Tick <= handoffTick)
+        {
+            lastTick = engine.World.Tick;
+            engine.Step();
+        }
+        return lastTick;
     }
 
     private static void PlaceAdjacent(WorldState world, NPCState giver, NPCState other)

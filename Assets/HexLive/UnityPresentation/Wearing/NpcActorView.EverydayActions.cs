@@ -13,6 +13,14 @@ namespace HexLive.UnityPresentation.Wearing
         private AnimationClip _everydayClip;
         private AnimationClip _requestedEverydayClip;
         private bool _everydayDrinking;
+        private Vector3 _standingSipHips;
+        private readonly Quaternion[] _standingSipLegs = new Quaternion[8];
+        private bool _standingSipCaptured;
+        private static readonly HumanBodyBones[] StandingSipBones =
+        {
+            HumanBodyBones.LeftUpperLeg, HumanBodyBones.LeftLowerLeg, HumanBodyBones.LeftFoot, HumanBodyBones.LeftToes,
+            HumanBodyBones.RightUpperLeg, HumanBodyBones.RightLowerLeg, HumanBodyBones.RightFoot, HumanBodyBones.RightToes
+        };
         private bool _supportDrinker;
         private GameObject _drinkContactProp;
         private Vector3 _drinkOpeningInHand;
@@ -382,7 +390,11 @@ namespace HexLive.UnityPresentation.Wearing
             if (_feedingRecipient != null)
                 _feedingContact = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.3f, .48f, contactPhase)) *
                     Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.75f, .56f, contactPhase)) * weight;
-            if (!_everydayGraph.IsValid()) return false;
+            if (!_everydayGraph.IsValid())
+            {
+                _standingSipCaptured = false;
+                return false;
+            }
             var time = Mathf.Clamp(sampleTime, 0f, _everydayClip.length);
             if (_action == ActionKind.RaiseToMouth || _everydayDrinking)
             {
@@ -413,6 +425,10 @@ namespace HexLive.UnityPresentation.Wearing
                 _everydayPositions[i] = _everydayBones[i].localPosition;
                 _everydayRotations[i] = _everydayBones[i].localRotation;
             }
+            var standingSip = _everydayDrinking && !_seatedEveryday && !_legless && _posture != "Crawl";
+            if (standingSip && !_standingSipCaptured) CaptureStandingSip();
+            if (!standingSip) _standingSipCaptured = false;
+
             _everydayPlayable.SetTime(time);
             var position = _animator.transform.position;
             var rotation = _animator.transform.rotation;
@@ -424,6 +440,7 @@ namespace HexLive.UnityPresentation.Wearing
                 bone.localPosition = Vector3.Lerp(_everydayPositions[i], bone.localPosition, weight);
                 bone.localRotation = Quaternion.Slerp(_everydayRotations[i], bone.localRotation, weight);
             }
+            if (standingSip) ApplyStandingSip();
             if (_shoreHopTick != 0)
             {
                 var y = _shoreStartY + _shoreHeight * Mathf.SmoothStep(0f, 1f,
@@ -438,6 +455,31 @@ namespace HexLive.UnityPresentation.Wearing
                 FitShoreFeet(phase, weight);
             }
             return true;
+        }
+
+        private void CaptureStandingSip()
+        {
+            var hips = _animator.GetBoneTransform(HumanBodyBones.Hips);
+            if (hips == null) return;
+            _standingSipHips = hips.localPosition;
+            for (var i = 0; i < StandingSipBones.Length; i++)
+            {
+                var bone = _animator.GetBoneTransform(StandingSipBones[i]);
+                if (bone != null) _standingSipLegs[i] = bone.localRotation;
+            }
+            _standingSipCaptured = true;
+        }
+
+        private void ApplyStandingSip()
+        {
+            if (!_standingSipCaptured) return;
+            var hips = _animator.GetBoneTransform(HumanBodyBones.Hips);
+            if (hips != null) hips.localPosition = _standingSipHips;
+            for (var i = 0; i < StandingSipBones.Length; i++)
+            {
+                var bone = _animator.GetBoneTransform(StandingSipBones[i]);
+                if (bone != null) bone.localRotation = _standingSipLegs[i];
+            }
         }
 
         private void FitShoreFeet(float phase, float weight)

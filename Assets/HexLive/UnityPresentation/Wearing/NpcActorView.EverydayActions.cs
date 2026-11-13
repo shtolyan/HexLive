@@ -9,6 +9,8 @@ namespace HexLive.UnityPresentation.Wearing
     public sealed partial class NpcActorView
     {
         private AnimationClip _bedSleepClip;
+        private Pose _bedEntry;
+        private bool _pillowBed;
         private EverydayActionClips _bedClips;
         private AnimationClip _everydayClip;
         private AnimationClip _requestedEverydayClip;
@@ -92,19 +94,32 @@ namespace HexLive.UnityPresentation.Wearing
             // pose was authored around the bag origin, with hips above it and
             // shifted toward the headboard. Fit that pose to the mattress.
             var scale = _bodyRoot.lossyScale.y;
-            var mattressRoot = anchor.position + anchor.rotation * new Vector3(0f, -.17f, .22f) * scale;
-            return new Pose(Vector3.Lerp(transform.position, mattressRoot, blend),
-                Quaternion.Slerp(transform.rotation, anchor.rotation, blend));
+            var fit = _pillowBed
+                ? new Vector3(0f, -.23f, .02f)
+                : new Vector3(0f, -.19f, .14f);
+            var mattressRoot = anchor.position + anchor.rotation * fit * scale;
+            var entry = (_bedEntry.position - anchor.position).sqrMagnitude <= 4f
+                ? _bedEntry : new Pose(transform.position, transform.rotation);
+            return new Pose(Vector3.Lerp(entry.position, mattressRoot, blend),
+                Quaternion.Slerp(entry.rotation, anchor.rotation, blend));
         }
 
-        private void FitBedWakeRoot()
+        private bool FitBedWakeRoot()
         {
-            if (_bedSleepClip == null || _wakeBlend <= 0f || _animator == null) return;
+            if (_bedSleepClip == null || _wakeBlend <= 0f || _animator == null) return false;
             var state = _animator.GetCurrentAnimatorStateInfo(0);
-            if (!state.IsName("GetUp")) return;
-            var progress = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.13f, .92f, state.normalizedTime));
-            _bodyRoot.SetPositionAndRotation(Vector3.Lerp(_wakeFromPos, transform.position, progress),
-                Quaternion.Slerp(_wakeFromRot, transform.rotation, progress));
+            if (!state.IsName("GetUp") && _animator.IsInTransition(0))
+                state = _animator.GetNextAnimatorStateInfo(0);
+            if (!state.IsName("GetUp") && !state.IsName("Sleep") && !state.IsName("LieDown"))
+            {
+                _wakeBlend = 0f;
+                return true;
+            }
+            var progress = state.IsName("GetUp")
+                ? Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.13f, .92f, state.normalizedTime)) : 0f;
+            _bodyRoot.SetPositionAndRotation(Vector3.Lerp(_wakeFromPos, _bodyRoot.position, progress),
+                Quaternion.Slerp(_wakeFromRot, _bodyRoot.rotation, progress));
+            return true;
         }
 
         private void SetBedTransition(AnimationClip clip, string baseName)

@@ -3883,7 +3883,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             actorView.SetRagdoll(false);
             actorView.SetCrying(false);
-            actorView.SetLaying(true, FindBedAttachPoint(snapshot, npc, out var bedSurfaceY), bedSurfaceY);
+            var attach = FindBedAttachPoint(snapshot, npc, out var bedSurfaceY);
+            var pillowBed = npc.TargetObjectId is { } bedId && snapshot.Objects.Exists(item =>
+                item.Id.Value == bedId && item.DefinitionId == ContentIds.ModernBed);
+            actorView.SetLaying(true, attach, bedSurfaceY, pillowBed);
         }
         else
         {

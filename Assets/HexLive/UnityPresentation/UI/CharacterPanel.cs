@@ -969,7 +969,7 @@ namespace HexLive.UnityPresentation.UI
             UpdateNeeds(npc);
             UpdateSheet(npc);
             UpdateEffects(npc);
-            RefreshPlayerOrders(npc);
+            RefreshPlayerOrders(snapshot, npc);
             UpdateRelations(npc);
             _meleeStats = npc.MeleeStats ?? new MeleeStatsSnapshot();
             RefreshInventory(snapshot, npc);
@@ -1765,6 +1765,8 @@ namespace HexLive.UnityPresentation.UI
             if (_effectTooltip != null)
             {
                 _effectTooltip.style.display = DisplayStyle.None;
+                // §121.13: the action-list card borrows the icon slot for its glyph.
+                _effectTooltipIcon.style.backgroundImage = StyleKeyword.Null;
             }
         }
 

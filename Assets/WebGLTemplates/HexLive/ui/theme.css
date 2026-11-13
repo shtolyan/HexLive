@@ -971,6 +971,14 @@
 .hx-order-chip__cancel { display: none; }
 .hx-order-chip:is(:hover, :focus-visible) .hx-order-chip__cancel { display: grid; }
 .hx-order-chip:is(:hover, :focus-visible) .hx-order-chip__action { display: none; }
+/* §121.13: the action glyph is a white PNG used as a mask, so it takes the chip colour */
+.hx-order-glyph { display: block; width: 1.375rem; height: 1.375rem; background: currentColor;
+  -webkit-mask: var(--glyph) center / contain no-repeat; mask: var(--glyph) center / contain no-repeat; }
+.hx-tip__icon .hx-order-glyph { width: 1.125rem; height: 1.125rem; }
+.hx-order-chip[draggable="true"] { cursor: grab; }
+.hx-order-chip[data-dragging="true"] { opacity: 0.5; }
+.hx-order-chip[data-drop="before"] { box-shadow: -0.25rem 0 0 -0.0625rem var(--hx-leaf); }
+.hx-order-chip[data-drop="after"] { box-shadow: 0.25rem 0 0 -0.0625rem var(--hx-leaf); }
 .hx-rel__faces { display: flex; gap: 0.25rem; overflow-x: auto; padding-bottom: 0.125rem; }
 .hx-rel__faces button {
   flex: none;

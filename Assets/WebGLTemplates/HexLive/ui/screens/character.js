@@ -269,13 +269,50 @@ function Needs({ npc }) {
 
 const TAG_TONE = { friend: 'good', close: 'good', acquaint: '', neutral: '', tense: 'warn', hostile: 'bad' };
 
+// §121.13: one action glyph — a white PNG from Player Resources, tinted by the
+// chip colour through a CSS mask; the vector «play» only while it has not arrived.
+function OrderGlyph({ icon }) {
+  const url = asset(icon);
+  return url
+    ? html`<i class="hx-order-glyph" aria-hidden="true" style=${{ '--glyph': `url(${url})` }}></i>`
+    : icons.play();
+}
+
+// §121.13: the action list. Hover shows what each entry is («Обнять: Марта»),
+// a click cancels it, and a waiting entry can be dragged to a new place. Only
+// the waiting tail moves: the running entry is neither draggable nor a drop
+// target in front of it. The page sends stable ids, never positions.
 function PlayerOrders({ orders, send }) {
-  return orders?.length > 0 && html`
+  const [drag, setDrag] = useState(null);      // id of the dragged order
+  const [drop, setDrop] = useState(null);      // { before } of the gap under the pointer
+  if (!(orders?.length > 0)) return null;
+  const first = orders[0].active ? 1 : 0;
+  const gapAt = (e, index) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const slot = e.clientX < r.left + r.width / 2 ? index : index + 1;
+    return Math.max(first, slot);
+  };
+  const finish = (slot) => {
+    const from = orders.findIndex((o) => o.id === drag);
+    setDrag(null); setDrop(null);
+    if (from < first || slot === from || slot === from + 1) return;
+    send('moveOrder', { id: drag, before: slot < orders.length ? orders[slot].id : 0 });
+  };
+  return html`
       <div class="hx-order-row" role="group" aria-label=${t('panel.orders.action')}>
-        ${orders.map(order => html`<button type="button" key=${order.id} class="hx-order-chip"
-          data-active=${order.active} title=${order.label} aria-label=${t('panel.orders.cancel', { 0: order.label })}
+        ${orders.map((order, index) => html`<button type="button" key=${order.id} class="hx-order-chip"
+          data-active=${order.active} data-dragging=${drag === order.id}
+          data-drop=${drag != null && drop === index ? 'before' : drag != null && drop === orders.length && index === orders.length - 1 ? 'after' : ''}
+          draggable=${!order.active}
+          aria-label=${t('panel.orders.cancel', { 0: order.label })}
+          ...${tip(() => ({ icon: html`<${OrderGlyph} icon=${order.icon} />`, title: order.label, desc: order.hint,
+            tone: order.active ? 'buff' : '' }))}
+          onDragStart=${(e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(order.id)); setDrag(order.id); }}
+          onDragOver=${(e) => { if (drag == null) return; e.preventDefault(); setDrop(gapAt(e, index)); }}
+          onDrop=${(e) => { e.preventDefault(); if (drag != null) finish(gapAt(e, index)); }}
+          onDragEnd=${() => { setDrag(null); setDrop(null); }}
           onClick=${() => send('cancelOrder', { id: order.id })}>
-          <span class="hx-order-chip__action">${(icons[order.icon] || needIcons[order.icon] || icons.play)()}</span>
+          <span class="hx-order-chip__action"><${OrderGlyph} icon=${order.icon} /></span>
           <span class="hx-order-chip__cancel">${icons.close()}</span>
         </button>`)}
       </div>`;

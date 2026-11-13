@@ -33376,6 +33376,62 @@ MonoBehaviour:
       - '{0}: все рядом'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'panel.orders.with_target'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0}: {1}'
+      - '{0}: {1}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.orders.hint_pending'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Click to cancel. Drag to change the order.'
+      - 'Клик — отменить. Перетащите, чтобы поменять порядок.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.orders.hint_active'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Doing this now. Click to cancel.'
+      - 'Выполняется сейчас. Клик — отменить.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.orders.explore'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Explore'
+      - 'Разведать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.orders.request_item'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ask for an item'
+      - 'Попросить вещь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.QueueChanged'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The action list has already changed'
+      - 'Список действий уже изменился'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.OrderRunning'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'This action has already started'
+      - 'Это действие уже началось'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

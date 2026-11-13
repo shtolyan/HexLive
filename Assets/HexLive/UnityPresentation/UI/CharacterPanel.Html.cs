@@ -381,7 +381,7 @@ namespace HexLive.UnityPresentation.UI
                 ["skills"] = SheetModel(SkillRows, npc.Skills),
                 ["traits"] = new JArray(npc.Traits),
                 ["relations"] = relations,
-                ["orders"] = HtmlPlayerOrders(npc),
+                ["orders"] = HtmlPlayerOrders(snapshot, npc),
             };
         }
 
@@ -475,6 +475,8 @@ namespace HexLive.UnityPresentation.UI
                     return;
                 case "stop": StopSingle(); return;
                 case "cancelOrder": CancelPlayerOrder(NpcSelection.PrimaryId, (int?)args["id"] ?? 0); return;
+                // §121.13: drag-to-reorder — stable ids, «before» 0 = to the end.
+                case "moveOrder": EnqueueMovePlayerOrder(NpcSelection.PrimaryId, (int?)args["id"] ?? 0, (int?)args["before"] ?? 0); return;
                 case "open":
                     switch ((string)args["window"])
                     {

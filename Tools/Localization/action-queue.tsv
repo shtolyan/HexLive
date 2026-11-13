@@ -1,0 +1,8 @@
+# §121.13: the player action list — hover caption, drag-to-reorder refusals.
+panel.orders.with_target	{0}: {1}	{0}: {1}
+panel.orders.hint_pending	Click to cancel. Drag to change the order.	Клик — отменить. Перетащите, чтобы поменять порядок.
+panel.orders.hint_active	Doing this now. Click to cancel.	Выполняется сейчас. Клик — отменить.
+panel.orders.explore	Explore	Разведать
+panel.orders.request_item	Ask for an item	Попросить вещь
+toast.order_rejected.QueueChanged	The action list has already changed	Список действий уже изменился
+toast.order_rejected.OrderRunning	This action has already started	Это действие уже началось

@@ -148,11 +148,21 @@ public sealed class ManualBedAndLootTests
         Assert.That(bed.CurrentUser, Is.EqualTo(patient.Id));
 
         patient.Needs.Energy = 1f;
+        var wakeTick = world.Tick;
         engine.Step();
 
         Assert.That(patient.Execution.CurrentInteraction, Is.Not.EqualTo(InteractionType.Sleep));
         Assert.That(bed.CurrentUser, Is.Null);
         Assert.That(bed.IsOccupied, Is.False);
+        Assert.That(patient.Mind.WakeGraceUntilTick - wakeTick,
+            Is.GreaterThanOrEqualTo(StandUpMath.BedGraceTicks(world.TickDeltaTime)));
+        var stand = patient.Position;
+        while (world.Tick < patient.Mind.WakeGraceUntilTick)
+        {
+            new MovementSystem().Run(world);
+            Assert.That(patient.Position, Is.EqualTo(stand));
+            world.Tick++;
+        }
     }
 
     [Test]

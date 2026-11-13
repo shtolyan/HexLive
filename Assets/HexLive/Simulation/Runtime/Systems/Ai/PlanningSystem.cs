@@ -1456,7 +1456,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
             targetJunction = seatStand;
         }
         else if (!atPiece && targetJunction is { } anchorId &&
-            RequiresBesideApproach(world, anchorId, interaction))
+            RequiresBesideApproach(world, anchorId, interaction, selected.DefinitionId))
         {
             var besideReach = SpatialQueries.BesideReach(
                 world.Content.ObjectDefinitions.TryGetValue(selected.DefinitionId, out var besideDef)
@@ -1655,9 +1655,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
     // the free rim, even when an integrated bed leaves its anchor unblocked;
     // the anchor is a pose marker, not a place where a standing body may wait.
     internal static bool RequiresBesideApproach(
-        WorldState world, JunctionId anchor, InteractionType interaction)
+        WorldState world, JunctionId anchor, InteractionType interaction, string definitionId)
     {
-        if (interaction is InteractionType.Sit or InteractionType.Sleep or InteractionType.PickUp or InteractionType.Serve)
+        if (interaction is InteractionType.Sit or InteractionType.Sleep or InteractionType.PickUp or InteractionType.Serve ||
+            (interaction is InteractionType.Dress or InteractionType.Hang &&
+             world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition) &&
+             StowMath.IsClothingStation(definition)))
         {
             return true;
         }
@@ -1812,7 +1815,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
             target.CraftJunction is { } authoredWorkPoint
                 ? authoredWorkPoint
                 : target.Junctions[0];
-        if (RequiresBesideApproach(world, anchor, interaction))
+        if (RequiresBesideApproach(world, anchor, interaction, target.DefinitionId))
         {
             var reach = SpatialQueries.BesideReach(
                 world.Content.ObjectDefinitions.TryGetValue(

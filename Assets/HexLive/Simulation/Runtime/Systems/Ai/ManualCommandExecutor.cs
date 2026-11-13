@@ -2919,8 +2919,10 @@ internal static partial class ManualCommandExecutor
 
         var definition = world.Content.ObjectDefinitions.TryGetValue(
             container.DefinitionId, out var found) ? found : null;
-        var closeEnough = definition is not null && InteractionReach.CheckObjectStart(
-            world, looter, container, definition.ObstacleRadius);
+        var clothingStation = definition is not null && StowMath.IsClothingStation(definition);
+        var closeEnough = definition is not null && (clothingStation
+            ? StowMath.IsAtStationRim(world, looter, container, definition)
+            : InteractionReach.CheckObjectStart(world, looter, container, definition.ObstacleRadius));
         if (!closeEnough)
         {
             // Обод вокруг футпринта — тот же, которым подходят к любому объекту
@@ -3458,7 +3460,7 @@ internal static partial class ManualCommandExecutor
         // predicate.  In particular Sit/Sleep always reserve the nearest free
         // rim junction; their anchor is a pose marker, never a standing spot.
         var standBeside = PlanningSystem.RequiresBesideApproach(
-            world, anchor, interactionType);
+            world, anchor, interactionType, worldObject.DefinitionId);
 
         JunctionId target;
         // #748: ручная стройка дома идёт к ДЕТАЛИ тем же BuildWorkPoint, что и

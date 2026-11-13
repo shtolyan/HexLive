@@ -37,6 +37,17 @@ public static class StowMath
         public ObjectId? StowObject { get; }
     }
 
+    internal static bool IsClothingStation(ObjectDefinition definition) =>
+        definition.HasTag(ObjectTags.Wardrobe) || definition.HasTag(ObjectTags.Rack);
+
+    internal static bool IsAtStationRim(WorldState world, NPCState npc, WorldObjectState station,
+        ObjectDefinition definition)
+    {
+        if (npc.CurrentJunction is not { } here || station.Junctions.Count == 0) return false;
+        CollectStationRim(world, station, definition);
+        return _rimScratch.Contains(here);
+    }
+
     /// <summary>
     /// Место для раздевания. Приоритет — гардероб, потом сушилка, потом просто
     /// точка у дома. Возвращает null, если дома нет или до него не дойти.
@@ -69,7 +80,7 @@ public static class StowMath
                 : obj.DefinitionId == ContentIds.DryingRack ? 1
                 : -1;
             if (rank < 0 || ExecutionSystem.RackIsFull(world, obj) ||
-                StandFor(world, npc, obj.Junctions[0]) is not { } interactionStand ||
+                StandFor(world, npc, obj, def) is not { } interactionStand ||
                 !Connectivity.Reachable(world, from, interactionStand,
                     PlanningSystem.CanUseRoutineTraversal(npc)))
             {
@@ -112,7 +123,7 @@ public static class StowMath
     /// </summary>
     public static ObjectId? StationBesideNpc(WorldState world, NPCState npc)
     {
-        if (npc.CurrentJunction is not { } here)
+        if (npc.CurrentJunction is null)
         {
             return null;
         }
@@ -136,16 +147,7 @@ public static class StowMath
                 continue;
             }
 
-            var anchor = obj.Junctions[0];
-            var beside = here.Equals(anchor);
-            if (!beside)
-            {
-                SpatialQueries.CollectStandableAround(world, anchor, _rimScratch, 96,
-                    SpatialQueries.BesideReach(0f), null, InteractionReach.RimMode);
-                beside = _rimScratch.Contains(here);
-            }
-
-            if (beside)
+            if (IsAtStationRim(world, npc, obj, def))
             {
                 best = obj.Id;
                 bestRank = rank;
@@ -156,9 +158,7 @@ public static class StowMath
     }
 
     /// <summary>
-    /// Место у станции: сам её джанкшен, если он проходим, иначе свободный
-    /// соседний. Авторский footprint гардероба блокирует anchor намеренно;
-    /// interaction остаётся доступен с его внешнего rim.
+    /// Место у станции выбирается на свободном ободе её футпринта.
     ///
     /// <para>
     /// ⭐ Функция обязана быть ЧИСТО ЧИТАЮЩЕЙ. Первая версия звала
@@ -169,23 +169,13 @@ public static class StowMath
     /// 1.2% → 8.6%). Резервирует пусть тот, кто строит план.
     /// </para>
     /// </summary>
-    private static JunctionId? StandFor(WorldState world, NPCState npc, JunctionId anchor)
+    private static JunctionId? StandFor(WorldState world, NPCState npc, WorldObjectState station,
+        ObjectDefinition definition)
     {
-        if (npc.CurrentJunction is { } current && current.Equals(anchor) &&
-            world.Junctions.Items.TryGetValue(anchor, out var currentJunction) &&
-            !currentJunction.Blocked)
-        {
-            return anchor;
-        }
+        CollectStationRim(world, station, definition);
+        if (npc.CurrentJunction is { } here && _rimScratch.Contains(here))
+            return here;
 
-        if (SpatialQueries.IsJunctionFree(world, anchor) &&
-            world.Junctions.Items.TryGetValue(anchor, out var junction) && !junction.Blocked)
-        {
-            return anchor;
-        }
-
-        SpatialQueries.CollectStandableAround(world, anchor, _rimScratch, 96,
-            SpatialQueries.BesideReach(0f), null, InteractionReach.RimMode);
         JunctionId? best = null;
         var bestDistance = float.MaxValue;
         foreach (var rim in _rimScratch)
@@ -206,6 +196,10 @@ public static class StowMath
 
         return best;
     }
+
+    private static void CollectStationRim(WorldState world, WorldObjectState station, ObjectDefinition definition) =>
+        SpatialQueries.CollectStandableAround(world, station.Junctions[0], _rimScratch, 96,
+            SpatialQueries.BesideReach(definition.ObstacleRadius), station, InteractionReach.RimMode);
 
     private static readonly System.Collections.Generic.List<JunctionId> _rimScratch = new();
 

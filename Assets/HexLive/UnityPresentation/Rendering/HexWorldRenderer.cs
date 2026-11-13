@@ -3693,11 +3693,20 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     "KissAccepted" => "social.kiss.accepted",
                     "KissDeclined" => "social.kiss.declined",
                     "HugUnavailable" or "KissUnavailable" or "ContactUnavailable" => "social.contact.unavailable",
+                    "ContactNeedsStanding" => "social.contact.needs_standing",
+                    "ContactFighting" => "social.contact.fighting",
+                    "ContactUrgentNeed" => "social.contact.urgent_need",
+                    "ContactControlled" => "social.contact.controlled",
+                    "ContactBusy" => "social.contact.busy",
+                    "ContactInvitationLost" => "social.contact.invitation_lost",
+                    "ContactTooFar" => "social.contact.too_far",
+                    "ContactApologyNotNeeded" => "social.contact.apology_not_needed",
                     _ => null
                 };
                 if (contactMessage != null)
                 {
-                    var initiator = contactMessage == "social.contact.unavailable" ? npc.Id.Value : npc.SocialCuePeerId;
+                    var initiator = contactMessage.StartsWith("social.contact.", StringComparison.Ordinal)
+                        ? npc.Id.Value : npc.SocialCuePeerId;
                     if (initiator is { } id && _runner != null &&
                         _runner.CanControlNpc(new HexLive.Simulation.Common.EntityId(id)))
                         VoiceResponsePanel.PublishNpc(Localization.Loc.Get(contactMessage), 4f);

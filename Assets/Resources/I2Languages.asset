@@ -32168,6 +32168,70 @@ MonoBehaviour:
       - 'Сейчас это не получится.'
       Flags: 0101
       Languages_Touch: []
+    - Term: social.contact.needs_standing
+      TermType: 0
+      Description:
+      Languages:
+      - 'Both characters need to be standing and have their hands free.'
+      - 'Оба персонажа должны стоять и никого не нести.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: social.contact.fighting
+      TermType: 0
+      Description:
+      Languages:
+      - 'The action is unavailable during a fight.'
+      - 'Во время боя это действие недоступно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: social.contact.urgent_need
+      TermType: 0
+      Description:
+      Languages:
+      - 'The other character is starving or parched.'
+      - 'Другой персонаж изнемогает от голода или жажды.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: social.contact.controlled
+      TermType: 0
+      Description:
+      Languages:
+      - 'The other character is under direct control.'
+      - 'Другой персонаж сейчас под прямым управлением.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: social.contact.busy
+      TermType: 0
+      Description:
+      Languages:
+      - 'The other character is busy or moving.'
+      - 'Другой персонаж занят или ещё идёт.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: social.contact.invitation_lost
+      TermType: 0
+      Description:
+      Languages:
+      - 'The other character stopped waiting for the invitation.'
+      - 'Другой персонаж перестал ждать приглашения.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: social.contact.too_far
+      TermType: 0
+      Description:
+      Languages:
+      - 'The characters are too far apart.'
+      - 'Персонажи стоят слишком далеко друг от друга.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: social.contact.apology_not_needed
+      TermType: 0
+      Description:
+      Languages:
+      - 'The other character has no grievance to resolve.'
+      - 'Другой персонаж не держит обиды.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'menu.ask_bathe'
       TermType: 0
       Description: 

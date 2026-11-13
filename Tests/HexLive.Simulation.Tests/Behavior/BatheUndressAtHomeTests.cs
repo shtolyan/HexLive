@@ -614,7 +614,9 @@ public sealed class BatheUndressAtHomeTests
             // v93 (§128.5/#692): contents of a carried backpack.
             // v94 (§176): visit serial and reserved topology for regenerated apartments.
             // v95 (§67.16/#695): immutable NPC speech origin.
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(95));
+            // v96 (§54.14A): legacy cooked meat/crab become unserved blanks
+            // (items, ground objects, plan target, perception and memory).
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(96));
         });
     }
 

@@ -579,11 +579,13 @@ public sealed class ManualSocialOrderTests
         outsider.Wounds.Clear();
         outsider.Needs.Hunger = kind == AidKind.Feed ? 0.8f : 0f;
         outsider.Needs.Thirst = kind == AidKind.Hydrate ? 0.8f : 0f;
-        helper.Inventory.Items.Add(new ItemInstance(ContentIds.MeatCooked));
+        helper.Inventory.Items.Add(new ItemInstance(ContentIds.MeatCooked) { ResourceAmount = FoodMath.MeatPortionGrams });
         helper.Inventory.Items.Add(new ItemInstance(ContentIds.Bottle));
         helper.BottleWater = WaterKind.Rain;
         helper.BottleCharges = SimBalance.BottleCapacity;
-        var foodBefore = helper.Inventory.Items.Count(i => i.DefinitionId == ContentIds.MeatCooked);
+        int FoodGrams() => helper.Inventory.Items.Where(i => i.DefinitionId == ContentIds.MeatCooked)
+            .Sum(i => FoodMath.GramsRemaining(i.DefinitionId, i.ResourceAmount));
+        var foodBefore = FoodGrams();
         var waterBefore = helper.BottleCharges;
         var relationBefore = outsider.Social.GetOrCreate(helper.Id).Affinity;
 
@@ -603,7 +605,9 @@ public sealed class ManualSocialOrderTests
         Assert.That(kind == AidKind.Feed ? outsider.Needs.Hunger : outsider.Needs.Thirst, Is.LessThan(0.6f));
         Assert.That(outsider.Social.GetOrCreate(helper.Id).Affinity, Is.GreaterThan(relationBefore));
         if (kind == AidKind.Feed)
-            Assert.That(helper.Inventory.Items.Count(i => i.DefinitionId == ContentIds.MeatCooked), Is.EqualTo(foodBefore - 1));
+            // §54.14A: food is spent in 100 g bites of a 300 g portion — the
+            // supply is really consumed, the portion itself may remain.
+            Assert.That(FoodGrams(), Is.LessThanOrEqualTo(foodBefore - FoodMath.BiteGrams));
         else Assert.That(helper.BottleCharges, Is.LessThan(waterBefore));
     }
 

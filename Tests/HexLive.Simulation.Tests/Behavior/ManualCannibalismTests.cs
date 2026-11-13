@@ -156,13 +156,27 @@ public sealed class ManualCannibalismTests
         Assert.That(take.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted), take.Reason);
         Until(engine, ()=>actor.Inventory.Items.Any(i=>i.DefinitionId==cooked));
         Assert.That(BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked), Is.Zero);
+        // §54.14A: a roasted part is a blank — it cannot be eaten until it is
+        // served into 300 g portions (on a surface or on the ground).
         actor.Needs.Hunger=.8f;
+        Assert.That(ManualCommandExecutor.Apply(world,new SelfActionCommand(actor.Id,SelfActionKind.EatFromPack)).Status,
+            Is.EqualTo(ManualCommandAdmissionStatus.Rejected), "An unserved part is not food yet");
+        actor.Inventory.Items.Add(new ItemInstance("tool.knife"));
+        var blank = actor.Inventory.Items.Single(item => item.DefinitionId == cooked);
+        var expectedGrams = MealServing.PortionGrams(blank);
+        var serve = ManualCommandExecutor.Apply(world, new ManageInventoryCommand(actor.Id,
+            new InventoryItemRef(InventoryItemSource.Carried, actor.Inventory.Items.IndexOf(blank), cooked), InventoryAction.Serve));
+        Assert.That(serve.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted), serve.Reason);
+        Until(engine, () => !actor.Inventory.Items.Any(item => ReferenceEquals(item, blank)) &&
+            actor.Mind.CurrentGoal != GoalType.PlayerOrder);
+        var portions = actor.Inventory.Items.Where(item => item.DefinitionId == ContentIds.MeatCooked).ToList();
+        Assert.That(portions.Sum(item => FoodMath.GramsRemaining(item.DefinitionId, item.ResourceAmount)),
+            Is.EqualTo(expectedGrams));
         var eat=ManualCommandExecutor.Apply(world,new SelfActionCommand(actor.Id,SelfActionKind.EatFromPack));
         Assert.That(eat.Status,Is.EqualTo(ManualCommandAdmissionStatus.Accepted),eat.Reason);
-        var serving = actor.Inventory.Items.Single(item => item.DefinitionId == cooked);
-        var fullWeight = FoodMath.GramsRemaining(cooked, serving.ResourceAmount);
-        Until(engine, () => serving.ResourceAmount > 0f);
-        Assert.That(serving.ResourceAmount, Is.EqualTo(fullWeight - FoodMath.BiteGrams));
+        Until(engine, () => portions.Any(item => item.ResourceAmount <= FoodMath.MeatPortionGrams - FoodMath.BiteGrams + .01f));
+        var serving = portions.Single(item => item.ResourceAmount < FoodMath.MeatPortionGrams);
+        Assert.That(serving.ResourceAmount, Is.EqualTo(FoodMath.MeatPortionGrams - FoodMath.BiteGrams).Within(.01f));
         Assert.That(actor.Inventory.Items.Any(item => ReferenceEquals(item, serving)), Is.True);
         Assert.That(actor.Needs.Hunger,Is.LessThan(.7f));
     }
@@ -204,8 +218,14 @@ public sealed class ManualCannibalismTests
         Assert.That(world.Content.ObjectDefinitions[raw].Interactions.Any(i=>i.Type==InteractionType.Eat), Is.False);
         fire.ResourceAmount = 100000;
         for (var i=0;i<100;i++) { world.Tick+=world.SlowIntervalTicks; system.Run(world); }
-        Assert.That(fire.Contents[0].DefinitionId, Is.EqualTo(HumanMeatCatalog.Cooked(raw)));
-        Assert.That(world.Content.ObjectDefinitions[fire.Contents[0].DefinitionId].Interactions
+        var cooked = fire.Contents[0].DefinitionId;
+        Assert.That(cooked, Is.EqualTo(HumanMeatCatalog.Cooked(raw)));
+        // §54.14A: the roasted part is a blank — no Eat of its own; it serves
+        // into edible portions, which is what "edible only after cooking" means now.
+        Assert.That(MealServing.IsReadyToServe(raw), Is.False);
+        Assert.That(MealServing.IsReadyToServe(cooked), Is.True);
+        Assert.That(MealServing.PortionGrams(fire.Contents[0]), Is.GreaterThanOrEqualTo(FoodMath.MeatPortionGrams));
+        Assert.That(world.Content.ObjectDefinitions[MealServing.OutputFor(cooked)].Interactions
             .Any(i=>i.Type==InteractionType.Eat && i.Effects.HungerDelta<0), Is.True);
     }
 

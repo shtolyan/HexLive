@@ -641,9 +641,13 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         // curtain before the first "Connecting" frame. The authoritative seed
         // arrives in Handshake; RemoteSocketBackend regenerates exactly that
         // topology on a worker.
-        if (!localTest && TryBootstrapRemote())
+        // A local test scene (§54.17 meal preparation) never goes remote.
+        if (!localTest)
         {
-            return;
+            if (TryBootstrapRemote())
+            {
+                return;
+            }
         }
 
         // §41.3 (r3): экран загрузки строит большой остров на воркере и отдаёт

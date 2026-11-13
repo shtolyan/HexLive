@@ -194,7 +194,7 @@ namespace HexLive.UnityPresentation.Config
 
         [Header("Питьё — сколько восстанавливает")]
         [Tooltip("Длительность питья бутылки в тиках (глоток за глотком).")]
-        [Range(1, 60)] public int drinkBottleDurationTicks = 16;
+        [Range(1, 60)] public int drinkBottleDurationTicks = 24;
         [Tooltip("Сколько жажды снимает СЫРАЯ бутылка (но риск болезни).")]
         [Range(0f, 1f)] public float drinkThirstRaw = 0.21f;
         [Tooltip("Сколько жажды снимает КИПЯЧЁНАЯ бутылка (безопасно).")]

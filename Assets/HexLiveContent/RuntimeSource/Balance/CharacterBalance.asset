@@ -70,7 +70,7 @@ MonoBehaviour:
   sickTorsoPerSlowTick: 0.002
   sickTorsoFloor: 0.15
   sickComfortPerSlowTick: 0.006
-  drinkBottleDurationTicks: 16
+  drinkBottleDurationTicks: 24
   drinkThirstRaw: 0.21
   drinkThirstBoiled: 0.26
   drinkComfortBoiled: 0.015

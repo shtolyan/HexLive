@@ -502,7 +502,10 @@ public static class CraftingOptions
                 GateOk = StationGateOk(world, recipe, option.Goal, station) &&
                     (option.Goal != GoalType.CookMeat ||
                         (selectedRawMeat == null
-                            ? npc.Inventory.Items.Exists(item => BuildSiteMath.CanHangMeat(world, station, item.DefinitionId))
+                            // No raw meat carried at all is a missing ingredient,
+                            // not a busy spit: the bill reports it (§54.14A).
+                            ? !npc.Inventory.Items.Exists(item => HumanMeatCatalog.IsRaw(item.DefinitionId)) ||
+                              npc.Inventory.Items.Exists(item => BuildSiteMath.CanHangMeat(world, station, item.DefinitionId))
                             : BuildSiteMath.CanHangMeat(world, station, selectedRawMeat))),
                 Busy = StationBusy(npc, station, scan),
                 BillCovered = BillCovered(ingredients),

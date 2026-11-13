@@ -100,10 +100,14 @@ namespace HexLive.UnityPresentation.Wearing
             // pose was authored around the bag origin, with hips above it and
             // shifted toward the headboard. Fit that pose to the mattress.
             var scale = _bodyRoot.lossyScale.y;
+            // Measured in world units on the production models. The quilt
+            // and pillow need a higher pose and more clearance from the
+            // headboard than the palm mattress.
             var fit = _pillowBed
-                ? new Vector3(0f, -.23f, .02f)
-                : new Vector3(0f, -.19f, .14f);
-            var mattressRoot = anchor.position + anchor.rotation * fit * scale;
+                ? new Vector3(0f, -.018f, .246f)
+                : new Vector3(0f, -.024f, .108f);
+            var mattressRoot = anchor.position + anchor.rotation * fit *
+                (scale / Rendering.HexWorldRenderer.ActorScale);
             var entry = (_bedEntry.position - anchor.position).sqrMagnitude <= 4f
                 ? _bedEntry : new Pose(transform.position, transform.rotation);
             return new Pose(Vector3.Lerp(entry.position, mattressRoot, blend),

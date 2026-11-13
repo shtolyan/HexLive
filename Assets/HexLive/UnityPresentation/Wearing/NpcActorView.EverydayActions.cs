@@ -11,6 +11,9 @@ namespace HexLive.UnityPresentation.Wearing
         private AnimationClip _bedSleepClip;
         private Pose _bedEntry;
         private bool _pillowBed;
+        private Transform _sleepHips;
+        private Transform _sleepSpine;
+        private Transform _sleepRig;
         private EverydayActionClips _bedClips;
         private AnimationClip _everydayClip;
         private AnimationClip _requestedEverydayClip;
@@ -103,6 +106,37 @@ namespace HexLive.UnityPresentation.Wearing
                 ? _bedEntry : new Pose(transform.position, transform.rotation);
             return new Pose(Vector3.Lerp(entry.position, mattressRoot, blend),
                 Quaternion.Slerp(entry.rotation, anchor.rotation, blend));
+        }
+
+        private void FitSleepingPelvis(Pose support)
+        {
+            if (_bedSleepClip == null || _animator == null || !_animator.isHuman ||
+                !_animator.GetCurrentAnimatorStateInfo(0).IsName("Sleep")) return;
+
+            if (_sleepRig != _animator.transform)
+            {
+                _sleepRig = _animator.transform;
+                _sleepHips = _animator.GetBoneTransform(HumanBodyBones.Hips);
+                _sleepSpine = _animator.GetBoneTransform(HumanBodyBones.Spine);
+            }
+            if (_sleepHips == null || _sleepSpine == null) return;
+            var leftLeg = _animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
+            var rightLeg = _animator.GetBoneTransform(HumanBodyBones.RightUpperLeg);
+            var leftArm = _animator.GetBoneTransform(HumanBodyBones.LeftUpperArm);
+            var rightArm = _animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
+            if (leftLeg == null || rightLeg == null || leftArm == null || rightArm == null) return;
+
+            var axis = support.rotation * Vector3.forward;
+            var pelvis = Vector3.ProjectOnPlane(rightLeg.position - leftLeg.position, axis);
+            var shoulders = Vector3.ProjectOnPlane(rightArm.position - leftArm.position, axis);
+            if (pelvis.sqrMagnitude < .0001f || shoulders.sqrMagnitude < .0001f) return;
+
+            // Keep the authored side-lying shape while easing excessive twist
+            // between the hips and the shoulders on a wider retargeted body.
+            var twist = Mathf.Clamp(Vector3.SignedAngle(pelvis, shoulders, axis) * .45f, -15f, 15f);
+            var spineRotation = _sleepSpine.rotation;
+            _sleepHips.rotation = Quaternion.AngleAxis(twist, axis) * _sleepHips.rotation;
+            _sleepSpine.rotation = spineRotation;
         }
 
         private bool FitBedWakeRoot()

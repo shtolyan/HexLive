@@ -164,6 +164,43 @@ public sealed class CornerHopRouteTests
         Assert.That(npc.CurrentJunction, Is.EqualTo(destination.Id));
     }
 
+    [Test]
+    public void ShoreClimbHoldsTheLipAndKeepsTheRouteUntilTheTakeFinishes()
+    {
+        var (world, npc, near, far, _, route) = CreateRoute(0, true, false);
+        world.Tiles.Items[near].Flags = TileFlags.Water;
+        var movement = new MovementSystem();
+        for (var i = 0; i < 80 && npc.Movement.HopTimer <= 0f; i++)
+        {
+            world.Tick++;
+            movement.Run(world);
+        }
+        Assert.That(npc.Movement.HopTimer, Is.EqualTo(HexHopTuning.ShoreClimbSeconds));
+        var launchTick = world.Tick;
+        var takeoff = npc.Movement.HopFrom;
+        while (npc.Movement.HopTimer > 0f)
+        {
+            world.Tick++;
+            movement.Run(world);
+            var elapsed = (world.Tick - launchTick) * world.TickDeltaTime;
+            if (elapsed < HexHopTuning.ShoreClimbCrossStart)
+            {
+                Assert.That(npc.Position, Is.EqualTo(takeoff));
+                Assert.That(npc.Tile, Is.EqualTo(near));
+            }
+            if (elapsed < HexHopTuning.ShoreClimbSeconds)
+                Assert.That(npc.Movement.HopTimer, Is.GreaterThan(0f));
+            Assert.That(elapsed, Is.LessThan(HexHopTuning.ShoreClimbSeconds + 1f));
+        }
+        Assert.That(npc.Tile, Is.EqualTo(far));
+        for (var i = 0; i < 40 && npc.Movement.IsMoving; i++)
+        {
+            world.Tick++;
+            movement.Run(world);
+        }
+        Assert.That(npc.Position, Is.EqualTo(route[^1].WorldPosition));
+    }
+
     private static (WorldState world, NPCState npc, TileCoord near, TileCoord far, TileCoord third, Junction[] path)
         CreateRoute(int yaw, bool up, bool reverseMembership)
     {

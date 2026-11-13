@@ -35,7 +35,7 @@ function Card({ card, send }) {
         ${card.relation && html`
           <span class="hx-roster__relations">
             ${[
-              ['affinity', card.relation.affinity, '♥', card.relation.affinity < 0 ? 'negative' : 'affinity'],
+              ['affinity', (card.relation.affinity + 1) / 2, '♥', card.relation.affinity < 0 ? 'negative' : 'affinity'],
               ['familiarity', card.relation.familiarity, '●', 'familiarity'],
               ['trust', card.relation.trust, '◆', 'trust'],
             ].map(([id, value, glyph, tone]) => {

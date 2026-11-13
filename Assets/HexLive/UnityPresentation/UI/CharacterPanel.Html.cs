@@ -339,7 +339,7 @@ namespace HexLive.UnityPresentation.UI
                     ["name"] = Loc.NpcName(r.OtherName),
                     ["face"] = r.OtherId >= 0 ? FaceKey(r.OtherId) : null,
                     ["tag"] = RelationKindKey(r.Affinity),
-                    ["affinity"] = Mathf.Round(Mathf.Clamp(r.Affinity, -1f, 1f) * 100f) / 100f,
+                    ["affinity"] = Mathf.Clamp(r.Affinity, -1f, 1f),
                     ["familiarity"] = Mathf.Round(Mathf.Clamp01(r.Familiarity) * 100f) / 100f,
                     ["trust"] = Mathf.Round(Mathf.Clamp01(r.Trust) * 100f) / 100f,
                 });

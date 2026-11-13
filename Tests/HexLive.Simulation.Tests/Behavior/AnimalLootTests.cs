@@ -80,6 +80,55 @@ public sealed class AnimalLootTests
         Assert.That(hides.Select(obj => obj.DefinitionId), Is.EqualTo(new[] { WolfHide }));
     }
 
+    [Test]
+    public void WolfGoesFromButcheringToThreeServedPortionsAndOneMeal()
+    {
+        var (engine, actor) = Fixture();
+        var world = engine.World;
+        Butcher(engine, actor, MobIds.Dog);
+
+        var anchor = actor.CurrentJunction!.Value;
+        var fire = WorldObjectMutations.SpawnObject(world, ContentIds.Campfire,
+            actor.Fragment, actor.Tile, anchor);
+        SetWorkpoint(world, actor, fire);
+        fire.ResourceAmount = 100000f;
+        for (var i = 0; i < SimBalance.CampfireBillSticks; i++)
+            fire.Contents.Add(new ItemInstance(ContentIds.Stick));
+        for (var i = 0; i < SimBalance.CampfireBillRope; i++)
+            fire.Contents.Add(new ItemInstance(ContentIds.Rope));
+
+        var rawSlot = actor.Inventory.Items.FindIndex(item => item.DefinitionId == ContentIds.WolfCarcassRaw);
+        Apply(engine, new ManageInventoryCommand(actor.Id,
+            new InventoryItemRef(InventoryItemSource.Carried, rawSlot, ContentIds.WolfCarcassRaw), InventoryAction.Cook));
+        Until(engine, () => fire.Contents.Any(item => item.DefinitionId == ContentIds.WolfCarcassCooked));
+        Apply(engine, new InteractCommand(actor.Id, fire.Id, InteractionType.PickUp));
+        Until(engine, () => actor.Inventory.Items.Any(item => item.DefinitionId == ContentIds.WolfCarcassCooked));
+        Assert.That(engine.ApplyManualCommand(new SelfActionCommand(actor.Id, SelfActionKind.EatFromPack)).Accepted,
+            Is.False, "A roasted carcass must be served first.");
+
+        WorldObjectMutations.DespawnObject(world, fire.Id);
+        var stump = WorldObjectMutations.SpawnObject(world, ContentIds.PalmStump,
+            actor.Fragment, actor.Tile, anchor);
+        var roastSlot = actor.Inventory.Items.FindIndex(item => item.DefinitionId == ContentIds.WolfCarcassCooked);
+        Apply(engine, new ManageInventoryCommand(actor.Id,
+            new InventoryItemRef(InventoryItemSource.Carried, roastSlot, ContentIds.WolfCarcassCooked), InventoryAction.Serve));
+        Until(engine, () => actor.Inventory.Items.Count(item => item.DefinitionId == ContentIds.MeatCooked) == 3);
+        Assert.That(stump.IsOccupied, Is.False);
+        Assert.That(actor.Inventory.Items.Any(item => item.DefinitionId == ContentIds.WolfCarcassCooked), Is.False);
+        var portions = actor.Inventory.Items.Where(item => item.DefinitionId == ContentIds.MeatCooked).ToArray();
+        Assert.That(portions.Select(item => item.ResourceAmount), Is.All.EqualTo(300f));
+
+        actor.Needs.Hunger = .8f;
+        var portionSlot = actor.Inventory.Items.FindIndex(item => ReferenceEquals(item, portions[1]));
+        Apply(engine, new ManageInventoryCommand(actor.Id,
+            new InventoryItemRef(InventoryItemSource.Carried, portionSlot, ContentIds.MeatCooked), InventoryAction.Eat));
+        Until(engine, () => actor.Plan.Status == PlanStatus.Completed);
+        Assert.That(portions[1].ResourceAmount, Is.EqualTo(200f).Within(.002f));
+        Assert.That(portions[0].ResourceAmount, Is.EqualTo(300f));
+        Assert.That(portions[2].ResourceAmount, Is.EqualTo(300f));
+        Assert.That(actor.Needs.Hunger, Is.EqualTo(.5f).Within(.002f));
+    }
+
     [TestCase(ContentIds.Hide, false)]
     [TestCase(WolfHide, false)]
     [TestCase(WolfHide, true)]

@@ -39,11 +39,11 @@ public sealed class WirePropertyProtocolTests
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         new Handshake { Seed=649, WorldId="test-property-ownership", ControlEnabled=true }.Write(writer);
         stream.Position = 0; using var reader = new BinaryReader(stream);
-        Assert.That(reader.ReadInt32(), Is.EqualTo(34)); stream.Position=0;
+        Assert.That(reader.ReadInt32(), Is.EqualTo(35)); stream.Position=0;
         var received = Handshake.Read(reader);
         Assert.That(received.WorldId, Is.EqualTo("test-property-ownership"));
         Assert.That(received.ControlEnabled, Is.True);
-        Assert.That(WorldSnapshotCodec.WireVersion, Is.EqualTo(50));
+        Assert.That(WorldSnapshotCodec.WireVersion, Is.EqualTo(51));
     }
 }
 }

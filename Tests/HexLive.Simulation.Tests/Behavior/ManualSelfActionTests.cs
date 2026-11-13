@@ -179,6 +179,32 @@ public sealed class ManualSelfActionTests
             "The completed explicit meal still retires normally.");
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public void ManualCharacterServesAndEatsRoastedHumanTorsoInPlace(bool explicitOrder)
+    {
+        var engine = TestWorld.CreateEngine();
+        var npc = Colonists(engine.World)[0];
+        TakeControl(engine, npc);
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.Knife));
+        npc.Inventory.Items.Add(new ItemInstance(HumanMeatCatalog.TorsoCooked));
+        npc.Needs.Hunger = explicitOrder ? .4f : .96f;
+        var start = npc.Position;
+
+        if (explicitOrder)
+            Assert.That(engine.ApplyManualCommand(new SelfActionCommand(npc.Id, SelfActionKind.EatFromPack)).Accepted,
+                Is.True);
+
+        for (var i = 0; i < 250 && !engine.World.Events.Items.Any(evt => evt.Type == "MeatEaten"); i++)
+            engine.Step();
+
+        Assert.That(npc.Position, Is.EqualTo(start));
+        Assert.That(npc.Inventory.Items.Any(item => item.DefinitionId == HumanMeatCatalog.TorsoCooked), Is.False);
+        Assert.That(npc.Inventory.Items.Where(item => item.DefinitionId == ContentIds.MeatCooked)
+            .Sum(item => item.ResourceAmount), Is.EqualTo(1700f).Within(.002f));
+    }
+
     [Test]
     public void StoppingEatingPreservesPartiallyConsumedGrams()
     {

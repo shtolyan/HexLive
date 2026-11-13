@@ -52,9 +52,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
-            if (npc.Mind.CurrentGoal == GoalType.GetFood &&
-                (npc.Inventory.FindFirstFood(world.Content) is not null ||
-                 DecisionSystem.HasInventoryCoconutMeal(npc)))
+            if (npc.Mind.CurrentGoal == GoalType.GetFood && DecisionSystem.HasInventoryMeal(world, npc))
             {
                 PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Food already available in inventory");
                 npc.Mind.CurrentGoal = GoalType.None;

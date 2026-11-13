@@ -856,6 +856,17 @@ public sealed partial class ExecutionSystem
                 if (SimTrace.Enabled)
                     Trace.Debug(world, npc.Id, "MealServed",
                         $"{itemId} -> {served} g of {MealServing.OutputFor(itemId)} on the ground");
+
+                var portionId = MealServing.OutputFor(itemId);
+                if (npc.Plan.Goal == GoalType.Eat && FoodMath.NextBite(npc, portionId) != null)
+                {
+                    npc.Plan.TargetItemDefinitionId = portionId;
+                    npc.Plan.Steps[0].Interaction = InteractionType.Eat;
+                    npc.Execution.Status = ExecutionStatus.None;
+                    npc.Execution.CurrentInteraction = null;
+                    npc.Execution.TargetInventoryItem = null;
+                    return;
+                }
             }
             else
             {

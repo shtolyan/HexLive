@@ -16,6 +16,8 @@ namespace HexLive.UnityPresentation.Wearing
         private Transform _sleepRig;
         private IKSolverLimb _sleepLeftArm;
         private IKSolverLimb _sleepRightArm;
+        private Transform _sleepLeftFingers;
+        private Transform _sleepRightFingers;
         private EverydayActionClips _bedClips;
         private AnimationClip _everydayClip;
         private AnimationClip _requestedEverydayClip;
@@ -162,13 +164,17 @@ namespace HexLive.UnityPresentation.Wearing
                 state.IsName("LieDown") ? Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.63f, .91f, state.normalizedTime)) :
                 state.IsName("GetUp") ? Mathf.SmoothStep(1f, 0f, Mathf.InverseLerp(.04f, .32f, state.normalizedTime)) :
                 0f;
-            if (weight <= .001f) return;
+            var handWeight = state.IsName("LieDown")
+                ? Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.64f, .77f, state.normalizedTime)) : weight;
+            if (weight <= .001f && handWeight <= .001f) return;
 
             if (_sleepRig != _animator.transform)
             {
                 _sleepRig = _animator.transform;
                 _sleepHips = _animator.GetBoneTransform(HumanBodyBones.Hips);
                 _sleepSpine = _animator.GetBoneTransform(HumanBodyBones.Spine);
+                _sleepLeftFingers = _animator.GetBoneTransform(HumanBodyBones.LeftMiddleIntermediate);
+                _sleepRightFingers = _animator.GetBoneTransform(HumanBodyBones.RightMiddleIntermediate);
                 _sleepLeftArm = null;
                 _sleepRightArm = null;
             }
@@ -199,11 +205,13 @@ namespace HexLive.UnityPresentation.Wearing
 
             _sleepLeftArm ??= CreateSleepArm(true);
             _sleepRightArm ??= CreateSleepArm(false);
-            var torso = (leftArm.position + rightArm.position + _sleepSpine.position * 2f) * .25f;
-            var torsoClearance = Vector3.Distance(leftArm.position, rightArm.position) * .42f;
+            var chest = (leftArm.position + rightArm.position + _sleepSpine.position * 2f) * .25f;
+            var torsoClearance = Vector3.Distance(leftArm.position, rightArm.position) * .47f;
             var mattressUp = bedRotation * Vector3.up;
-            KeepSleepingHandClear(_sleepLeftArm, torso, torsoClearance, mattressUp);
-            KeepSleepingHandClear(_sleepRightArm, torso, torsoClearance, mattressUp);
+            KeepSleepingHandClear(_sleepLeftArm, _sleepLeftFingers, _sleepSpine.position, chest,
+                torsoClearance, mattressUp, handWeight);
+            KeepSleepingHandClear(_sleepRightArm, _sleepRightFingers, _sleepSpine.position, chest,
+                torsoClearance, mattressUp, handWeight);
         }
 
         private IKSolverLimb CreateSleepArm(bool left)
@@ -218,19 +226,47 @@ namespace HexLive.UnityPresentation.Wearing
             return solver;
         }
 
-        private static void KeepSleepingHandClear(IKSolverLimb solver, Vector3 torso, float clearance, Vector3 mattressUp)
+        private static void KeepSleepingHandClear(IKSolverLimb solver, Transform fingers,
+            Vector3 torsoBase, Vector3 chest, float clearance, Vector3 mattressUp, float weight)
         {
             if (solver == null || !solver.initiated) return;
             var hand = solver.bone3.transform;
-            var offset = hand.position - torso;
-            if (offset.sqrMagnitude >= clearance * clearance) return;
+            // Check the hand along its length. A wrist outside the chest can
+            // still place the knuckles through a shirt when the palm curls in.
+            // Bias toward the open side of the pose. A straight upward push
+            // alone can fold a closely bent elbow and leave the palm inside.
+            var torsoAxis = chest - torsoBase;
+            var outward = Vector3.ProjectOnPlane(hand.position - chest, torsoAxis);
+            var liftDirection = (mattressUp + outward.normalized * .85f).normalized;
+            var push = HandClearanceLift(hand.position, torsoBase, chest, clearance, liftDirection);
+            if (fingers != null)
+            {
+                push = Mathf.Max(push, HandClearanceLift(fingers.position, torsoBase, chest, clearance, liftDirection));
+                push = Mathf.Max(push, HandClearanceLift(Vector3.Lerp(hand.position, fingers.position, .5f),
+                    torsoBase, chest, clearance, liftDirection));
+            }
+            if (push <= .001f) return;
 
-            solver.IKPosition = hand.position + mattressUp * (clearance - Vector3.Dot(offset, mattressUp));
+            solver.IKPosition = hand.position + liftDirection * ((push + .018f) * weight);
             solver.IKRotation = hand.rotation;
-            solver.IKPositionWeight = .85f;
+            solver.IKPositionWeight = 1f;
             solver.IKRotationWeight = 1f;
             solver.MaintainBend();
             solver.Update();
+        }
+
+        private static float HandClearanceLift(Vector3 point, Vector3 torsoBase, Vector3 chest, float clearance,
+            Vector3 liftDirection)
+        {
+            var axis = chest - torsoBase;
+            var along = Mathf.Clamp01(Vector3.Dot(point - torsoBase, axis) / Mathf.Max(.0001f, axis.sqrMagnitude));
+            var offset = point - (torsoBase + axis * along);
+            var lift = Vector3.Dot(offset, liftDirection);
+            var lateralSquared = Mathf.Max(0f, offset.sqrMagnitude - lift * lift);
+            var clearanceSquared = clearance * clearance;
+            return offset.sqrMagnitude < clearanceSquared
+                ? Mathf.Sqrt(Mathf.Max(0f, clearanceSquared - lateralSquared)) - lift
+                : 0f;
         }
 
         private bool FitBedWakeRoot()

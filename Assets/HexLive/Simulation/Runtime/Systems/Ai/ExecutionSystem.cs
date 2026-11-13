@@ -2157,9 +2157,6 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
     {
-        // Spec 35.2 / §54 (R1): the object is consumed; loot is
-        // declared as data (Yields) and scatters on the ground.
-        ApplyHarvestYields(world, npc, worldObject, completedInteraction.Yields);
         if (definition.HasTag("Boulder"))
         {
             // §80: число берётся из самой добычи. Зашитая «4» врала
@@ -2181,7 +2178,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         else
         {
             Trace.Emit(world, npc.Id, "TreeChopped",
-                $"{worldObject.DefinitionId} felled -> logs scattered");
+                $"{worldObject.DefinitionId} felled");
         }
 
         // §54.2: a felled palm leaves a sit-able stump obstacle at its
@@ -2200,6 +2197,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             WorldObjectMutations.SpawnObject(world, ContentIds.PalmStump, stumpFragment, stumpTile, sj);
         }
 
+        ApplyHarvestYields(world, npc, worldObject, completedInteraction.Yields);
         return true;
     }
 
@@ -2222,8 +2220,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
         else
         {
-        // Spec §54: processing consumes its source. Log products go into
-        // piles; other harvests retain their declared distribution.
+        // §54: remove the consumed source before admitting its yield.
         // Failed admission retains outputs, so completion never retries yields.
         WorldObjectMutations.DespawnObject(world, worldObject.Id);
         ApplyHarvestYields(world, npc, worldObject, completedInteraction.Yields);
@@ -2275,7 +2272,24 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         var drops = worldObject.DefinitionId == ContentIds.CarcassAnimal
             ? AnimalCarcassYields(worldObject.Variant, completedInteraction.Yields)
             : completedInteraction.Yields;
-        ApplyHarvestYields(world, npc, worldObject, drops);
+        // §54.17 r2: meat can displace less important cargo; hides scatter.
+        foreach (var drop in drops)
+        {
+            for (var i = 0; i < drop.Count; i++)
+            {
+                var item = CreateYieldItem(world, drop.DefinitionId, worldObject);
+                if (drop.Scatter)
+                {
+                    if (TryDropYieldNear(world, npc, worldObject, item, out _, scatter: true))
+                        continue;
+                }
+                else
+                {
+                    InventoryMath.MakeRoomFor(world, npc, drop.DefinitionId);
+                }
+                GiveOrDrop(world, npc, item);
+            }
+        }
         var wasCorpse = definition.HasTag("Corpse");
         if (wasCorpse && SimBalance.CannibalismEnabled)
         {
@@ -2610,36 +2624,21 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
     }
 
-    // Spec §54 (R1): materialize a data-driven Yields list. Scatter drops land
-    // as distinct ground objects at free junctions around the harvested/split
-    // spot (logs & leaves around the stump). Log-processing output instead
-    // uses regular compatible piles at that worksite; a
-    // non-Scatter drop falls back to the legacy inventory-first GiveOrDrop.
+    // §54.1: harvest and wood-processing output uses free pack space first.
+    // Overflow uses the same piles as a manual drop, near the work site.
     internal static void ApplyHarvestYields(
         WorldState world, NPCState npc, WorldObjectState source,
         System.Collections.Generic.IReadOnlyList<HarvestDrop> yields)
     {
-        var stackGroundYields = source.DefinitionId == ContentIds.Log;
         foreach (var drop in yields)
         {
             for (var i = 0; i < drop.Count; i++)
             {
-                if (!drop.Scatter)
-                {
-                    // §54.17 r2: a pocketed yield may bump a less important
-                    // item (importance-guarded) — a pack full of sticks must
-                    // not send fresh meat to rot on the ground.
-                    InventoryMath.MakeRoomFor(world, npc, drop.DefinitionId);
-                    GiveOrDrop(world, npc, CreateYieldItem(world, drop.DefinitionId, source));
-                    continue;
-                }
-
                 var item = CreateYieldItem(world, drop.DefinitionId, source);
-                if (!TryDropYieldNear(world, npc, source, item, out _,
-                        scatter: !stackGroundYields, preferExistingPile: stackGroundYields))
-                {
-                    GiveOrDrop(world, npc, item);
-                }
+                if (InventoryMath.FitsWithoutEviction(world, npc, item.DefinitionId))
+                    npc.Inventory.Items.Add(item);
+                else if (!TryDropYieldNear(world, npc, source, item, out _, preferExistingPile: true))
+                    DropOrRetain(world, npc, item);
             }
         }
     }

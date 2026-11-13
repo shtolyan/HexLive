@@ -148,6 +148,15 @@ public static class SpatialQueries
             return false;
         }
 
+        // #765: a thing standing ON furniture (a glass on the table, a book on
+        // the shelf) is reached across its SUPPORT's footprint — the support is
+        // what blocks the junctions under it, and it is the same obstacle.
+        if (target?.SurfaceObjectId is { } supportId &&
+            world.Entities.Objects.TryGetValue(supportId, out var support))
+        {
+            target = support;
+        }
+
         if (target is null || !target.BlockedJunctions.Contains(junctionId))
         {
             return true;

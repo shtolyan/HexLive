@@ -431,8 +431,7 @@ public static class PortalWorld
             !world.Tiles.Items.TryGetValue(tile, out var floor) ||
             (floor.Flags & (TileFlags.Water | TileFlags.Blocked)) != 0 ||
             !floor.Flags.HasFlag(TileFlags.HasFloor) ||
-            StructurePlacement.CenterJunction(world, tile) is not { } anchor ||
-            world.Junctions.Items[anchor].Blocked || !SpatialQueries.IsJunctionFree(world, anchor))
+            StructurePlacement.CenterJunction(world, tile) is not { } anchor)
             return "PlacementBlocked";
 
         var faction = ConstructionAccess.Builder(world, factions, tile);
@@ -442,6 +441,10 @@ public static class PortalWorld
                 (obj.Variant == PlacedFurnitureVariant || BuildSiteMath.IsSite(obj) ||
                  !obj.IsArchitectureElement && world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def) &&
                  def.HasTag("Furniture") && !IsFurniture(obj.DefinitionId)))) return "HexOccupied";
+        // #765: asked after the occupancy check — a hex that already holds a
+        // piece answers "occupied", not the blocked centre point of that piece.
+        if (world.Junctions.Items[anchor].Blocked || !SpatialQueries.IsJunctionFree(world, anchor))
+            return "PlacementBlocked";
 
         return PlaceFurnitureFromStock(world, definitionId, tile, anchor,
             StructurePlacement.QuantizeHexYaw(rotation), faction, out _);
@@ -885,9 +888,9 @@ public static class PortalWorld
                 furniture.Tile, anchor.Junction);
             piece.Variant = ApartmentFurnitureVariant + "." + serial.ToString(System.Globalization.CultureInfo.InvariantCulture);
             piece.RotationDegrees = furniture.RotationDegrees;
-            // #755-757: the bed blocks bed.basic's 14 points here too; the
-            // apartment table keeps its pre-#745 behaviour.
-            if (furniture.DefinitionId == ContentIds.ModernBed) PortableFurniture.ApplyPlacedFootprint(world, piece);
+            // #755-757 / #765: every apartment piece owns its authored
+            // footprint, exactly like the same piece set down on the island.
+            PortableFurniture.ApplyPlacedFootprint(world, piece);
             world.Portal.GeneratedObjects.Add(piece.Id);
             if (furniture.DefinitionId == "furniture.modern_table") table = piece;
             if (furniture.DefinitionId == ApartmentShelfDefinitionId) shelf = piece;

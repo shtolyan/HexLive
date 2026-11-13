@@ -266,7 +266,17 @@ public sealed class PortalWorldTests
         var world = CreateWorld(7);
         Assert.That(PortalWorld.OpenImmediately(world, Faction.Colony), Is.Null);
         var glass = world.Entities.Objects.Values.Single(obj => obj.DefinitionId == ContentIds.DrinkingGlass);
-        var visitor = AddVisitor(world, glass.Junctions[0], glass.Tile);
+        // #765: the table is solid now — the visitor stands beside it, two
+        // steps off, and walks up to the glass like anyone else.
+        var tableAnchor = world.Junctions.Items[glass.Junctions[0]];
+        Assert.That(tableAnchor.Blocked, Is.True, "The apartment table blocks its footprint.");
+        var beside = world.Junctions.Items.Values
+            .Where(point => point.Fragment == tableAnchor.Fragment && !point.Blocked && !point.Door &&
+                SpatialQueries.IsJunctionFree(world, point.Id) &&
+                HexSpatialMath.Distance(point.WorldPosition, tableAnchor.WorldPosition) > 1.1f)
+            .OrderBy(point => HexSpatialMath.Distance(point.WorldPosition, tableAnchor.WorldPosition))
+            .ThenBy(point => point.Id.Value).First();
+        var visitor = AddVisitor(world, beside.Id, beside.Tiles[0]);
         visitor.Mind.ManualControl = true;
         var engine = new SimulationEngine(world, new SimulationSettings(), new SimulationClock());
         engine.Register(new PathfindingSystem());

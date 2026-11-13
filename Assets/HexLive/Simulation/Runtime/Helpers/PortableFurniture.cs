@@ -29,7 +29,15 @@ public static class PortableFurniture
     /// route ran straight through them and under the tabletop.
     /// </summary>
     public static bool BlocksFootprintEverywhere(string definitionId) =>
-        definitionId is ContentIds.BedBasic or ContentIds.ModernTable or ContentIds.ModernBed;
+        // #765: every modern piece is solid wherever it stands — the island, a
+        // house floor, the apartment. Chair, fridge, shelf, wardrobe, TV and the
+        // sofa blocked nothing before and were walked straight through.
+        // The chest, the rain collector and the workbench are the same case:
+        // an authored footprint (disc of 7, disc of 7, table's 11) that only an
+        // indoor floor used to stamp. Outdoors the collector and the chest
+        // blocked their single anchor point, the workbench a 0.62 wu disc.
+        definitionId is ContentIds.BedBasic or ContentIds.StorageChest or ContentIds.WaterCollector
+            or ContentIds.Workbench || PortalWorld.IsFurniture(definitionId);
 
     /// <summary>Stamp the authored footprint once the placement yaw is final
     /// (spawn happens at yaw 0, and the table's 4-3-4 rows and the beds' two

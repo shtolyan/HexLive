@@ -43,6 +43,11 @@ namespace HexLive.Simulation.Runtime.Blueprints
             FromAxial(-1, 0), FromAxial(-1, 1), FromAxial(0, 1)
         };
         private static readonly JunctionKey[] Single = { FromAxial(0, 0) };
+        // #765: диван — стол с двумя торцевыми точками: ряды «4, 5, 4»,
+        // 0,65 × 1,5 wu, 13 точек, якорь в середине. Модель 0,78 × 1,83 wu;
+        // прежний диск из семи точек (0,75 в поперечнике) оставлял оба торца
+        // проходимыми — сквозь подлокотники шли как сквозь воздух.
+        private static readonly JunctionKey[] Sofa = BuildSofa();
 
         public static IReadOnlyList<JunctionKey> LocalOffsets(string definitionId) =>
             Authored(definitionId) ?? Single;
@@ -75,7 +80,21 @@ namespace HexLive.Simulation.Runtime.Blueprints
             // §120.13/§176: современная мебель ставится по той же сетке. Диван
             // занимает симметричный диск из семи точек (0,75 wu в поперечнике) —
             // ориентация модели на след не влияет; мелкие предметы — одну.
-            if (string.Equals(definitionId, "furniture.modern_sofa", StringComparison.Ordinal)) return StationDisc;
+            if (string.Equals(definitionId, "furniture.modern_sofa", StringComparison.Ordinal)) return Sofa;
+            // #765: остальная современная мебель до сих пор не занимала НИЧЕГО
+            // (ни тега Obstacle, ни радиуса) — замер на сейве: стул, холодильник,
+            // стеллаж, шкаф и телевизор блокировали 0 точек, персонаж проходил в
+            // 0,04–0,34 wu от их центров. Следы сняты с габаритов моделей
+            // (modern-apartment-art.json, длинная сторона — ось +Y следа):
+            //   холодильник 0,70 × 0,61 — диск из семи точек (0,75 в поперечнике);
+            //   стеллаж 0,30 × 0,70, шкаф 0,42 × 0,83, телевизор 0,46 × 1,11 —
+            //   ряд из трёх точек (0,75 wu) вдоль стены;
+            //   стул 0,43 × 0,51 — одна точка.
+            if (string.Equals(definitionId, ContentIds.ModernFridge, StringComparison.Ordinal)) return StationDisc;
+            if (string.Equals(definitionId, "furniture.modern_shelf", StringComparison.Ordinal) ||
+                string.Equals(definitionId, ContentIds.ModernWardrobe, StringComparison.Ordinal) ||
+                string.Equals(definitionId, "furniture.modern_tv", StringComparison.Ordinal)) return Wardrobe;
+            if (string.Equals(definitionId, "furniture.modern_chair", StringComparison.Ordinal)) return Single;
             return null;
         }
 
@@ -169,6 +188,19 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 result.Add(new JunctionKey(1, y));
             }
             for (var y = -2; y <= 2; y += 2)
+                result.Add(new JunctionKey(0, y));
+            return result.ToArray();
+        }
+
+        private static JunctionKey[] BuildSofa()
+        {
+            var result = new List<JunctionKey>(13);
+            for (var y = -3; y <= 3; y += 2)
+            {
+                result.Add(new JunctionKey(-1, y));
+                result.Add(new JunctionKey(1, y));
+            }
+            for (var y = -4; y <= 4; y += 2)
                 result.Add(new JunctionKey(0, y));
             return result.ToArray();
         }

@@ -1382,6 +1382,27 @@ public static class WorldSaveSerializer
                 PortalWorld.RealignApartmentBed(world, obj);
                 WorldObjectMutations.SetAuthoredFurnitureBlocking(world, obj, blocked: true);
             }
+
+            // #765: the rest of the modern set — chair, sofa, fridge, shelf,
+            // wardrobe, TV, and the apartment's own table — blocked nothing in
+            // every save up to 0.1.122. Stamp the authored footprint for a
+            // piece that stands (placed, or apartment furniture); a loose find
+            // lying on the ground stays a single walkable item. Idempotent.
+            if (obj.DefinitionId != ContentIds.ModernBed && PortalWorld.IsFurniture(obj.DefinitionId) &&
+                string.IsNullOrEmpty(obj.BuildProduct) &&
+                (obj.Variant == PortalWorld.PlacedFurnitureVariant ||
+                 PortalWorld.TryGetApartmentFurnitureVisit(obj.Variant, out _)))
+            {
+                WorldObjectMutations.SetAuthoredFurnitureBlocking(world, obj, blocked: true);
+            }
+
+            // #765: a finished chest, rain collector or workbench outdoors held
+            // one point (or a radial disc) instead of its authored footprint.
+            if (obj.DefinitionId is ContentIds.StorageChest or ContentIds.WaterCollector or ContentIds.Workbench &&
+                string.IsNullOrEmpty(obj.BuildProduct) && !obj.IsCraftProject)
+            {
+                WorldObjectMutations.SetAuthoredFurnitureBlocking(world, obj, blocked: true);
+            }
         }
 
         // Migration is spatial too: both legacy hut cots could retain one

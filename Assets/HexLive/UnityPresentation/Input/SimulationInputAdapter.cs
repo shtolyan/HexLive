@@ -1297,8 +1297,7 @@ public sealed partial class SimulationInputAdapter : MonoBehaviour
                 (interaction.Type == InteractionType.PickUp || interaction.Type == InteractionType.Craft)) continue;
             if (clicked != null && interaction.Type == InteractionType.PickUp &&
                 PortableFurniture.CanCarry(clicked.DefinitionId) &&
-                !PortableFurniture.CanShowPickup(clicked,
-                    snapshot?.Tiles.Exists(tile => tile.Coord == clicked.Tile && tile.HasFloor) == true)) continue;
+                !PortableFurniture.CanShowPickup(clicked)) continue;
             if (clicked != null && interaction.Type == InteractionType.SwitchFlashlight &&
                 (interaction.Id == FlashlightMath.SwitchOffInteractionId) !=
                     FlashlightMath.IsOn(clicked.ResourceAmount, clicked.Durability)) continue;

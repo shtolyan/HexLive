@@ -1985,6 +1985,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 picked.GetOrCreateContents().AddRange(worldObject.Contents);
             else
                 npc.Inventory.Items.AddRange(worldObject.Contents);
+            if (PortableFurniture.CanCarry(worldObject.DefinitionId) && worldObject.Junctions.Count > 0)
+                Bootstrap.BuildingBootstrap.ForgetPlanFurnitureAt(
+                    world, worldObject.Junctions[0], worldObject.DefinitionId);
             worldObject.Contents.Clear();
             WorldObjectMutations.DespawnObject(world, worldObject.Id);
             if (SimTrace.Enabled)

@@ -40,6 +40,9 @@ public static class FurniturePlacement
     public static int YawStepOf(float rotationDegrees) =>
         (((int)MathF.Round(rotationDegrees / 60f)) % 6 + 6) % 6;
 
+    public static bool CanRemoveFinished(string catalogId) =>
+        catalogId is ContentIds.BedBasic or ContentIds.ModernBed;
+
     /// <summary>
     /// Строка каталога, которой этот объект мира числится в режиме стройки, или
     /// <c>null</c>, если это не расставляемая мебель. Одна функция для симуляции
@@ -377,7 +380,7 @@ public static class FurniturePlacement
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // Убрать площадку. Готовую мебель режим стройки не уничтожает.
+    // Убрать площадку или свободную кровать.
     // ─────────────────────────────────────────────────────────────────────
 
     internal static string Remove(
@@ -386,11 +389,12 @@ public static class FurniturePlacement
         var obj = FindAt(world, catalogId, at);
         if (obj == null) return "NoSuchFurniture";
         if (!ConstructionAccess.CanEditObject(world, factions, obj)) return ConstructionAccess.ForeignReason;
-        if (obj.DefinitionId != ContentIds.BuildSite) return "FurnitureBuilt";
-        if (obj.IsOccupied || obj.CurrentUser.HasValue) return "Occupied";
+        if (obj.DefinitionId != ContentIds.BuildSite && !CanRemoveFinished(catalogId)) return "FurnitureBuilt";
+        if (obj.IsOccupied || obj.CurrentUser.HasValue ||
+            (obj.DefinitionId != ContentIds.BuildSite && obj.Contents.Count > 0)) return "Occupied";
 
         var anchorId = obj.Junctions[0];
-        var product = obj.BuildProduct;
+        var product = BuildingRules.ProductOf(obj);
         // Привезённое не испаряется: материалы ложатся на землю на месте
         // площадки теми же экземплярами.
         if (world.Junctions.Items.TryGetValue(anchorId, out var anchor))

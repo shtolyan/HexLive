@@ -7134,8 +7134,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return true;
     }
 
-    private bool IsIntegratedHutBed(ObjectSnapshot worldObject) =>
-        PortableFurniture.IsBuiltInBed(worldObject.DefinitionId, worldObject.Variant, _floorTiles.Contains(worldObject.Tile));
+    private static bool IsIntegratedHutBed(ObjectSnapshot worldObject) =>
+        PortableFurniture.IsBuiltInBed(worldObject.DefinitionId, worldObject.Variant);
 
     private bool IsIntegratedHutHearth(ObjectSnapshot worldObject) =>
         worldObject.DefinitionId == ContentIds.Campfire &&

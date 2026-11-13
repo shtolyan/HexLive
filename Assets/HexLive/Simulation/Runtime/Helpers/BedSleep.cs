@@ -126,7 +126,7 @@ public static class BedSleep
             SpatialMutations.MoveEntityToTile(world, body.Id, previousTile, body.Tile);
         }
 
-        var integratedBed = IsIntegratedHutBed(world, bed);
+        var integratedBed = IsIntegratedHutBed(bed);
         body.Position = integratedBed
             ? IntegratedHutBedVisualPosition(world, bed, routeAnchor)
             : routeAnchor;
@@ -138,9 +138,8 @@ public static class BedSleep
         body.Movement.DesiredDirection = Forward(body.RotationDegrees);
     }
 
-    private static bool IsIntegratedHutBed(WorldState world, WorldObjectState bed) =>
-        PortableFurniture.IsBuiltInBed(bed.DefinitionId, bed.Variant,
-            world.Tiles.Items.TryGetValue(bed.Tile, out var tile) && tile.Flags.HasFlag(TileFlags.HasFloor));
+    private static bool IsIntegratedHutBed(WorldObjectState bed) =>
+        PortableFurniture.IsBuiltInBed(bed.DefinitionId, bed.Variant);
 
     private static Float2 IntegratedHutBedVisualPosition(
         WorldState world, WorldObjectState bed, Float2 interactionAnchor)

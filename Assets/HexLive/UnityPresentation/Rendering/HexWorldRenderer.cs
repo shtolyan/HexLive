@@ -5072,7 +5072,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             siteRoot.transform.SetParent(_objectsRoot, false);
             var siteAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
             siteRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
-                siteAnchor, GroundY(worldObject.Tile));
+                siteAnchor, ObjectGroundY(worldObject));
             var pile = siteRoot.AddComponent<HexLive.UnityPresentation.Environment.BuildSitePile>();
             pile.Rebuild(worldObject);
             return siteRoot;
@@ -7156,9 +7156,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private static bool IsIntegratedHutBed(ObjectSnapshot worldObject) =>
         PortableFurniture.IsBuiltInBed(worldObject.DefinitionId, worldObject.Variant);
 
-    private bool IsIntegratedHutHearth(ObjectSnapshot worldObject) =>
+    private static bool IsIntegratedHutHearth(ObjectSnapshot worldObject) =>
         worldObject.DefinitionId == ContentIds.Campfire &&
-        (worldObject.Variant == BuildingRules.HutHearthVariant || _floorTiles.Contains(worldObject.Tile));
+        worldObject.Variant == BuildingRules.HutHearthVariant;
 
     private static Float2 GetObjectAnchorFromJunctions(ObjectSnapshot worldObject, Dictionary<int, Float2> junctionPositions)
     {

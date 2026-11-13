@@ -6,10 +6,12 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime.Blueprints;
 using HexLive.UnityPresentation.Environment;
 using HexLive.UnityPresentation.HutTest.BlueprintEditor;
+using HexLive.UnityPresentation.Rendering;
 using HexLive.UnityPresentation.Spatial;
 using HexLive.UnityPresentation.UI;
 using NUnit.Framework;
@@ -21,6 +23,34 @@ namespace HexLive.Tests
 {
 public sealed class WorldHouseGeometryRuntimeTests
 {
+    [Test]
+    public void LegacyHutSiteAndCampfireShareOneFloorSurface()
+    {
+        var root = new GameObject("Floor support test");
+        try
+        {
+            var renderer = root.AddComponent<HexWorldRenderer>();
+            var tile = new TileCoord(0, 0);
+            var floorTiles = (HashSet<TileCoord>)typeof(HexWorldRenderer)
+                .GetField("_floorTiles", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(renderer);
+            floorTiles.Add(tile);
+
+            var site = new ObjectSnapshot { Tile = tile, DefinitionId = ContentIds.BuildSite, BuildProduct = ContentIds.Hut1Hex };
+            var campfire = new ObjectSnapshot { Tile = tile, DefinitionId = ContentIds.Campfire };
+            var campfireSite = new ObjectSnapshot { Tile = tile, DefinitionId = ContentIds.BuildSite, BuildProduct = ContentIds.Campfire };
+            var ground = renderer.GroundTopY(tile);
+            var floor = ground + HutAssembly.FloorSurfaceLift;
+
+            Assert.That(renderer.ObjectGroundTopY(site), Is.EqualTo(ground));
+            Assert.That(renderer.ObjectGroundTopY(campfire), Is.EqualTo(floor));
+            Assert.That(renderer.ObjectGroundTopY(campfireSite), Is.EqualTo(floor));
+        }
+        finally
+        {
+            Object.DestroyImmediate(root);
+        }
+    }
+
     [TestCase(0)] [TestCase(60)] [TestCase(120)] [TestCase(180)] [TestCase(240)] [TestCase(300)]
     public void ActualImportedModulesAndWorldEditorProjectionShareSixWayGeometry(float yaw)
     {

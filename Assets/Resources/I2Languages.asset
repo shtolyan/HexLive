@@ -33376,9 +33376,30 @@ MonoBehaviour:
       - '{0}: все рядом'
       Flags: 0101
       Languages_Touch: []
-    CaseInsensitiveTerms: 0
-    OnMissingTranslation: 1
-    mTerm_AppName:
+    - Term: 'toast.order_rejected.NothingToServe'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Nothing to serve'
+      - 'Нечего сервировать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.stack_grams_format'
+      TermType: 0
+      Description: 
+      Languages:
+      - '×{0} · {1} g'
+      - '×{0} · {1} г'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.stack_food_mass'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stack weight'
+      - 'Масса стопки'
+      Flags: 0101
+      Languages_Touch: []
     - Term: item.resource_wolf_carcass_raw.name
       TermType: 0
       Description:
@@ -33507,6 +33528,9 @@ MonoBehaviour:
       - "Жареный краб для сервировки"
       Flags: 0101
       Languages_Touch: []
+    CaseInsensitiveTerms: 0
+    OnMissingTranslation: 1
+    mTerm_AppName:
     mLanguages:
     - Name: English
       Code: en

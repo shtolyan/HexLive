@@ -227,7 +227,8 @@ namespace HexLive.UnityPresentation.UI
                     items.Add(ItemModel(slot.ItemDefinitionId, false, slot.SourceIndex, Math.Max(1, slot.StackCount),
                         held, slot.ItemDefinitionId == npc.FavoriteWeaponId,
                         container.Kind == InventoryContainerKind.Overflow,
-                        carriedDurability, water, stacks, carriedWetness, carriedDirtiness, slot.ResourceAmount));
+                        carriedDurability, water, stacks, carriedWetness, carriedDirtiness, slot.ResourceAmount,
+                        slot.Grams));
                 }
             }
 
@@ -253,7 +254,8 @@ namespace HexLive.UnityPresentation.UI
 
         private JObject ItemModel(string id, bool worn, int sourceIndex, int count, bool inUse, bool favorite, bool overflow,
             Dictionary<string, float> durability, Dictionary<int, WaterContainerState> water, Dictionary<string, int> stacks,
-            Dictionary<string, float> wetness, Dictionary<string, float> dirtiness, float resourceAmount = 0f)
+            Dictionary<string, float> wetness, Dictionary<string, float> dirtiness, float resourceAmount = 0f,
+            int grams = 0)
         {
             var def = ResolveDef(id);
             var info = ResolveItemInfo(id, def);
@@ -263,7 +265,7 @@ namespace HexLive.UnityPresentation.UI
             // UITK elements cannot be constructed in a MonoBehaviour initializer.
             _statScratch ??= new VisualElement();
             BuildItemStats(def, info, worn, durability, water, stacks, wetness, dirtiness,
-                sourceIndex, ResolveInventoryOwnerId(id, worn, sourceIndex), _statScratch, resourceAmount);
+                sourceIndex, ResolveInventoryOwnerId(id, worn, sourceIndex), _statScratch, resourceAmount, grams);
             var stats = StatRows(_statScratch);
             _statScratch.Clear();
 
@@ -288,6 +290,7 @@ namespace HexLive.UnityPresentation.UI
                 ["emoji"] = info.Emoji,
                 ["name"] = ItemName(def, info),
                 ["count"] = count,
+                ["grams"] = grams, // §54.14A: all pieces of the cell together
                 ["inUse"] = inUse,
                 ["favorite"] = favorite,
                 ["worn"] = worn,

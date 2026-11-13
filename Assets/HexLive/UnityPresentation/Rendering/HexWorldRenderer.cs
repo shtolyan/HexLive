@@ -3529,8 +3529,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var heldItemId = npc.HeldItemId;
         // §77.5: the interaction window goes with the verb — the view fits one
         // playthrough of the work clip into it.
-        actorView.SetInteraction(npc.CurrentInteraction, heldItemId, npc.AidTargetLyingDown,
-            npc.InteractionSeconds, npc.LyingStationSlot,
+        // §54.14A: serving on the ground has no clip of its own yet — the
+        // planting kneel stands in for it (placeholder until real art).
+        actorView.SetInteraction(npc.ServingOnGround ? "Plant" : npc.CurrentInteraction, heldItemId,
+            npc.AidTargetLyingDown, npc.InteractionSeconds, npc.LyingStationSlot,
             standingCraft: npc.CurrentInteraction switch
             {
                 "Serve" => snapshot.Objects.Exists(item => item.Id.Value == npc.TargetObjectId &&

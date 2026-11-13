@@ -3971,7 +3971,7 @@ namespace HexLive.UnityPresentation.UI
                 {
                     result.Append('[').Append(slot.Index).Append(':').Append(slot.SourceIndex)
                         .Append(':').Append(slot.ItemDefinitionId)
-                        .Append(':').Append(slot.StackCount).Append(':')
+                        .Append(':').Append(slot.StackCount).Append(':').Append(slot.Grams).Append(':')
                         .Append(slot.ResourceAmount).Append(':').Append((int)slot.WaterKind)
                         .Append(':').Append(slot.AcceptedItemDefinitionId).Append(']');
                 }
@@ -4031,9 +4031,13 @@ namespace HexLive.UnityPresentation.UI
                 cell.tooltip = ItemName(def, info);
             }
 
-            if (slot.StackCount > 1)
+            // §54.14A: food cells show count AND the grams of every piece in
+            // them — a stack may hold one started portion among full ones.
+            if (slot.StackCount > 1 || slot.Grams > 0)
             {
-                var count = new Label("×" + slot.StackCount);
+                var count = new Label(slot.Grams <= 0 ? "×" + slot.StackCount
+                    : slot.StackCount > 1 ? string.Format(Loc.Get("inv.stack_grams_format"), slot.StackCount, slot.Grams)
+                    : string.Format(Loc.Get("inv.grams_format"), slot.Grams));
                 count.style.position = Position.Absolute;
                 count.style.right = 3f;
                 count.style.bottom = 1f;
@@ -4242,7 +4246,8 @@ namespace HexLive.UnityPresentation.UI
             BuildItemStats(
                 def, info, worn, durability, water, stacks, wetness, dirtiness,
                 sourceIndex, ResolveInventoryOwnerId(id, worn, sourceIndex),
-                resourceAmount: worn ? 0f : InventoryResourceAmount(_inventoryNpc, id, sourceIndex));
+                resourceAmount: worn ? 0f : InventoryResourceAmount(_inventoryNpc, id, sourceIndex),
+                cellGrams: worn ? 0 : InventoryCellGrams(_inventoryNpc, id, sourceIndex));
 
             var wearable = def != null && def.Layer.HasValue;
             var canEat = CanEatInventory(def, worn);
@@ -4300,6 +4305,16 @@ namespace HexLive.UnityPresentation.UI
             InventoryAction.Stow => "inv.action.stow",
             _ => "inv.action.wear"
         };
+
+        // §54.14A: grams of every piece in the selected cell (0 for non-food).
+        private static int InventoryCellGrams(NpcSnapshot npc, string id, int sourceIndex)
+        {
+            if (npc == null || sourceIndex < 0) return 0;
+            foreach (var container in npc.InventoryContainers)
+                foreach (var slot in container.Slots)
+                    if (slot.SourceIndex == sourceIndex && slot.ItemDefinitionId == id) return slot.Grams;
+            return 0;
+        }
 
         private static float InventoryResourceAmount(NpcSnapshot npc, string id, int sourceIndex)
         {
@@ -4611,7 +4626,8 @@ namespace HexLive.UnityPresentation.UI
             int sourceIndex,
             int ownerId,
             VisualElement destination = null,
-            float resourceAmount = 0f)
+            float resourceAmount = 0f,
+            int cellGrams = 0)
         {
             var rows = destination ?? _invDetailStats;
             rows.Clear();
@@ -4721,11 +4737,15 @@ namespace HexLive.UnityPresentation.UI
                     Loc.Get("inv.restores"), $"+{Mathf.RoundToInt(-hunger * 100f)}%", CategoryColor(ItemCategory.Food)));
             }
 
-            if (FoodMath.CanEat(def))
+            if (FoodMath.CanEat(def) || MealServing.IsReadyToServe(def.Id))
             {
                 var grams = FoodMath.GramsRemaining(def.Id, resourceAmount);
                 rows.Add(MakeStatRow(Loc.Get("inv.food_mass"),
                     string.Format(Loc.Get("inv.grams_format"), grams), CategoryColor(ItemCategory.Food)));
+                // §54.14A: a stack shows what all its pieces weigh together.
+                if (!worn && stacks.TryGetValue(info.DefinitionId, out var pieces) && pieces > 1 && cellGrams > 0)
+                    rows.Add(MakeStatRow(Loc.Get("inv.stack_food_mass"),
+                        string.Format(Loc.Get("inv.grams_format"), cellGrams), CategoryColor(ItemCategory.Food)));
             }
 
             var gear = GearCatalog.For(info.DefinitionId);

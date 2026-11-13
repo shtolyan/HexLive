@@ -4,6 +4,7 @@ using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Runtime.Blueprints;
 using HexLive.Simulation.Spatial;
 
 namespace HexLive.Simulation.Runtime
@@ -43,7 +44,8 @@ internal static class BuildWorkPoint
 
     public static bool AppliesTo(WorldObjectState site) =>
         site != null && BuildSiteMath.IsSite(site) &&
-        BuildSiteMath.IsArchitecturalBuilding(site.BuildProduct);
+        (BuildSiteMath.IsArchitecturalBuilding(site.BuildProduct) ||
+         FreeArchitectureRules.IsFreePiece(site));
 
     /// <summary>Мировая позиция модуля дома: якорь здания плюс локальный сдвиг
     /// в шестишаговом базисе footprint (§120.2).</summary>
@@ -70,6 +72,29 @@ internal static class BuildWorkPoint
     {
         piece = default;
         if (!AppliesTo(site)) return false;
+        if (FreeArchitectureRules.IsFreePiece(site))
+        {
+            var element = site.ArchitectureElements[0];
+            if (!Workable(element)) return false;
+            piece = HexSpatialMath.TileToWorld(site.Tile) + new Float2(element.LocalX, element.LocalZ);
+            if (FreeArchitectureRules.TryDecode(element.DefinitionId, element.SlotKey, out var decoded))
+            {
+                var sector = decoded.Kind switch
+                {
+                    BlueprintElementKind.FloorSector => (int?)decoded.FloorSector.Sector,
+                    BlueprintElementKind.RoofSector => decoded.RoofSector.Sector,
+                    _ => null
+                };
+                if (sector is { } index)
+                {
+                    var first = BlueprintGeometry.ToWorld(BlueprintGeometry.HexCorner(site.Tile, index));
+                    var second = BlueprintGeometry.ToWorld(BlueprintGeometry.HexCorner(site.Tile, index + 1));
+                    piece = new Float2((piece.X + first.X + second.X) / 3f,
+                        (piece.Y + first.Y + second.Y) / 3f);
+                }
+            }
+            return true;
+        }
         var best = float.MaxValue;
         var bestKey = string.Empty;
         var found = false;

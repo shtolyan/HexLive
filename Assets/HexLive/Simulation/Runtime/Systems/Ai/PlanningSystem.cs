@@ -957,7 +957,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 : null;
             foreach (var perceived in npc.Perception.Objects)
             {
-                if (!perceived.IsReachable ||
+                if ((!perceived.IsReachable && interactionType.Value != InteractionType.Build) ||
                     !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||
                     npc.Memory.IsShunned(perceived.Id, world.Tick) ||
                     !perceived.AvailableInteractions.Contains(interactionType.Value))
@@ -1798,9 +1798,9 @@ public sealed partial class PlanningSystem : ISimulationSystem
         }
 
         // §120.15: то же правило, что у настоящего планировщика.
-        if (interaction == InteractionType.Build && BuildWorkPoint.HasStand(world, npc, target))
+        if (interaction == InteractionType.Build && BuildWorkPoint.AppliesTo(target))
         {
-            return true;
+            return BuildWorkPoint.HasStand(world, npc, target);
         }
 
         if (FurnitureSeats.Applies(target, interaction))
@@ -2252,7 +2252,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
         WorldState world, NPCState npc, GoalType goal, InteractionType interactionType,
         PerceivedObject perceived, ObjectId? queuedBuildSiteId)
     {
-        if (!perceived.IsReachable ||
+        if ((!perceived.IsReachable && interactionType != InteractionType.Build) ||
             !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||
             npc.Memory.IsShunned(perceived.Id, world.Tick) ||
             !perceived.AvailableInteractions.Contains(interactionType) ||

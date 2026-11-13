@@ -112,6 +112,33 @@ public sealed class FreeArchitectureTests
     }
 
     [Test]
+    public void GazeboFloorUsesAWorkpointWhenTheCampfireOccupiesTheCenter()
+    {
+        var engine = TestWorld.CreateEngine(773);
+        var world = engine.World;
+        var actor = world.Entities.Npcs.Values.First(npc => npc.Faction == Faction.Colony);
+        var tile = BuildableTile(world);
+        var center = StructurePlacement.CenterJunction(world, tile).Value;
+        var floor = FreeArchitecturePlacementData.FromElement(new BlueprintElementData
+        {
+            Id = "gazebo_floor",
+            Kind = BlueprintElementKind.FloorSector,
+            FloorSector = new FloorSectorKey(tile, 0)
+        });
+        Assert.That(engine.ApplyManualCommand(new ApplyFreeArchitectureCommand(
+            new[] { floor }, new string[0])).Accepted, Is.True);
+        var site = FreeArchitectureRules.FreePieces(world).Single();
+        WorldObjectMutations.SpawnObject(world, ContentIds.Campfire, actor.Fragment, tile, center);
+        actor.CurrentJunction = world.Tiles.Items[tile].Junctions.First(id => !world.Junctions.Items[id].Blocked);
+        actor.Position = world.Junctions.Items[actor.CurrentJunction.Value].WorldPosition;
+        actor.Tile = tile;
+
+        Assert.That(BuildWorkPoint.TryReserve(world, actor, site, 48, out var stand), Is.True);
+        Assert.That(stand, Is.Not.EqualTo(center));
+        Assert.That(world.Junctions.Items[stand].Blocked, Is.False);
+    }
+
+    [Test]
     public void DirectPieceSurvivesSaveLoadWithSelfOwnership()
     {
         const int seed = 12012;

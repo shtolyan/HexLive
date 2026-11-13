@@ -91,10 +91,11 @@ namespace HexLive.UnityPresentation.UI
             if (snapshot?.Npcs.Find(npc => npc.Id.Value == observerId) is not { } observer ||
                 !System.Linq.Enumerable.Any(StressSources(snapshot, observer),
                     source => source.Id == id && source.IsMob == isMob)) return;
+            var camera = FindFirstObjectByType<Input.RtsCameraController>();
             if (isMob && snapshot.Mobs.Find(mob => mob.Id == id) is { } animal)
-                FindFirstObjectByType<Input.RtsCameraController>()?.MoveToMapPoint(animal.Position);
-            else if (!isMob)
-                Input.NpcSelection.Activate(id);
+                camera?.MoveToMapPoint(animal.Position);
+            else if (!isMob && snapshot.Npcs.Find(npc => npc.Id.Value == id) is { } person)
+                camera?.MoveToMapPoint(person.Position);
         }
     }
 }

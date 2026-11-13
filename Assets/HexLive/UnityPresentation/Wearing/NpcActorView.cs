@@ -8082,7 +8082,7 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 // with the portrait so camera and body cannot disagree.
                 var support = FitBedSleepRoot(LyingRootPose());
                 _bodyRoot.SetPositionAndRotation(support.position, support.rotation);
-                FitSleepingBody(support);
+                FitSleepingBody(support.rotation);
             }
             else
             {

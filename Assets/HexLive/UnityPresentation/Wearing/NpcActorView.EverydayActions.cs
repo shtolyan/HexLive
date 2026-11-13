@@ -152,10 +152,17 @@ namespace HexLive.UnityPresentation.Wearing
                 Quaternion.Slerp(entry.rotation, anchor.rotation, blend));
         }
 
-        private void FitSleepingBody(Pose support)
+        private void FitSleepingBody(Quaternion bedRotation)
         {
-            if (_bedSleepClip == null || _animator == null || !_animator.isHuman ||
-                !_animator.GetCurrentAnimatorStateInfo(0).IsName("Sleep")) return;
+            if (_bedSleepClip == null || _animator == null || !_animator.isHuman) return;
+            var state = _animator.GetCurrentAnimatorStateInfo(0);
+            if (_animator.IsInTransition(0) && _animator.GetNextAnimatorStateInfo(0).IsName("GetUp"))
+                state = _animator.GetNextAnimatorStateInfo(0);
+            var weight = state.IsName("Sleep") ? 1f :
+                state.IsName("LieDown") ? Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.63f, .91f, state.normalizedTime)) :
+                state.IsName("GetUp") ? Mathf.SmoothStep(1f, 0f, Mathf.InverseLerp(.04f, .32f, state.normalizedTime)) :
+                0f;
+            if (weight <= .001f) return;
 
             if (_sleepRig != _animator.transform)
             {
@@ -172,23 +179,29 @@ namespace HexLive.UnityPresentation.Wearing
             var rightArm = _animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
             if (leftLeg == null || rightLeg == null || leftArm == null || rightArm == null) return;
 
-            var axis = support.rotation * Vector3.forward;
+            var axis = bedRotation * Vector3.forward;
             var pelvis = Vector3.ProjectOnPlane(rightLeg.position - leftLeg.position, axis);
             var shoulders = Vector3.ProjectOnPlane(rightArm.position - leftArm.position, axis);
             if (pelvis.sqrMagnitude < .0001f || shoulders.sqrMagnitude < .0001f) return;
 
             // Keep the authored side-lying shape while easing excessive twist
             // between the hips and the shoulders on a wider retargeted body.
-            var twist = Mathf.Clamp(Vector3.SignedAngle(pelvis, shoulders, axis) * .45f, -15f, 15f);
+            var twist = Vector3.SignedAngle(pelvis, shoulders, axis);
+            var correction = Mathf.Sign(twist) * Mathf.Clamp(Mathf.Abs(twist) - 36f, 0f, 42f) * weight;
             var spineRotation = _sleepSpine.rotation;
-            _sleepHips.rotation = Quaternion.AngleAxis(twist, axis) * _sleepHips.rotation;
+            _sleepHips.rotation = Quaternion.AngleAxis(correction, axis) * _sleepHips.rotation;
             _sleepSpine.rotation = spineRotation;
+            // Retain some of the original leg roll so the lower knee doesn't
+            // rotate through the quilt while the hips settle toward the chest.
+            var legCounterRoll = Quaternion.AngleAxis(-correction * .45f, axis);
+            leftLeg.rotation = legCounterRoll * leftLeg.rotation;
+            rightLeg.rotation = legCounterRoll * rightLeg.rotation;
 
             _sleepLeftArm ??= CreateSleepArm(true);
             _sleepRightArm ??= CreateSleepArm(false);
             var torso = (leftArm.position + rightArm.position + _sleepSpine.position * 2f) * .25f;
             var torsoClearance = Vector3.Distance(leftArm.position, rightArm.position) * .42f;
-            var mattressUp = support.rotation * Vector3.up;
+            var mattressUp = bedRotation * Vector3.up;
             KeepSleepingHandClear(_sleepLeftArm, torso, torsoClearance, mattressUp);
             KeepSleepingHandClear(_sleepRightArm, torso, torsoClearance, mattressUp);
         }
@@ -235,6 +248,7 @@ namespace HexLive.UnityPresentation.Wearing
                 ? Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.13f, .92f, state.normalizedTime)) : 0f;
             _bodyRoot.SetPositionAndRotation(Vector3.Lerp(_wakeFromPos, _bodyRoot.position, progress),
                 Quaternion.Slerp(_wakeFromRot, _bodyRoot.rotation, progress));
+            FitSleepingBody(_wakeFromRot);
             return true;
         }
 

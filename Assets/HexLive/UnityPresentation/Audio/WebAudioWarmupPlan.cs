@@ -11,7 +11,7 @@ namespace HexLive.UnityPresentation.Audio
         internal const int MaxVoices = 8;
         private static readonly string[] SpeechIds =
         {
-            "happy_topic_smalltalk", "happy_agree", "sad_hunger", "sad_thirst",
+            "happy_topic_smalltalk", "happy_agree", "refuse_directive", "sad_hunger", "sad_thirst",
             "sleepy_tired", "hurt_wound", "hurt_bitten", "work_chop",
             "work_haul", "work_build", "work_craft", "happy_done",
             "sad_cold", "sad_heat", "sleepy_bed", "sleepy_wake", "hurt_sick",

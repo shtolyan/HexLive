@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using HexLive.UnityPresentation.Audio;
+using HexLive.UnityPresentation.UI;
 using HexLive.UnityPresentation.Wearing.Garments;
 using NUnit.Framework;
 using UnityEngine.TestTools;
@@ -133,7 +134,11 @@ namespace HexLive.Tests
             foreach (var folder in voices)
             {
                 var files = Plan(Directory.GetFiles(folder, "*", SearchOption.AllDirectories), Path.GetFileName(folder));
-                Assert.That(files.Length, Is.EqualTo(132), folder + ": 22 groups x 3 authored variants + vis");
+                Assert.That(files.Length, Is.EqualTo(138), folder + ": 23 groups x 3 authored variants + vis");
+                var voice = Path.GetFileName(folder);
+                var reply = ((string Group, int Take))Call(typeof(SpeechCatalog), "ContactTake", "sad_contact_no", voice);
+                Assert.That(files.Any(p => Path.GetFileNameWithoutExtension(p) ==
+                    $"voice_{voice}_{reply.Group}_{reply.Take}" && !p.EndsWith(".vis")), Is.True);
                 Assert.That(files.Where(p => !p.EndsWith(".vis")).All(p => files.Contains(Path.ChangeExtension(p, ".vis"))), Is.True);
             }
         }

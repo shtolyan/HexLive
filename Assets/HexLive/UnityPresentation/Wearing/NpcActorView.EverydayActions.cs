@@ -566,7 +566,9 @@ namespace HexLive.UnityPresentation.Wearing
             {
                 if (_bedsideOutward.sqrMagnitude > .5f)
                 {
-                    const float kneeClearance = .075f;
+                    // Leave room for the skin and clothing around the kneecap
+                    // after the upper-body IK redistributes some of the lean.
+                    const float kneeClearance = .10f;
                     desired = AidKneelClearance(_bedsideEdge, _bedsideOutward, kneeClearance);
                 }
                 else

@@ -902,7 +902,7 @@ public sealed partial class ExecutionSystem
                     // Поход по памяти (§125.7) строится без живого тела и станции не
                     // берёт — она берётся здесь, когда подопечная уже перед глазами.
                     // Идемпотентно: занятая по плану станция возвращается как есть.
-                    if (!LyingStations.TryClaim(world, npc, target, out var startSlot))
+                    if (!LyingStations.TryClaim(world, npc, target, out var startSlot, kindNow))
                     {
                         AbortAid(world, npc,
                             $"No free station at NPC{targetId.Value}");

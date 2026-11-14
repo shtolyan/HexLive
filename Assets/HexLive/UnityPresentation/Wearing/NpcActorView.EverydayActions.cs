@@ -35,8 +35,14 @@ namespace HexLive.UnityPresentation.Wearing
         private Transform _drinkContactHand;
         private Vector3 _drinkOpeningInHand;
         private Vector3 _drinkAxisInHand;
-        private float _aidHeadWeight;
-        private float _aidHeadSampledAt;
+        private bool _kneelingAid;
+        private float _supportContact;
+        private float _bandageWork;
+        private float _aidSipPhase;
+        private float _aidSipRate;
+        private float _aidSipSampledAt;
+        private bool _aidSipActive;
+        private bool _aidSipCanSwallow;
         private bool _seatedEveryday;
         private BodyPart? _bandagePart;
         private PlayableGraph _everydayGraph;
@@ -345,6 +351,7 @@ namespace HexLive.UnityPresentation.Wearing
             _feedingRecipient = null;
             _everydayDrinking = false;
             _supportDrinker = false;
+            _kneelingAid = false;
             _seatedEveryday = false;
             _bandagePart = null;
             _requestedEverydayClip = clip;
@@ -367,11 +374,34 @@ namespace HexLive.UnityPresentation.Wearing
             _supportDrinker = supportDrinker;
         }
 
-        internal void SetBandagingAction(NpcActorView recipient, BodyPart part, float phase, float rate, float duration)
+        internal void SetLyingAidAction(EverydayActionClips clips, NpcActorView recipient, float phase,
+            float rate, float duration, bool drinking, BodyPart? bandagePart = null)
         {
-            SetFeedingAction(null, recipient, phase, rate, duration);
-            _bandagePart = part;
+            SetFeedingAction(null, recipient, phase, rate, duration, supportDrinker: drinking);
+            _kneelingAid = true;
+            _bandagePart = bandagePart;
+            if (CanKneelWithTool && clips.serveKneel != null && clips.serveWork != null && clips.serveRise != null &&
+                duration > clips.serveKneel.length + clips.serveRise.length)
+                _kneelingWorkClips = clips;
         }
+
+        internal void SetSupportedSip(float phase, float rate, bool canSwallow)
+        {
+            _aidSipPhase = phase;
+            _aidSipRate = rate;
+            _aidSipSampledAt = Time.unscaledTime;
+            _aidSipActive = true;
+            _aidSipCanSwallow = canSwallow;
+        }
+
+        internal void ClearSupportedSip() => _aidSipActive = false;
+
+        private static float AidEnvelope(float phase, float start, float peak, float release, float end) =>
+            Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(start, peak, phase)) *
+            Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(end, release, phase));
+
+        private static float AidHeadSupport(float phase) => AidEnvelope(phase, .14f, .28f, .71f, .86f);
+        private static float AidHandContact(float phase) => AidEnvelope(phase, .28f, .44f, .60f, .76f);
 
         private bool TryGetMouth(out Vector3 mouth)
         {
@@ -397,43 +427,35 @@ namespace HexLive.UnityPresentation.Wearing
             var eating = _eatingContact > .001f;
             var target = eating ? this : _feedingRecipient;
             var weight = eating ? _eatingContact : _feedingContact;
-            if (weight <= .001f || target == null || hand == null || !_hasUsableHand ||
-                _laying || _swimming || _ragdollActive)
+            if (Mathf.Max(weight, _supportContact) <= .001f || target == null || hand == null ||
+                !_hasUsableHand || _laying || _swimming || _ragdollActive)
                 return false;
 
-            Vector3 mouth;
             if (_bandagePart is { } part)
-            {
-                if (!target.TryGetBandagePosition(part, out mouth)) return false;
-            }
-            else if (!target.TryGetMouth(out mouth)) return false;
+                return DriveBandageHands(solver, hand, effector, supportHand, target, part, weight);
+
+            if (!target.TryGetMouth(out var mouth)) return false;
             var drinking = _everydayDrinking || _supportDrinker ||
                 !eating && _feedingRecipient != null && _currentPropId is
                     (ContentIds.Bottle or ContentIds.LeatherFlask or ContentIds.DrinkingGlass or ContentIds.CoconutPierced);
-            if (_supportDrinker && target._laying && target._headBone != null && !target._ragdollActive)
+            if (_supportDrinker && _hasTwoUsableHands && target._headBone != null &&
+                target.TryGetFace(out _, out var headForward, out _, out var headScale))
             {
-                target._aidHeadWeight = weight;
-                target._aidHeadSampledAt = Time.unscaledTime;
+                var near = Vector3.ProjectOnPlane(transform.position - target._headBone.position, Vector3.up).normalized;
+                var skull = target._headBone.position - headForward * (.055f * headScale) +
+                    near * (.038f * headScale) - Vector3.up * (.025f * headScale);
+                supportHand.target = null;
+                supportHand.position = skull;
+                supportHand.positionWeight = _supportContact * .85f;
             }
             var offset = hand.position - mouth;
-            if (offset.sqrMagnitude > 1.21f) return false;
-            if (_bandagePart.HasValue || _supportDrinker)
-            {
-                supportHand.target = null;
-                supportHand.position = _supportDrinker && target._headBone != null
-                    ? target._headBone.position - Vector3.up * .025f
-                    : mouth - transform.right * .06f + Vector3.up * .015f;
-                supportHand.positionWeight = weight * .78f;
-                supportHand.rotationWeight = 0f;
-            }
-            var contact = _bandagePart.HasValue
-                ? mouth + transform.right * (.035f * Mathf.Sin(_everydayPhase * 22f)) + Vector3.up * .045f
-                : mouth + offset.normalized * .025f;
+            if (offset.sqrMagnitude > 1.21f && supportHand.positionWeight <= .001f) return false;
+            var contact = mouth + offset.normalized * .025f;
             effector.target = null;
             effector.position = contact - (ActionPropContactPoint(contact, hand) - hand.position);
-            effector.positionWeight = weight;
+            effector.positionWeight = offset.sqrMagnitude > 1.21f ? 0f : weight;
             effector.rotationWeight = 0f;
-            if (drinking && TryGetDrinkOpening(hand) &&
+            if (drinking && effector.positionWeight > 0f && TryGetDrinkOpening(hand) &&
                 target.TryGetFace(out _, out var faceForward, out var faceUp, out var scale))
             {
                 // An upright eye frame uses world up. The head's calibrated
@@ -443,11 +465,12 @@ namespace HexLive.UnityPresentation.Wearing
                     faceForward = target._headBone.TransformDirection(target._faceLocalForward);
                     faceUp = target._headBone.TransformDirection(target._faceLocalUp);
                 }
-                var opening = mouth + faceForward * (.014f * scale);
-                // The vessel's body points away from the face while the
-                // mouth meets the lips. Coconut and flask need less tilt.
                 var pitch = _currentPropId == ContentIds.Bottle ? .38f : .22f;
                 var axis = (-faceForward - faceUp * pitch).normalized;
+                // Move the opening far enough out that the bottle rim stays on
+                // the outside of the lip plane even at the serving angle.
+                var openingClearance = _supportDrinker ? .024f : .014f;
+                var opening = mouth + faceForward * (openingClearance * scale);
                 var handRotation = Quaternion.FromToRotation(hand.rotation * _drinkAxisInHand, axis) * hand.rotation;
                 effector.rotation = handRotation;
                 effector.rotationWeight = weight;
@@ -489,15 +512,56 @@ namespace HexLive.UnityPresentation.Wearing
 
         private void ApplySupportedSip()
         {
-            if (!_laying || _ragdollActive || _headBone == null || !_faceCalibrated ||
-                Time.unscaledTime - _aidHeadSampledAt > .12f || _aidHeadWeight <= 0f) return;
+            if (!_aidSipActive || !_laying || _ragdollActive || _headBone == null || !_faceCalibrated) return;
+            var phase = Mathf.Clamp01(_aidSipPhase +
+                Mathf.Min(.25f, Time.unscaledTime - _aidSipSampledAt) * _aidSipRate);
+            var support = AidHeadSupport(phase);
+            if (support <= 0f) return;
+
             var right = Vector3.Cross(_faceLocalUp, _faceLocalForward).normalized;
-            _headBone.localRotation *= Quaternion.AngleAxis(-11f * _aidHeadWeight, right);
+            var swallow = _aidSipCanSwallow ? AidEnvelope(phase, .57f, .60f, .62f, .68f) : 0f;
+            _headBone.localRotation *= Quaternion.AngleAxis((-12f * support) + (7f * swallow), right);
+            _headBone.position += Vector3.up * (.035f * support);
+            if (!_aidSipCanSwallow || _animator == null || !_animator.isHuman) return;
+            var jaw = _animator.GetBoneTransform(HumanBodyBones.Jaw);
+            if (jaw != null)
+                jaw.rotation = Quaternion.AngleAxis(7f * AidHandContact(phase) * (1f - swallow),
+                    _headBone.TransformDirection(right)) * jaw.rotation;
         }
 
-        private bool TryGetBandagePosition(BodyPart part, out Vector3 position)
+        private bool DriveBandageHands(IKSolverFullBodyBiped solver, Transform hand,
+            IKEffector primary, IKEffector support, NpcActorView patient, BodyPart part, float weight)
         {
-            position = default;
+            if (!patient.TryGetBandageFrame(part, out var a, out var b)) return false;
+            var along = (b - a).normalized;
+            if (along.sqrMagnitude < .01f) along = patient.transform.forward;
+            var outward = Vector3.ProjectOnPlane(Vector3.up, along).normalized;
+            if (outward.sqrMagnitude < .01f) outward = transform.forward;
+            var side = Vector3.Cross(along, outward).normalized;
+            if (Vector3.Dot(side, transform.position - a) < 0f) side = -side;
+            var limb = part is BodyPart.ArmL or BodyPart.ArmR or BodyPart.LegL or BodyPart.LegR;
+            var radius = limb ? .066f : .095f;
+            var angle = Mathf.Sin(_bandageWork * 5f * Mathf.PI) * .92f;
+            var wrap = Vector3.Lerp(a, b, .40f + .25f * _bandageWork) +
+                (outward * Mathf.Cos(angle) + side * Mathf.Sin(angle)) * radius;
+
+            primary.target = null;
+            primary.position = wrap - (ActionPropContactPoint(wrap, hand) - hand.position);
+            primary.positionWeight = weight;
+            if (limb && _hasTwoUsableHands)
+            {
+                support.target = null;
+                support.position = Vector3.Lerp(a, b, .83f) + side * (.8f * radius) + outward * .014f;
+                support.positionWeight = _supportContact;
+            }
+            solver.pullBodyHorizontal = 0f;
+            solver.IKPositionWeight = 1f;
+            return true;
+        }
+
+        private bool TryGetBandageFrame(BodyPart part, out Vector3 startPoint, out Vector3 endPoint)
+        {
+            startPoint = endPoint = default;
             if (_animator == null || !_animator.isHuman) return false;
             var (start, end) = part switch
             {
@@ -512,7 +576,8 @@ namespace HexLive.UnityPresentation.Wearing
             var a = _animator.GetBoneTransform(start);
             var b = _animator.GetBoneTransform(end);
             if (a == null || b == null) return false;
-            position = Vector3.Lerp(a.position, b.position, .62f) + Vector3.up * .045f;
+            startPoint = a.position;
+            endPoint = b.position;
             return true;
         }
 
@@ -574,6 +639,7 @@ namespace HexLive.UnityPresentation.Wearing
         private bool EvaluateEverydayAction()
         {
             _feedingContact = 0f;
+            _supportContact = 0f;
             _eatingContact = 0f;
             _mealMouthWeight = 0f;
             _kneelingWorkSeconds = 0f;
@@ -612,6 +678,7 @@ namespace HexLive.UnityPresentation.Wearing
                         _sawContact = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, .55f, _kneelingWorkSeconds)) *
                             Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, .42f, riseAt - elapsed));
                     }
+                    else if (_kneelingAid) sampleTime = Mathf.Min(_kneelingWorkSeconds, work.length);
                     else sampleTime = Mathf.PingPong(_kneelingWorkSeconds, work.length);
                 }
                 else
@@ -636,7 +703,20 @@ namespace HexLive.UnityPresentation.Wearing
 
             var contactPhase = _everydayClip == null ? phase :
                 Mathf.Clamp01(sampleTime / Mathf.Max(.01f, _everydayClip.length));
-            if (_feedingRecipient != null)
+            if (_kneelingAid)
+            {
+                var kneel = _kneelingWorkClips?.serveKneel;
+                var rise = _kneelingWorkClips?.serveRise;
+                var ready = kneel != null && rise != null
+                    ? Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(kneel.length - .18f, kneel.length + .12f, elapsed)) *
+                      Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(rise.length - .12f, rise.length + .22f, _everydayDuration - elapsed))
+                    : 1f;
+                _bandageWork = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.27f, .76f, phase));
+                _supportContact = AidHeadSupport(phase) * ready * weight;
+                _feedingContact = (_bandagePart.HasValue ? AidEnvelope(phase, .20f, .31f, .76f, .90f) :
+                    AidHandContact(phase)) * ready * weight;
+            }
+            else if (_feedingRecipient != null)
                 _feedingContact = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.3f, .48f, contactPhase)) *
                     Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.75f, .56f, contactPhase)) * weight;
             if (!_everydayGraph.IsValid())

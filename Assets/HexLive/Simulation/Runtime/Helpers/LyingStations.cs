@@ -1,6 +1,7 @@
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Spatial;
 
@@ -60,6 +61,30 @@ internal static class LyingStations
         new Station(1f, -1f),   // 2 — бедро −
         new Station(-1f, +1f),  // 3 — плечо +
         new Station(-1f, -1f),  // 4 — плечо −
+    };
+
+    private static readonly int[] DefaultOrder = { 0, 1, 2, 3, 4 };
+    private static readonly int[] HeadOrder = { 3, 4, 1, 2, 0 };
+    private static readonly int[] LeftShoulderOrder = { 3, 1, 4, 2, 0 };
+    private static readonly int[] RightShoulderOrder = { 4, 2, 3, 1, 0 };
+    private static readonly int[] LeftLegOrder = { 1, 0, 2, 3, 4 };
+    private static readonly int[] RightLegOrder = { 2, 0, 1, 4, 3 };
+    private static readonly int[] PelvisOrder = { 1, 2, 3, 4, 0 };
+
+    internal static System.ReadOnlySpan<int> PreferredOrder(NPCState body, AidKind aidKind) => aidKind switch
+    {
+        AidKind.Hydrate or AidKind.Feed => HeadOrder,
+        AidKind.Treat => WoundMath.PickMostInjuredZone(body)?.Zone switch
+        {
+            BodyPart.ArmL => LeftShoulderOrder,
+            BodyPart.ArmR => RightShoulderOrder,
+            BodyPart.LegL => LeftLegOrder,
+            BodyPart.LegR => RightLegOrder,
+            BodyPart.Pelvis => PelvisOrder,
+            BodyPart.Head or BodyPart.Torso => HeadOrder,
+            _ => DefaultOrder
+        },
+        _ => DefaultOrder
     };
 
     internal static bool IsSlot(int slot) => slot >= 0 && slot < Count;
@@ -277,7 +302,8 @@ internal static class LyingStations
     /// Свободных нет — ОТКАЗ: ни разделения точки у ног, ни ожидания на месте
     /// (ожидание рядом с занятым телом — это в точности сигнатура застоя §102).
     /// </summary>
-    internal static bool TryClaim(WorldState world, NPCState actor, NPCState body, out int slot)
+    internal static bool TryClaim(WorldState world, NPCState actor, NPCState body, out int slot,
+        AidKind aidKind = AidKind.None)
     {
         if (Held(world, actor, body) is { } already)
         {
@@ -285,7 +311,7 @@ internal static class LyingStations
             return true;
         }
 
-        for (var candidate = 0; candidate < Count; candidate++)
+        foreach (var candidate in PreferredOrder(body, aidKind))
         {
             if (!IsFree(world, body, candidate, actor) ||
                 !IsUsable(world, body, candidate))

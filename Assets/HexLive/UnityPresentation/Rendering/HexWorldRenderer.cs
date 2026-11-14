@@ -3552,6 +3552,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 npc.Wounds, npc.BandagedZones, npc.SeveredParts, npc.BodyPartConditions);
             HexLive.UnityPresentation.Diagnostics.WebPerf.EndNamed();
         }
+        actorView.ClearSupportedSip();
         var heldItemId = npc.HeldItemId;
         var kneelingSaw = !visualShoreClimb && SyncEverydayAction(snapshot, npc, actorView, heldItemId);
         // §77.5: the interaction window goes with the verb — the view fits one
@@ -4372,12 +4373,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (clips == null) continue;
             var phase = helper.ProgressAt(snapshot.Tick);
             var rate = _runner == null || _runner.IsPaused ? 0f : _runner.SpeedMultiplier / helper.InteractionSeconds;
-            if (helper.CurrentInteraction == "TreatOther")
+            if (helper.AidTargetLyingDown && helper.CurrentInteraction is "TreatOther" or "HydrateOther" or "FeedOther")
             {
-                if (helper.AidBandageZone is { } zone)
-                    feeder.SetBandagingAction(recipient, (BodyPart)zone, phase, rate, helper.InteractionSeconds);
+                var drinking = helper.CurrentInteraction == "HydrateOther";
+                BodyPart? zone = helper.AidBandageZone is { } affected ? (BodyPart)affected : null;
+                if (helper.CurrentInteraction != "TreatOther" || zone.HasValue)
+                    feeder.SetLyingAidAction(clips, recipient, phase, rate, helper.InteractionSeconds, drinking, zone);
+                if (drinking)
+                {
+                    var ward = snapshot.Npcs.Find(npc => npc.Id.Value == recipientId);
+                    recipient.SetSupportedSip(phase, rate, ward != null && !ward.IsUnconscious &&
+                        !ward.IsFainted && !ward.IsDying && ward.CurrentInteraction != "Sleep");
+                }
                 continue;
             }
+            if (helper.CurrentInteraction == "TreatOther") continue;
             var (give, receive) = helper.CurrentInteraction switch
             {
                 "HydrateOther" => (clips.giveDrink, clips.receiveDrink),
@@ -4386,9 +4396,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             };
             if (give == null || receive == null) continue;
             if (helper.CurrentInteraction == "GiveGift") feeder.SetEverydayAction(give, phase, rate, helper.InteractionSeconds);
-            else feeder.SetFeedingAction(helper.AidTargetLyingDown ? null : give, recipient, phase, rate, helper.InteractionSeconds,
-                supportDrinker: helper.AidTargetLyingDown && helper.CurrentInteraction == "HydrateOther");
-            if (!helper.AidTargetLyingDown) recipient.SetEverydayAction(receive, phase, rate, helper.InteractionSeconds);
+            else feeder.SetFeedingAction(give, recipient, phase, rate, helper.InteractionSeconds);
+            recipient.SetEverydayAction(receive, phase, rate, helper.InteractionSeconds);
         }
     }
 

@@ -293,6 +293,38 @@ public sealed class LyingStationTests
         });
     }
 
+    [TestCase(AidKind.Hydrate, BodyPart.Head, 3)]
+    [TestCase(AidKind.Treat, BodyPart.ArmL, 3)]
+    [TestCase(AidKind.Treat, BodyPart.ArmR, 4)]
+    [TestCase(AidKind.Treat, BodyPart.LegL, 1)]
+    [TestCase(AidKind.Treat, BodyPart.LegR, 2)]
+    public void LyingAidPlansFromTheContactSide(AidKind kind, BodyPart zone, int expected)
+    {
+        var world = TestWorld.CreateWorld();
+        var patient = LyingGirl(world, out var others);
+        var helper = others[0];
+        patient.CurrentJunction = SpatialQueries.FindNearestJunction(world, patient.Position);
+        var origin = world.Junctions.Items.Values.First(point => point.Fragment == patient.Fragment &&
+            !point.Blocked && !patient.ClaimedJunctions.Contains(point.Id) &&
+            HexSpatialMath.Distance(point.WorldPosition, patient.Position) is > 1.35f and < 1.8f);
+        helper.CurrentJunction = origin.Id;
+        helper.Position = origin.WorldPosition;
+        helper.Tile = origin.Tiles[0];
+        patient.Wounds.Clear();
+        patient.Wounds.Add(new WoundState { Id = 1, Zone = zone, Severity = .4f, BleedFactor = 1f });
+        var order = LyingStations.PreferredOrder(patient, kind);
+        Assert.That(order[0], Is.EqualTo(expected));
+        Assert.That(order.ToArray(), Is.EquivalentTo(Enumerable.Range(0, LyingStations.Count)));
+
+        Assert.That(PlanningSystem.TryInstallAidPlan(world, helper, patient, patient.Id, kind,
+            patient.Tile, 1f, patient.CurrentJunction.Value, fromMemory: false, out var approach), Is.True);
+        var station = LyingStations.Held(world, helper, patient);
+        Assert.That(station, Is.Not.Null);
+        Assert.That(approach, Is.EqualTo(SpatialQueries.FindNearestJunction(world,
+            LyingStations.Point(patient, station.Value))));
+        Assert.That(station, Is.EqualTo(expected));
+    }
+
     private static void PrepareSplintAssignment(
         WorldState world, NPCState patient, NPCState helper)
     {

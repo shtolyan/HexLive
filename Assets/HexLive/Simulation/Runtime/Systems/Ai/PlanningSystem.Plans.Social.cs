@@ -905,12 +905,13 @@ public sealed partial class PlanningSystem
             is not null;
 
     private static JunctionId? TryReserveArmsLengthApproach(
-        WorldState world, NPCState npc, NPCState partner, JunctionId partnerJunction) =>
-        FindArmsLengthApproach(world, npc, partner, partnerJunction, reserve: true);
+        WorldState world, NPCState npc, NPCState partner, JunctionId partnerJunction,
+        AidKind aidKind = AidKind.None) =>
+        FindArmsLengthApproach(world, npc, partner, partnerJunction, reserve: true, aidKind);
 
     private static JunctionId? FindArmsLengthApproach(
         WorldState world, NPCState npc, NPCState partner, JunctionId partnerJunction,
-        bool reserve)
+        bool reserve, AidKind aidKind = AidKind.None)
     {
         // IsJunctionFree covers explicit interaction occupancy, not the live
         // CurrentJunction of a walking/standing actor. Aid needs both: otherwise
@@ -930,7 +931,7 @@ public sealed partial class PlanningSystem
             // discover that its snapped node is blocked. Prove each station in
             // priority order; a chair at the feet must not hide a reachable
             // side station.
-            for (var slot = 0; slot < LyingStations.Count; slot++)
+            foreach (var slot in LyingStations.PreferredOrder(partner, aidKind))
             {
                 if (!LyingStations.IsFree(world, partner, slot, npc) ||
                     !LyingStations.IsUsable(world, partner, slot))
@@ -1193,7 +1194,12 @@ public sealed partial class PlanningSystem
             SpatialMutations.ReleaseJunctionReservation(world, held, npc.Id);
         }
 
-        if (TryReserveArmsLengthApproach(world, npc, target, targetJunction)
+        var aidKind = npc.Mind.OrderedAidFor == target.Id ? npc.Mind.OrderedAidKind : AidKind.None;
+        var medical = npc.Plan.Steps.Exists(step => step.Interaction == InteractionType.MedicalAid);
+        if (aidKind == AidKind.None)
+            aidKind = medical ? AidAssessment.AssessMedical(target, world.Tick)
+                : AidAssessment.Assess(target, world.Tick, out _);
+        if (TryReserveArmsLengthApproach(world, npc, target, targetJunction, aidKind)
             is not { } approach)
         {
             return false;
@@ -1212,7 +1218,7 @@ public sealed partial class PlanningSystem
         npc.Plan.Steps.Add(new PlanStep
         {
             Type = PlanStepType.Interact,
-            Interaction = AidInteraction(AidAssessment.Assess(target, world.Tick, out _))
+            Interaction = medical ? InteractionType.MedicalAid : AidInteraction(aidKind)
         });
 
         if (SimTrace.Enabled)
@@ -1518,7 +1524,7 @@ public sealed partial class PlanningSystem
         JunctionId targetJunction, bool fromMemory, out JunctionId approachJunction)
     {
         approachJunction = default;
-        if (TryReserveArmsLengthApproach(world, npc, partner, targetJunction)
+        if (TryReserveArmsLengthApproach(world, npc, partner, targetJunction, targetKind)
             is not { } approach)
         {
             return false;

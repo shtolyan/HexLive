@@ -35,6 +35,25 @@ public sealed class RomanceInvitationPresentationTests
         Assert.That(SpeechCatalog.ForCue(cue).PopIcon, Is.EqualTo(icon));
         Assert.That(UnityEngine.Resources.Load<UnityEngine.Texture2D>("HexLive/UI/Emoji/" + icon), Is.Not.Null, icon);
     }
+
+    [TestCase("FlirtAccepted", "I like you too.", "Ты мне тоже нравишься.")]
+    [TestCase("FlirtDeclined", "I’m not interested.", "Мне это неинтересно.")]
+    [TestCase("PassionateKissAccepted", "Yes, I’d like that.", "Да, я тоже хочу.")]
+    [TestCase("PassionateKissDeclined", "I don’t want to kiss.", "Я не хочу целоваться.")]
+    public void ContactReplyHasBothI2Translations(string cue, string english, string russian)
+    {
+        var original = Loc.Current;
+        try
+        {
+            var key = SpeechCatalog.ForCue(cue).ContactReplyKey;
+            Assert.That(key, Is.Not.Null);
+            Loc.Current = Language.English;
+            Assert.That(Loc.Get(key), Is.EqualTo(english));
+            Loc.Current = Language.Russian;
+            Assert.That(Loc.Get(key), Is.EqualTo(russian));
+        }
+        finally { Loc.Current = original; }
+    }
 }
 }
 #endif

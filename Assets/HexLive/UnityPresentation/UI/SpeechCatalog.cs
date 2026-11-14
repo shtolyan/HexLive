@@ -262,12 +262,14 @@ public static class SpeechCatalog
         // ранг берётся из неё; у молчаливой (TalkRequest, AbuseHurt) он живёт
         // здесь, иначе такой кьюшке нечем было бы соревноваться за пузырь.
         public readonly Rank Rank;
+        public readonly string ContactReplyKey;
 
-        public CueVisual(string popIcon, string speechId, Rank rank = Rank.Action)
+        public CueVisual(string popIcon, string speechId, Rank rank = Rank.Action, string contactReplyKey = null)
         {
             PopIcon = popIcon;
             SpeechId = speechId;
             Rank = rank;
+            ContactReplyKey = contactReplyKey;
         }
     }
 
@@ -385,10 +387,14 @@ public static class SpeechCatalog
         ["TalkRejected"] = new("Grumble", null, Rank.Talk),
         ["TalkRefused"] = new("Grumble", null, Rank.Talk),
         ["TalkQuarrel"] = new("Grumble", null, Rank.Talk),
-        ["HugAccepted"] = new("Agree", "happy_contact_yes"),
-        ["KissAccepted"] = new("Flirt", "happy_contact_yes"),
-        ["HugDeclined"] = new("Fail", "sad_contact_no"),
-        ["KissDeclined"] = new("Fail", "sad_contact_no"),
+        ["HugAccepted"] = new("Agree", "happy_contact_yes", contactReplyKey: "social.hug.accepted"),
+        ["KissAccepted"] = new("Flirt", "happy_contact_yes", contactReplyKey: "social.kiss.accepted"),
+        ["HugDeclined"] = new("Fail", "sad_contact_no", contactReplyKey: "social.hug.declined"),
+        ["KissDeclined"] = new("Fail", "sad_contact_no", contactReplyKey: "social.kiss.declined"),
+        ["PassionateKissAccepted"] = new("Flirt", "happy_contact_yes", contactReplyKey: "social.kiss.accepted"),
+        ["PassionateKissDeclined"] = new("Fail", "sad_contact_no", contactReplyKey: "social.kiss.declined"),
+        ["FlirtAccepted"] = new("Flirt", "happy_contact_yes", contactReplyKey: "social.flirt.accepted"),
+        ["FlirtDeclined"] = new("Fail", "sad_contact_no", contactReplyKey: "social.flirt.declined"),
         ["HugUnavailable"] = new("Fail", null, Rank.Talk),
         ["KissUnavailable"] = new("Fail", null, Rank.Talk),
         ["HugFriendship"] = new("Agree", null, Rank.Action),

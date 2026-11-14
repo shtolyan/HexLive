@@ -244,6 +244,22 @@ namespace HexLive.Tests
             Assert.That(stage.LastOrdinaryLine, Is.EqualTo("sad_topic_weather"));
         }
 
+        [TestCase("FlirtAccepted", "happy_contact_yes")]
+        [TestCase("FlirtDeclined", "sad_contact_no")]
+        [TestCase("PassionateKissAccepted", "happy_contact_yes")]
+        [TestCase("PassionateKissDeclined", "sad_contact_no")]
+        public void ContactReplyCutsOrdinaryActionSpeech(string cue, string expectedLine)
+        {
+            var stage = new Stage { AllowOrdinary = true };
+            var director = new NpcSpeechDirector(stage, () => 0f);
+            Assert.That(director.Say("work_chop"), Is.True);
+
+            director.OnCue(cue);
+
+            Assert.That(stage.Stopped, Is.EqualTo(1));
+            Assert.That(stage.LastOrdinaryLine, Is.EqualTo(expectedLine));
+        }
+
         private sealed class Stage : ISpeechStage
         {
             public int Started;

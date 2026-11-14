@@ -197,8 +197,7 @@ public sealed class NpcSpeechDirector
         var cue = SpeechCatalog.ForCue(cueKind);
         if (!string.IsNullOrEmpty(cue.SpeechId))
         {
-            var contactAnswer = cueKind is "HugAccepted" or "HugDeclined" or "KissAccepted" or "KissDeclined";
-            Say(cue.SpeechId, peerFace, contactAnswer);
+            Say(cue.SpeechId, peerFace, contactAnswer: cue.ContactReplyKey != null);
             return;
         }
 

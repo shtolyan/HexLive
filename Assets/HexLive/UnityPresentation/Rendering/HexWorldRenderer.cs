@@ -3695,12 +3695,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     }
                 }
 
-                var contactMessage = npc.SocialCueKind switch
+                var contactReply = SpeechCatalog.ForCue(npc.SocialCueKind).ContactReplyKey;
+                var contactMessage = contactReply ?? (npc.SocialCueKind switch
                 {
-                    "HugAccepted" => "social.hug.accepted",
-                    "HugDeclined" => "social.hug.declined",
-                    "KissAccepted" => "social.kiss.accepted",
-                    "KissDeclined" => "social.kiss.declined",
                     "ApologyAccepted" => "social.apology.spoken",
                     "HugUnavailable" or "KissUnavailable" or "ContactUnavailable" => "social.contact.unavailable",
                     "ContactNeedsStanding" => "social.contact.needs_standing",
@@ -3712,7 +3709,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     "ContactTooFar" => "social.contact.too_far",
                     "ContactApologyNotNeeded" => "social.contact.apology_not_needed",
                     _ => null
-                };
+                });
                 if (contactMessage != null)
                 {
                     var initiator = contactMessage.StartsWith("social.contact.", StringComparison.Ordinal)

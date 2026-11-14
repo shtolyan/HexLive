@@ -530,6 +530,44 @@ public sealed class MealChainArenaTests
         else Assert.That(stump.CurrentUser, Is.Null);
     }
 
+    [TestCase(AidKind.Hydrate, ContentIds.PalmStump)]
+    [TestCase(AidKind.Feed, "furniture.modern_chair")]
+    public void AidKeepsTheRecipientsFurnitureSeat(AidKind kind, string seatId)
+    {
+        var arena = Build(2);
+        var helper = arena.Actor;
+        var patient = arena.World.Entities.Npcs[new EntityId(2)];
+        var seat = arena.Place(seatId, new TileCoord(-1, 1));
+        arena.Engine.ApplyManualCommand(new SetManualControlCommand(helper.Id, true));
+        arena.Engine.ApplyManualCommand(new SetManualControlCommand(patient.Id, true));
+        patient.Needs.Hunger = .75f;
+        patient.Needs.Thirst = .7f;
+        arena.Step(2);
+        var sit = arena.Engine.ApplyManualCommand(new InteractCommand(patient.Id, seat.Id, InteractionType.Sit));
+        Assert.That(sit.Accepted, Is.True, sit.Reason);
+        arena.Step(180, () => patient.Execution.CurrentInteraction == InteractionType.Sit);
+        Assert.That(FurnitureSeats.CurrentMealSeat(arena.World, patient), Is.SameAs(seat), () => arena.Tail());
+
+        var drinking = kind == AidKind.Hydrate;
+        var portion = new ItemInstance(drinking ? ContentIds.Bottle : ContentIds.MeatCooked)
+            { ResourceAmount = drinking ? 2 : 300, WaterKind = WaterKind.Boiled };
+        helper.Inventory.Items.Add(portion);
+        var originalFacing = patient.RotationDegrees;
+        var admission = arena.Engine.ApplyManualCommand(new AidPersonCommand(helper.Id, patient.Id, kind));
+        Assert.That(admission.Accepted, Is.True, admission.Reason);
+        var verb = drinking ? InteractionType.HydrateOther : InteractionType.FeedOther;
+        arena.Step(150, () => helper.Execution.CurrentInteraction == verb);
+        Assert.That(helper.Execution.CurrentInteraction, Is.EqualTo(verb), () => arena.Tail());
+        Assert.That(patient.RotationDegrees, Is.EqualTo(originalFacing).Within(.001f));
+        Assert.That(FurnitureSeats.CurrentMealSeat(arena.World, patient), Is.SameAs(seat));
+
+        var before = drinking ? patient.Needs.Thirst : patient.Needs.Hunger;
+        arena.Step(50, () => helper.Execution.CurrentInteraction != verb);
+        Assert.That(drinking ? patient.Needs.Thirst : patient.Needs.Hunger, Is.LessThan(before - .1f));
+        Assert.That(portion.ResourceAmount, Is.EqualTo(drinking ? 1f : 200f).Within(.01f));
+        Assert.That(FurnitureSeats.CurrentMealSeat(arena.World, patient), Is.SameAs(seat));
+    }
+
     // 9. A manual Serve order with no surface is accepted and completes on the ground.
     [Test]
     public void ManualServeOrderWithoutASurfaceCompletesOnTheGround()

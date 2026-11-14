@@ -4442,9 +4442,19 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 _ => (clips.feedStanding, clips.receiveStanding)
             };
             if (give == null || receive == null) continue;
-            if (helper.CurrentInteraction == "GiveGift") feeder.SetEverydayAction(give, phase, rate, helper.InteractionSeconds);
-            else feeder.SetFeedingAction(give, recipient, phase, rate, helper.InteractionSeconds);
-            recipient.SetEverydayAction(receive, phase, rate, helper.InteractionSeconds);
+            if (helper.CurrentInteraction == "GiveGift")
+            {
+                feeder.SetEverydayAction(give, phase, rate, helper.InteractionSeconds);
+                recipient.SetEverydayAction(receive, phase, rate, helper.InteractionSeconds);
+                continue;
+            }
+
+            feeder.SetFeedingAction(give, recipient, phase, rate, helper.InteractionSeconds);
+            var patient = snapshot.Npcs.Find(npc => npc.Id.Value == recipientId);
+            if (patient != null && HasObjectSitTarget(snapshot, patient))
+                recipient.SetSeatedAid(feeder, phase, rate, helper.CurrentInteraction == "HydrateOther");
+            else
+                recipient.SetEverydayAction(receive, phase, rate, helper.InteractionSeconds);
         }
     }
 

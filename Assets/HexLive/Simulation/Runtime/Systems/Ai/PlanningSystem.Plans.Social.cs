@@ -900,8 +900,9 @@ public sealed partial class PlanningSystem
     /// failing immediately with NoFreeApproachJunction.
     /// </summary>
     internal static bool HasAvailableArmsLengthApproach(
-        WorldState world, NPCState npc, NPCState partner, JunctionId partnerJunction) =>
-        FindArmsLengthApproach(world, npc, partner, partnerJunction, reserve: false)
+        WorldState world, NPCState npc, NPCState partner, JunctionId partnerJunction,
+        AidKind aidKind = AidKind.None) =>
+        FindArmsLengthApproach(world, npc, partner, partnerJunction, reserve: false, aidKind)
             is not null;
 
     private static JunctionId? TryReserveArmsLengthApproach(
@@ -966,6 +967,12 @@ public sealed partial class PlanningSystem
             return null;
         }
 
+        if (partner is not null && aidKind is (AidKind.Feed or AidKind.Hydrate) &&
+            FurnitureSeats.CurrentMealSeat(world, partner) is { } seat && FurnitureSeats.SupportsMeal(seat.DefinitionId))
+        {
+            return FindSeatedAidApproach(world, npc, partner, partnerJunction, occupiedByActor, reserve);
+        }
+
         if (partner is not null)
         {
             var spot = partner.Position + HexSpatialMath.Normalize(new Float2(
@@ -995,6 +1002,34 @@ public sealed partial class PlanningSystem
         }
 
         return null;
+    }
+
+    // The patient keeps the seat facing. Approach from the front or the side
+    // closest to their mouth, within reach of the spatially anchored seat.
+    private static JunctionId? FindSeatedAidApproach(WorldState world, NPCState helper, NPCState patient,
+        JunctionId patientJunction, System.Collections.Generic.HashSet<JunctionId> occupiedByActor, bool reserve)
+    {
+        var radians = patient.RotationDegrees * System.MathF.PI / 180f;
+        var forward = new Float2(System.MathF.Cos(radians), System.MathF.Sin(radians));
+        JunctionId? best = null;
+        var bestScore = float.MaxValue;
+        foreach (var candidate in SpatialQueries.GetPassableNeighbors(world, patientJunction))
+        {
+            if (!world.Junctions.Items.TryGetValue(candidate, out var point)) continue;
+            var delta = point.WorldPosition - patient.Position;
+            var direction = HexSpatialMath.Normalize(delta);
+            var towardFront = direction.X * forward.X + direction.Y * forward.Y;
+            if (towardFront < -.10f || !IsArmsLengthCandidate(world, helper, patient, patientJunction,
+                    candidate, occupiedByActor, hasStation: false, default)) continue;
+
+            var distance = HexSpatialMath.Distance(helper.Position, point.WorldPosition);
+            var score = distance + (1f - towardFront) * HexSpatialMath.HexRadius;
+            if (score >= bestScore) continue;
+            bestScore = score;
+            best = candidate;
+        }
+        return best is { } approach && (!reserve || SpatialMutations.TryReserveJunction(
+            world, approach, helper.Id, world.Tick, 48)) ? approach : null;
     }
 
     /// <summary>
@@ -1265,7 +1300,7 @@ public sealed partial class PlanningSystem
             if (world.Entities.Npcs.TryGetValue(remembered.Id, out var liveWard) &&
                 remembered.Junction is { } rememberedJunction &&
                 !HasAvailableArmsLengthApproach(
-                    world, npc, liveWard, rememberedJunction))
+                    world, npc, liveWard, rememberedJunction, remembered.AidKind))
             {
                 continue;
             }
@@ -1376,7 +1411,7 @@ public sealed partial class PlanningSystem
             if (agent.Junction is not { } candidateJunction ||
                 !world.Entities.Npcs.TryGetValue(agent.Id, out var candidateWard) ||
                 !HasAvailableArmsLengthApproach(
-                    world, npc, candidateWard, candidateJunction))
+                    world, npc, candidateWard, candidateJunction, agent.AidKind))
             {
                 continue;
             }

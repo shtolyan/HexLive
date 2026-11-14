@@ -49,6 +49,8 @@ namespace HexLive.UnityPresentation.Wearing
         private float _aidSipSampledAt;
         private bool _aidSipActive;
         private bool _aidSipCanSwallow;
+        private NpcActorView _seatedAidHelper;
+        private bool _seatedAidDrinking;
         private bool _seatedEveryday;
         private BodyPart? _bandagePart;
         private PlayableGraph _everydayGraph;
@@ -455,7 +457,18 @@ namespace HexLive.UnityPresentation.Wearing
             _aidSipCanSwallow = canSwallow;
         }
 
-        internal void ClearSupportedSip() => _aidSipActive = false;
+        internal void SetSeatedAid(NpcActorView helper, float phase, float rate, bool drinking)
+        {
+            _seatedAidHelper = helper;
+            _seatedAidDrinking = drinking;
+            SetSupportedSip(phase, rate, canSwallow: true);
+        }
+
+        internal void ClearSupportedSip()
+        {
+            _aidSipActive = false;
+            _seatedAidHelper = null;
+        }
 
         private static float AidEnvelope(float phase, float start, float peak, float release, float end) =>
             Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(start, peak, phase)) *
@@ -573,9 +586,15 @@ namespace HexLive.UnityPresentation.Wearing
 
         private void ApplySupportedSip()
         {
-            if (!_aidSipActive || !_laying || _ragdollActive || _headBone == null || !_faceCalibrated) return;
+            if (!_aidSipActive || _ragdollActive || _headBone == null || !_faceCalibrated) return;
             var phase = Mathf.Clamp01(_aidSipPhase +
                 Mathf.Min(.25f, Time.unscaledTime - _aidSipSampledAt) * _aidSipRate);
+            if (_sitting && _seatedAidHelper != null)
+            {
+                ApplySeatedAid(phase);
+                return;
+            }
+            if (!_laying) return;
             var support = AidHeadSupport(phase);
             if (support <= 0f) return;
 
@@ -588,6 +607,25 @@ namespace HexLive.UnityPresentation.Wearing
             if (jaw != null)
                 jaw.rotation = Quaternion.AngleAxis(7f * AidHandContact(phase) * (1f - swallow),
                     _headBone.TransformDirection(right)) * jaw.rotation;
+        }
+
+        private void ApplySeatedAid(float phase)
+        {
+            var ready = AidEnvelope(phase, .07f, .30f, .67f, .94f);
+            if (ready <= 0f) return;
+            var forward = _headBone.TransformDirection(_faceLocalForward);
+            var towardHelper = _seatedAidHelper.transform.position - _headBone.position;
+            towardHelper = Vector3.ProjectOnPlane(towardHelper, Vector3.up);
+            var yaw = Mathf.Clamp(Vector3.SignedAngle(forward, towardHelper, Vector3.up), -38f, 38f);
+            _headBone.rotation = Quaternion.AngleAxis(yaw * ready, Vector3.up) * _headBone.rotation;
+
+            var sip = AidEnvelope(phase, .38f, .49f, .61f, .76f);
+            var swallow = AidEnvelope(phase, .56f, .59f, .64f, .73f);
+            var right = _headBone.TransformDirection(Vector3.Cross(_faceLocalUp, _faceLocalForward));
+            var pitch = _seatedAidDrinking ? -12f * sip + 8f * swallow : 5f * sip;
+            _headBone.rotation = Quaternion.AngleAxis(pitch, right) * _headBone.rotation;
+            if (_animator != null && _animator.isHuman && _animator.GetBoneTransform(HumanBodyBones.Jaw) is { } jaw)
+                jaw.rotation = Quaternion.AngleAxis((_seatedAidDrinking ? 6f : 13f) * sip * (1f - swallow), right) * jaw.rotation;
         }
 
         private void FitLyingAidKneel()

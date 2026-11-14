@@ -918,8 +918,11 @@ public sealed partial class ExecutionSystem
                     target.Position.X - npc.Position.X, target.Position.Y - npc.Position.Y);
                 var faceDirection = HexSpatialMath.Normalize(faceDelta);
                 npc.RotationDegrees = HexSpatialMath.AngleDegrees(faceDirection);
-                target.RotationDegrees = HexSpatialMath.AngleDegrees(
-                    new Float2(-faceDirection.X, -faceDirection.Y));
+                if (kindNow is not (AidKind.Feed or AidKind.Hydrate) ||
+                    FurnitureSeats.CurrentMealSeat(world, target) is not { } seat ||
+                    !FurnitureSeats.SupportsMeal(seat.DefinitionId))
+                    target.RotationDegrees = HexSpatialMath.AngleDegrees(
+                        new Float2(-faceDirection.X, -faceDirection.Y));
             }
 
             npc.Execution.Status = ExecutionStatus.InProgress;

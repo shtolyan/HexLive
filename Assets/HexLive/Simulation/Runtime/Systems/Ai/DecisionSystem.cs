@@ -3096,7 +3096,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 if (agent.Junction is not { } aidJunction ||
                     !world.Entities.Npcs.TryGetValue(agent.Id, out var aidTarget) ||
                     !PlanningSystem.HasAvailableArmsLengthApproach(
-                        world, npc, aidTarget, aidJunction))
+                        world, npc, aidTarget, aidJunction, agent.AidKind))
                 {
                     continue;
                 }

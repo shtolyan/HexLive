@@ -690,6 +690,8 @@ namespace HexLive.UnityPresentation.Environment
         private bool _open;
         private Quaternion _closedRotation;
         private Quaternion _openRotation;
+        private float _swingStarted;
+        private float _swingDuration;
 
         public bool IsOpen => _open;
 
@@ -711,7 +713,30 @@ namespace HexLive.UnityPresentation.Environment
         public void SetOpen(bool open)
         {
             _open = open;
+            _swingDuration = 0f;
             transform.localRotation = open ? _openRotation : _closedRotation;
+        }
+
+        internal void PlayPassageSwing(float duration)
+        {
+            _swingStarted = Time.time;
+            _swingDuration = duration;
+            UpdateSwing();
+        }
+
+        internal float SwingProgress => _swingDuration > 0f
+            ? Mathf.Clamp01((Time.time - _swingStarted) / _swingDuration) : 1f;
+
+        private void LateUpdate() => UpdateSwing();
+
+        internal void UpdateSwing()
+        {
+            if (_swingDuration <= 0f) return;
+            var progress = SwingProgress;
+            var swing = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.15f, .79f, progress));
+            transform.localRotation = Quaternion.Slerp(
+                _open ? _closedRotation : _openRotation, _open ? _openRotation : _closedRotation, swing);
+            if (progress >= 1f) _swingDuration = 0f;
         }
     }
 }

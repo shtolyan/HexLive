@@ -490,11 +490,8 @@ public sealed class MovementSystem : ISimulationSystem
                     npc.Movement.ClimbPauseTimer = System.MathF.Max(
                         npc.Movement.ClimbPauseTimer, Spec129.DoorSwingSeconds);
                     npc.Movement.SetStatus(MovementStatus.Waiting);
-                    if (SimTrace.Enabled)
-                    {
-                        Trace.Debug(world, npc.Id, "DoorOpened",
-                            $"Door={closedDoor.Id.Value} Portal={targetJunctionId.Value}");
-                    }
+                    Trace.Emit(world, npc.Id, "DoorOpened",
+                        $"Door={closedDoor.Id.Value} Portal={targetJunctionId.Value}");
 
                     PauseGaitAndBreath(npc);
                     continue;
@@ -1367,11 +1364,8 @@ public sealed class MovementSystem : ISimulationSystem
             !AllyImminentAtPortal(world, npc, previousJunctionId) &&
             BuildingDoorRules.TryClose(world, passedDoor.Id))
         {
-            if (SimTrace.Enabled)
-            {
-                Trace.Debug(world, npc.Id, "DoorClosed",
-                    $"Door={passedDoor.Id.Value} Portal={previousJunctionId.Value}");
-            }
+            Trace.Emit(world, npc.Id, "DoorClosed",
+                $"Door={passedDoor.Id.Value} Portal={previousJunctionId.Value}");
         }
     }
 

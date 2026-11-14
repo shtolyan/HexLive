@@ -7547,6 +7547,7 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
         if (TryDriveWorkbenchHammerIK(solver, hand, effector)) return;
         if (TryDriveStumpServingIK(solver, hand, effector, otherEffector)) return;
         if (TryDriveMealContactIK(solver, hand, effector, otherEffector)) return;
+        if (TryDriveDoorReachIK(solver, hand, effector)) return;
 
         var weight = _hasUsableHand && _actionTargetActive && !_ragdollActive &&
             !_laying && !_swimming && hand != null
@@ -7741,7 +7742,7 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // руками и в шаге, и в беге.
         var wants = !_socialContactVisual && !_romanceVisual &&
             (HurtReachActive || _actionTargetActive || _servingAtStump || _sawLogTop.HasValue ||
-             _hammeringAtWorkbench || _feedingRecipient != null ||
+             _hammeringAtWorkbench || _feedingRecipient != null || DoorReachActive ||
              _requestedEverydayClip != null && (_action == ActionKind.RaiseToMouth || _everydayDrinking) ||
              (_offHandGripIk && TwoHandCarryActive));
         // The humanoid graph writes the complete action pose. Final IK's

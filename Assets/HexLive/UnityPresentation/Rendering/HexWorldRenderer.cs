@@ -27,6 +27,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private const float WardrobeGarmentShoulderDrop = 0.120f;
 
     [SerializeField] private SimulationRunnerBehaviour? _runner;
+    private SimulationRunnerBehaviour? _doorEventSource;
+    private readonly List<SimulationEvent> _doorPassages = new();
 
     // Spec 31.17: ~14k junction spheres are ~10M triangles — debug only.
     [SerializeField] private bool _showJunctionMarkers;
@@ -851,6 +853,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private void OnDisable()
     {
+        if (_doorEventSource != null) _doorEventSource.DoorPassage -= QueueDoorPassage;
+        _doorEventSource = null;
+        _doorPassages.Clear();
         SetOverviewGrassHidden(false);
         SetOverviewImpostorsActive(false);
     }
@@ -879,6 +884,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
         HexLive.UnityPresentation.Diagnostics.WebPerf.End(HexLive.UnityPresentation.Diagnostics.WebPerf.VegetationWind, perfVegetationWind);
 
         _runner ??= FindAnyObjectByType<SimulationRunnerBehaviour>();
+        if (_doorEventSource != _runner)
+        {
+            if (_doorEventSource != null) _doorEventSource.DoorPassage -= QueueDoorPassage;
+            _doorEventSource = _runner;
+            if (_doorEventSource != null) _doorEventSource.DoorPassage += QueueDoorPassage;
+            _doorPassages.Clear();
+        }
         if (_runner is null || !_runner.IsReady)
         {
             return;
@@ -953,6 +965,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             _objectInterpolationFullPass = true;
             _lastSnapshot = snapshot;
         }
+
+        PlayDoorPassages(snapshot);
 
         UnityEngine.Profiling.Profiler.BeginSample("Hex.PerFrame");
         var activeCamera = Camera.main;
@@ -4062,6 +4076,31 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // HL_Door_Pivot children) spans 0.06–1.43 wu up, so its middle is 0.745 wu
     // above the floor. Used only when the live leaf has no renderers to measure.
     private const float DoorLeafCenterHeight = 0.745f;
+
+    private void QueueDoorPassage(SimulationEvent passage) => _doorPassages.Add(passage);
+
+    private void PlayDoorPassages(WorldSnapshot snapshot)
+    {
+        if (_doorPassages.Count == 0 || _runner == null) return;
+        var speed = _runner.IsPaused ? 0f : _runner.SpeedMultiplier;
+        foreach (var passage in _doorPassages)
+        {
+            if (speed <= 0f || speed > 4f || passage.Tick > snapshot.Tick ||
+                snapshot.Tick - passage.Tick > 2 || passage.EntityId is not { } actor ||
+                !_actorViews.TryGetValue(actor, out var view) || view == null) continue;
+
+            const string prefix = "Door=";
+            var separator = passage.Message.IndexOf(' ');
+            if (separator <= prefix.Length || !passage.Message.StartsWith(prefix, StringComparison.Ordinal) ||
+                !int.TryParse(passage.Message.Substring(prefix.Length, separator - prefix.Length), out var door) ||
+                !_objectViewParts.TryGetValue(door, out var parts) || parts.Module == null) continue;
+
+            if (parts.Module.TryPlayDoorPassage(passage.Type == "DoorOpened",
+                    Spec129.DoorSwingSeconds / speed, out var leaf, out var grip) && leaf != null)
+                view.SetDoorPassageReach(leaf, grip);
+        }
+        _doorPassages.Clear();
+    }
 
     private Vector3 GetObjectActionTargetPosition(WorldSnapshot snapshot, ObjectSnapshot worldObject)
     {

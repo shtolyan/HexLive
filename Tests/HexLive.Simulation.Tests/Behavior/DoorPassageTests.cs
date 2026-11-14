@@ -294,6 +294,15 @@ public sealed class DoorPassageTests
         });
     }
 
+    [TestCase("DoorOpened")]
+    [TestCase("DoorClosed")]
+    public void PassageGestureTravelsToViewersWithoutAddingColonyHistory(string type)
+    {
+        var passage = new SimulationEvent { Type = type };
+        Assert.That(GameEventTypes.IsWireRelevant(passage), Is.True);
+        Assert.That(GameEventTypes.IsPlayerVisible(passage), Is.False);
+    }
+
     [Test]
     public void AllyWalksOutThroughClosedDoorAndClosesItBehind()
     {

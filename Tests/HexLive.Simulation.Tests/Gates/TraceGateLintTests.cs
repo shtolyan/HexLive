@@ -56,6 +56,8 @@ public sealed class TraceGateLintTests
         // travel or furniture outcomes must be available with tracing disabled.
         "PortalOpened", "PortalEntered", "PortalReturned", "PortalResidentJoined",
         "PortalResidentStartled", "PortalTravelRefused", "FurniturePlaced",
+        // §129: a door passage animates the character and door in every viewer.
+        "DoorOpened", "DoorClosed",
     };
 
     [Test]

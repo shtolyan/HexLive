@@ -286,11 +286,14 @@ public static class GameEventTypes
     public static bool IsManualOrderReply(string type) =>
         !string.IsNullOrEmpty(type) && ManualOrderReplies.Contains(type);
 
+    public static bool IsDoorPassage(string type) => type is "DoorOpened" or "DoorClosed";
+
     /// <summary>§83: что серверу класть в канал событий для зрителей —
-    /// летопись плюс ответы на приказы.</summary>
+    /// летопись, ответы на приказы и жест персонажа при проходе через дверь.</summary>
     public static bool IsWireRelevant(SimulationEvent simulationEvent) =>
         simulationEvent != null &&
-        (IsPlayerVisible(simulationEvent.Type) || IsManualOrderReply(simulationEvent.Type));
+        (IsPlayerVisible(simulationEvent.Type) || IsManualOrderReply(simulationEvent.Type) ||
+         IsDoorPassage(simulationEvent.Type));
 
     /// <summary>The listed names, for the drift gate. Does not include the prefix rule.</summary>
     public static IReadOnlyCollection<string> ListedTypes => PlayerVisible;

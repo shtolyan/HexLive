@@ -58,6 +58,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     private long _lastLoggedSeq;
     private readonly List<SimulationEvent> _drainedEvents = new();
     private readonly GameHistoryLog _gameHistory = new();
+    internal event System.Action<SimulationEvent>? DoorPassage;
 
     /// <summary>§41.3: экран загрузки берёт прогрев арта СЕБЕ, чтобы крутить
     /// его параллельно намотке офлайна — иначе восемь мегабайт префабов и все
@@ -427,6 +428,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         for (var i = 0; i < _drainedEvents.Count; i++)
         {
             var e = _drainedEvents[i];
+            if (GameEventTypes.IsDoorPassage(e.Type)) DoorPassage?.Invoke(e);
             var isGameHistoryEvent = GameHistoryLog.IsGameHistoryEvent(e);
             if (isGameHistoryEvent)
             {

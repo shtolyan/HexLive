@@ -3,6 +3,7 @@ using UnityEngine.Animations;
 using UnityEngine.Playables;
 using RootMotion.FinalIK;
 using HexLive.Simulation.Content;
+using HexLive.UnityPresentation.Environment;
 
 namespace HexLive.UnityPresentation.Wearing
 {
@@ -41,6 +42,8 @@ namespace HexLive.UnityPresentation.Wearing
         private Vector3 _aidKneelOffset;
         private Vector3 _bedsideOutward;
         private Vector3 _bedsideEdge;
+        private BlueprintDoorVisual _doorReachLeaf;
+        private Vector3 _doorReachGrip;
         private float _aidSipPhase;
         private float _aidSipRate;
         private float _aidSipSampledAt;
@@ -366,6 +369,36 @@ namespace HexLive.UnityPresentation.Wearing
         }
 
         internal void SetWorkbenchTop(float y) => _workbenchTop = y;
+
+        internal void SetDoorPassageReach(BlueprintDoorVisual leaf, Vector3 grip)
+        {
+            _doorReachLeaf = leaf;
+            _doorReachGrip = grip;
+        }
+
+        private bool DoorReachActive => _doorReachLeaf != null && _doorReachLeaf.SwingProgress < 1f &&
+            _hasUsableHand && !_dead && !_laying && !_swimming && !_ragdollActive && !_combatFighting &&
+            !TwoHandCarryActive && !_actionTargetActive && !_busyInteraction;
+
+        private bool TryDriveDoorReachIK(IKSolverFullBodyBiped solver, Transform hand, IKEffector effector)
+        {
+            if (!DoorReachActive || hand == null) return false;
+            _doorReachLeaf.UpdateSwing();
+            var progress = _doorReachLeaf.SwingProgress;
+            var shoulder = _leftHanded ? _lShldr : _rShldr;
+            var grip = _doorReachLeaf.transform.TransformPoint(_doorReachGrip);
+            var weight = AidEnvelope(progress, .01f, .18f, .69f, .96f);
+            if (shoulder == null || Vector3.Distance(shoulder.position, grip) > .93f || weight <= .001f)
+                return false;
+
+            solver.IKPositionWeight = 1f;
+            solver.pullBodyHorizontal = .055f;
+            effector.target = null;
+            effector.position = grip;
+            effector.positionWeight = weight;
+            effector.rotationWeight = 0f;
+            return true;
+        }
 
         internal void SetEverydayDrinking(AnimationClip clip, float phase, float rate, float duration)
         {

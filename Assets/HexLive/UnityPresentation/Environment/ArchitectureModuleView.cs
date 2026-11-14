@@ -212,6 +212,23 @@ namespace HexLive.UnityPresentation.Environment
 
         private Renderer[] _doorLeafRenderers = System.Array.Empty<Renderer>();
 
+        internal bool TryPlayDoorPassage(bool open, float duration, out BlueprintDoorVisual? leaf, out Vector3 grip)
+        {
+            leaf = null;
+            grip = default;
+            if (_door == null || _door.IsOpen != open || _cutawayHidden ||
+                !TryGetDoorLeafCenter(out var center)) return false;
+
+            var radial = Vector3.ProjectOnPlane(center - _door.transform.position, Vector3.up);
+            if (radial.sqrMagnitude < .0001f) return false;
+            // The native plank leaf has no handle marker. Aim at the free
+            // edge, slightly inside the wood so the palm can push or pull it.
+            grip = _door.transform.InverseTransformPoint(center + radial * .72f + Vector3.up * .10f);
+            leaf = _door;
+            leaf.PlayPassageSwing(duration);
+            return true;
+        }
+
         /// <summary>
         /// §129.5 r2 (bug #726): the world-space middle of the door leaf as it
         /// is drawn right now — where a break-in's axe lands (hand IK target).

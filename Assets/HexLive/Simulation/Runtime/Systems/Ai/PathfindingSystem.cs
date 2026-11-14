@@ -709,6 +709,7 @@ public sealed class PathfindingSystem : ISimulationSystem
         {
             return;
         }
+        if (ExecutionSystem.AbandonPackMealApproach(world, npc)) return;
 
         var failedGoal = npc.Plan.Goal != GoalType.None
             ? npc.Plan.Goal

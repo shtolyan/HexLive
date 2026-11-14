@@ -1,8 +1,10 @@
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Spatial;
+using System.Collections.Generic;
 
 namespace HexLive.Simulation.Runtime
 {
@@ -24,6 +26,7 @@ namespace HexLive.Simulation.Runtime
 public static class FurnitureSeats
 {
     public const string SofaDefinitionId = "furniture.modern_sofa";
+    internal const int MealStandReserveTicks = 48;
 
     // Measured from the shipped mesh furniture.modern_sofa.fbx (Blender import,
     // 12 Nov 2026): the two seat cushions span y ∈ [−0.688, −0.012] and
@@ -56,6 +59,9 @@ public static class FurnitureSeats
         definitionId == SofaDefinitionId ? 2 : 1;
 
     public static bool IsMultiSeat(string definitionId) => SeatCount(definitionId) > 1;
+
+    public static bool SupportsMeal(string definitionId) =>
+        definitionId is ContentIds.PalmStump or "chair.basic" or "furniture.modern_chair" or SofaDefinitionId;
 
     /// <summary>Signed offset of a seat along the long axis (left = +).</summary>
     public static float SeatLateral(string definitionId, int seat) =>
@@ -228,13 +234,60 @@ public static class FurnitureSeats
         seat.CurrentUser ??= npc.Id;
     }
 
+    // The first step remains the inventory executor. Its optional target and
+    // the plan's junction describe the familiar walk to a furniture rim.
+    internal static bool TryPlanMealSeat(WorldState world, NPCState npc, PlanStep step)
+    {
+        if (!CanApproachMealSeat(npc) || !npc.CurrentJunction.HasValue) return false;
+
+        var candidates = new List<PerceivedObject>();
+        foreach (var seen in npc.Perception.Objects)
+            if (seen.IsReachable && !seen.FromMemory && SupportsMeal(seen.DefinitionId))
+                candidates.Add(seen);
+        candidates.Sort((a, b) =>
+        {
+            var order = a.Distance.CompareTo(b.Distance);
+            return order != 0 ? order : a.Id.Value.CompareTo(b.Id.Value);
+        });
+
+        foreach (var seen in candidates)
+        {
+            if (!world.Entities.Objects.TryGetValue(seen.Id, out var seat) || seat.Junctions.Count == 0 ||
+                (seat.IsOccupied && seat.CurrentUser != npc.Id && !IsMultiSeat(seat.DefinitionId)) ||
+                !world.Content.ObjectDefinitions.TryGetValue(seat.DefinitionId, out var definition) ||
+                definition.Interactions.Find(i => i.Type == InteractionType.Sit) == null)
+                continue;
+
+            var reserved = IsMultiSeat(seat.DefinitionId)
+                ? TryReserveSeat(world, npc, seat, MealStandReserveTicks, out var stand)
+                : PlanningSystem.TryReserveBesideJunction(world, npc, seat.Junctions[0], MealStandReserveTicks, out stand,
+                    SpatialQueries.BesideReach(definition.ObstacleRadius), seat);
+            if (!reserved) continue;
+            if (npc.CurrentJunction == stand &&
+                !SpatialMutations.TryReserveJunction(world, stand, npc.Id, world.Tick, MealStandReserveTicks)) continue;
+            step.TargetObject = seat.Id;
+            step.TargetJunction = stand;
+            npc.Plan.TargetJunctionId = stand;
+            KeepForMeal(npc, seat);
+            return true;
+        }
+
+        return false;
+    }
+
+    internal static bool CanApproachMealSeat(NPCState npc) =>
+        !npc.Body.IsCrawling && !npc.IsCarryingPerson && !npc.IsBeingCarried &&
+        !npc.Mind.IsStarving && !npc.Mind.IsDehydrated;
+
     internal static void ReleaseMealSeat(WorldState world, NPCState npc)
     {
-        if (npc.Execution.ConsumptionSeat is { } id && world.Entities.Objects.TryGetValue(id, out var seat) &&
-            seat.CurrentUser == npc.Id)
+        if (npc.Execution.ConsumptionSeat is { } id)
         {
-            seat.IsOccupied = false;
-            seat.CurrentUser = null;
+            if (world.Entities.Objects.TryGetValue(id, out var seat) && seat.CurrentUser == npc.Id)
+            {
+                seat.IsOccupied = false;
+                seat.CurrentUser = null;
+            }
         }
         npc.Execution.ConsumptionSeat = null;
     }

@@ -4524,7 +4524,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private static bool HasObjectSitTarget(WorldSnapshot snapshot, NpcSnapshot npc)
     {
         return HasSeatInteraction(npc) && TryGetTargetObject(snapshot, npc, out var seat) &&
-            seat.DefinitionId is "stump.palm" or "chair.basic" or "furniture.modern_chair" or FurnitureSeats.SofaDefinitionId;
+            FurnitureSeats.SupportsMeal(seat.DefinitionId);
     }
 
     private static bool HasSeatInteraction(NpcSnapshot npc) =>

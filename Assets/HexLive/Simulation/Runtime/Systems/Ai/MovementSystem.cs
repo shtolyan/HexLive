@@ -646,6 +646,11 @@ public sealed class MovementSystem : ISimulationSystem
                 }
                 else if (npc.Movement.BlockedWaitTicks >= abortTicks)
                 {
+                    if (ExecutionSystem.AbandonPackMealApproach(world, npc))
+                    {
+                        PauseGaitAndBreath(npc);
+                        continue;
+                    }
                     // A successful graph search to an actor-occupied FINAL
                     // node is not progress. Previously every rebuild reset the
                     // wait counter, so two actors exchanging targets could

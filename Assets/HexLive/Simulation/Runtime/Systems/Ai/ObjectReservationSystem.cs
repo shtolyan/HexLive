@@ -39,6 +39,7 @@ public sealed class ObjectReservationSystem : ISimulationSystem
                     usedBodies.Add(target);
                 }
                 if (npc.Execution.CraftProjectId is { } project) live.Add((project, npc.Id));
+                if (npc.Execution.ConsumptionSeat is { } seat) live.Add((seat, npc.Id));
                 foreach (var piece in npc.Execution.CraftLayout) live.Add((piece, npc.Id));
             }
 

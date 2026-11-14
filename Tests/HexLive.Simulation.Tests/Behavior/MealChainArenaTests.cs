@@ -475,6 +475,61 @@ public sealed class MealChainArenaTests
         Assert.That(npc.Inventory.Items.Any(it => it.DefinitionId == ContentIds.MeatRoasted), Is.True);
     }
 
+    [TestCase(false, false)]
+    [TestCase(true, false)]
+    [TestCase(false, true)]
+    public void PackMealUsesNearbyStumpOrContinuesWhenItDisappears(bool drink, bool removeSeat)
+    {
+        var arena = Build();
+        var npc = arena.Actor;
+        var world = arena.World;
+        npc.Needs.Hunger = .15f;
+        npc.Needs.Thirst = .15f;
+        npc.Needs.Comfort = .35f;
+        var stump = arena.Place(ContentIds.PalmStump, new TileCoord(1, 0));
+        arena.Engine.ApplyManualCommand(new SetManualControlCommand(npc.Id, true));
+        arena.Step(16);
+        var supply = drink ? ContentIds.Bottle : ContentIds.MeatCooked;
+        npc.Inventory.Items.Add(new ItemInstance(supply)
+        {
+            ResourceAmount = drink ? 2f : 300f,
+            WaterKind = WaterKind.Boiled
+        });
+        var action = drink ? SelfActionKind.DrinkFromPack : SelfActionKind.EatFromPack;
+        Assert.That(arena.Engine.ApplyManualCommand(new SelfActionCommand(npc.Id, action)).Accepted, Is.True);
+        arena.Step(80, () => npc.Execution.ConsumptionSeat == stump.Id);
+        Assert.That(npc.Execution.ConsumptionSeat, Is.EqualTo(stump.Id), () => arena.Tail());
+        var stand = npc.Plan.TargetJunctionId;
+        Assert.That(stand, Is.Not.Null);
+        Assert.That(stand, Is.Not.EqualTo(stump.Junctions[0]));
+        if (removeSeat) WorldObjectMutations.DespawnObject(world, stump.Id);
+
+        var verb = drink ? InteractionType.Drink : InteractionType.Eat;
+        arena.Step(160, () => npc.Execution.CurrentInteraction == verb);
+        Assert.That(npc.Execution.CurrentInteraction, Is.EqualTo(verb), () => arena.Tail());
+        var comfort = npc.Needs.Comfort;
+        var view = HexLive.Simulation.Debug.WorldSnapshotExporter.Export(world).Npcs.Single(n => n.Id == npc.Id);
+        if (removeSeat)
+        {
+            Assert.That(view.TargetObjectId, Is.Null);
+            Assert.That(npc.Plan.TargetJunctionId, Is.Null);
+        }
+        else
+        {
+            Assert.That(npc.CurrentJunction, Is.EqualTo(stand));
+            Assert.That(view.TargetObjectId, Is.EqualTo(stump.Id.Value));
+            arena.Step(5);
+            Assert.That(stump.CurrentUser, Is.EqualTo(npc.Id));
+            Assert.That(npc.Needs.Comfort, Is.GreaterThan(comfort));
+        }
+        arena.Step(100, () => npc.Execution.CurrentInteraction != verb);
+        Assert.That(npc.Execution.ConsumptionSeat, Is.Null);
+        Assert.That(world.Reservations.Junctions.TryGetValue(stand!.Value, out var claim) && claim.Owner == npc.Id,
+            Is.False);
+        if (removeSeat) Assert.That(world.Entities.Objects.ContainsKey(stump.Id), Is.False);
+        else Assert.That(stump.CurrentUser, Is.Null);
+    }
+
     // 9. A manual Serve order with no surface is accepted and completes on the ground.
     [Test]
     public void ManualServeOrderWithoutASurfaceCompletesOnTheGround()

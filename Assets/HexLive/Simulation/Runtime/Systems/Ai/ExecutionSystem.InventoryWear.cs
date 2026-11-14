@@ -693,6 +693,7 @@ public sealed partial class ExecutionSystem
         if (itemId is null ||
             !world.Content.ObjectDefinitions.TryGetValue(itemId, out var itemDefinition))
         {
+            ReleasePackMealSeat(world, npc);
             npc.Plan.Status = PlanStatus.Failed;
             npc.Execution.TargetInventoryItem = null;
             if (SimTrace.Enabled)
@@ -717,6 +718,7 @@ public sealed partial class ExecutionSystem
             : ResolveInteraction(world, npc, itemDefinition, verb);
         if (interaction is null)
         {
+            ReleasePackMealSeat(world, npc);
             npc.Plan.Status = PlanStatus.Failed;
             npc.Execution.TargetInventoryItem = null;
             if (SimTrace.Enabled)
@@ -738,7 +740,7 @@ public sealed partial class ExecutionSystem
             (serving && !MealServing.HasKnife(npc)) ||
             (IsPortableCoconutDrink(itemDefinition, verb) && item.ResourceAmount <= 0f))
         {
-            FurnitureSeats.ReleaseMealSeat(world, npc);
+            ReleasePackMealSeat(world, npc);
             npc.Plan.Status = PlanStatus.Failed;
             npc.Execution.TargetInventoryItem = null;
             if (SimTrace.Enabled)
@@ -751,6 +753,7 @@ public sealed partial class ExecutionSystem
 
         if (starting)
         {
+            if (!serving && !ReadyToStartPackMeal(world, npc)) return;
             npc.Execution.Status = ExecutionStatus.InProgress;
             npc.Execution.CurrentInteraction = verb;
             npc.Execution.TargetObject = null;
@@ -792,6 +795,7 @@ public sealed partial class ExecutionSystem
                 item.ResourceAmount = amount;
             }
             ApplyEffectsScaled(npc, interaction.Effects, share);
+            if (!serving) ApplyMealSeatComfort(world, npc);
 
             if (remaining > 0 && (verb != InteractionType.Eat || item.ResourceAmount != 0f))
             {
@@ -916,7 +920,7 @@ public sealed partial class ExecutionSystem
             npc.Plan.Steps.Clear();
             npc.Plan.TargetItemDefinitionId = null;
             npc.Mind.CurrentGoal = GoalType.None;
-            FurnitureSeats.ReleaseMealSeat(world, npc);
+            ReleasePackMealSeat(world, npc);
 
             if (SimTrace.Enabled)
             {
@@ -1136,6 +1140,7 @@ public sealed partial class ExecutionSystem
 
         if (starting)
         {
+            if (!ReadyToStartPackMeal(world, npc)) return;
             npc.Execution.Status = ExecutionStatus.InProgress;
             npc.Execution.CurrentInteraction = InteractionType.Drink;
             npc.Execution.TargetObject = null;
@@ -1156,6 +1161,7 @@ public sealed partial class ExecutionSystem
         }
 
         ApplyVesselSipEffects(world, npc, bottle.WaterKind, 1f / DrinkBottleDurationTicks);
+        ApplyMealSeatComfort(world, npc);
 
         if (npc.Execution.EndTick - world.Tick > 0)
         {
@@ -1192,7 +1198,7 @@ public sealed partial class ExecutionSystem
         npc.Plan.Status = PlanStatus.Completed;
         npc.Plan.Steps.Clear();
         npc.Mind.CurrentGoal = GoalType.None;
-        FurnitureSeats.ReleaseMealSeat(world, npc);
+        ReleasePackMealSeat(world, npc);
         npc.Execution.Status = ExecutionStatus.None;
         npc.Execution.CurrentInteraction = null;
         npc.Execution.TargetInventoryItem = null;
@@ -1204,6 +1210,69 @@ public sealed partial class ExecutionSystem
             Trace.Debug(world, npc.Id, "CycleReset",
                 "Goal->None Plan->Completed Execution->Cleared (drank from bottle)");
         }
+    }
+
+    private static bool ReadyToStartPackMeal(WorldState world, NPCState npc)
+    {
+        if (npc.Movement.HopTimer > 0f) return false;
+        var step = npc.Plan.Steps[0];
+        if (FurnitureSeats.CurrentMealSeat(world, npc) != null && !step.TargetJunction.HasValue)
+            return true;
+        if (!step.TargetObject.HasValue && !FurnitureSeats.TryPlanMealSeat(world, npc, step))
+            return true;
+        if (step.TargetObject is not { } id || step.TargetJunction is not { } stand ||
+            !world.Entities.Objects.TryGetValue(id, out var seat) || seat.Junctions.Count == 0 ||
+            !world.Junctions.Items.TryGetValue(seat.Junctions[0], out var anchor) ||
+            !world.Junctions.Items.TryGetValue(stand, out var point) || point.Blocked ||
+            !world.Content.ObjectDefinitions.TryGetValue(seat.DefinitionId, out var definition) ||
+            !SpatialQueries.CanTouchAcross(world, stand, anchor.Id,
+                SpatialQueries.BesideReach(definition.ObstacleRadius), seat, InteractionReach.RimMode) ||
+            !FurnitureSeats.CanApproachMealSeat(npc) ||
+            PathfindingSystem.OtherActorJunctions(world, npc).Contains(stand) ||
+            (!FurnitureSeats.IsMultiSeat(seat.DefinitionId) && seat.IsOccupied && seat.CurrentUser != npc.Id) ||
+            !SpatialMutations.TryReserveJunction(world, stand, npc.Id, world.Tick, FurnitureSeats.MealStandReserveTicks))
+        {
+            AbandonPackMealApproach(world, npc);
+            return true;
+        }
+        FurnitureSeats.KeepForMeal(npc, seat);
+        if (npc.Movement.IsMoving || npc.CurrentJunction != stand) return false;
+        return TryTurnBackToFurniture(world, npc, seat, anchor.WorldPosition);
+    }
+
+    internal static bool AbandonPackMealApproach(WorldState world, NPCState npc)
+    {
+        if (npc.Plan.Steps.Count == 0 ||
+            npc.Plan.Steps[0] is not { TargetJunction: not null, TargetObject: not null } step ||
+            step.Type is not (PlanStepType.ConsumeInventoryItem or PlanStepType.DrinkBottle)) return false;
+        ReleasePackMealSeat(world, npc);
+        step.TargetJunction = null;
+        npc.Movement.JunctionPath.Clear();
+        npc.Movement.PathIndex = 0;
+        npc.Movement.IsMoving = false;
+        npc.Movement.BlockedWaitTicks = 0;
+        npc.Movement.SetStatus(MovementStatus.Idle);
+        return true;
+    }
+
+    private static void ReleasePackMealSeat(WorldState world, NPCState npc)
+    {
+        FurnitureSeats.ReleaseMealSeat(world, npc);
+        if (npc.Plan.TargetJunctionId is not { } stand) return;
+        SpatialMutations.ReleaseJunctionReservation(world, stand, npc.Id);
+        npc.Plan.TargetJunctionId = null;
+    }
+
+    private static void ApplyMealSeatComfort(WorldState world, NPCState npc)
+    {
+        if (FurnitureSeats.CurrentMealSeat(world, npc) is not { } seat ||
+            !world.Content.ObjectDefinitions.TryGetValue(seat.DefinitionId, out var definition)) return;
+        FurnitureSeats.MaintainOccupancy(seat, npc);
+        var sitting = definition.Interactions.Find(i => i.Type == InteractionType.Sit);
+        if (sitting is not { DurationTicks: > 0 } || sitting.Effects.ComfortDelta == 0f) return;
+        var delta = sitting.Effects.ComfortDelta / sitting.DurationTicks;
+        npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + delta);
+        RecordInteractionImpact(npc, NeedKind.Comfort, EffectKind.Resting, delta > 0f);
     }
 
     private static void ApplyVesselSipEffects(WorldState world, NPCState npc, WaterKind kind, float share)

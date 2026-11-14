@@ -1195,6 +1195,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 }
             }
         }
+
+        UpdateSeatedConversations(world);
     }
 
     // Эффекты завершённого взаимодействия — по одному рукаву на глагол.

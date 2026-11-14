@@ -835,8 +835,12 @@ public static class WorldSnapshotExporter
             HeldLeafDryness=Runtime.LeafDryingMath.HeldFraction(world,npc),
             OffhandItemId = ActionItemResolver.OffhandId(npc), // §55.4 (bug #317)
             // Spec 28.15E: conversation subject + last outcome for the bubble.
-            TalkTopic = npc.Execution.CurrentTalkTopic?.ToString() ?? string.Empty,
-            TalkTopicPeerId = npc.Execution.CurrentTalkTopicPeerId?.Value,
+            // For a seated conversation the peer is the other diner. Contact
+            // scenes likewise use the peer field to identify a participant.
+            TalkTopic = (Runtime.ExecutionSystem.SeatedConversationTopic(world, npc) ??
+                npc.Execution.CurrentTalkTopic)?.ToString() ?? string.Empty,
+            TalkTopicPeerId = (npc.Execution.SeatedConversation?.Other(npc.Id) ??
+                npc.Execution.CurrentTalkTopicPeerId)?.Value,
             TalkResultTick = npc.Execution.LastTalkResultTick,
             TalkResultDelta = npc.Execution.LastTalkAffinityDelta,
             SocialCueTick = npc.Execution.LastSocialCueTick,

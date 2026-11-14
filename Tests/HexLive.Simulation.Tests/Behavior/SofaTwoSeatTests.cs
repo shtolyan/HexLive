@@ -175,6 +175,76 @@ public sealed class SofaTwoSeatTests
         Assert.That(sofa.CurrentUser, Is.EqualTo(stayer.Id));
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public void TalkWhileEatingPreservesBothCushionsAndStopsWithEitherParticipant(bool walkAway)
+    {
+        var world = CreateWorld(0);
+        Assert.That(PortalWorld.OpenImmediately(world, Faction.Colony), Is.Null);
+        var sofa = world.Entities.Objects.Values.Single(obj => obj.DefinitionId == Sofa &&
+            PortalWorld.TryGetApartmentFurnitureVisit(obj.Variant, out _));
+        var free = FreeLivingJunctions(world, sofa).ToArray();
+        var first = AddNpc(world, 1, free[0]);
+        var second = AddNpc(world, 2, free[1]);
+        first.Mind.ManualControl = second.Mind.ManualControl = true;
+        first.Needs.Hunger = .68f;
+        first.Needs.Social = second.Needs.Social = .35f;
+        var engine = new SimulationEngine(world, new SimulationSettings(), new SimulationClock());
+        engine.Register(new PathfindingSystem());
+        engine.Register(new MovementSystem());
+        engine.Register(new ExecutionSystem());
+        engine.Register(new ObjectReservationSystem());
+
+        Assert.That(engine.ApplyManualCommand(new InteractCommand(first.Id, sofa.Id, InteractionType.Sit)).Accepted, Is.True);
+        Assert.That(engine.ApplyManualCommand(new InteractCommand(second.Id, sofa.Id, InteractionType.Sit)).Accepted, Is.True);
+        for (var i = 0; i < 200 && (first.Execution.CurrentInteraction != InteractionType.Sit ||
+            second.Execution.CurrentInteraction != InteractionType.Sit); i++) engine.Step();
+        Assert.That(first.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Sit));
+        Assert.That(second.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Sit));
+        var firstStand = first.CurrentJunction;
+        var secondStand = second.CurrentJunction;
+
+        var portion = new ItemInstance(ContentIds.MeatCooked) { ResourceAmount = 300f };
+        first.Inventory.Items.Add(portion);
+        var item = new InventoryItemRef(InventoryItemSource.Carried, first.Inventory.Items.Count - 1, ContentIds.MeatCooked);
+        Assert.That(engine.ApplyManualCommand(new ManageInventoryCommand(first.Id, item, InventoryAction.Eat)).Accepted, Is.True);
+        engine.Step();
+        Assert.That(first.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Eat));
+        Assert.That(first.Execution.ConsumptionSeat, Is.EqualTo(sofa.Id), $"Sofa owner {sofa.CurrentUser}");
+        Assert.That(FurnitureSeats.CurrentMealSeat(world, first), Is.SameAs(sofa));
+        Assert.That(FurnitureSeats.CurrentMealSeat(world, second), Is.SameAs(sofa));
+        Assert.That(first.Movement.IsMoving || second.Movement.IsMoving, Is.False);
+        Assert.That(first.Mind.IsStarving || second.Mind.IsStarving || first.Mind.IsDehydrated ||
+            second.Mind.IsDehydrated, Is.False);
+        var request = new TalkToCommand(first.Id, second.Id, HexLive.Simulation.Social.TalkTopic.Food);
+        Assert.That(engine.ApplyManualCommand(request).Accepted, Is.True);
+        engine.Step();
+        var peers = HexLive.Simulation.Debug.WorldSnapshotExporter.Export(world).Npcs;
+        Assert.Multiple(() =>
+        {
+            Assert.That(peers.Single(n => n.Id == first.Id).TalkTopicPeerId, Is.EqualTo(second.Id.Value));
+            Assert.That(peers.Single(n => n.Id == second.Id).TalkTopicPeerId, Is.EqualTo(first.Id.Value));
+            Assert.That(first.CurrentJunction, Is.EqualTo(firstStand));
+            Assert.That(second.CurrentJunction, Is.EqualTo(secondStand));
+            Assert.That(first.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Eat));
+            Assert.That(second.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Sit));
+        });
+        Assert.That(engine.ApplyManualCommand(request).Accepted, Is.True, "retry leaves a single conversation");
+        if (walkAway)
+            PlanInterruption.TryAbort(world, second, InterruptionCause.ExecutionFailure, "test: stands up");
+
+        for (var i = 0; i < 90 && first.Execution.CurrentInteraction == InteractionType.Eat; i++) engine.Step();
+        peers = HexLive.Simulation.Debug.WorldSnapshotExporter.Export(world).Npcs;
+        Assert.Multiple(() =>
+        {
+            Assert.That(portion.ResourceAmount, Is.EqualTo(200f).Within(.001f));
+            Assert.That(peers.Single(n => n.Id == first.Id).TalkTopicPeerId, Is.Null);
+            Assert.That(peers.Single(n => n.Id == second.Id).TalkTopicPeerId, Is.Null);
+            Assert.That(first.Execution.LastTalkResultTick > 0, Is.EqualTo(!walkAway));
+            Assert.That(second.Execution.LastTalkResultTick, Is.EqualTo(first.Execution.LastTalkResultTick));
+        });
+    }
+
     private static System.Collections.Generic.IEnumerable<JunctionId> FreeLivingJunctions(
         WorldState world, WorldObjectState sofa)
     {

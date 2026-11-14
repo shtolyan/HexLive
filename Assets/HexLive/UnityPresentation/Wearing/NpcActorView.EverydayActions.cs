@@ -67,6 +67,50 @@ namespace HexLive.UnityPresentation.Wearing
         private NpcActorView _feedingRecipient;
         private float _feedingContact;
         private float _eatingContact;
+        private float _mealMouthWeight;
+        private NpcActorView _seatedConversationPartner;
+        private float _seatedConversationStart;
+        private int _lastSeatedSpeechTurn = -1;
+        private float _seatedGestureWeight;
+        private const float SeatedSpeechTurnSeconds = 2.8f;
+
+        internal void SetSeatedConversation(NpcActorView partner)
+        {
+            if (_seatedConversationPartner == partner) return;
+            _seatedConversationPartner = partner;
+            _seatedConversationStart = Time.time;
+            _lastSeatedSpeechTurn = -1;
+        }
+
+        private void UpdateSeatedConversation()
+        {
+            var partner = _seatedConversationPartner;
+            var speaking = false;
+            if (_sitting && partner != null && partner._seatedConversationPartner == this &&
+                !_laying && !_swimming && _simSpeed > 0f && _simSpeed <= 4.01f)
+            {
+                if (partner._headBone != null) LookAt(partner._headBone);
+                var elapsed = Time.time - Mathf.Min(_seatedConversationStart, partner._seatedConversationStart);
+                var turn = Mathf.FloorToInt(elapsed / SeatedSpeechTurnSeconds);
+                var turnTime = Mathf.Repeat(elapsed, SeatedSpeechTurnSeconds);
+                speaking = ((turn & 1) == 0) == (_npcId < partner._npcId) && _mealMouthWeight < .1f;
+                if (speaking && turnTime < SeatedSpeechTurnSeconds - .75f && turn != _lastSeatedSpeechTurn)
+                {
+                    _lastSeatedSpeechTurn = turn;
+                    _speech?.OnTalkTurn();
+                }
+            }
+
+            var freeForearm = _leftHanded ? _rForearm : _lForearm;
+            if (!_hasTwoUsableHands || freeForearm == null || _offhandProp != null) return;
+            _seatedGestureWeight = Mathf.MoveTowards(_seatedGestureWeight, speaking ? 1f : 0f, Time.deltaTime * 5f);
+            if (_seatedGestureWeight < .001f) return;
+
+            // Forearm and palm follow the pose below them. The holding arm,
+            // elbows at contact, legs and sitting root keep the meal pose.
+            var lift = 15f + 8f * Mathf.Sin(Time.time * 6f);
+            freeForearm.rotation = Quaternion.AngleAxis(-lift * _seatedGestureWeight, transform.right) * freeForearm.rotation;
+        }
         private Transform _upperLip;
         private Transform _lowerLip;
 
@@ -531,6 +575,7 @@ namespace HexLive.UnityPresentation.Wearing
         {
             _feedingContact = 0f;
             _eatingContact = 0f;
+            _mealMouthWeight = 0f;
             _kneelingWorkSeconds = 0f;
             _sawContact = 0f;
             if (_animator == null || !_animator.isActiveAndEnabled || _dead || _laying || _ragdollActive ||
@@ -609,6 +654,11 @@ namespace HexLive.UnityPresentation.Wearing
                           _currentPropId == ContentIds.Bottle ? 1.91f : 1.32f, time)) * weight
                     : Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.42f, .68f, time)) *
                       Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(1.17f, .86f, time)) * weight;
+
+                var handDownAt = !_everydayDrinking ? 1.35f :
+                    _currentPropId == ContentIds.Bottle ? 2.5f : 1.8f;
+                _mealMouthWeight = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.16f, .42f, time)) *
+                    Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(handDownAt, handDownAt - .23f, time));
             }
             if (_everydayAnimatorRoot != _animator.transform)
             {

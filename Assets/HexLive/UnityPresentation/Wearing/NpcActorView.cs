@@ -3860,6 +3860,7 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _action = ActionKind.None;
         _busyInteraction = false;
         _wantsTalk = false;
+        SetSeatedConversation(null);
         _sitting = false;
         _carryingPerson = false;
         _chopSfxId = string.Empty;
@@ -8168,6 +8169,7 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
             // Spec 40.9 / 40.1: injury posture + winded breathing.
             ApplyPosturePose();
+            UpdateSeatedConversation();
         }
 
         // Animator, procedural actions and ragdoll all write bones. The fitted
@@ -8191,7 +8193,8 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             _gazeBlendSpeed = GazeBlendSpeedDefault;
         }
-        _lookAtIK.solver.IKPositionWeight = _gazeWeight;
+        var seatedConversation = _seatedConversationPartner != null && !_portraitGaze && !_cameraGaze;
+        _lookAtIK.solver.IKPositionWeight = _gazeWeight * (seatedConversation ? 1f - _mealMouthWeight : 1f);
         if (_gazeTarget != null)
         {
             _lookAtIK.solver.target = _gazeTarget;
@@ -8243,7 +8246,7 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // вверх, и руки «махали по воздуху» вместо опоры о землю.
             //
             // Голову и глаза оставляем: ползущая вполне может поднять взгляд.
-            _lookAtIK.solver.bodyWeight = _posture == "Crawl" ? 0f : 0.3f;
+            _lookAtIK.solver.bodyWeight = _posture == "Crawl" || seatedConversation ? 0f : 0.3f;
             _lookAtIK.solver.clampWeight = 0.5f;
             // Clamp eye rotation hard so a wide gaze never rolls the eyes back
             // to the whites (0 = free, 1 = fully clamped). The head carries the

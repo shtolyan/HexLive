@@ -6,6 +6,25 @@ using HexLive.Simulation.Social;
 namespace HexLive.Simulation.AI
 {
 
+internal sealed class SeatedConversation
+{
+    public SeatedConversation(EntityId initiator, EntityId listener, int startTick, int endTick, TalkTopic topic)
+    {
+        Initiator = initiator;
+        Listener = listener;
+        StartTick = startTick;
+        EndTick = endTick;
+        Topic = topic;
+    }
+
+    public EntityId Initiator { get; }
+    public EntityId Listener { get; }
+    public int StartTick { get; }
+    public int EndTick { get; }
+    public TalkTopic Topic { get; }
+    public EntityId Other(EntityId actor) => actor == Initiator ? Listener : Initiator;
+}
+
 public sealed class NPCExecutionState
 {
     public ExecutionStatus Status { get; set; } = ExecutionStatus.None;
@@ -38,6 +57,7 @@ public sealed class NPCExecutionState
 
     // A manual in-place meal can retain the actual furniture seat it began on.
     public ObjectId? ConsumptionSeat { get; set; }
+    internal SeatedConversation? SeatedConversation { get; set; }
 
     // §52 / bug #355: exact physical inventory item reserved across a delayed
     // transfer or timed vessel interaction. SourceIndex + definition cannot

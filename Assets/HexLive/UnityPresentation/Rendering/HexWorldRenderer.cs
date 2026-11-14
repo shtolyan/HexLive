@@ -3624,8 +3624,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // круглое лицо, а не значок. Портрет уже с маской (§90), поэтому
         // достаточно взять его по id; снимка ещё нет — просим снять вне
         // очереди и в этот раз показываем значок (та же дорожка, что у кьюшек).
+        NpcActorView seatedPartner = null;
+        var chattingSeated = HasSeatInteraction(npc) &&
+            !string.IsNullOrEmpty(npc.TalkTopic) && npc.TalkTopicPeerId.HasValue;
+        if (chattingSeated)
+            _actorViews.TryGetValue(npc.TalkTopicPeerId.Value, out seatedPartner);
+        actorView.SetSeatedConversation(seatedPartner);
+
         Sprite topicFace = null;
-        if (npc.TalkTopicPeerId is { } topicPeerId && _portraitCache != null)
+        if (!chattingSeated && npc.TalkTopicPeerId is { } topicPeerId && _portraitCache != null)
         {
             topicFace = _portraitCache.SpriteFor(topicPeerId);
             if (topicFace == null)

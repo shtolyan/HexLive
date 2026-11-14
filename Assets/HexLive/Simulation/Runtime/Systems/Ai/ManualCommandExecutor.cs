@@ -578,8 +578,9 @@ internal static partial class ManualCommandExecutor
     // смены режима контроля над лежащей без сознания, никогда для приказов.
     private static void ClearForNewOrder(
         WorldState world, NPCState npc, string reason, bool keepCarriedPerson = false,
-        bool keepRestPose = false, bool keepGiftSession = false)
+        bool keepRestPose = false, bool keepGiftSession = false, bool keepSeat = false)
     {
+        var wakeGrace = npc.Mind.WakeGraceUntilTick;
         if (!keepGiftSession) GiftSessionMath.CancelForNewOrder(world, npc);
         // Bug #319: прямой приказ игрока расталкивает притворяющуюся мёртвой —
         // притворство добровольное, и хозяин решает, что хватит. Штатный
@@ -629,6 +630,8 @@ internal static partial class ManualCommandExecutor
             ExecutionSystem.ClearInterruptedRomanceInvitation(world, npc, InterruptionCause.PlayerCommand);
             FurnitureSeats.ReleaseMealSeat(world, npc);
         }
+
+        if (keepSeat) npc.Mind.WakeGraceUntilTick = wakeGrace;
 
         if (interruptedSleep)
         {
@@ -1228,6 +1231,14 @@ internal static partial class ManualCommandExecutor
             partner.Mind.PendingTalkFrom is { } pending && pending != npc.Id)
         {
             Reject(world, npc.Id, "TalkTo", "TargetUnavailable", admission);
+            return;
+        }
+
+        if (!Social.SocialContact.IsRequest(command.RequestedTopic) &&
+            (command.RequestedTopic is not { } subject || DirectiveMath.KindOf(subject) is null) &&
+            ExecutionSystem.TryStartSeatedConversation(world, npc, partner, command.RequestedTopic))
+        {
+            ManualControlMath.RenewInactivityLease(world, npc);
             return;
         }
 
@@ -1872,7 +1883,7 @@ internal static partial class ManualCommandExecutor
                 }
 
                 var eatingSeat = FurnitureSeats.CurrentMealSeat(world, npc);
-                ClearForNewOrder(world, npc, "Приказ поесть", keepCarriedPerson: true);
+                ClearForNewOrder(world, npc, "Приказ поесть", keepCarriedPerson: true, keepSeat: eatingSeat != null);
                 FurnitureSeats.KeepForMeal(npc, eatingSeat);
                 ClearAttackOrder(world, npc);
                 // План построит штатный планировщик: Eat в списке
@@ -1890,7 +1901,7 @@ internal static partial class ManualCommandExecutor
                 }
 
                 var drinkingSeat = FurnitureSeats.CurrentMealSeat(world, npc);
-                ClearForNewOrder(world, npc, "Приказ попить", keepCarriedPerson: true);
+                ClearForNewOrder(world, npc, "Приказ попить", keepCarriedPerson: true, keepSeat: drinkingSeat != null);
                 FurnitureSeats.KeepForMeal(npc, drinkingSeat);
                 ClearAttackOrder(world, npc);
                 npc.Plan.Status = PlanStatus.None;
@@ -2560,7 +2571,7 @@ internal static partial class ManualCommandExecutor
         }
 
         var mealSeat = FurnitureSeats.CurrentMealSeat(world, npc);
-        ClearForNewOrder(world, npc, "Съесть выбранную еду", keepCarriedPerson: true);
+        ClearForNewOrder(world, npc, "Съесть выбранную еду", keepCarriedPerson: true, keepSeat: mealSeat != null);
         FurnitureSeats.KeepForMeal(npc, mealSeat);
         ClearAttackOrder(world, npc);
         npc.Plan.Goal = GoalType.PlayerOrder;

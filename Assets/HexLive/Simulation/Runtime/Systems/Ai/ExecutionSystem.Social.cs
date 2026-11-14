@@ -204,31 +204,12 @@ public sealed partial class ExecutionSystem
                     return;
                 }
 
-                // Spec 28.10/28.15B: only a *personal* refusal breeds resentment;
-                // "sorry, busy" is not an insult (a lesson from the first soak:
-                // penalizing neutral refusals created an irreversible spiral).
-                var rejectedRel = npc.Social.GetOrCreate(target.Id);
-                if (dislikes)
-                {
-                    rejectedRel.Affinity = MathUtil.Clamp(
-                        rejectedRel.Affinity - RejectionAffinityPenalty, -1f, 1f);
-                    npc.Execution.LastTalkResultTick = world.Tick;
-                    npc.Execution.LastTalkAffinityDelta = -RejectionAffinityPenalty;
-                    Trace.Emit(world, npc.Id, "RelationshipChanged",
-                        $"NPC{npc.Id.Value}->NPC{target.Id.Value} " +
-                        $"Aff={rejectedRel.Affinity:F2} (-{RejectionAffinityPenalty:F2}) " +
-                        $"after talk refusal");
-                }
-
-                npc.Social.MarkInteraction(target.Id, world.Tick);
-                target.Social.MarkInteraction(npc.Id, world.Tick);
-                SocialCueSignals.Stamp(world, npc, "TalkRejected", target.Id);
-                SocialCueSignals.Stamp(world, target, "TalkRefused", npc.Id);
+                var rejectedAffinity = RefuseConversation(world, npc, target, dislikes);
                 Trace.Emit(world, npc.Id, "InteractionRejected",
                     $"Talk rejected by NPC{targetId.Value} " +
                     $"(Busy={targetBusy} Starving={target.Mind.IsStarving} " +
                     $"Moving={target.Movement.IsMoving} Dislikes={dislikes} " +
-                    $"ListenerAff={listenerAffinity:F2}) MyAff->{rejectedRel.Affinity:F2}");
+                    $"ListenerAff={listenerAffinity:F2}) MyAff->{rejectedAffinity:F2}");
                 AbortTalk(world, npc, $"Talk rejected by NPC{targetId.Value} " +
                     (dislikes ? "Dislike" : target.Mind.IsStarving ? "Starving" :
                      target.Movement.IsMoving ? "Moving" : "Busy"));
@@ -292,81 +273,7 @@ public sealed partial class ExecutionSystem
                 return;
             }
 
-            // Spec 28.15B: talk outcome roll. Cranky participants quarrel;
-            // mutual affinity protects. Deterministic (hash-based).
-            var initiatorRel = npc.Social.GetOrCreate(target.Id);
-            var listenerRel = target.Social.GetOrCreate(npc.Id);
-            var irritability = 0.5f * (
-                System.Math.Max(npc.Needs.Hunger, 1f - npc.Needs.Energy) +
-                System.Math.Max(target.Needs.Hunger, 1f - target.Needs.Energy));
-            var mutualAffinity = (initiatorRel.Affinity + listenerRel.Affinity) * 0.5f;
-            var friendshipProtection = 0.25f * System.Math.Max(0f, mutualAffinity);
-            var hostilitySpice = 0.10f * System.Math.Max(0f, -mutualAffinity);
-            var quarrelChance = MathUtil.Clamp(
-                0.10f + 0.35f * irritability - friendshipProtection + hostilitySpice,
-                0.05f, 0.60f);
-            var roll = MathUtil.Hash01(world.Seed, world.Tick, npc.Id.Value, target.Id.Value);
-            var quarreled = roll < quarrelChance;
-
-            initiatorRel.Familiarity = MathUtil.Clamp01(initiatorRel.Familiarity + TalkRelationshipGain);
-            listenerRel.Familiarity = MathUtil.Clamp01(listenerRel.Familiarity + TalkRelationshipGain);
-
-            if (quarreled)
-            {
-                npc.Needs.Social = MathUtil.Clamp01(npc.Needs.Social + QuarrelInitiatorSocialGain);
-                target.Needs.Social = MathUtil.Clamp01(target.Needs.Social + QuarrelListenerSocialGain);
-                RecordSocialImpact(npc, NeedKind.Social, EffectKind.NearbyCompany, positive: true);
-                RecordSocialImpact(target, NeedKind.Social, EffectKind.NearbyCompany, positive: true);
-                initiatorRel.Affinity = MathUtil.Clamp(initiatorRel.Affinity - QuarrelAffinityLoss, -1f, 1f);
-                listenerRel.Affinity = MathUtil.Clamp(listenerRel.Affinity - QuarrelAffinityLoss, -1f, 1f);
-                npc.Social.Embarrassment = MathUtil.Clamp01(npc.Social.Embarrassment + QuarrelEmbarrassment);
-                target.Social.Embarrassment = MathUtil.Clamp01(target.Social.Embarrassment + QuarrelEmbarrassment);
-                PlanningSystem.SetGoalCooldown(world, npc, GoalType.Socialize);
-                SocialCueSignals.Stamp(world, npc, "TalkQuarrel", target.Id);
-                SocialCueSignals.Stamp(world, target, "TalkQuarrel", npc.Id);
-
-                Trace.Emit(world, npc.Id, "TalkQuarreled",
-                    $"With NPC{targetId.Value} Chance={quarrelChance:F2} Roll={roll:F2} " +
-                    $"Irritability={irritability:F2} MutualAff={mutualAffinity:F2} " +
-                    $"Social={npc.Needs.Social:F2} TargetSocial={target.Needs.Social:F2}");
-            }
-            else
-            {
-                npc.Needs.Social = MathUtil.Clamp01(npc.Needs.Social + TalkInitiatorSocialGain);
-                target.Needs.Social = MathUtil.Clamp01(target.Needs.Social + TalkListenerSocialGain);
-                RecordSocialImpact(npc, NeedKind.Social, EffectKind.NearbyCompany, positive: true);
-                RecordSocialImpact(target, NeedKind.Social, EffectKind.NearbyCompany, positive: true);
-                initiatorRel.Affinity = MathUtil.Clamp(initiatorRel.Affinity + TalkRelationshipGain, -1f, 1f);
-                listenerRel.Affinity = MathUtil.Clamp(listenerRel.Affinity + TalkRelationshipGain, -1f, 1f);
-                SocialCueSignals.Stamp(world, npc, "TalkSuccess", target.Id);
-                SocialCueSignals.Stamp(world, target, "TalkSuccess", npc.Id);
-
-                Trace.Emit(world, npc.Id, "TalkCompleted",
-                    $"With NPC{targetId.Value} Chance={quarrelChance:F2} Roll={roll:F2} " +
-                    $"SocialGain=[{TalkInitiatorSocialGain:F2}/{TalkListenerSocialGain:F2}] " +
-                    $"Social={npc.Needs.Social:F2} TargetSocial={target.Needs.Social:F2}");
-            }
-
-            // §160: authored outsiders learn Hexkufa only through completed
-            // ordinary Talk. This physical progress is generic and costs no LLM/TTS.
-            if (!string.IsNullOrWhiteSpace(npc.ProfileId)) npc.HexkufaExposure++;
-            if (!string.IsNullOrWhiteSpace(target.ProfileId)) target.HexkufaExposure++;
-
-            // Spec 28.15E: stamp the outcome on BOTH so a Sims-style "+/-"
-            // relationship pop can float over each head (both relationships
-            // moved). Sign = direction, magnitude = single vs double glyph.
-            var affinityDelta = quarreled ? -QuarrelAffinityLoss : TalkRelationshipGain;
-            npc.Execution.LastTalkResultTick = world.Tick;
-            npc.Execution.LastTalkAffinityDelta = affinityDelta;
-            target.Execution.LastTalkResultTick = world.Tick;
-            target.Execution.LastTalkAffinityDelta = affinityDelta;
-            npc.Social.MarkInteraction(target.Id, world.Tick);
-            target.Social.MarkInteraction(npc.Id, world.Tick);
-
-            // §76: both sides practised the conversation, so both learn from it.
-            SkillTrace.Award(world, npc, InteractionType.Talk, Spec49.TalkDuration);
-            SkillTrace.Award(world, target, InteractionType.Talk, Spec49.TalkDuration);
-
+            var quarreled = ResolveConversation(world, npc, target, TalkDurationTicks, fullConversation: true);
             npc.Execution.Status = ExecutionStatus.Completed;
             npc.Execution.LastCompletedTick = world.Tick;
             // Spec 31C.8: the snapshot must not report a finished interaction —
@@ -384,15 +291,6 @@ public sealed partial class ExecutionSystem
                 SpatialMutations.FreeJunction(world, jId, npc.Id);
                 SpatialMutations.ReleaseJunctionReservation(world, jId, npc.Id);
             }
-            Trace.Emit(world, npc.Id, "RelationshipChanged",
-                $"NPC{npc.Id.Value}->NPC{target.Id.Value} " +
-                $"Fam={initiatorRel.Familiarity:F2} (+{TalkRelationshipGain:F2}) " +
-                $"Aff={initiatorRel.Affinity:F2} ({affinityDelta:+0.00;-0.00})");
-            Trace.Emit(world, target.Id, "RelationshipChanged",
-                $"NPC{target.Id.Value}->NPC{npc.Id.Value} " +
-                $"Fam={listenerRel.Familiarity:F2} (+{TalkRelationshipGain:F2}) " +
-                $"Aff={listenerRel.Affinity:F2} ({affinityDelta:+0.00;-0.00})");
-
             // §146.12: a successful cross-camp conversation is also the one
             // natural decision point for a voluntary alliance. The merge
             // helper rechecks both directed affinities and the world mode.
@@ -436,6 +334,220 @@ public sealed partial class ExecutionSystem
                     "Goal->None Plan->Completed Execution->Cleared (talked)");
             }
         }
+    }
+
+    private static float RefuseConversation(WorldState world, NPCState npc, NPCState target, bool dislikes)
+    {
+        // Spec 28.10/28.15B: only a *personal* refusal breeds resentment;
+        // "sorry, busy" is not an insult (a lesson from the first soak:
+        // penalizing neutral refusals created an irreversible spiral).
+        var rejectedRel = npc.Social.GetOrCreate(target.Id);
+        if (dislikes)
+        {
+            rejectedRel.Affinity = MathUtil.Clamp(
+                rejectedRel.Affinity - RejectionAffinityPenalty, -1f, 1f);
+            npc.Execution.LastTalkResultTick = world.Tick;
+            npc.Execution.LastTalkAffinityDelta = -RejectionAffinityPenalty;
+            Trace.Emit(world, npc.Id, "RelationshipChanged",
+                $"NPC{npc.Id.Value}->NPC{target.Id.Value} " +
+                $"Aff={rejectedRel.Affinity:F2} (-{RejectionAffinityPenalty:F2}) " +
+                $"after talk refusal");
+        }
+
+        npc.Social.MarkInteraction(target.Id, world.Tick);
+        target.Social.MarkInteraction(npc.Id, world.Tick);
+        SocialCueSignals.Stamp(world, npc, "TalkRejected", target.Id);
+        SocialCueSignals.Stamp(world, target, "TalkRefused", npc.Id);
+        return rejectedRel.Affinity;
+    }
+
+    private static bool ResolveConversation(WorldState world, NPCState npc, NPCState target,
+        int durationTicks, bool fullConversation)
+    {
+        var share = MathUtil.Clamp01((float)durationTicks / TalkDurationTicks);
+        var talkRelationshipGain = TalkRelationshipGain * share;
+        var talkInitiatorSocialGain = TalkInitiatorSocialGain * share;
+        var talkListenerSocialGain = TalkListenerSocialGain * share;
+        var quarrelInitiatorSocialGain = QuarrelInitiatorSocialGain * share;
+        var quarrelListenerSocialGain = QuarrelListenerSocialGain * share;
+        var quarrelAffinityLoss = QuarrelAffinityLoss * share;
+        var quarrelEmbarrassment = QuarrelEmbarrassment * share;
+
+        // Spec 28.15B: talk outcome roll. Cranky participants quarrel;
+        // mutual affinity protects. Deterministic (hash-based).
+        var initiatorRel = npc.Social.GetOrCreate(target.Id);
+        var listenerRel = target.Social.GetOrCreate(npc.Id);
+        var irritability = 0.5f * (
+            System.Math.Max(npc.Needs.Hunger, 1f - npc.Needs.Energy) +
+            System.Math.Max(target.Needs.Hunger, 1f - target.Needs.Energy));
+        var mutualAffinity = (initiatorRel.Affinity + listenerRel.Affinity) * 0.5f;
+        var friendshipProtection = 0.25f * System.Math.Max(0f, mutualAffinity);
+        var hostilitySpice = 0.10f * System.Math.Max(0f, -mutualAffinity);
+        var quarrelChance = MathUtil.Clamp(
+            0.10f + 0.35f * irritability - friendshipProtection + hostilitySpice,
+            0.05f, 0.60f);
+        var roll = MathUtil.Hash01(world.Seed, world.Tick, npc.Id.Value, target.Id.Value);
+        var quarreled = roll < quarrelChance;
+
+        initiatorRel.Familiarity = MathUtil.Clamp01(initiatorRel.Familiarity + talkRelationshipGain);
+        listenerRel.Familiarity = MathUtil.Clamp01(listenerRel.Familiarity + talkRelationshipGain);
+
+        if (quarreled)
+        {
+            npc.Needs.Social = MathUtil.Clamp01(npc.Needs.Social + quarrelInitiatorSocialGain);
+            target.Needs.Social = MathUtil.Clamp01(target.Needs.Social + quarrelListenerSocialGain);
+            RecordSocialImpact(npc, NeedKind.Social, EffectKind.NearbyCompany, positive: true);
+            RecordSocialImpact(target, NeedKind.Social, EffectKind.NearbyCompany, positive: true);
+            initiatorRel.Affinity = MathUtil.Clamp(initiatorRel.Affinity - quarrelAffinityLoss, -1f, 1f);
+            listenerRel.Affinity = MathUtil.Clamp(listenerRel.Affinity - quarrelAffinityLoss, -1f, 1f);
+            npc.Social.Embarrassment = MathUtil.Clamp01(npc.Social.Embarrassment + quarrelEmbarrassment);
+            target.Social.Embarrassment = MathUtil.Clamp01(target.Social.Embarrassment + quarrelEmbarrassment);
+            PlanningSystem.SetGoalCooldown(world, npc, GoalType.Socialize);
+            SocialCueSignals.Stamp(world, npc, "TalkQuarrel", target.Id);
+            SocialCueSignals.Stamp(world, target, "TalkQuarrel", npc.Id);
+
+            Trace.Emit(world, npc.Id, "TalkQuarreled",
+                $"With NPC{target.Id.Value} Chance={quarrelChance:F2} Roll={roll:F2} " +
+                $"Irritability={irritability:F2} MutualAff={mutualAffinity:F2} " +
+                $"Social={npc.Needs.Social:F2} TargetSocial={target.Needs.Social:F2}");
+        }
+        else
+        {
+            npc.Needs.Social = MathUtil.Clamp01(npc.Needs.Social + talkInitiatorSocialGain);
+            target.Needs.Social = MathUtil.Clamp01(target.Needs.Social + talkListenerSocialGain);
+            RecordSocialImpact(npc, NeedKind.Social, EffectKind.NearbyCompany, positive: true);
+            RecordSocialImpact(target, NeedKind.Social, EffectKind.NearbyCompany, positive: true);
+            initiatorRel.Affinity = MathUtil.Clamp(initiatorRel.Affinity + talkRelationshipGain, -1f, 1f);
+            listenerRel.Affinity = MathUtil.Clamp(listenerRel.Affinity + talkRelationshipGain, -1f, 1f);
+            SocialCueSignals.Stamp(world, npc, "TalkSuccess", target.Id);
+            SocialCueSignals.Stamp(world, target, "TalkSuccess", npc.Id);
+
+            Trace.Emit(world, npc.Id, "TalkCompleted",
+                $"With NPC{target.Id.Value} Chance={quarrelChance:F2} Roll={roll:F2} " +
+                $"SocialGain=[{talkInitiatorSocialGain:F2}/{talkListenerSocialGain:F2}] " +
+                $"Social={npc.Needs.Social:F2} TargetSocial={target.Needs.Social:F2}");
+        }
+
+        // §160: voiced conversation lets authored outsiders practise Hexkufa.
+        if (fullConversation)
+        {
+            if (!string.IsNullOrWhiteSpace(npc.ProfileId)) npc.HexkufaExposure++;
+            if (!string.IsNullOrWhiteSpace(target.ProfileId)) target.HexkufaExposure++;
+        }
+
+        // Spec 28.15E: stamp the outcome on BOTH so a Sims-style "+/-"
+        // relationship pop can float over each head (both relationships
+        // moved). Sign = direction, magnitude = single vs double glyph.
+        var affinityDelta = quarreled ? -quarrelAffinityLoss : talkRelationshipGain;
+        npc.Execution.LastTalkResultTick = world.Tick;
+        npc.Execution.LastTalkAffinityDelta = affinityDelta;
+        target.Execution.LastTalkResultTick = world.Tick;
+        target.Execution.LastTalkAffinityDelta = affinityDelta;
+        npc.Social.MarkInteraction(target.Id, world.Tick);
+        target.Social.MarkInteraction(npc.Id, world.Tick);
+
+        // §76: both sides practised the conversation, so both learn from it.
+        SkillTrace.Award(world, npc, InteractionType.Talk, durationTicks);
+        SkillTrace.Award(world, target, InteractionType.Talk, durationTicks);
+
+        Trace.Emit(world, npc.Id, "RelationshipChanged",
+            $"NPC{npc.Id.Value}->NPC{target.Id.Value} " +
+            $"Fam={initiatorRel.Familiarity:F2} (+{talkRelationshipGain:F2}) " +
+            $"Aff={initiatorRel.Affinity:F2} ({affinityDelta:+0.00;-0.00})");
+        Trace.Emit(world, target.Id, "RelationshipChanged",
+            $"NPC{target.Id.Value}->NPC{npc.Id.Value} " +
+            $"Fam={listenerRel.Familiarity:F2} (+{talkRelationshipGain:F2}) " +
+            $"Aff={listenerRel.Affinity:F2} ({affinityDelta:+0.00;-0.00})");
+        return quarreled;
+    }
+
+    internal static bool TryStartSeatedConversation(WorldState world, NPCState npc, NPCState partner, TalkTopic? topic)
+    {
+        if (!CanChatSeated(world, npc) || !CanChatSeated(world, partner) ||
+            !SeatsWithinTalkReach(world, npc, partner)) return false;
+
+        if (npc.Execution.SeatedConversation is { } active && active.Other(npc.Id) == partner.Id)
+            return true;
+
+        if (npc.Execution.SeatedConversation != null || partner.Execution.SeatedConversation != null ||
+            npc.Execution.CurrentTalkTopic != null || partner.Execution.CurrentTalkTopic != null)
+        {
+            RefuseConversation(world, npc, partner, dislikes: false);
+            return true;
+        }
+
+        var dislikes = partner.Social.GetOrCreate(npc.Id).Affinity < RefusalAffinityThreshold &&
+            partner.Needs.Social >= LonelinessOverrideThreshold;
+        if (dislikes)
+        {
+            RefuseConversation(world, npc, partner, dislikes);
+            Trace.Emit(world, npc.Id, "InteractionRejected", $"Talk rejected by NPC{partner.Id.Value} (Seated Dislike)");
+            return true;
+        }
+
+        var endTick = System.Math.Min(world.Tick + TalkDurationTicks,
+            System.Math.Min(npc.Execution.EndTick, partner.Execution.EndTick));
+        if (endTick <= world.Tick) return false;
+
+        var subject = topic ?? PickTalkTopic(world, npc, partner, allowPact: false);
+        var conversation = new SeatedConversation(npc.Id, partner.Id, world.Tick, endTick, subject);
+        npc.Execution.SeatedConversation = partner.Execution.SeatedConversation = conversation;
+        Trace.Emit(world, npc.Id, "TalkStarted", $"With NPC{partner.Id.Value} Topic={subject} Seated=True");
+        return true;
+    }
+
+    private static bool CanChatSeated(WorldState world, NPCState npc) =>
+        npc.Health > 0f && !npc.IsLyingDown(world.Tick) && !npc.IsFighting &&
+        !npc.IsCarryingPerson && !npc.IsBeingCarried && !npc.Movement.IsMoving &&
+        !npc.Mind.IsStarving && !npc.Mind.IsDehydrated &&
+        npc.Execution.Status == ExecutionStatus.InProgress &&
+        npc.Execution.CurrentInteraction is InteractionType.Sit or InteractionType.Eat or InteractionType.Drink &&
+        FurnitureSeats.CurrentMealSeat(world, npc) is { } seat && FurnitureSeats.SupportsMeal(seat.DefinitionId);
+
+    private static bool SeatsWithinTalkReach(WorldState world, NPCState npc, NPCState partner) =>
+        npc.CurrentJunction is { } from && partner.CurrentJunction is { } to &&
+        InteractionReach.CheckStart(world, npc, partner.Position, InteractionReach.Talk, $"Talk NPC{partner.Id.Value}") &&
+        (FurnitureSeats.CurrentMealSeat(world, npc) == FurnitureSeats.CurrentMealSeat(world, partner) ||
+            InteractionReach.CanTouchPersonAcross(world, from, to, InteractionReach.Talk));
+
+    private static void UpdateSeatedConversations(WorldState world)
+    {
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            if (npc.Execution.SeatedConversation is not { } conversation) continue;
+            if (!world.Entities.Npcs.TryGetValue(conversation.Other(npc.Id), out var partner) ||
+                partner.Execution.SeatedConversation != conversation)
+            {
+                npc.Execution.SeatedConversation = null;
+                continue;
+            }
+            if (npc.Id != conversation.Initiator) continue;
+
+            var finished = world.Tick >= conversation.EndTick;
+            if (finished || !CanChatSeated(world, npc) || !CanChatSeated(world, partner) ||
+                !SeatsWithinTalkReach(world, npc, partner))
+                EndSeatedConversation(world, npc, finished);
+        }
+    }
+
+    internal static void EndSeatedConversation(WorldState world, NPCState npc, bool completed = false)
+    {
+        if (npc.Execution.SeatedConversation is not { } conversation) return;
+        npc.Execution.SeatedConversation = null;
+        if (!world.Entities.Npcs.TryGetValue(conversation.Other(npc.Id), out var other) ||
+            other.Execution.SeatedConversation != conversation) return;
+        other.Execution.SeatedConversation = null;
+
+        if (!completed) return;
+        ResolveConversation(world, npc, other, conversation.EndTick - conversation.StartTick,
+            fullConversation: false);
+    }
+
+    internal static TalkTopic? SeatedConversationTopic(WorldState world, NPCState npc)
+    {
+        if (npc.Execution.SeatedConversation is not { } conversation ||
+            !world.Entities.Npcs.TryGetValue(conversation.Other(npc.Id), out var other)) return null;
+        return PickSpeakerTopic(world, npc, other, conversation.Topic);
     }
 
     private static void AbortTalk(WorldState world, NPCState npc, string reason)
@@ -1095,7 +1207,7 @@ public sealed partial class ExecutionSystem
     // разговор считается по одной паре за раз.
     private static readonly System.Collections.Generic.List<NPCState> GatheredBuffer = new();
 
-    private static TalkTopic PickTalkTopic(WorldState world, NPCState npc, NPCState target)
+    private static TalkTopic PickTalkTopic(WorldState world, NPCState npc, NPCState target, bool allowPact = true)
     {
         // Shared situation of the two participants (means, so one cranky/hungry
         // party still tilts the subject without dominating).
@@ -1131,7 +1243,7 @@ public sealed partial class ExecutionSystem
         // §108: о чужаке говорят только когда есть кружок и есть за что. Вес 0
         // в остальное время — тема не «редкая», её просто НЕТ, пока условия не
         // сложились, и попасть в неё случайно невозможно.
-        w[11] = GroupHuntMath.TopicAvailable(world, npc, target, GatheredBuffer, out _, out var hate)
+        w[11] = allowPact && GroupHuntMath.TopicAvailable(world, npc, target, GatheredBuffer, out _, out var hate)
             ? Spec108.GroupHuntTopicWeight + Spec108.GroupHuntTopicHateGain * hate
             : 0f;
 

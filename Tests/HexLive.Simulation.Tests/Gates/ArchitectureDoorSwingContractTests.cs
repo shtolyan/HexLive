@@ -22,19 +22,23 @@ public sealed class ArchitectureDoorSwingContractTests
             "Environment", "ArchitectureModuleView.cs"));
         var factory = File.ReadAllText(RepoFile("Assets", "HexLive", "UnityPresentation",
             "Environment", "BlueprintArchitectureFactory.cs"));
+        var constructor = File.ReadAllText(RepoFile("Assets", "HexLive", "UnityPresentation",
+            "Environment", "BlueprintArchitectureRenderContext.cs"));
+        var authoredDoor = Regex.Match(factory,
+            @"public static BlueprintDoorVisual\? ConfigureAuthoredDoor\(.*?(?=\r?\n        public static GameObject Build\()",
+            RegexOptions.Singleline).Value;
 
         Assert.Multiple(() =>
         {
             Assert.That(production, Does.Contain("BlueprintArchitectureFactory.InstantiateModel("),
                 "Production must load the same architecture model as the constructor.");
-            Assert.That(production, Does.Contain("HL_Door_State_Closed"));
-            Assert.That(production, Does.Contain("HL_Door_State_Open"));
-            Assert.That(production, Does.Contain("visual.ConfigurePoses("),
-                "Production must consume the FBX poses instead of inventing an angle.");
-            Assert.That(factory, Does.Contain("HL_Door_State_Closed"));
-            Assert.That(factory, Does.Contain("HL_Door_State_Open"));
-            Assert.That(factory, Does.Contain("visual.ConfigurePoses("),
-                "Constructor preview must consume the same FBX poses.");
+            Assert.That(production, Does.Contain("BlueprintArchitectureFactory.ConfigureAuthoredDoor("));
+            Assert.That(constructor, Does.Contain("BlueprintArchitectureFactory.ConfigureAuthoredDoor("));
+            Assert.That(authoredDoor, Does.Contain("HL_Door_Pivot"));
+            Assert.That(authoredDoor, Does.Contain("HL_Door_State_Closed"));
+            Assert.That(authoredDoor, Does.Contain("HL_Door_State_Open"));
+            Assert.That(authoredDoor, Does.Contain("visual.ConfigurePoses(closed.localRotation, open.localRotation,"),
+                "Both paths must consume the authored FBX poses.");
         });
     }
 

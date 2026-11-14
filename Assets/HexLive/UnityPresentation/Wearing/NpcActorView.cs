@@ -4319,6 +4319,8 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var looting = !_legless && interaction == "Loot";
         if (interaction != "Serve") ClearStumpServingTarget();
         var crafting = !_legless && interaction is ("Craft" or "Serve");
+        _hammeringAtWorkbench = crafting && standingCraft && interaction == "Craft" &&
+            GearCatalog.For(heldItemId).Has(GearCapability.Hammer);
         // §173: planting uses the authored gardening/craft kneel.
         var planting = !_legless && interaction == "Plant";
         var pouring = !_legless && interaction == "FillVessel";
@@ -4354,7 +4356,7 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // остаются на прежнем поведении: клип писан из стойки, и в лежачей
         // цепочке он не «перевязывает», а поднимает тело с земли. Над ЛЕЖАЩЕЙ
         // подопечной перевязка тоже не сюда — там свой присед (kneelingCraft).
-        var treating = !_legless && !_laying && _posture != "Crawl" &&
+        var treating = !_hammeringAtWorkbench && !_legless && !_laying && _posture != "Crawl" &&
             !kneelingCraft && !praying &&
             (crafting && standingCraft ||
              interaction is "TreatSelf" or "TreatOther" or "Splint" or "FitProsthetic");
@@ -4364,7 +4366,7 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         // Which procedural/clip action this verb wants (before touching the
         // animator, so the axe-chop clip-state can pre-empt the crouch Working pose).
-        var actionKind = (gathering || drinking || kneelingCraft || kneelingSaw || praying || treating || _wantsTalk)
+        var actionKind = (gathering || drinking || kneelingCraft || kneelingSaw || _hammeringAtWorkbench || praying || treating || _wantsTalk)
             ? ActionKind.None
             : ActionFromInteraction(interaction, heldItemId);
         // §axe: chopping/mining with an axe or pickaxe now plays the looping Chop
@@ -7542,6 +7544,7 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
         otherEffector.rotationWeight = 0f;
 
         if (TryDriveLogSawIK(solver, hand, effector, otherEffector)) return;
+        if (TryDriveWorkbenchHammerIK(solver, hand, effector)) return;
         if (TryDriveStumpServingIK(solver, hand, effector, otherEffector)) return;
         if (TryDriveMealContactIK(solver, hand, effector, otherEffector)) return;
 
@@ -7737,14 +7740,15 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // В отличие от первых двух он держится и НА ХОДУ: копьё несут двумя
         // руками и в шаге, и в беге.
         var wants = !_socialContactVisual && !_romanceVisual &&
-            (HurtReachActive || _actionTargetActive || _servingAtStump || _sawLogTop.HasValue || _feedingRecipient != null ||
+            (HurtReachActive || _actionTargetActive || _servingAtStump || _sawLogTop.HasValue ||
+             _hammeringAtWorkbench || _feedingRecipient != null ||
              _requestedEverydayClip != null && (_action == ActionKind.RaiseToMouth || _everydayDrinking) ||
              (_offHandGripIk && TwoHandCarryActive));
         // The humanoid graph writes the complete action pose. Final IK's
         // pre-animation reset otherwise restores the rig's bind pose on
         // frames where the manual graph and the controller share an Animator.
         _fullBodyIK.fixTransforms = _authoredFullBodyFixTransforms &&
-            _requestedEverydayClip == null && _kneelingWorkClips == null && !_socialContactVisual;
+            _requestedEverydayClip == null && _kneelingWorkClips == null && !_hammeringAtWorkbench && !_socialContactVisual;
         if (_fullBodyIK.enabled != wants)
         {
             _fullBodyIK.enabled = wants;
@@ -7816,11 +7820,50 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 (grip - hand.position);
             sawHand.rotation = rotation * hand.rotation;
             sawHand.rotationWeight = _sawContact;
-            CloseSawGrip(grip);
+            CloseToolGrip(grip, _sawContact);
         }
         supportHand.target = null;
         supportHand.position = logTop - across * .18f + Vector3.up * .015f - toward * .045f;
         supportHand.positionWeight = _hasTwoUsableHands ? _sawContact * .85f : 0f;
+        solver.pullBodyHorizontal = 0f;
+        solver.IKPositionWeight = 1f;
+        return true;
+    }
+
+    private bool TryDriveWorkbenchHammerIK(IKSolverFullBodyBiped solver, Transform hand, IKEffector effector)
+    {
+        var shoulder = _leftHanded ? _lShldr : _rShldr;
+        if (!_hammeringAtWorkbench || _handProp == null || hand == null || shoulder == null ||
+            _laying || _swimming || _ragdollActive || _posture == "Crawl") return false;
+
+        var phase = EverydayPhase();
+        var seconds = phase * _everydayDuration;
+        var weight = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, .30f, seconds)) *
+            Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, .30f, _everydayDuration - seconds));
+        if (weight <= .001f) return false;
+
+        var cycle = Mathf.Repeat(seconds / .68f, 1f);
+        var raised = cycle < .64f
+            ? Mathf.SmoothStep(0f, 1f, cycle / .64f)
+            : Mathf.SmoothStep(1f, 0f, (cycle - .64f) / .36f);
+        var forward = transform.forward;
+        var up = Vector3.up;
+        var scale = Mathf.Abs(_animator.transform.lossyScale.y);
+        var palm = shoulder.position + forward * ((.38f - .15f * raised) * scale) -
+            up * ((.45f - .35f * raised) * scale);
+        // Both hammer models put the grip end at their origin, the shaft on
+        // +Y and the striking face on +Z. Rotate about the handle, not the head.
+        var hammer = _handProp.transform;
+        var grip = hammer.position + hammer.up * (.053f * scale);
+        var swing = Quaternion.AngleAxis(-68f * raised, transform.right);
+        var desired = Quaternion.LookRotation(swing * -up, swing * forward);
+        var rotation = desired * Quaternion.Inverse(hammer.rotation);
+        effector.target = null;
+        effector.position = palm - Quaternion.Slerp(Quaternion.identity, rotation, weight) * (grip - hand.position);
+        effector.positionWeight = weight;
+        effector.rotation = rotation * hand.rotation;
+        effector.rotationWeight = weight;
+        CloseToolGrip(grip, weight);
         solver.pullBodyHorizontal = 0f;
         solver.IKPositionWeight = 1f;
         return true;

@@ -55,8 +55,9 @@ namespace HexLive.UnityPresentation.Wearing
         private float _kneelingWorkSeconds;
         private float _sawContact;
         private Vector3? _sawLogTop;
-        private Transform _sawFingerRig;
-        private readonly Transform[,] _sawFingerJoints = new Transform[2, 12];
+        private bool _hammeringAtWorkbench;
+        private Transform _toolFingerRig;
+        private readonly Transform[,] _toolFingerJoints = new Transform[2, 12];
         private float _everydayWeight;
         private EverydayActionClips _kneelingWorkClips;
         private Transform[] _everydayBones;
@@ -131,35 +132,35 @@ namespace HexLive.UnityPresentation.Wearing
             _sawLogTop = sawLogTop;
         }
 
-        private void CloseSawGrip(Vector3 handle)
+        private void CloseToolGrip(Vector3 handle, float weight)
         {
             if (_animator == null || !_animator.isHuman) return;
-            if (_sawFingerRig != _animator.transform)
+            if (_toolFingerRig != _animator.transform)
             {
-                _sawFingerRig = _animator.transform;
+                _toolFingerRig = _animator.transform;
                 // The four fingers are consecutive groups of three in the
                 // humanoid map. Leave the thumb to the authored kneeling pose.
                 for (var joint = 0; joint < 12; joint++)
                 {
-                    _sawFingerJoints[0, joint] = _animator.GetBoneTransform(HumanBodyBones.RightIndexProximal + joint);
-                    _sawFingerJoints[1, joint] = _animator.GetBoneTransform(HumanBodyBones.LeftIndexProximal + joint);
+                    _toolFingerJoints[0, joint] = _animator.GetBoneTransform(HumanBodyBones.RightIndexProximal + joint);
+                    _toolFingerJoints[1, joint] = _animator.GetBoneTransform(HumanBodyBones.LeftIndexProximal + joint);
                 }
             }
 
             var row = _leftHanded ? 1 : 0;
             for (var finger = 0; finger < 12; finger += 3)
             {
-                var knuckle = _sawFingerJoints[row, finger];
-                var middle = _sawFingerJoints[row, finger + 1];
-                var end = _sawFingerJoints[row, finger + 2];
+                var knuckle = _toolFingerJoints[row, finger];
+                var middle = _toolFingerJoints[row, finger + 1];
+                var end = _toolFingerJoints[row, finger + 2];
                 if (knuckle == null || middle == null || end == null) continue;
                 var downFinger = middle.position - knuckle.position;
                 var intoPalm = Vector3.ProjectOnPlane(handle - knuckle.position, downFinger);
                 var bend = Vector3.Cross(downFinger, intoPalm);
                 if (bend.sqrMagnitude <= .00000001f) continue;
-                knuckle.rotation = Quaternion.AngleAxis(36f * _sawContact, bend) * knuckle.rotation;
-                middle.rotation = Quaternion.AngleAxis(43f * _sawContact, bend) * middle.rotation;
-                end.rotation = Quaternion.AngleAxis(25f * _sawContact, bend) * end.rotation;
+                knuckle.rotation = Quaternion.AngleAxis(36f * weight, bend) * knuckle.rotation;
+                middle.rotation = Quaternion.AngleAxis(43f * weight, bend) * middle.rotation;
+                end.rotation = Quaternion.AngleAxis(25f * weight, bend) * end.rotation;
             }
         }
 
@@ -674,6 +675,9 @@ namespace HexLive.UnityPresentation.Wearing
             _everydayWeight = weight;
         }
 
+        private float EverydayPhase() => Mathf.Clamp01(_everydayPhase +
+            Mathf.Min(.25f, Time.unscaledTime - _everydaySampledAt) * _everydayRate);
+
         private bool EvaluateEverydayAction()
         {
             _feedingContact = 0f;
@@ -689,8 +693,7 @@ namespace HexLive.UnityPresentation.Wearing
                 return false;
             }
 
-            var phase = Mathf.Clamp01(_everydayPhase +
-                Mathf.Min(.25f, Time.unscaledTime - _everydaySampledAt) * _everydayRate);
+            var phase = EverydayPhase();
             var elapsed = phase * _everydayDuration;
             var weight = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, .28f, elapsed)) *
                 Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, .28f, _everydayDuration - elapsed)) * _everydayWeight;

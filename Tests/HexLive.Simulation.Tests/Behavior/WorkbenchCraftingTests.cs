@@ -5,6 +5,7 @@ using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Debug;
 using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Persistence;
 using HexLive.Simulation.Runtime;
@@ -78,6 +79,38 @@ public sealed class WorkbenchCraftingTests
                 $"Yaw {yaw}° left the 0.75 wu work point farther than one " +
                 "sub-grid cell from the nearest interior junction.");
         }
+    }
+
+    [TestCase(ContentIds.Hammer)]
+    [TestCase(ContentIds.ClawHammer)]
+    public void WoodenWorkbenchCraftShowsTheOwnedHammerAndCanContinueWithoutIt(string hammerId)
+    {
+        var world = TestWorld.CreateWorld(119062);
+        var worker = world.Entities.Npcs.Values.First();
+        worker.Inventory.Items.Clear();
+        var anchor = worker.CurrentJunction ?? world.Tiles.Items[worker.Tile].Junctions[0];
+        var station = WorldObjectMutations.SpawnObject(
+            world, ContentIds.Workbench, worker.Fragment, worker.Tile, anchor);
+        station.CraftJunction = anchor;
+        Add(worker, ContentIds.Board, 2);
+        Add(worker, ContentIds.Rope, 2);
+        Add(worker, ContentIds.Hide, 1);
+        Assert.That(CraftProjectMath.TryBeginCycle(
+            world, worker, GoalType.CraftWoodenArm, station, out var project), Is.True);
+        worker.Execution.CurrentInteraction = InteractionType.Craft;
+        worker.Execution.ActionItemsBound = true;
+        Assert.That(ActionItemResolver.HeldId(world, worker), Is.Empty);
+
+        var hammer = new ItemInstance(hammerId);
+        worker.Inventory.Items.Add(hammer);
+        var snapshot = WorldSnapshotExporter.Export(world).Npcs.Single(n => n.Id == worker.Id);
+        Assert.That(snapshot.HeldItemId, Is.EqualTo(hammerId));
+        Assert.That(ActionItemResolver.HeldInstance(world, worker), Is.SameAs(hammer));
+        worker.Inventory.Items.Remove(hammer);
+
+        Assert.That(ActionItemResolver.HeldId(world, worker), Is.Empty);
+        Assert.That(CraftProjectMath.CompleteCycle(world, worker, GoalType.CraftWoodenArm), Is.True);
+        Assert.That(project.CraftWorkDone, Is.EqualTo(Spec119.CraftCycleWork));
     }
 
     [Test]

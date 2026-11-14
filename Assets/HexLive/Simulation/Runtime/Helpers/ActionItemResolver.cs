@@ -135,7 +135,7 @@ public static class ActionItemResolver
                 return WorkTool(world, npc)?.DefinitionId ?? string.Empty;
 
             case InteractionType.Craft:
-                return WorkTool(world, npc)?.DefinitionId ?? string.Empty;
+                return HeldCraftTool(world, npc)?.DefinitionId ?? string.Empty;
 
             case InteractionType.Build:
             {
@@ -327,13 +327,31 @@ public static class ActionItemResolver
             GearCatalog.RequiredCapabilities(action, definition), npc.Body.IntactHands);
     }
 
+    private static ItemInstance HeldCraftTool(WorldState world, NPCState npc)
+    {
+        var tool = WorkTool(world, npc);
+        if (tool != null) return tool;
+
+        // The hammer is optional for woodworking. Drawing it affects the
+        // visible hand and inventory layout without changing recipe admission or speed.
+        if (npc.Execution.CraftProjectId is not { } id ||
+            !world.Entities.Objects.TryGetValue(id, out var project) ||
+            project.DefinitionId is not (ContentIds.WoodenArm or ContentIds.WoodenLeg) ||
+            !CraftProjectMath.TryGetSupport(world, project, out var station) ||
+            station.DefinitionId != ContentIds.Workbench)
+            return null;
+
+        return GearCatalog.BestToolFor(npc.Inventory.Items, GearCapability.Hammer, npc.Body.IntactHands);
+    }
+
     public static ItemInstance HeldInstance(WorldState world, NPCState npc)
     {
         var id = HeldId(world, npc);
         if (string.IsNullOrEmpty(id)) return null;
         if (npc.Execution.CurrentInteraction is InteractionType.FeedOther or InteractionType.HydrateOther or InteractionType.MedicateOther or InteractionType.TreatOther)
             return Supply(world, npc);
-        if (npc.Execution.CurrentInteraction is InteractionType.Harvest or InteractionType.Process or InteractionType.Butcher or InteractionType.Craft)
+        if (npc.Execution.CurrentInteraction == InteractionType.Craft) return HeldCraftTool(world, npc);
+        if (npc.Execution.CurrentInteraction is InteractionType.Harvest or InteractionType.Process or InteractionType.Butcher)
             return WorkTool(world, npc);
         if (WaterVesselCatalog.IsPortable(id)) return HeldBottle(npc);
         return npc.Inventory.Items.Find(item => item.DefinitionId == id);

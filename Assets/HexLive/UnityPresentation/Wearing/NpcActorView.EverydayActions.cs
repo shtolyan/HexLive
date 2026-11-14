@@ -534,8 +534,6 @@ namespace HexLive.UnityPresentation.Wearing
         {
             var patient = _feedingRecipient;
             var desired = Vector3.zero;
-            var phase = Mathf.Clamp01(_everydayPhase +
-                Mathf.Min(.25f, Time.unscaledTime - _everydaySampledAt) * _everydayRate);
             if (_kneelingAid && _kneelingWorkClips != null && patient != null && patient._laying &&
                 _animator != null && _animator.isHuman && _bodyRoot != null)
             {
@@ -547,22 +545,26 @@ namespace HexLive.UnityPresentation.Wearing
                 if (Mathf.Abs(lane) > .06f)
                 {
                     side *= Mathf.Sign(lane);
-                    var left = _animator.GetBoneTransform(HumanBodyBones.LeftLowerLeg);
-                    var right = _animator.GetBoneTransform(HumanBodyBones.RightLowerLeg);
-                    if (left != null && right != null)
-                    {
-                        var nearestKnee = Mathf.Min(Vector3.Dot(left.position - center, side),
-                            Vector3.Dot(right.position - center, side));
-                        var clearance = HexLive.Simulation.Spatial.HexSpatialMath.HexRadius *
-                            HexLive.Simulation.Runtime.Spec49.LieBodyWidthFactor * .5f + .075f;
-                        var weight = AidEnvelope(phase, 0f, .14f, .88f, 1f);
-                        desired = side * (Mathf.Clamp(clearance - nearestKnee, 0f, .38f) * weight);
-                    }
+                    var nearest = Mathf.Min(
+                        Mathf.Min(ProjectAidBone(HumanBodyBones.LeftLowerLeg, center, side),
+                            ProjectAidBone(HumanBodyBones.RightLowerLeg, center, side)),
+                        Mathf.Min(ProjectAidBone(HumanBodyBones.LeftFoot, center, side),
+                            ProjectAidBone(HumanBodyBones.RightFoot, center, side)));
+                    var clearance = HexLive.Simulation.Spatial.HexSpatialMath.HexRadius *
+                        HexLive.Simulation.Runtime.Spec49.LieBodyWidthFactor * .5f + .075f;
+                    desired = side * Mathf.Clamp(clearance - nearest, 0f, .40f);
                 }
             }
-            _aidKneelOffset = Vector3.MoveTowards(_aidKneelOffset, desired, 1.8f * Time.unscaledDeltaTime);
+            _aidKneelOffset = desired.sqrMagnitude > _aidKneelOffset.sqrMagnitude ? desired :
+                Vector3.MoveTowards(_aidKneelOffset, desired, 1.4f * Time.unscaledDeltaTime);
             if (_bodyRoot != null && !_laying && !_ragdollActive)
                 _bodyRoot.position += _aidKneelOffset;
+        }
+
+        private float ProjectAidBone(HumanBodyBones bone, Vector3 center, Vector3 side)
+        {
+            var joint = _animator.GetBoneTransform(bone);
+            return joint != null ? Vector3.Dot(joint.position - center, side) : float.PositiveInfinity;
         }
 
         private bool DriveBandageHands(IKSolverFullBodyBiped solver, Transform hand,

@@ -229,10 +229,13 @@ public sealed class WorldObjectView : MonoBehaviour
     /// сознательно не учитывается: его носит только крупная пальма, а в
     /// near-miss попадают лишь мелкие виды.
     /// </summary>
-    public bool TryGetWorldBounds(out Bounds bounds)
+    public bool TryGetWorldBounds(out Bounds bounds) => TryGetBounds(null, out bounds);
+
+    internal bool TryGetBounds(Transform? frame, out Bounds bounds)
     {
         bounds = default;
         var found = false;
+        var toLocal = frame != null ? frame.worldToLocalMatrix : Matrix4x4.identity;
         for (var i = 0; i < _renderers.Length; i++)
         {
             var renderer = _renderers[i];
@@ -247,14 +250,16 @@ public sealed class WorldObjectView : MonoBehaviour
                 continue;
             }
 
+            var rendererBounds = frame == null ? renderer.bounds : WorldObjectPickBounds.TransformBounds(
+                toLocal * renderer.transform.localToWorldMatrix, renderer.localBounds);
             if (!found)
             {
-                bounds = renderer.bounds;
+                bounds = rendererBounds;
                 found = true;
             }
             else
             {
-                bounds.Encapsulate(renderer.bounds);
+                bounds.Encapsulate(rendererBounds);
             }
         }
 

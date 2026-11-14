@@ -39,6 +39,8 @@ namespace HexLive.UnityPresentation.Wearing
         private float _supportContact;
         private float _bandageWork;
         private Vector3 _aidKneelOffset;
+        private Vector3 _bedsideOutward;
+        private Vector3 _bedsideEdge;
         private float _aidSipPhase;
         private float _aidSipRate;
         private float _aidSipSampledAt;
@@ -356,6 +358,7 @@ namespace HexLive.UnityPresentation.Wearing
             _everydayDrinking = false;
             _supportDrinker = false;
             _kneelingAid = false;
+            _bedsideOutward = Vector3.zero;
             _seatedEveryday = false;
             _bandagePart = null;
             _requestedEverydayClip = clip;
@@ -389,6 +392,25 @@ namespace HexLive.UnityPresentation.Wearing
             if (CanKneelWithTool && clips.serveKneel != null && clips.serveWork != null && clips.serveRise != null &&
                 duration > clips.serveKneel.length + clips.serveRise.length)
                 _kneelingWorkClips = clips;
+        }
+
+        internal void SetBedsideKneel(Transform bed, Bounds bounds)
+        {
+            var approach = bed.InverseTransformPoint(transform.position) - bounds.center;
+            var edge = bounds.center;
+            Vector3 outward;
+            if (Mathf.Abs(approach.x) * bounds.extents.z >= Mathf.Abs(approach.z) * bounds.extents.x)
+            {
+                outward = Vector3.right * Mathf.Sign(approach.x);
+                edge.x += outward.x * bounds.extents.x;
+            }
+            else
+            {
+                outward = Vector3.forward * Mathf.Sign(approach.z);
+                edge.z += outward.z * bounds.extents.z;
+            }
+            _bedsideOutward = Vector3.ProjectOnPlane(bed.TransformDirection(outward), Vector3.up).normalized;
+            _bedsideEdge = bed.TransformPoint(edge);
         }
 
         internal void SetSupportedSip(float phase, float rate, bool canSwallow)
@@ -542,28 +564,39 @@ namespace HexLive.UnityPresentation.Wearing
             if (_kneelingAid && _kneelingWorkClips != null && patient != null && patient._laying &&
                 _animator != null && _animator.isHuman && _bodyRoot != null)
             {
-                var side = patient.transform.right;
-                var center = patient.transform.position;
-                var lane = Vector3.Dot(transform.position - center, side);
-                // The feet station is on the body axis. Side stations can put
-                // both knees outside the patient while keeping the hands in reach.
-                if (Mathf.Abs(lane) > .06f)
+                if (_bedsideOutward.sqrMagnitude > .5f)
                 {
-                    side *= Mathf.Sign(lane);
-                    var nearest = Mathf.Min(
-                        Mathf.Min(ProjectAidBone(HumanBodyBones.LeftLowerLeg, center, side),
-                            ProjectAidBone(HumanBodyBones.RightLowerLeg, center, side)),
-                        Mathf.Min(ProjectAidBone(HumanBodyBones.LeftFoot, center, side),
-                            ProjectAidBone(HumanBodyBones.RightFoot, center, side)));
-                    var clearance = HexLive.Simulation.Spatial.HexSpatialMath.HexRadius *
-                        HexLive.Simulation.Runtime.Spec49.LieBodyWidthFactor * .5f + .075f;
-                    desired = side * Mathf.Clamp(clearance - nearest, 0f, .40f);
+                    const float kneeClearance = .075f;
+                    desired = AidKneelClearance(_bedsideEdge, _bedsideOutward, kneeClearance);
+                }
+                else
+                {
+                    var side = patient.transform.right;
+                    var center = patient.transform.position;
+                    var lane = Vector3.Dot(transform.position - center, side);
+                    // At the ground station by the feet, preserve the approach along the body axis.
+                    if (Mathf.Abs(lane) > .06f)
+                    {
+                        var clearance = HexLive.Simulation.Spatial.HexSpatialMath.HexRadius *
+                            HexLive.Simulation.Runtime.Spec49.LieBodyWidthFactor * .5f + .075f;
+                        desired = AidKneelClearance(center, side * Mathf.Sign(lane), clearance);
+                    }
                 }
             }
             _aidKneelOffset = desired.sqrMagnitude > _aidKneelOffset.sqrMagnitude ? desired :
                 Vector3.MoveTowards(_aidKneelOffset, desired, 1.4f * Time.unscaledDeltaTime);
             if (_bodyRoot != null && !_laying && !_ragdollActive)
                 _bodyRoot.position += _aidKneelOffset;
+        }
+
+        private Vector3 AidKneelClearance(Vector3 edge, Vector3 outward, float minimum)
+        {
+            var nearest = Mathf.Min(
+                Mathf.Min(ProjectAidBone(HumanBodyBones.LeftLowerLeg, edge, outward),
+                    ProjectAidBone(HumanBodyBones.RightLowerLeg, edge, outward)),
+                Mathf.Min(ProjectAidBone(HumanBodyBones.LeftFoot, edge, outward),
+                    ProjectAidBone(HumanBodyBones.RightFoot, edge, outward)));
+            return outward * Mathf.Clamp(minimum - nearest, 0f, .40f);
         }
 
         private float ProjectAidBone(HumanBodyBones bone, Vector3 center, Vector3 side)

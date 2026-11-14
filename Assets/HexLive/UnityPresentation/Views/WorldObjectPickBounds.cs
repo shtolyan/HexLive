@@ -84,7 +84,7 @@ public sealed class WorldObjectPickBounds : MonoBehaviour
         return hit;
     }
 
-    private static Bounds TransformBounds(Matrix4x4 matrix, Bounds localBounds)
+    internal static Bounds TransformBounds(Matrix4x4 matrix, Bounds localBounds)
     {
         var center = matrix.MultiplyPoint3x4(localBounds.center);
         var extents = localBounds.extents;

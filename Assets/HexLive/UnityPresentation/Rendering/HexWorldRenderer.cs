@@ -4377,12 +4377,19 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (helper.AidTargetLyingDown && helper.CurrentInteraction is "TreatOther" or "HydrateOther" or "FeedOther")
             {
                 var drinking = helper.CurrentInteraction == "HydrateOther";
+                var ward = snapshot.Npcs.Find(npc => npc.Id.Value == recipientId);
                 BodyPart? zone = helper.AidBandageZone is { } affected ? (BodyPart)affected : null;
                 if (helper.CurrentInteraction != "TreatOther" || zone.HasValue)
+                {
                     feeder.SetLyingAidAction(clips, recipient, phase, rate, helper.InteractionSeconds, drinking, zone);
+                    if (helper.LyingStationSlot < 0 && ward?.CurrentInteraction == "Sleep" &&
+                        TryGetTargetObject(snapshot, ward, out var bed) && ContentIds.IsBed(bed.DefinitionId) &&
+                        _objectViewParts.TryGetValue(bed.Id.Value, out var parts) && parts.ObjectView != null &&
+                        parts.ObjectView.TryGetBounds(parts.ObjectView.transform, out var bedBounds))
+                        feeder.SetBedsideKneel(parts.ObjectView.transform, bedBounds);
+                }
                 if (drinking)
                 {
-                    var ward = snapshot.Npcs.Find(npc => npc.Id.Value == recipientId);
                     recipient.SetSupportedSip(phase, rate, ward != null && !ward.IsUnconscious &&
                         !ward.IsFainted && !ward.IsDying && ward.CurrentInteraction != "Sleep");
                 }

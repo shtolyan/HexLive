@@ -38,6 +38,7 @@ namespace HexLive.UnityPresentation.Wearing
         private bool _kneelingAid;
         private float _supportContact;
         private float _bandageWork;
+        private Vector3 _aidKneelOffset;
         private float _aidSipPhase;
         private float _aidSipRate;
         private float _aidSipSampledAt;
@@ -527,6 +528,41 @@ namespace HexLive.UnityPresentation.Wearing
             if (jaw != null)
                 jaw.rotation = Quaternion.AngleAxis(7f * AidHandContact(phase) * (1f - swallow),
                     _headBone.TransformDirection(right)) * jaw.rotation;
+        }
+
+        private void FitLyingAidKneel()
+        {
+            var patient = _feedingRecipient;
+            var desired = Vector3.zero;
+            var phase = Mathf.Clamp01(_everydayPhase +
+                Mathf.Min(.25f, Time.unscaledTime - _everydaySampledAt) * _everydayRate);
+            if (_kneelingAid && _kneelingWorkClips != null && patient != null && patient._laying &&
+                _animator != null && _animator.isHuman && _bodyRoot != null)
+            {
+                var side = patient.transform.right;
+                var center = patient.transform.position;
+                var lane = Vector3.Dot(transform.position - center, side);
+                // The feet station is on the body axis. Side stations can put
+                // both knees outside the patient while keeping the hands in reach.
+                if (Mathf.Abs(lane) > .06f)
+                {
+                    side *= Mathf.Sign(lane);
+                    var left = _animator.GetBoneTransform(HumanBodyBones.LeftLowerLeg);
+                    var right = _animator.GetBoneTransform(HumanBodyBones.RightLowerLeg);
+                    if (left != null && right != null)
+                    {
+                        var nearestKnee = Mathf.Min(Vector3.Dot(left.position - center, side),
+                            Vector3.Dot(right.position - center, side));
+                        var clearance = HexLive.Simulation.Spatial.HexSpatialMath.HexRadius *
+                            HexLive.Simulation.Runtime.Spec49.LieBodyWidthFactor * .5f + .075f;
+                        var weight = AidEnvelope(phase, 0f, .14f, .88f, 1f);
+                        desired = side * (Mathf.Clamp(clearance - nearestKnee, 0f, .38f) * weight);
+                    }
+                }
+            }
+            _aidKneelOffset = Vector3.MoveTowards(_aidKneelOffset, desired, 1.8f * Time.unscaledDeltaTime);
+            if (_bodyRoot != null && !_laying && !_ragdollActive)
+                _bodyRoot.position += _aidKneelOffset;
         }
 
         private bool DriveBandageHands(IKSolverFullBodyBiped solver, Transform hand,

@@ -8152,6 +8152,7 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         var everydayAction = EvaluateEverydayAction();
+        FitLyingAidKneel();
         ApplySupportedSip();
         // Spec 40.13: while ragdolled (faint/corpse) the bones belong to
         // physics — no procedural pose layer may write over them.

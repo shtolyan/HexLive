@@ -166,11 +166,46 @@ public static class SpatialQueries
         // the hut boundary, or the bed/wardrobe corner in §120). Ownership by
         // the target does not erase the second obstacle: only a junction owned
         // exclusively by the target is transparent to its own rim search.
-        foreach (var other in world.Entities.Objects.Values)
+        return BlockedByAnotherObject(world, junction, junctionId, target);
+    }
+
+    private static readonly (int Q, int R)[] BarrierTileRing =
+    {
+        (0, 0), (1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1)
+    };
+
+    /// <summary>
+    /// Does an object OTHER than <paramref name="target"/> also block this
+    /// junction? Only an object anchored on one of the junction's own tiles or
+    /// their six neighbours can: the widest footprint (a radial bed disc,
+    /// 1.25 wu) is far shorter than the 2.6 wu a whole hex puts between a
+    /// junction and anything two tiles away. This used to walk EVERY object of
+    /// the world for every target-owned junction of every rim search — on the
+    /// live Singapore world (6 278 objects) it was 24% of the whole tick after
+    /// 0.1.123 gave the modern furniture its footprints (spec §158.1).
+    /// </summary>
+    private static bool BlockedByAnotherObject(
+        WorldState world, Junction junction, JunctionId junctionId, WorldObjectState target)
+    {
+        var byTile = world.Caches.ObjectsByTile;
+        foreach (var tile in junction.Tiles)
         {
-            if (!other.Id.Equals(target.Id) && other.BlockedJunctions.Contains(junctionId))
+            foreach (var step in BarrierTileRing)
             {
-                return true;
+                if (!byTile.TryGetValue(new TileCoord(tile.Q + step.Q, tile.R + step.R), out var ids))
+                {
+                    continue;
+                }
+
+                foreach (var id in ids)
+                {
+                    if (!id.Equals(target.Id) &&
+                        world.Entities.Objects.TryGetValue(id, out var other) &&
+                        other.BlockedJunctions.Contains(junctionId))
+                    {
+                        return true;
+                    }
+                }
             }
         }
 

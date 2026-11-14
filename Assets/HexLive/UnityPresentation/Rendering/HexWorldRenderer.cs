@@ -4347,6 +4347,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
         if (npc.CurrentInteraction == "Drink") actorView.SetEverydayDrinking(clip, progress, rate, npc.InteractionSeconds);
         else actorView.SetEverydayAction(clip, progress, rate, npc.InteractionSeconds);
         actorView.SetEverydaySeat(seated);
+        if (active && npc.CurrentInteraction == "Craft" && GearCatalog.For(heldItemId).Has(GearCapability.Hammer) &&
+            TryGetTargetObject(snapshot, npc, out var bench) && bench.DefinitionId == ContentIds.Workbench)
+            actorView.SetWorkbenchTop(GetObjectAnchorPosition(snapshot, bench).y +
+                HexLive.UnityPresentation.Environment.CraftProjectVisual.TableTopY);
         return false;
     }
 

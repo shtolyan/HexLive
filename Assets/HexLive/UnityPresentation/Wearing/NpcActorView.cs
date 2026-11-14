@@ -7833,7 +7833,7 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private bool TryDriveWorkbenchHammerIK(IKSolverFullBodyBiped solver, Transform hand, IKEffector effector)
     {
         var shoulder = _leftHanded ? _lShldr : _rShldr;
-        if (!_hammeringAtWorkbench || _handProp == null || hand == null || shoulder == null ||
+        if (!_hammeringAtWorkbench || _workbenchTop is not { } top || _handProp == null || hand == null || shoulder == null ||
             _laying || _swimming || _ragdollActive || _posture == "Crawl") return false;
 
         var phase = EverydayPhase();
@@ -7857,6 +7857,9 @@ public sealed partial class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var grip = hammer.position + hammer.up * (.053f * scale);
         var swing = Quaternion.AngleAxis(-68f * raised, transform.right);
         var desired = Quaternion.LookRotation(swing * -up, swing * forward);
+        // Leave a little space under the striking face on short bodies.
+        var minimumPalm = top + (.095f + .18f * raised) * scale;
+        palm.y = Mathf.Max(palm.y, minimumPalm);
         var rotation = desired * Quaternion.Inverse(hammer.rotation);
         effector.target = null;
         effector.position = palm - Quaternion.Slerp(Quaternion.identity, rotation, weight) * (grip - hand.position);

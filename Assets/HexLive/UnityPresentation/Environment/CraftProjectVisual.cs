@@ -9,7 +9,7 @@ namespace HexLive.UnityPresentation.Environment
     public sealed class CraftProjectVisual : MonoBehaviour
     {
         // Tools/make_workbench_models.py: top board upper face, not its centre.
-        private const float TableTopY = 0.780f;
+        internal const float TableTopY = 0.780f;
         private const float TableWidth = 0.980f;
         private const float TableDepth = 0.760f;
         private const float StackGap = 0.012f;

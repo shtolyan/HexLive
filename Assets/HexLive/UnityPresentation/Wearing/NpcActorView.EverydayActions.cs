@@ -56,6 +56,7 @@ namespace HexLive.UnityPresentation.Wearing
         private float _sawContact;
         private Vector3? _sawLogTop;
         private bool _hammeringAtWorkbench;
+        private float? _workbenchTop;
         private Transform _toolFingerRig;
         private readonly Transform[,] _toolFingerJoints = new Transform[2, 12];
         private float _everydayWeight;
@@ -350,6 +351,7 @@ namespace HexLive.UnityPresentation.Wearing
         {
             _kneelingWorkClips = null;
             _sawLogTop = null;
+            _workbenchTop = null;
             _feedingRecipient = null;
             _everydayDrinking = false;
             _supportDrinker = false;
@@ -359,6 +361,8 @@ namespace HexLive.UnityPresentation.Wearing
             _requestedEverydayClip = clip;
             SetEverydayClock(phase, rate, duration, weight);
         }
+
+        internal void SetWorkbenchTop(float y) => _workbenchTop = y;
 
         internal void SetEverydayDrinking(AnimationClip clip, float phase, float rate, float duration)
         {
